@@ -116,6 +116,35 @@ bool CegisUnif::constructCandidates(const std::vector<Node>& enums,
           ->toStreamSygus(ss, enum_values[i]);
       Trace("cegis-unif-enum") << ss.str() << std::endl;
     }
+    std::map<Node, std::vector<Node>> unif_enums[2];
+    for (const Node& c : candidates)
+    {
+      for (const Node& e : d_cand_to_strat_pt[c])
+      {
+        for (unsigned index = 0; index < 2; index++)
+        {
+          // get the current unification enumerators
+          d_u_enum_manager.getEnumeratorsForStrategyPt(
+              e, unif_enums[index][e], index);
+          // get the model value of each enumerator
+          if (!unif_enums[index][e].empty())
+          {
+            Trace("cegis-unif-enum")
+                << "  " << (index == 0 ? "Return values" : "Conditions")
+                << " for " << e << ":\n";
+          }
+          for (const Node& eu : unif_enums[index][e])
+          {
+            Node m_eu = d_parent->getModelValue(eu);
+            Trace("cegis-unif-enum") << "    " << eu << " -> ";
+            std::stringstream ss;
+            Printer::getPrinter(options::outputLanguage())
+                ->toStreamSygus(ss, m_eu);
+            Trace("cegis-unif-enum") << ss.str() << std::endl;
+          }
+        }
+      }
+    }
   }
   // evaluate on refinement lemmas
   if (addEvalLemmas(enums, enum_values))
@@ -136,9 +165,6 @@ bool CegisUnif::constructCandidates(const std::vector<Node>& enums,
     {
       for (unsigned index = 0; index < 2; index++)
       {
-        Trace("cegis-unif-enum")
-            << "  " << (index == 0 ? "Return values" : "Conditions") << " for "
-            << e << ":\n";
         // get the current unification enumerators
         d_u_enum_manager.getEnumeratorsForStrategyPt(
             e, unif_enums[index][e], index);
@@ -146,14 +172,6 @@ bool CegisUnif::constructCandidates(const std::vector<Node>& enums,
         for (const Node& eu : unif_enums[index][e])
         {
           Node m_eu = d_parent->getModelValue(eu);
-          if (Trace.isOn("cegis-unif-enum"))
-          {
-            Trace("cegis-unif-enum") << "    " << eu << " -> ";
-            std::stringstream ss;
-            Printer::getPrinter(options::outputLanguage())
-                ->toStreamSygus(ss, m_eu);
-            Trace("cegis-unif-enum") << ss.str() << std::endl;
-          }
           unif_values[index][e].push_back(m_eu);
         }
         // inter-enumerator symmetry breaking
@@ -493,6 +511,24 @@ void CegisUnifEnumManager::incrementNumEnumerators()
                                  << " to strategy point " << ci.second.d_pt
                                  << "\n";
         d_tds->registerEnumerator(e, ci.second.d_pt, d_parent);
+        // if the sygus datatype is interpreted as an infinite type
+        // (this should be the case for almost all examples)
+        TypeNode et = e.getType();
+        if (!et.isInterpretedFinite())
+        {
+          // it is disequal from all previous ones
+          for (const Node& ei : ci.second.d_enums[index])
+          {
+            if (ei == e)
+            {
+              continue;
+            }
+            Node deq = e.eqNode(ei).negate();
+            Trace("cegis-unif-enum-lemma")
+                << "CegisUnifEnum::lemma, enum deq:" << deq << "\n";
+            d_qe->getOutputChannel().lemma(deq);
+          }
+        }
         // TODO symmetry breaking for making
         //   e distinct from ei : (ci.second.d_enums[index] \ {e})
         // if its respective type has had at least

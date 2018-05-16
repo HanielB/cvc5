@@ -96,32 +96,32 @@ bool Cegis::addEvalLemmas(const std::vector<Node>& candidates,
          add the lemmas below as well, in parallel. */
     }
   }
-  Trace("cegqi-engine") << "  *** Do direct evaluation..." << std::endl;
-  std::vector<Node> eager_terms, eager_vals, eager_exps;
-  TermDbSygus* tds = d_qe->getTermDatabaseSygus();
-  for (unsigned i = 0, size = candidates.size(); i < size; ++i)
-  {
-    Trace("cegqi-debug") << "  register " << candidates[i] << " -> "
-                         << candidate_values[i] << std::endl;
-    tds->registerModelValue(candidates[i],
-                            candidate_values[i],
-                            eager_terms,
-                            eager_vals,
-                            eager_exps);
-  }
-  Trace("cegqi-debug") << "...produced " << eager_terms.size()
-                       << " eager evaluation lemmas.\n";
-  for (unsigned i = 0, size = eager_terms.size(); i < size; ++i)
-  {
-    Node lem = nm->mkNode(
-        OR, eager_exps[i].negate(), eager_terms[i].eqNode(eager_vals[i]));
-    if (d_qe->addLemma(lem))
-    {
-      Trace("cegqi-lemma") << "Cegqi::Lemma : evaluation : " << lem
-                           << std::endl;
-      addedEvalLemmas = true;
-    }
-  }
+  // Trace("cegqi-engine") << "  *** Do direct evaluation..." << std::endl;
+  // std::vector<Node> eager_terms, eager_vals, eager_exps;
+  // TermDbSygus* tds = d_qe->getTermDatabaseSygus();
+  // for (unsigned i = 0, size = candidates.size(); i < size; ++i)
+  // {
+  //   Trace("cegqi-debug") << "  register " << candidates[i] << " -> "
+  //                        << candidate_values[i] << std::endl;
+  //   tds->registerModelValue(candidates[i],
+  //                           candidate_values[i],
+  //                           eager_terms,
+  //                           eager_vals,
+  //                           eager_exps);
+  // }
+  // Trace("cegqi-debug") << "...produced " << eager_terms.size()
+  //                      << " eager evaluation lemmas.\n";
+  // for (unsigned i = 0, size = eager_terms.size(); i < size; ++i)
+  // {
+  //   Node lem = nm->mkNode(
+  //       OR, eager_exps[i].negate(), eager_terms[i].eqNode(eager_vals[i]));
+  //   if (d_qe->addLemma(lem))
+  //   {
+  //     Trace("cegqi-lemma") << "Cegqi::Lemma : evaluation : " << lem
+  //                          << std::endl;
+  //     addedEvalLemmas = true;
+  //   }
+  // }
   return addedEvalLemmas;
 }
 
