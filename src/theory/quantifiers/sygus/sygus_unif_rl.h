@@ -229,7 +229,9 @@ class SygusUnifRl : public SygusUnif
      * a set of equivalence classes for f1 would be
      *    {{x, 0, y-1}, {1}}
      */
-    std::vector<std::map<Node, std::vector<Node>>> d_hd_equiv_mvs;
+    std::map<Node, std::map<Node, std::vector<Node>>> d_hd_equiv_mvs;
+    /** the union of the ranges of the above map for each head */
+    std::map<Node, std::vector<Node>> d_hd_mvs;
     /** get condition enumerator */
     Node getConditionEnumerator() const { return d_cond_enum; }
     /** set conditions */
@@ -243,7 +245,7 @@ class SygusUnifRl : public SygusUnif
      * the update is done according to which value the head application
      * evaluates to with the given head value
      */
-    void updateHeadValuePool(unsigned hd_ind, Node hv);
+    void updateHeadValuePool(Node hd, Node hdv);
     /**
      * Conditional enumerator variables corresponding to the condition values in
      * d_conds. These are used for generating separation lemmas during
