@@ -511,14 +511,8 @@ unsigned SygusUnifRl::DecisionTreeInfo::getStrategyIndex() const
   return d_strategy_index;
 }
 
-void SygusUnifRl::DecisionTreeInfo::updateHeadValuePool(Node hd, Node hdv)
+void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
 {
-  // check if value already processed
-  std::vector<Node> values = d_hd_mvs[hd];
-  if (std::find(values.begin(), values.end(), hdv) != values.end())
-  {
-    return;
-  }
   TypeNode tn = hdv.getType();
   Node builtin_hdv = d_unif->d_tds->sygusToBuiltin(hdv, tn);
   // Retrieve evaluation point
@@ -526,13 +520,53 @@ void SygusUnifRl::DecisionTreeInfo::updateHeadValuePool(Node hd, Node hdv)
   std::vector<Node> pt = d_unif->d_hd_to_pt[hd];
   // compute the result
   Node res = d_unif->d_tds->evaluateBuiltin(tn, builtin_hdv, pt);
-  // update hd pool to respective result
+  d_hd_appCurrEval[hd] = res;
+  // add hd to pool of respective result
   Trace("sygus-unif-sol-debug")
       << "...... new pool value: " << hd << " " << pt << " --> "
       << "[" << res << "] = " << d_hd_equiv_mvs[hd][res] << " <+ "
       << builtin_hdv << "\n";
-  d_hd_equiv_mvs[hd][res].push_back(hdv);
-  d_hd_mvs[hd].push_back(hdv);
+  d_hd_equiv_mvs[hd][res].insert(hdv);
+}
+
+void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
+{
+  TypeNode tn = hdv.getType();
+  Node builtin_hdv = d_unif->d_tds->sygusToBuiltin(hdv, tn);
+  // Retrieve evaluation point
+  Assert(d_unif->d_hd_to_pt.find(hd) != d_unif->d_hd_to_pt.end());
+  std::vector<Node> pt = d_unif->d_hd_to_pt[hd];
+  // compute the result
+  Node res = d_unif->d_tds->evaluateBuiltin(tn, builtin_hdv, pt);
+  d_hd_appCurrEval[hd] = res;
+  // add hd to pool of respective result
+  Trace("sygus-unif-sol-debug")
+      << "...... new pool value: " << hd << " " << pt << " --> "
+      << "[" << res << "] = " << d_hd_equiv_mvs[hd][res] << " <+ "
+      << builtin_hdv << "\n";
+  d_hd_equiv_mvs[hd][res].insert(hdv);
+}
+
+Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
+    Node hd, const std::vector<Node>& hds)
+{
+  std::set<Node> merged_pool = d_hd_equiv_mvs[hd][d_hd_appCurrEval[hd]];
+  for (const Node& hdi : hds)
+  {
+    std::set<Node> next_pool;
+    set_intersection(merged_pool.begin(),
+                     merged_pool.end(),
+                     d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].begin(),
+                     d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].end(),
+                     std::inserter(next_pool, next_pool.begin()));
+    merged_pool.clear();
+    merged_pool = next_pool;
+  }
+  if (merged_pool.empty())
+  {
+    return Node::null();
+  }
+  return std::next(merged_pool.begin());
 }
 
 using UNodePair = std::pair<unsigned, Node>;
@@ -629,16 +663,16 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       // add the head to the trie
       e = d_hds[hd_counter];
       Node v = d_unif->d_parent->getModelValue(e);
-      updateHeadValuePool(e, v);
+      addHeadValuePool(e, v);
       hd_mv[e] = v;
       if (Trace.isOn("sygus-unif-sol"))
       {
         std::stringstream ss;
         Printer::getPrinter(options::outputLanguage())
             ->toStreamSygus(ss, hd_mv[e]);
-        Trace("sygus-unif-sol")
-            << "  add evaluation head (" << hd_counter << "/" << d_hds.size()
-            << "): " << e << " -> " << ss.str() << std::endl;
+        Trace("sygus-unif-sol") << "  add evaluation head (" << hd_counter
+                                << "/" << d_hds.size() << "): " << e << " -> "
+                                << ss.str() << std::endl;
       }
       hd_counter++;
       // get the representative of the trie
@@ -650,9 +684,17 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // new separation class, no conflict
         continue;
       }
-      Assert(hd_mv.find(er) != hd_mv.end());
-      if (hd_mv[er] == hd_mv[e])
+      // nodes are mergeable if the intersection of their model value pools is
+      // non-empty
+      Node common_value =
+          mergeHeadValuePools(e, d_pt_sep.d_trie.d_rep_to_class[er]);
+      if (!common_value.isNull())
       {
+        // update model value of all members of separation class
+        for (const Node& e : d_pt_sep.d_trie.d_rep_to_class[er])
+        {
+          hd_mv[e] = common_value;
+        }
         // merged into separation class with same model value, no conflict
         // add to explanation
         // this states that it mattered that (er = e) at the time that e was
@@ -660,12 +702,32 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // but to ensure the overall invariant, this equality must persist in
         // the explanation.
         exp.push_back(er.eqNode(e));
-        Trace("sygus-unif-sol") << "  ...equal model values " << std::endl;
-        Trace("sygus-unif-sol")
-            << "  ...add to explanation " << er.eqNode(e) << std::endl;
+        Trace("sygus-unif-sol") << "  ...compatible model values " << std::endl;
+        Trace("sygus-unif-sol") << "  ...add to explanation " << er.eqNode(e)
+                                << std::endl;
         continue;
       }
     }
+    // nodes are mergeable if the intersection of their model value pools is
+    // non-empty
+    Node common_value =
+        mergeHeadValuePools(e, d_pt_sep.d_trie.d_rep_to_class[er]);
+    if (!common_value.isNull())
+    {
+      // update model value of all members of separation class
+      for (const Node& e : d_pt_sep.d_trie.d_rep_to_class[er])
+      {
+        hd_mv[e] = common_value;
+      }
+      exp.push_back(er.eqNode(e));
+      Trace("sygus-unif-sol")
+          << "  ...compatible model value pools after separation " << std::endl;
+      Trace("sygus-unif-sol") << "  ...add to explanation " << er.eqNode(e)
+                              << std::endl;
+      needs_sep_resolve = false;
+      continue;
+    }
+
     // must include in the explanation that we hit a conflict at this point in
     // the construction
     exp.push_back(e.eqNode(er).negate());
@@ -688,9 +750,9 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     {
       std::stringstream ss;
       Printer::getPrinter(options::outputLanguage())->toStreamSygus(ss, cv);
-      Trace("sygus-unif-sol")
-          << "  add condition (" << c_counter << "/" << d_conds.size()
-          << "): " << ce << " -> " << ss.str() << std::endl;
+      Trace("sygus-unif-sol") << "  add condition (" << c_counter << "/"
+                              << d_conds.size() << "): " << ce << " -> "
+                              << ss.str() << std::endl;
     }
     // cache the separation class
     std::vector<Node> prev_sep_c = d_pt_sep.d_trie.d_rep_to_class[er];
@@ -707,8 +769,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     // then it is separated from all values in prev_sep_c
     if (itr != d_pt_sep.d_trie.d_rep_to_class.end())
     {
-      Trace("sygus-unif-sol")
-          << "  ...resolves separation conflict with all" << std::endl;
+      Trace("sygus-unif-sol") << "  ...resolves separation conflict with all"
+                              << std::endl;
       needs_sep_resolve = false;
       continue;
     }
