@@ -220,6 +220,16 @@ class SygusUnifRl : public SygusUnif
     std::vector<Node> d_conds;
     /** gathered evaluation point heads */
     std::vector<Node> d_hds;
+    /** maps heads to equivalence classes of model values
+     *
+     * model values are deemed equivalent if they lead to the same evaluation on
+     * the respective evaluation point of that head. For example, in the
+     * application
+     *    (eval f1 0 1) >= 0, in which f1 : Int x Int -> Int
+     * a set of equivalence classes for f1 would be
+     *    {{x, 0, y-1}, {1}}
+     */
+    std::vector<std::map<Node, std::vector<Node>>> d_hd_equiv_mvs;
     /** get condition enumerator */
     Node getConditionEnumerator() const { return d_cond_enum; }
     /** set conditions */
@@ -228,6 +238,12 @@ class SygusUnifRl : public SygusUnif
                        const std::vector<Node>& conds);
 
    private:
+    /** updates pool of head values with new value
+     *
+     * the update is done according to which value the head application
+     * evaluates to with the given head value
+     */
+    void updateHeadValuePool(unsigned hd_ind, Node hv);
     /**
      * Conditional enumerator variables corresponding to the condition values in
      * d_conds. These are used for generating separation lemmas during

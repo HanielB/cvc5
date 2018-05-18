@@ -511,6 +511,19 @@ unsigned SygusUnifRl::DecisionTreeInfo::getStrategyIndex() const
   return d_strategy_index;
 }
 
+void SygusUnifRl::DecisionTreeInfo::updateHeadValuePool(Node hd, Node hdv)
+{
+  TypeNode tn = hd_v.getType();
+  Node builtin_hdv = d_unif->d_tds->sygusToBuiltin(hdv, tn);
+  // Retrieve evaluation point
+  Assert(d_unif->d_hd_to_pt.find(hd) != d_unif->d_hd_to_pt.end());
+  std::vector<Node> pt = d_unif->d_hd_to_pt[hd];
+  // compute the result
+  Node res = d_unif->d_tds->evaluateBuiltin(tn, builtin_hdv, pt);
+  // update hd pool to respective result
+  d_hd_equiv_mvs[hd][res].push_back(hdv);
+}
+
 using UNodePair = std::pair<unsigned, Node>;
 
 Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
@@ -604,7 +617,9 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     {
       // add the head to the trie
       e = d_hds[hd_counter];
-      hd_mv[e] = d_unif->d_parent->getModelValue(e);
+      Node v = d_unif->d_parent->getModelValue(e);
+      updateHeadValuePool(e, v);
+      hd_mv[e] = v;
       if (Trace.isOn("sygus-unif-sol"))
       {
         std::stringstream ss;
