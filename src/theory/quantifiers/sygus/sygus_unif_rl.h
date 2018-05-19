@@ -249,6 +249,19 @@ class SygusUnifRl : public SygusUnif
      * evaluates to with the given head value
      */
     void addHeadValuePool(Node hd, Node hdv);
+    /** merge the value pools of hd each node in hds
+     *
+     * The pools are merged by computing the intersection of all the head value
+     * pools
+     *
+     * The function returns an element of the resulting pool if there is any,
+     * otherwise returning Node::null()
+     *
+     * The explanation is update accordingly
+     */
+    Node mergeHeadValuePools(Node hd,
+                             const std::vector<Node>& hds,
+                             std::vector<Node>& exp);
     /**
      * Conditional enumerator variables corresponding to the condition values in
      * d_conds. These are used for generating separation lemmas during
