@@ -265,6 +265,19 @@ class SygusUnifRl : public SygusUnif
                              const std::vector<Node>& hds,
                              std::vector<Node>& exp);
     /**
+     * creates a (dis)equality of evaluation applications of the given heads on
+     * the given point
+     *
+     * if the equal flag is set to false then creates a disequality rather than
+     * an equality
+     */
+    Node makeEvalExp(Node e1,
+                     Node e2,
+                     const std::vector<Node>& pt,
+                     bool equal = true);
+    /** evaluation function of the function type */
+    Node d_eval;
+    /**
      * Conditional enumerator variables corresponding to the condition values in
      * d_conds. These are used for generating separation lemmas during
      * buildSol. This is set by setConditions(...).

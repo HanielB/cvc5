@@ -488,6 +488,10 @@ void SygusUnifRl::DecisionTreeInfo::initialize(Node cond_enum,
   // Retrieve template
   EnumInfo& eiv = d_strategy->getEnumInfo(d_cond_enum);
   d_template = NodePair(eiv.d_template, eiv.d_template_arg);
+  // Retrieve evaluation function
+  TypeNode etn = d_strategy->getRootEnumerator().getType();
+  const Datatype& dt = static_cast<DatatypeType>(etn.toType()).getDatatype();
+  d_eval = Node::fromExpr(dt.getSygusEvaluationFunc());
   // Initialize classifier
   d_pt_sep.initialize(this);
 }
@@ -569,11 +573,34 @@ Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
     {
       Trace("sygus-unif-sol-debug") << "  ......couldn't merge " << hd
                                     << " with " << hdi << "\n";
-      exp.push_back(hd.eqNode(hdi).negate());
+      exp.push_back(makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], false));
       return Node::null();
     }
   }
   return *merged_pool.begin();
+}
+
+Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
+                                                Node e2,
+                                                const std::vector<Node>& pt,
+                                                bool equal)
+{
+  NodeManager* nm = NodeManager::currentNM();
+  Node ev_e1, ev_e2, eq;
+  std::vector<Node> e1_children, e2_children;
+  // build (ev e1 pt_er)
+  e1_children.push_back(d_eval);
+  e1_children.push_back(e1);
+  e1_children.insert(e1_children.end(), pt.begin(), pt.end());
+  ev_e1 = nm->mkNode(APPLY_UF, e1_children);
+  // build (ev e pt_er)
+  e2_children.push_back(d_eval);
+  e2_children.push_back(e2);
+  e2_children.insert(e2_children.end(), pt.begin(), pt.end());
+  ev_e2 = nm->mkNode(APPLY_UF, e2_children);
+  // create equality
+  eq = nm->mkNode(EQUAL, ev_e1, ev_e2);
+  return equal ? eq : eq.negate();
 }
 
 using UNodePair = std::pair<unsigned, Node>;
@@ -699,10 +726,11 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // added to the trie. Notice that er and e may become separated later,
         // but to ensure the overall invariant, this equality must persist in
         // the explanation.
-        exp.push_back(er.eqNode(e));
+
+        // e = er is a sufficient condition for (ev er pt_er) = (ev e pt_er)
+        exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er]));
         Trace("sygus-unif-sol") << "  ...same model values " << std::endl;
-        Trace("sygus-unif-sol") << "  ...add to explanation " << er.eqNode(e)
-                                << std::endl;
+        Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back() << "\n";
         continue;
       }
     }
@@ -720,12 +748,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     {
       // add to explanation equalities of repaired heads and their original
       // model values
-      // c_exp is a conjunction of testers applied to shared selector chains
-      exp.push_back(
-          d_unif->d_tds->getExplain()->getExplanationForEquality(e, hd_mv[e]));
-      exp.push_back(d_unif->d_tds->getExplain()->getExplanationForEquality(
-          er, hd_mv[er]));
-
+      exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er]));
       // update model value of all members of separation class
       for (const Node& e : d_pt_sep.d_trie.d_rep_to_class[er])
       {
@@ -733,7 +756,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       }
       Trace("sygus-unif-sol") << "  ...compatible model value pools after "
                                  "separation\n...add to explanation "
-                              << er.eqNode(e) << std::endl;
+                              << exp.back() << std::endl;
       needs_sep_resolve = exp_conflict = false;
       continue;
     }
