@@ -243,6 +243,8 @@ class SygusUnifRl : public SygusUnif
      * appears on its current model value
      */
     std::map<Node, Node> d_hd_appCurrEval;
+    /** all enumerated model values for heads */
+    std::set<Node> d_hd_mvs;
     /** adds new value to hd's pool of head values
      *
      * the update is done according to which value the head application

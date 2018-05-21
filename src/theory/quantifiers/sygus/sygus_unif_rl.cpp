@@ -513,20 +513,28 @@ unsigned SygusUnifRl::DecisionTreeInfo::getStrategyIndex() const
 
 void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
 {
-  TypeNode tn = hdv.getType();
+  TypeNode tn = hd.getType();
   Node builtin_hdv = d_unif->d_tds->sygusToBuiltin(hdv, tn);
-  // Retrieve evaluation point
-  Assert(d_unif->d_hd_to_pt.find(hd) != d_unif->d_hd_to_pt.end());
-  std::vector<Node> pt = d_unif->d_hd_to_pt[hd];
-  // compute the result
-  Node res = d_unif->d_tds->evaluateBuiltin(tn, builtin_hdv, pt);
-  d_hd_appCurrEval[hd] = res;
-  // add hd to pool of respective result
-  Trace("sygus-unif-sol-debug")
-      << "...... new pool value: " << hd << " " << pt << " --> "
-      << "[" << res << "] = " << d_hd_equiv_mvs[hd][res] << " <+ "
-      << builtin_hdv << "\n";
-  d_hd_equiv_mvs[hd][res].insert(hdv);
+  // compute the result hdv on hd's point
+  d_hd_appCurrEval[hd] =
+      d_unif->d_tds->evaluateBuiltin(tn, builtin_hdv, d_unif->d_hd_to_pt[hd]);
+  // if new value, add to hd's pool and all other hd pools
+  if (d_hd_mvs.find(hdv) != d_hd_mvs.end())
+  {
+    return;
+  }
+  // add value to each head of type tn, including input hd
+  for (const Node& hdi : d_hds)
+  {
+    Node res = d_unif->d_tds->evaluateBuiltin(
+        tn, builtin_hdv, d_unif->d_hd_to_pt[hdi]);
+    Trace("sygus-unif-sol-debug") << "...... new pool value: " << hdi << " "
+                                  << d_unif->d_hd_to_pt[hdi] << " --> "
+                                  << "[" << res
+                                  << "] = " << d_hd_equiv_mvs[hd][res] << " <+ "
+                                  << builtin_hdv << "\n";
+    d_hd_equiv_mvs[hd][res].insert(hdv);
+  }
 }
 
 Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
