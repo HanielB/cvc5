@@ -523,17 +523,27 @@ void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
   {
     return;
   }
+  d_hd_mvs.insert(hdv);
   // add value to each head of type tn, including input hd
+  Trace("sygus-unif-sol-debug") << "  ...new pool value: " << builtin_hdv
+                                << "\n";
   for (const Node& hdi : d_hds)
   {
     Node res = d_unif->d_tds->evaluateBuiltin(
         tn, builtin_hdv, d_unif->d_hd_to_pt[hdi]);
-    Trace("sygus-unif-sol-debug") << "...... new pool value: " << hdi << " "
-                                  << d_unif->d_hd_to_pt[hdi] << " --> "
-                                  << "[" << res
-                                  << "] = " << d_hd_equiv_mvs[hd][res] << " <+ "
-                                  << builtin_hdv << "\n";
-    d_hd_equiv_mvs[hd][res].insert(hdv);
+    if (Trace.isOn("sygus-unif-sol-debug"))
+    {
+      Trace("sygus-unif-sol-debug") << "  ......" << hdi
+                                    << d_unif->d_hd_to_pt[hdi] << " --> "
+                                    << "[" << res << "] = [";
+      for (const Node& v : d_hd_equiv_mvs[hdi][res])
+      {
+        Trace("sygus-unif-sol-debug") << " "
+                                      << d_unif->d_tds->sygusToBuiltin(v, tn);
+      }
+      Trace("sygus-unif-sol-debug") << " ] <+ " << builtin_hdv << "\n";
+    }
+    d_hd_equiv_mvs[hdi][res].insert(hdv);
   }
 }
 
@@ -549,7 +559,7 @@ Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
                      d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].begin(),
                      d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].end(),
                      std::inserter(next_pool, next_pool.begin()));
-    Trace("sygus-unif-sol-debug")
+    Trace("sygus-unif-sol-debug2")
         << "...... to merge : " << merged_pool << "\n...... with\n...... "
         << d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]]
         << "\n...... yields\n...... " << next_pool << "\n";
@@ -557,6 +567,8 @@ Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
     merged_pool = next_pool;
     if (merged_pool.empty())
     {
+      Trace("sygus-unif-sol-debug") << "  ......couldn't merge " << hd
+                                    << " with " << hdi << "\n";
       exp.push_back(hd.eqNode(hdi).negate());
       return Node::null();
     }
