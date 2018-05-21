@@ -581,9 +581,13 @@ Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
     merged_pool = next_pool;
     if (merged_pool.empty())
     {
+      exp.push_back(makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], false));
       Trace("sygus-unif-sol-debug") << "  ......couldn't merge " << hd
                                     << " with " << hdi << "\n";
-      exp.push_back(makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], false));
+      Trace("sygus-unif-sol-debug") << "  ...add to explanation " << exp.back()
+                                    << "\n";
+      AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
+                   == NodeManager::currentNM()->mkConst(true));
       return Node::null();
     }
   }
@@ -740,7 +744,10 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // e = er is a sufficient condition for (ev er pt_er) = (ev e pt_er)
         exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er]));
         Trace("sygus-unif-sol") << "  ...same model values " << std::endl;
-        Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back() << "\n";
+        Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back()
+                                << "\n";
+        AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
+                     == nm->mkConst(true));
         continue;
       }
     }
@@ -758,7 +765,9 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     {
       // add to explanation equalities of repaired heads and their original
       // model values
+
       exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er]));
+
       // update model value of all members of separation class
       for (const Node& e : d_pt_sep.d_trie.d_rep_to_class[er])
       {
@@ -767,6 +776,9 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       Trace("sygus-unif-sol") << "  ...compatible model value pools after "
                                  "separation\n...add to explanation "
                               << exp.back() << std::endl;
+      AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
+                   == nm->mkConst(true));
+
       needs_sep_resolve = exp_conflict = false;
       continue;
     }
@@ -803,6 +815,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     // c_exp is a conjunction of testers applied to shared selector chains
     Node c_exp = d_unif->d_tds->getExplain()->getExplanationForEquality(ce, cv);
     exp.push_back(c_exp);
+    AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
+                 == nm->mkConst(true));
     std::map<Node, std::vector<Node>>::iterator itr =
         d_pt_sep.d_trie.d_rep_to_class.find(e);
     // since e is last in its separation class, if it becomes a representative,
