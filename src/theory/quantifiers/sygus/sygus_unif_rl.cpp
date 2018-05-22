@@ -562,7 +562,10 @@ void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
 }
 
 Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
-    Node hd, const std::vector<Node>& hds, std::vector<Node>& exp)
+    Node hd,
+    const std::vector<Node>& hds,
+    std::vector<Node>& exp,
+    std::vector<Node>& lemmas)
 {
   std::set<Node> merged_pool = d_hd_equiv_mvs[hd][d_hd_appCurrEval[hd]];
   for (const Node& hdi : hds)
@@ -581,39 +584,79 @@ Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
     merged_pool = next_pool;
     if (merged_pool.empty())
     {
-      exp.push_back(makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], false));
+      exp.push_back(
+          makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], lemmas, false));
       Trace("sygus-unif-sol-debug") << "  ......couldn't merge " << hd
                                     << " with " << hdi << "\n";
       Trace("sygus-unif-sol-debug") << "  ...add to explanation " << exp.back()
                                     << "\n";
-      AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
-                   == NodeManager::currentNM()->mkConst(true));
       return Node::null();
     }
   }
+  // add to explanation equalities of repaired heads and their original
+  // model values
+  exp.push_back(makeEvalExp(hds[0], hd, d_unif->d_hd_to_pt[hds[0]], lemmas));
+  Trace("sygus-unif-sol") << "  ...common value "
+                          << d_unif->d_tds->sygusToBuiltin(
+                                 *merged_pool.begin(),
+                                 merged_pool.begin()->getType())
+                          << "\n  ...add to explanation " << exp.back() << "\n";
   return *merged_pool.begin();
 }
 
 Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
                                                 Node e2,
-                                                const std::vector<Node>& pt,
+                                                const std::vector<Node>& pt_e1,
+                                                std::vector<Node>& lemmas,
                                                 bool equal)
 {
   NodeManager* nm = NodeManager::currentNM();
-  Node ev_e1, ev_e2, eq;
-  std::vector<Node> e1_children, e2_children;
-  // build (ev e1 pt_er)
+  // build (ev e1 pt_e1)
+  Node ev_e1;
+  std::vector<Node> e1_children;
   e1_children.push_back(d_eval);
   e1_children.push_back(e1);
-  e1_children.insert(e1_children.end(), pt.begin(), pt.end());
+  e1_children.insert(e1_children.end(), pt_e1.begin(), pt_e1.end());
   ev_e1 = nm->mkNode(APPLY_UF, e1_children);
-  // build (ev e pt_er)
+  // build (ev e2 pt_e1)
+  Node ev_e2;
+  std::vector<Node> e2_children;
   e2_children.push_back(d_eval);
   e2_children.push_back(e2);
-  e2_children.insert(e2_children.end(), pt.begin(), pt.end());
+  e2_children.insert(e2_children.end(), pt_e1.begin(), pt_e1.end());
   ev_e2 = nm->mkNode(APPLY_UF, e2_children);
+  // when creating equalities, add unfolding lemmas to new evaluation point
+  // based on e2's equivalent values modulo return value
+  if (equal)
+  {
+    Node adhoc_ev_eq = nm->mkNode(EQUAL, ev_e2, d_hd_appCurrEval[e1]);
+    for (const Node& e2_mv : d_hd_equiv_mvs[e2][d_hd_appCurrEval[e2]])
+    {
+      Node exp =
+          d_unif->d_tds->getExplain()->getExplanationForEquality(e2, e2_mv);
+      Node unfold_lemma = nm->mkNode(OR, exp.negate(), adhoc_ev_eq);
+      // TODO improve this
+      // if fresh lemma, add it
+      if (d_adhoc_unfolding_lemmas.find(unfold_lemma)
+          == d_adhoc_unfolding_lemmas.end())
+      {
+        d_adhoc_unfolding_lemmas.insert(unfold_lemma);
+        lemmas.push_back(unfold_lemma);
+        Trace("sygus-unif-sol-debug")
+            << "......adhoc unfolding lemma: "
+            << nm->mkNode(OR,
+                          nm->mkNode(EQUAL,
+                                     e2,
+                                     d_unif->d_tds->sygusToBuiltin(
+                                         e2_mv, e2_mv.getType()))
+                              .negate(),
+                          adhoc_ev_eq)
+            << "\n";
+      }
+    }
+  }
   // create equality
-  eq = nm->mkNode(EQUAL, ev_e1, ev_e2);
+  Node eq = nm->mkNode(EQUAL, ev_e1, ev_e2);
   return equal ? eq : eq.negate();
 }
 
@@ -742,12 +785,10 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // the explanation.
 
         // e = er is a sufficient condition for (ev er pt_er) = (ev e pt_er)
-        exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er]));
+        exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], lemmas));
         Trace("sygus-unif-sol") << "  ...same model values " << std::endl;
         Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back()
                                 << "\n";
-        AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
-                     == nm->mkConst(true));
         continue;
       }
     }
@@ -760,25 +801,14 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     // disequality between the new element and the respective element of the
     // separation class that it was incompatible with the construction
     Node common_value =
-        mergeHeadValuePools(e, d_pt_sep.d_trie.d_rep_to_class[er], exp);
+      mergeHeadValuePools(e, d_pt_sep.d_trie.d_rep_to_class[er], exp, lemmas);
     if (!common_value.isNull())
     {
-      // add to explanation equalities of repaired heads and their original
-      // model values
-
-      exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er]));
-
       // update model value of all members of separation class
       for (const Node& e : d_pt_sep.d_trie.d_rep_to_class[er])
       {
         hd_mv[e] = common_value;
       }
-      Trace("sygus-unif-sol")
-          << "  ...common value "
-          << d_unif->d_tds->sygusToBuiltin(common_value, common_value.getType())
-          << "\n  ...add to explanation " << exp.back() << "\n";
-      AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
-                   == nm->mkConst(true));
       needs_sep_resolve = exp_conflict = false;
       continue;
     }

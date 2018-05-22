@@ -263,7 +263,8 @@ class SygusUnifRl : public SygusUnif
      */
     Node mergeHeadValuePools(Node hd,
                              const std::vector<Node>& hds,
-                             std::vector<Node>& exp);
+                             std::vector<Node>& exp,
+                             std::vector<Node>& lemmas);
     /**
      * creates a (dis)equality of evaluation applications of the given heads on
      * the given point
@@ -273,8 +274,11 @@ class SygusUnifRl : public SygusUnif
      */
     Node makeEvalExp(Node e1,
                      Node e2,
-                     const std::vector<Node>& pt,
+                     const std::vector<Node>& pt_e1,
+                     std::vector<Node>& lemmas,
                      bool equal = true);
+    /** lemmas for unfolding evaluation functions on "repair" applications */
+    std::set<Node> d_adhoc_unfolding_lemmas;
     /** evaluation function of the function type */
     Node d_eval;
     /**

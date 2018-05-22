@@ -233,8 +233,8 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   {
     Trace("cegis-unif") << "CegisUnif::lemma, separation lemma : " << lem
                         << "\n";
-    AlwaysAssert(Rewriter::rewrite(d_parent->getModelValue(lem))
-                 != nm->mkConst(true));
+    // AlwaysAssert(Rewriter::rewrite(d_parent->getModelValue(lem))
+    //              != nm->mkConst(true));
     d_qe->getOutputChannel().lemma(lem);
   }
   return false;
