@@ -773,12 +773,12 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       {
         hd_mv[e] = common_value;
       }
-      Trace("sygus-unif-sol") << "  ...compatible model value pools after "
-                                 "separation\n...add to explanation "
-                              << exp.back() << std::endl;
+      Trace("sygus-unif-sol")
+          << "  ...common value "
+          << d_unif->d_tds->sygusToBuiltin(common_value, common_value.getType())
+          << "\n  ...add to explanation " << exp.back() << "\n";
       AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
                    == nm->mkConst(true));
-
       needs_sep_resolve = exp_conflict = false;
       continue;
     }
