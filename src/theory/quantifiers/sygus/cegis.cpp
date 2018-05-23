@@ -196,6 +196,7 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
       Assert(candidates.size() == fail_cvs.size());
       if (src->repairSolution(candidates, fail_cvs, candidate_values))
       {
+        throw LogicException("Successfully repaired candidate solution.");
         return true;
       }
       // repair solution didn't work, exclude this solution
