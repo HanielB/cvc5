@@ -740,7 +740,9 @@ bool SygusSymBreakNew::registerSearchValue( Node a, Node n, Node nv, unsigned d,
     quantifiers::CegConjecture* aconj = d_anchor_to_conj[a];
     Assert(aconj != NULL);
     Trace("sygus-sb-debug") << "  ...register search value " << nv << ", type=" << tn << std::endl;
-    Node bv = d_tds->sygusToBuiltin( nv, tn );
+    Node rv = d_tds->reify(nv, tn);
+    Trace("sygus-sb-debug") << "  ......reified is " << rv << std::endl;
+    Node bv = d_tds->sygusToBuiltin(rv, tn);
     Trace("sygus-sb-debug") << "  ......builtin is " << bv << std::endl;
     Node bvr = d_tds->getExtRewriter()->extendedRewrite(bv);
     Trace("sygus-sb-debug") << "  ......rewrites to " << bvr << std::endl;

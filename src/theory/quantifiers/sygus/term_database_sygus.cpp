@@ -188,6 +188,72 @@ Node TermDbSygus::mkGeneric(const Datatype& dt, int c)
   return mkGeneric(dt, c, pre);
 }
 
+struct ReifyAttributeId
+{
+};
+using ReifyAttribute = expr::Attribute<ReifyAttributeId, Node>;
+
+Node TermDbSygus::reify(Node n, TypeNode tn)
+{
+  std::map<TypeNode, int> var_count;
+  return reify(n, tn, var_count);
+}
+
+Node TermDbSygus::reify(Node n, TypeNode tn, std::map<TypeNode, int>& var_count)
+{
+  // has it already been computed?
+  if (var_count.empty() && n.hasAttribute(ReifyAttribute()))
+  {
+    return n.getAttribute(ReifyAttribute());
+  }
+  Trace("sygus-db-reify") << "Reify : compute for " << n << ", type = " << tn
+                          << std::endl;
+  if (n.getKind() != APPLY_CONSTRUCTOR)
+  {
+    return n;
+  }
+  const Datatype& dt = static_cast<DatatypeType>(tn.toType()).getDatatype();
+  bool var_count_empty = var_count.empty();
+  unsigned i = Datatype::indexOf(n.getOperator().toExpr());
+  Assert(n.getNumChildren() == dt[i].getNumArgs());
+  bool childChanged = false;
+  std::vector<Node> children;
+  children.push_back(n.getOperator());
+  for (unsigned j = 0, size = n.getNumChildren(); j < size; ++j)
+  {
+    Node child;
+    // if the child is a symbolic constructor, create a free variable
+    if (isSymbolicConsApp(n[j]))
+    {
+      child = getFreeVarInc(tn, var_count);
+    }
+    else
+    {
+      Trace("sygus-db-reify") << "...not symb const : " << n[j] << std::endl;
+      child = reify(n[j], TypeNode::fromType(dt[i].getArgType(j)), var_count);
+    }
+    children.push_back(child);
+    childChanged = childChanged || child != n[j];
+  }
+  Node ret = n;
+  if (childChanged)
+  {
+    ret = NodeManager::currentNM()->mkNode(APPLY_CONSTRUCTOR, children);
+    Trace("sygus-db-reify") << "Reify : Normalized " << n << " to " << ret
+                            << std::endl;
+  }
+  else if (isSymbolicConsApp(n))
+  {
+    ret = getFreeVarInc(tn, var_count);
+  }
+  // cache if we had a fresh variable count
+  if (var_count_empty)
+  {
+    n.setAttribute(ReifyAttribute(), ret);
+  }
+  return ret;
+}
+
 struct SygusToBuiltinAttributeId
 {
 };
@@ -195,19 +261,11 @@ typedef expr::Attribute<SygusToBuiltinAttributeId, Node>
     SygusToBuiltinAttribute;
 
 Node TermDbSygus::sygusToBuiltin( Node n, TypeNode tn ) {
-  std::map<TypeNode, int> var_count;
-  return sygusToBuiltin(n, tn, var_count);
-}
-
-Node TermDbSygus::sygusToBuiltin(Node n,
-                                 TypeNode tn,
-                                 std::map<TypeNode, int>& var_count)
-{
   Assert( n.getType()==tn );
   Assert( tn.isDatatype() );
 
   // has it already been computed?
-  if (var_count.empty() && n.hasAttribute(SygusToBuiltinAttribute()))
+  if (n.hasAttribute(SygusToBuiltinAttribute()))
   {
     return n.getAttribute(SygusToBuiltinAttribute());
   }
@@ -216,27 +274,17 @@ Node TermDbSygus::sygusToBuiltin(Node n,
   const Datatype& dt = static_cast<DatatypeType>(tn.toType()).getDatatype();
   if (n.getKind() == APPLY_CONSTRUCTOR)
   {
-    bool var_count_empty = var_count.empty();
     unsigned i = Datatype::indexOf(n.getOperator().toExpr());
     Assert(n.getNumChildren() == dt[i].getNumArgs());
     std::map<int, Node> pre;
     for (unsigned j = 0, size = n.getNumChildren(); j < size; j++)
     {
-      // if the child is a symbolic constructor, do not include it
-      if (!isSymbolicConsApp(n[j]))
-      {
-        pre[j] = sygusToBuiltin(
-            n[j], TypeNode::fromType(dt[i].getArgType(j)), var_count);
-      }
+      pre[j] = sygusToBuiltin(n[j], TypeNode::fromType(dt[i].getArgType(j)));
     }
-    Node ret = mkGeneric(dt, i, var_count, pre);
+    Node ret = mkGeneric(dt, i, pre);
     Trace("sygus-db-debug")
         << "SygusToBuiltin : Generic is " << ret << std::endl;
-    // cache if we had a fresh variable count
-    if (var_count_empty)
-    {
-      n.setAttribute(SygusToBuiltinAttribute(), ret);
-    }
+    n.setAttribute(SygusToBuiltinAttribute(), ret);
     return ret;
   }
   if (n.hasAttribute(SygusPrintProxyAttribute()))
