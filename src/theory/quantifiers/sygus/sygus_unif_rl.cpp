@@ -284,7 +284,10 @@ Node SygusUnifRl::addRefLemma(Node lemma,
 }
 
 void SygusUnifRl::initializeConstructSol() {}
-void SygusUnifRl::initializeConstructSolFor(Node f) {}
+void SygusUnifRl::initializeConstructSolFor(Node f)
+{
+  d_exp_index_backtrack = -1;
+}
 bool SygusUnifRl::constructSolution(std::vector<Node>& sols,
                                     std::vector<Node>& lemmas)
 {
@@ -512,6 +515,11 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
   // set new condition values
   d_enums.insert(d_enums.end(), enums.begin(), enums.end());
   d_conds.insert(d_conds.end(), conds.begin(), conds.end());
+  // add to condition pool
+  if (options::sygusUnifCondPool())
+  {
+    d_cond_mvs.insert(d_cond_mvs.end(), conds.begin(), conds.end());
+  }
 }
 
 unsigned SygusUnifRl::DecisionTreeInfo::getStrategyIndex() const
@@ -519,144 +527,6 @@ unsigned SygusUnifRl::DecisionTreeInfo::getStrategyIndex() const
   return d_strategy_index;
 }
 
-void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
-{
-  if (!options::sygusUnifRetPool())
-  {
-    return;
-  }
-  TypeNode tn = hd.getType();
-  Node builtin_hdv = d_unif->d_tds->sygusToBuiltin(hdv, tn);
-  // compute the result hdv on hd's point
-  d_hd_appCurrEval[hd] =
-      d_unif->d_tds->evaluateBuiltin(tn, builtin_hdv, d_unif->d_hd_to_pt[hd]);
-  // if new value, add to hd's pool and all other hd pools
-  if (d_hd_mvs.find(hdv) != d_hd_mvs.end())
-  {
-    return;
-  }
-  d_hd_mvs.insert(hdv);
-  // add value to each head of type tn, including input hd
-  Trace("sygus-unif-sol-debug") << "  ...new pool value: " << builtin_hdv
-                                << "\n";
-  for (const Node& hdi : d_hds)
-  {
-    Node res = d_unif->d_tds->evaluateBuiltin(
-        tn, builtin_hdv, d_unif->d_hd_to_pt[hdi]);
-    if (Trace.isOn("sygus-unif-sol-debug"))
-    {
-      Trace("sygus-unif-sol-debug") << "  ......" << hdi
-                                    << d_unif->d_hd_to_pt[hdi] << " --> "
-                                    << "[" << res << "] = [";
-      for (const Node& v : d_hd_equiv_mvs[hdi][res])
-      {
-        Trace("sygus-unif-sol-debug") << " "
-                                      << d_unif->d_tds->sygusToBuiltin(v, tn);
-      }
-      Trace("sygus-unif-sol-debug") << " ] <+ " << builtin_hdv << "\n";
-    }
-    d_hd_equiv_mvs[hdi][res].insert(hdv);
-  }
-}
-
-Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
-    Node hd,
-    const std::vector<Node>& hds,
-    std::vector<Node>& exp,
-    std::vector<Node>& lemmas)
-{
-  std::set<Node> merged_pool = d_hd_equiv_mvs[hd][d_hd_appCurrEval[hd]];
-  for (const Node& hdi : hds)
-  {
-    std::set<Node> next_pool;
-    set_intersection(merged_pool.begin(),
-                     merged_pool.end(),
-                     d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].begin(),
-                     d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].end(),
-                     std::inserter(next_pool, next_pool.begin()));
-    Trace("sygus-unif-sol-debug2")
-        << "...... to merge : " << merged_pool << "\n...... with\n...... "
-        << d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]]
-        << "\n...... yields\n...... " << next_pool << "\n";
-    merged_pool.clear();
-    merged_pool = next_pool;
-    if (merged_pool.empty())
-    {
-      exp.push_back(
-          makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], lemmas, false));
-      Trace("sygus-unif-sol-debug") << "  ......couldn't merge " << hd
-                                    << " with " << hdi << "\n";
-      Trace("sygus-unif-sol-debug") << "  ...add to explanation " << exp.back()
-                                    << "\n";
-      return Node::null();
-    }
-  }
-  // add to explanation equalities of repaired heads and their original
-  // model values
-  exp.push_back(makeEvalExp(hds[0], hd, d_unif->d_hd_to_pt[hds[0]], lemmas));
-  Trace("sygus-unif-sol") << "  ...common value "
-                          << d_unif->d_tds->sygusToBuiltin(
-                                 *merged_pool.begin(),
-                                 merged_pool.begin()->getType())
-                          << "\n  ...add to explanation " << exp.back() << "\n";
-  return *merged_pool.begin();
-}
-
-Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
-                                                Node e2,
-                                                const std::vector<Node>& pt_e1,
-                                                std::vector<Node>& lemmas,
-                                                bool equal)
-{
-  NodeManager* nm = NodeManager::currentNM();
-  // build (ev e1 pt_e1)
-  Node ev_e1;
-  std::vector<Node> e1_children;
-  e1_children.push_back(e1);
-  e1_children.insert(e1_children.end(), pt_e1.begin(), pt_e1.end());
-  ev_e1 = datatypes::DatatypesRewriter::mkSygusEvalApp(e1_children);
-  // build (ev e2 pt_e1)
-  Node ev_e2;
-  std::vector<Node> e2_children;
-  e2_children.push_back(e2);
-  e2_children.insert(e2_children.end(), pt_e1.begin(), pt_e1.end());
-  ev_e2 = datatypes::DatatypesRewriter::mkSygusEvalApp(e2_children);
-  // when creating equalities, add unfolding lemmas to new evaluation point
-  // based on e2's equivalent values modulo return value
-  if (equal)
-  {
-    Node adhoc_ev_eq = nm->mkNode(EQUAL, ev_e2, d_hd_appCurrEval[e1]);
-    for (const Node& e2_mv : d_hd_equiv_mvs[e2][d_hd_appCurrEval[e2]])
-    {
-      Node exp =
-          d_unif->d_tds->getExplain()->getExplanationForEquality(e2, e2_mv);
-      Node unfold_lemma = nm->mkNode(OR, exp.negate(), adhoc_ev_eq);
-      // TODO improve this
-      // if fresh lemma, add it
-      if (d_adhoc_unfolding_lemmas.find(unfold_lemma)
-          == d_adhoc_unfolding_lemmas.end())
-      {
-        d_adhoc_unfolding_lemmas.insert(unfold_lemma);
-        lemmas.push_back(unfold_lemma);
-        Trace("sygus-unif-sol-debug")
-            << "......adhoc unfolding lemma: "
-            << nm->mkNode(OR,
-                          nm->mkNode(EQUAL,
-                                     e2,
-                                     d_unif->d_tds->sygusToBuiltin(
-                                         e2_mv, e2_mv.getType()))
-                              .negate(),
-                          adhoc_ev_eq)
-            << "\n";
-      }
-    }
-  }
-  // create equality
-  Node eq = nm->mkNode(EQUAL, ev_e1, ev_e2);
-  return equal ? eq : eq.negate();
-}
-
-using UNodePair = std::pair<unsigned, Node>;
 
 Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
                                              std::vector<Node>& lemmas)
@@ -850,6 +720,20 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     }
     cv = repairConditionToSeparate(ce, cv,e,er);
     d_conds[c_counter] = cv;
+    // if repaired condition still does not separate heads, try condition pool
+    if (options::sygusUnifCondPool()
+        && pt_sep->evaluate(er, c_counter) == pt_sep->evaluate(e, c_counter)
+        && pickCondToSeparate(c_counter, e, er))
+    {
+      Assert(d_conds[c_counter] != cv);
+      // set the index if not already set
+      if (d_exp_index_backtrack == -1)
+      {
+        // set to index of the condition enum being equal to the respectively
+        // failed model value, to be computed below in c_exp
+        d_exp_index_backtrack = exp.size();
+      }
+    }
     // cache the separation class
     std::vector<Node> prev_sep_c = d_pt_sep.d_trie.d_rep_to_class[er];
     // add new classifier
@@ -1060,6 +944,163 @@ Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate( Node ce, Node cv,
   }
   return cv;
 }
+
+bool SygusUnifRl::DecisionTreeInfo::pickCondToSeparate(unsigned c_counter,
+                                                       Node e1,
+                                                       Node e2)
+{
+  for (const Node& cond : d_cond_mvs)
+  {
+    // save enumerated value
+    Node cv = d_conds[c_counter];
+    d_conds[c_counter] = cond;
+    if (pt_sep->evaluate(e1, c_counter) != pt_sep->evaluate(e2, c_counter))
+    {
+      return true;
+    }
+    // reset to enumerated value
+    d_conds[c_counter] = cv;
+  }
+  return false;
+}
+
+void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
+{
+  if (!options::sygusUnifRetPool())
+  {
+    return;
+  }
+  TypeNode tn = hd.getType();
+  Node builtin_hdv = d_unif->d_tds->sygusToBuiltin(hdv, tn);
+  // compute the result hdv on hd's point
+  d_hd_appCurrEval[hd] =
+      d_unif->d_tds->evaluateBuiltin(tn, builtin_hdv, d_unif->d_hd_to_pt[hd]);
+  // if new value, add to hd's pool and all other hd pools
+  if (d_hd_mvs.find(hdv) != d_hd_mvs.end())
+  {
+    return;
+  }
+  d_hd_mvs.insert(hdv);
+  // add value to each head of type tn, including input hd
+  Trace("sygus-unif-sol-debug") << "  ...new pool value: " << builtin_hdv
+                                << "\n";
+  for (const Node& hdi : d_hds)
+  {
+    Node res = d_unif->d_tds->evaluateBuiltin(
+        tn, builtin_hdv, d_unif->d_hd_to_pt[hdi]);
+    if (Trace.isOn("sygus-unif-sol-debug"))
+    {
+      Trace("sygus-unif-sol-debug") << "  ......" << hdi
+                                    << d_unif->d_hd_to_pt[hdi] << " --> "
+                                    << "[" << res << "] = [";
+      for (const Node& v : d_hd_equiv_mvs[hdi][res])
+      {
+        Trace("sygus-unif-sol-debug") << " "
+                                      << d_unif->d_tds->sygusToBuiltin(v, tn);
+      }
+      Trace("sygus-unif-sol-debug") << " ] <+ " << builtin_hdv << "\n";
+    }
+    d_hd_equiv_mvs[hdi][res].insert(hdv);
+  }
+}
+
+Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
+    Node hd,
+    const std::vector<Node>& hds,
+    std::vector<Node>& exp,
+    std::vector<Node>& lemmas)
+{
+  std::set<Node> merged_pool = d_hd_equiv_mvs[hd][d_hd_appCurrEval[hd]];
+  for (const Node& hdi : hds)
+  {
+    std::set<Node> next_pool;
+    set_intersection(merged_pool.begin(),
+                     merged_pool.end(),
+                     d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].begin(),
+                     d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]].end(),
+                     std::inserter(next_pool, next_pool.begin()));
+    Trace("sygus-unif-sol-debug2")
+        << "...... to merge : " << merged_pool << "\n...... with\n...... "
+        << d_hd_equiv_mvs[hdi][d_hd_appCurrEval[hdi]]
+        << "\n...... yields\n...... " << next_pool << "\n";
+    merged_pool.clear();
+    merged_pool = next_pool;
+    if (merged_pool.empty())
+    {
+      exp.push_back(
+          makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], lemmas, false));
+      Trace("sygus-unif-sol-debug") << "  ......couldn't merge " << hd
+                                    << " with " << hdi << "\n";
+      Trace("sygus-unif-sol-debug") << "  ...add to explanation " << exp.back()
+                                    << "\n";
+      return Node::null();
+    }
+  }
+  // add to explanation equalities of repaired heads and their original
+  // model values
+  exp.push_back(makeEvalExp(hds[0], hd, d_unif->d_hd_to_pt[hds[0]], lemmas));
+  Trace("sygus-unif-sol") << "  ...common value "
+                          << d_unif->d_tds->sygusToBuiltin(
+                                 *merged_pool.begin(),
+                                 merged_pool.begin()->getType())
+                          << "\n  ...add to explanation " << exp.back() << "\n";
+  return *merged_pool.begin();
+}
+
+Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
+                                                Node e2,
+                                                const std::vector<Node>& pt_e1,
+                                                std::vector<Node>& lemmas,
+                                                bool equal)
+{
+  NodeManager* nm = NodeManager::currentNM();
+  // build (ev e1 pt_e1)
+  Node ev_e1;
+  std::vector<Node> e1_children;
+  e1_children.push_back(e1);
+  e1_children.insert(e1_children.end(), pt_e1.begin(), pt_e1.end());
+  ev_e1 = datatypes::DatatypesRewriter::mkSygusEvalApp(e1_children);
+  // build (ev e2 pt_e1)
+  Node ev_e2;
+  std::vector<Node> e2_children;
+  e2_children.push_back(e2);
+  e2_children.insert(e2_children.end(), pt_e1.begin(), pt_e1.end());
+  ev_e2 = datatypes::DatatypesRewriter::mkSygusEvalApp(e2_children);
+  // when creating equalities, add unfolding lemmas to new evaluation point
+  // based on e2's equivalent values modulo return value
+  if (equal)
+  {
+    Node adhoc_ev_eq = nm->mkNode(EQUAL, ev_e2, d_hd_appCurrEval[e1]);
+    for (const Node& e2_mv : d_hd_equiv_mvs[e2][d_hd_appCurrEval[e2]])
+    {
+      Node exp =
+          d_unif->d_tds->getExplain()->getExplanationForEquality(e2, e2_mv);
+      Node unfold_lemma = nm->mkNode(OR, exp.negate(), adhoc_ev_eq);
+      // TODO improve this
+      // if fresh lemma, add it
+      if (d_adhoc_unfolding_lemmas.find(unfold_lemma)
+          == d_adhoc_unfolding_lemmas.end())
+      {
+        d_adhoc_unfolding_lemmas.insert(unfold_lemma);
+        lemmas.push_back(unfold_lemma);
+        Trace("sygus-unif-sol-debug")
+            << "......adhoc unfolding lemma: "
+            << nm->mkNode(OR,
+                          nm->mkNode(EQUAL,
+                                     e2,
+                                     d_unif->d_tds->sygusToBuiltin(
+                                         e2_mv, e2_mv.getType()))
+                              .negate(),
+                          adhoc_ev_eq)
+            << "\n";
+      }
+    }
+  }
+  // create equality
+  Node eq = nm->mkNode(EQUAL, ev_e1, ev_e2);
+  return equal ? eq : eq.negate();
+}
+
 
 void SygusUnifRl::DecisionTreeInfo::PointSeparator::initialize(
     DecisionTreeInfo* dt)
