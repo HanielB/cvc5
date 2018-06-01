@@ -265,6 +265,169 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
   return false;
 }
 
+bool SygusRepairConst::repairValues(const std::vector<Node>& values,
+                                    std::vector<Node>& repair_values,
+                                    bool useConstantsAsHoles)
+{
+  // if no grammar type allows constants, no repair is possible
+  if (d_base_inst.isNull() || !d_allow_constant_grammar)
+  {
+    return false;
+  }
+  if (Trace.isOn("sygus-repair-const"))
+  {
+    Trace("sygus-repair-const") << "Repair values...\n";
+    Printer* p = Printer::getPrinter(options::outputLanguage());
+    for (const Node& v: values)
+    {
+      std::stringstream ss;
+      p->toStreamSygus(ss, v);
+      Trace("sygus-repair-const") << "  " << ss.str() << "\n";
+    }
+    Trace("sygus-repair-const") << "Getting value skeletons : \n";
+  }
+  std::vector<Node> skeletons;
+  std::map<TypeNode, int> free_var_count;
+  std::vector<Node> sk_vars;
+  std::map<Node, Node> sk_vars_to_subs;
+  for (unsigned i = 0, size = values.size(); i < size; ++i)
+  {
+    Node v = values[i];
+    Node skeleton =
+        getSkeleton(v, free_var_count, sk_vars, sk_vars_to_subs, useConstantsAsHoles);
+    if (Trace.isOn("sygus-repair-const"))
+    {
+      Printer* p = Printer::getPrinter(options::outputLanguage());
+      std::stringstream ss;
+      p->toStreamSygus(ss, v);
+      Trace("sygus-repair-const")
+          << "Value #" << i << " : " << ss.str() << std::endl;
+      if (skeleton == v)
+      {
+        Trace("sygus-repair-const") << "...value unchanged" << std::endl;
+      }
+      else
+      {
+        std::stringstream sss;
+        p->toStreamSygus(sss, skeleton);
+        Trace("sygus-repair-const")
+            << "...inferred skeleton : " << sss.str() << std::endl;
+      }
+    }
+    skeletons.push_back(skeleton);
+  }
+  if (sk_vars.empty())
+  {
+    Trace("sygus-repair-const") << "...no values repaired." << std::endl;
+    return false;
+  }
+  NodeManager* nm = NodeManager::currentNM();
+  Trace("sygus-repair-const") << "Get first-order query..." << std::endl;
+  Node fo_body = getFoQuery(values, skeletons, sk_vars);
+
+  Trace("sygus-repair-const-debug") << "...got : " << fo_body << std::endl;
+
+  if (d_queries.find(fo_body) != d_queries.end())
+  {
+    Trace("sygus-repair-const") << "...duplicate query." << std::endl;
+    return false;
+  }
+  d_queries.insert(fo_body);
+
+  // check whether it is not in the current logic, e.g. non-linear arithmetic.
+  // if so, undo replacements until it is in the current logic.
+  LogicInfo logic = smt::currentSmtEngine()->getLogicInfo();
+  if (logic.isTheoryEnabled(THEORY_ARITH) && logic.isLinear())
+  {
+    fo_body =
+        fitToLogic(logic, fo_body, values, skeletons, sk_vars, sk_vars_to_subs);
+  }
+
+  if (fo_body.isNull() || sk_vars.empty())
+  {
+    Trace("sygus-repair-const")
+        << "...all skeleton variables lead to bad logic." << std::endl;
+    return false;
+  }
+
+  Trace("sygus-repair-const") << "Make satisfiabily query..." << std::endl;
+  if (fo_body.getKind() == FORALL)
+  {
+    // must be a CBQI quantifier
+    CegHandledStatus hstatus = CegInstantiator::isCbqiQuant(fo_body, d_qe);
+    if (hstatus < CEG_HANDLED)
+    {
+      // abort if less than fully handled
+      Trace("sygus-repair-const") << "...first-order query is not handlable by "
+                                     "counterexample-guided instantiation."
+                                  << std::endl;
+      return false;
+    }
+
+    // do miniscoping explicitly
+    if (fo_body[1].getKind() == AND)
+    {
+      Node bvl = fo_body[0];
+      std::vector<Node> children;
+      for (const Node& conj : fo_body[1])
+      {
+        children.push_back(nm->mkNode(FORALL, bvl, conj));
+      }
+      fo_body = nm->mkNode(AND, children);
+    }
+  }
+
+  Trace("cegqi-engine") << "Repairing previous solution..." << std::endl;
+  // make the satisfiability query
+  SmtEngine repcChecker(nm->toExprManager());
+  repcChecker.setLogic(smt::currentSmtEngine()->getLogicInfo());
+  repcChecker.assertFormula(fo_body.toExpr());
+  Result r = repcChecker.checkSat();
+  Trace("sygus-repair-const") << "...got : " << r << std::endl;
+  if (r.asSatisfiabilityResult().isSat() != Result::UNSAT
+      && !r.asSatisfiabilityResult().isUnknown())
+  {
+    std::vector<Node> sk_sygus_m;
+    for (const Node& v : sk_vars)
+    {
+      Assert(d_sk_to_fo.find(v) != d_sk_to_fo.end());
+      Node fov = d_sk_to_fo[v];
+      Node fov_m = Node::fromExpr(repcChecker.getValue(fov.toExpr()));
+      Trace("sygus-repair-const") << "  " << fov << " = " << fov_m << std::endl;
+      // convert to sygus
+      Node fov_m_to_sygus = d_tds->getProxyVariable(v.getType(), fov_m);
+      sk_sygus_m.push_back(fov_m_to_sygus);
+    }
+    std::stringstream ss;
+    // convert back to sygus
+    for (const Node& skeleton : skeletons)
+    {
+      Node repair_value = skeleton.substitute(
+          sk_vars.begin(), sk_vars.end(), sk_sygus_m.begin(), sk_sygus_m.end());
+      repair_values.push_back(repair_value);
+      if (Trace.isOn("sygus-repair-const") || Trace.isOn("cegqi-engine"))
+      {
+        std::stringstream sss_v;
+        p->toStreamSygus(sss_v, values[repair_values.size() - 1]);
+        std::stringstream sss_r;
+        Printer::getPrinter(options::outputLanguage())
+            ->toStreamSygus(sss_r, repair_values.back());
+        ss << "  * " << sss_v.str() << " -> " << sss_r.str() << "\n";
+      }
+    }
+    Trace("cegqi-engine") << "...success:" << std::endl;
+    Trace("cegqi-engine") << ss.str();
+    Trace("sygus-repair-const")
+        << "Repaired constants in solution : " << std::endl;
+    Trace("sygus-repair-const") << ss.str();
+    return true;
+  }
+
+  Trace("cegqi-engine") << "...failed" << std::endl;
+
+  return false;
+}
+
 bool SygusRepairConst::mustRepair(Node n)
 {
   std::unordered_set<TNode, TNodeHashFunction> visited;
