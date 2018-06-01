@@ -235,6 +235,8 @@ class CegisUnif : public Cegis
   /** get next decision request */
   Node getNextDecisionRequest(unsigned& priority) override;
 
+  /** using repair const */
+  bool usingRepairConst() override;
  private:
   /** do cegis-implementation-specific intialization for this class */
   bool processInitialize(Node n,

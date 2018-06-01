@@ -353,8 +353,14 @@ command [std::unique_ptr<CVC4::Command>* cmd]
                                       "be declared in logic ");
       }
       // we allow overloading for function declarations
-      Expr func = PARSER_STATE->mkVar(name, t, ExprManager::VAR_FLAG_NONE, true);
-      cmd->reset(new DeclareFunctionCommand(name, func, t));
+      if( PARSER_STATE->sygus() ){
+        // it is a higher-order universal variable
+        PARSER_STATE->mkSygusVar(name, t);
+        cmd->reset(new EmptyCommand());
+      }else{
+        Expr func = PARSER_STATE->mkVar(name, t, ExprManager::VAR_FLAG_NONE, true);
+        cmd->reset(new DeclareFunctionCommand(name, func, t));
+      }
     }
   | /* function definition */
     DEFINE_FUN_TOK { PARSER_STATE->checkThatLogicIsSet(); }
@@ -829,6 +835,14 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
       for( unsigned i=0; i<4; i++ ){
         Expr op = terms[i];
         Debug("parser-sygus") << "Make inv-constraint term #" << i << " : " << op  << "..." << std::endl;
+        Debug("parser-sygus") << primed[0].size() << " " << primed[1].size() << " " << static_cast<FunctionType>(op.getType()).getArgTypes().size() << std::endl;
+        for( unsigned j=0; j<2; j++ )
+        {
+          for( unsigned i=0; i<primed[j].size(); i++ )
+          {
+          Debug("parser-sygus") << "primed[" << j << "][" << i << "] = " << primed[j][i] << std::endl;
+          }
+        }
         std::vector< Expr > children;
         children.push_back( op );
         if( i==2 ){
@@ -837,6 +851,7 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
           children.insert( children.end(), primed[0].begin(), primed[0].end() );
         }
         terms[i] = EXPR_MANAGER->mkExpr( i==0 ? kind::APPLY_UF : kind::APPLY,children);
+        Debug("parser-sygus")  << "...made " << terms[i] << std::endl;
         if( i==0 ){
           std::vector< Expr > children2;
           children2.push_back( op );
@@ -1128,21 +1143,6 @@ metaInfoInternal[std::unique_ptr<CVC4::Command>* cmd]
     { name = AntlrInput::tokenText($KEYWORD);
       if(name == ":cvc4-logic" || name == ":cvc4_logic") {
         PARSER_STATE->setLogic(sexpr.getValue());
-      } else if(name == ":smt-lib-version") {
-        // if we don't recognize the revision name, just keep the current mode
-        if( (sexpr.isRational() && sexpr.getRationalValue() == Rational(2)) ||
-            sexpr.getValue() == "2" ||
-            sexpr.getValue() == "2.0" ) {
-          PARSER_STATE->setLanguage(language::input::LANG_SMTLIB_V2_0);
-        } else if( (sexpr.isRational() &&
-                    sexpr.getRationalValue() == Rational(5, 2)) ||
-                  sexpr.getValue() == "2.5" ) {
-          PARSER_STATE->setLanguage(language::input::LANG_SMTLIB_V2_5);
-        } else if( (sexpr.isRational() &&
-                    sexpr.getRationalValue() == Rational(13, 5)) ||
-                  sexpr.getValue() == "2.6" ) {
-          PARSER_STATE->setLanguage(language::input::LANG_SMTLIB_V2_6);
-        }
       }
       PARSER_STATE->setInfo(name.c_str() + 1, sexpr);
       cmd->reset(new SetInfoCommand(name.c_str() + 1, sexpr));
@@ -2310,8 +2310,10 @@ termNonVariable[CVC4::Expr& expr, CVC4::Expr& expr2]
       // valid GMP rational string
       expr = MK_CONST( AntlrInput::tokenToRational($DECIMAL_LITERAL) ); 
       if(expr.getType().isInteger()) {
-        //must cast to Real to ensure correct type is passed to parametric type constructors
-        expr = MK_EXPR(kind::TO_REAL, expr);
+        // Must cast to Real to ensure correct type is passed to parametric type constructors.
+        // We do this cast using division with 1.
+        // This has the advantage wrt using TO_REAL since (constant) division is always included in the theory.
+        expr = MK_EXPR(kind::DIVISION, expr, MK_CONST(Rational(1)));
       }  
     }
 

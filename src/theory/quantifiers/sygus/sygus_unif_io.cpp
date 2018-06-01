@@ -459,7 +459,7 @@ void SubsumeTrie::getLeaves(const std::vector<Node>& vals,
   getLeavesInternal(vals, pol, v, 0, -2);
 }
 
-SygusUnifIo::SygusUnifIo() : d_check_sol(false), d_cond_count(0)
+SygusUnifIo::SygusUnifIo() : d_check_sol(false), d_cond_count(0), d_sol_cons_nondet(false)
 {
   d_true = NodeManager::currentNM()->mkConst(true);
   d_false = NodeManager::currentNM()->mkConst(false);
@@ -730,6 +730,10 @@ Node SygusUnifIo::constructSolutionNode(std::vector<Node>& lemmas)
         Trace("sygus-pbe") << "...solved at iteration " << i << std::endl;
         vc = vcc;
       }
+      else if( !d_sol_cons_nondet )
+      {
+        break;
+      }
     }
     if (!vc.isNull())
     {
@@ -849,7 +853,12 @@ void SygusUnifIo::EnumCache::addEnumValue(Node v, std::vector<Node>& results)
   d_enum_vals_res.push_back(results);
 }
 
-void SygusUnifIo::initializeConstructSol() { d_context.initialize(this); }
+void SygusUnifIo::initializeConstructSol()
+{ 
+  d_context.initialize(this);
+  d_sol_cons_nondet = false;
+}
+
 void SygusUnifIo::initializeConstructSolFor(Node f)
 {
   Assert(d_candidate == f);
@@ -1024,6 +1033,9 @@ Node SygusUnifIo::constructSol(
 
       if (!incr.empty())
       {
+        // solution construction for strings concatenation is non-deterministic
+        // with respect to failure/success.
+        d_sol_cons_nondet = true;
         ret_dt = constructBestStringToConcat(inc_strs, total_inc, incr);
         Assert(!ret_dt.isNull());
         indent("sygus-sui-dt", ind);

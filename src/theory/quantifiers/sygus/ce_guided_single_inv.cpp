@@ -19,6 +19,7 @@
 #include "theory/quantifiers/sygus/sygus_grammar_cons.h"
 #include "theory/quantifiers/term_enumeration.h"
 #include "theory/quantifiers/term_util.h"
+#include "theory/quantifiers/sygus/term_database_sygus.h"
 
 using namespace CVC4;
 using namespace CVC4::kind;
@@ -458,13 +459,6 @@ struct sortSiInstanceIndices {
 
 
 Node CegConjectureSingleInv::postProcessSolution( Node n ){
-  ////remove boolean ITE (not allowed for sygus comp 2015)
-  //if( n.getKind()==ITE && n.getType().isBoolean() ){
-  //  Node n1 = postProcessSolution( n[1] );
-  //  Node n2 = postProcessSolution( n[2] );
-  //  return NodeManager::currentNM()->mkNode( OR, NodeManager::currentNM()->mkNode( AND, n[0], n1 ),
-  //                                               NodeManager::currentNM()->mkNode( AND, n[0].negate(), n2 ) );
-  //}else{
   bool childChanged = false;
   Kind k = n.getKind();
   if( n.getKind()==INTS_DIVISION_TOTAL ){
@@ -488,7 +482,6 @@ Node CegConjectureSingleInv::postProcessSolution( Node n ){
   }else{
     return n;
   }
-  //}
 }
 
 
@@ -582,6 +575,10 @@ Node CegConjectureSingleInv::reconstructToSyntax( Node s, TypeNode stn, int& rec
   }else{
     Trace("csi-sol") << "Post-process solution..." << std::endl;
     Node prev = d_solution;
+    if( options::minSynthSol() )
+    {
+      d_solution = d_qe->getTermDatabaseSygus()->getExtRewriter()->extendedRewrite(d_solution);
+    }
     d_solution = postProcessSolution( d_solution );
     if( prev!=d_solution ){
       Trace("csi-sol") << "Solution (after post process) : " << d_solution << std::endl;

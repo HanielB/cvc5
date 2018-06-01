@@ -15,8 +15,8 @@
  **/
 #include "parser/smt2/smt2.h"
 
-
 #include "expr/type.h"
+#include "options/options.h"
 #include "parser/antlr_input.h"
 #include "parser/parser.h"
 #include "parser/smt1/smt1.h"
@@ -40,10 +40,6 @@ Smt2::Smt2(ExprManager* exprManager, Input* input, bool strictMode, bool parseOn
   if( !strictModeEnabled() ) {
     addTheory(Smt2::THEORY_CORE);
   }
-}
-
-void Smt2::setLanguage(InputLanguage lang) {
-  ((Smt2Input*) getInput())->setLanguage(lang);
 }
 
 void Smt2::addArithmeticOperators() {
@@ -130,7 +126,7 @@ void Smt2::addStringOperators() {
   addOperator(kind::STRING_PREFIX, "str.prefixof" );
   addOperator(kind::STRING_SUFFIX, "str.suffixof" );
   // at the moment, we only use this syntax for smt2.6.1
-  if (getInput()->getLanguage() == language::input::LANG_SMTLIB_V2_6_1)
+  if (getLanguage() == language::input::LANG_SMTLIB_V2_6_1)
   {
     addOperator(kind::STRING_ITOS, "str.from-int");
     addOperator(kind::STRING_STOI, "str.to-int");
@@ -618,10 +614,12 @@ Expr Smt2::mkSygusVar(const std::string& name, const Type& type, bool isPrimed) 
   d_sygusVars.push_back(e);
   d_sygusVarPrimed[e] = false;
   if( isPrimed ){
+    d_sygusInvVars.push_back(e);
     std::stringstream ss;
     ss << name << "'";
     Expr ep = mkBoundVar(ss.str(), type);
     d_sygusVars.push_back(ep);
+    d_sygusInvVars.push_back(ep);
     d_sygusVarPrimed[ep] = true;
   }
   return e;
@@ -930,7 +928,16 @@ void Smt2::processSygusLetConstructor( std::vector< CVC4::Expr >& let_vars,
   cargs[index][dindex].pop_back();
   collectSygusLetArgs( let_body, cargs[index][dindex], let_define_args );
 
-  Debug("parser-sygus") << "Make define-fun with " << cargs[index][dindex].size() << " arguments..." << std::endl;
+  Debug("parser-sygus") << "Make define-fun with "
+                        << cargs[index][dindex].size()
+                        << " operator arguments and " << let_define_args.size()
+                        << " provided arguments..." << std::endl;
+  if (cargs[index][dindex].size() != let_define_args.size())
+  {
+    std::stringstream ss;
+    ss << "Wrong number of let body terms." << std::endl;
+    parseError(ss.str());
+  }
   std::vector<CVC4::Type> fsorts;
   for( unsigned i=0; i<cargs[index][dindex].size(); i++ ){
     Debug("parser-sygus") << "  " << i << " : " << let_define_args[i] << " " << let_define_args[i].getType() << " " << cargs[index][dindex][i] << std::endl;
@@ -1212,15 +1219,13 @@ Expr Smt2::makeSygusBoundVarList(Datatype& dt,
 }
 
 const void Smt2::getSygusPrimedVars( std::vector<Expr>& vars, bool isPrimed ) {
-  for( unsigned i=0; i<d_sygusVars.size(); i++ ){
-    Expr v = d_sygusVars[i];
+  for( unsigned i=0, size = d_sygusInvVars.size(); i<size; i++ ){
+    Expr v = d_sygusInvVars[i];
     std::map< Expr, bool >::iterator it = d_sygusVarPrimed.find( v );
     if( it!=d_sygusVarPrimed.end() ){
       if( it->second==isPrimed ){
         vars.push_back( v );
       }
-    }else{
-      //should never happen
     }
   }
 }
@@ -1239,6 +1244,12 @@ const void Smt2::addSygusFunSymbol( Type t, Expr synth_fun ){
       new SetUserAttributeCommand("sygus-synth-grammar", synth_fun, attr_value);
   cattr->setMuted(true);
   preemptCommand(cattr);
+}
+
+InputLanguage Smt2::getLanguage() const
+{
+  ExprManager* em = getExprManager();
+  return em->getOptions().getInputLanguage();
 }
 
 }/* CVC4::parser namespace */
