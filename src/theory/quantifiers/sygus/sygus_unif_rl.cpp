@@ -496,10 +496,6 @@ void SygusUnifRl::DecisionTreeInfo::initialize(Node cond_enum,
   // Retrieve template
   EnumInfo& eiv = d_strategy->getEnumInfo(d_cond_enum);
   d_template = NodePair(eiv.d_template, eiv.d_template_arg);
-  // Retrieve evaluation function
-  TypeNode etn = d_strategy->getRootEnumerator().getType();
-  const Datatype& dt = static_cast<DatatypeType>(etn.toType()).getDatatype();
-  d_eval = Node::fromExpr(dt.getSygusEvaluationFunc());
   // Initialize classifier
   d_pt_sep.initialize(this);
 }
@@ -525,6 +521,10 @@ unsigned SygusUnifRl::DecisionTreeInfo::getStrategyIndex() const
 
 void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
 {
+  if (!options::sygusUnifRetPool())
+  {
+    return;
+  }
   TypeNode tn = hd.getType();
   Node builtin_hdv = d_unif->d_tds->sygusToBuiltin(hdv, tn);
   // compute the result hdv on hd's point
@@ -612,17 +612,15 @@ Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
   // build (ev e1 pt_e1)
   Node ev_e1;
   std::vector<Node> e1_children;
-  e1_children.push_back(d_eval);
   e1_children.push_back(e1);
   e1_children.insert(e1_children.end(), pt_e1.begin(), pt_e1.end());
-  ev_e1 = nm->mkNode(APPLY_UF, e1_children);
+  ev_e1 = datatypes::DatatypesRewriter::mkSygusEvalApp(e1_children);
   // build (ev e2 pt_e1)
   Node ev_e2;
   std::vector<Node> e2_children;
-  e2_children.push_back(d_eval);
   e2_children.push_back(e2);
   e2_children.insert(e2_children.end(), pt_e1.begin(), pt_e1.end());
-  ev_e2 = nm->mkNode(APPLY_UF, e2_children);
+  ev_e2 = datatypes::DatatypesRewriter::mkSygusEvalApp(e2_children);
   // when creating equalities, add unfolding lemmas to new evaluation point
   // based on e2's equivalent values modulo return value
   if (equal)
@@ -773,6 +771,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // new separation class, no conflict
         continue;
       }
+      Assert(hd_mv.find(er) != hd_mv.end());
       if (hd_mv[e] == hd_mv[er])
       {
         // merged into separation class with same model value, no conflict
@@ -781,34 +780,49 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // added to the trie. Notice that er and e may become separated later,
         // but to ensure the overall invariant, this equality must persist in
         // the explanation.
-
-        // e = er is a sufficient condition for (ev er pt_er) = (ev e pt_er)
-        exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], lemmas));
-        Trace("sygus-unif-sol") << "  ...same model values " << std::endl;
+        if (!options::sygusUnifRetPool())
+        {
+          exp.push_back(er.eqNode(e));
+        }
+        else
+        {
+          // e = er is a sufficient condition for (ev er pt_er) = (ev e pt_er)
+          exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], lemmas));
+        }
+        Trace("sygus-unif-sol") << "  ...equal model values\n";
         Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back()
                                 << "\n";
         continue;
       }
     }
-    Trace("sygus-unif-sol-debug") << "  ...try merge " << e << " with " << er
-                                  << "\n";
-    // try repairing model to solve separation conflict
-    //
-    // the function will also include in the explanation an equality between the
-    // new element and the representative if the merge is succesfull or a
-    // disequality between the new element and the respective element of the
-    // separation class that it was incompatible with the construction
-    Node common_value =
-      mergeHeadValuePools(e, d_pt_sep.d_trie.d_rep_to_class[er], exp, lemmas);
-    if (!common_value.isNull())
+    // must include in the explanation that we hit a conflict at this point in
+    // the construction
+    if (!options::sygusUNifRetPool())
     {
-      // update model value of all members of separation class
-      for (const Node& e : d_pt_sep.d_trie.d_rep_to_class[er])
+      exp.push_back(e.eqNode(er).negate());
+    }
+    else
+    {
+      Trace("sygus-unif-sol-debug") << "  ...try merge " << e << " with " << er
+                                    << "\n";
+      // try repairing model to solve separation conflict
+      //
+      // the function will also include in the explanation an equality between
+      // the new element and the representative if the merge is succesfull or a
+      // disequality between the new element and the respective element of the
+      // separation class that it was incompatible with the construction
+      Node common_value = mergeHeadValuePools(
+          e, d_pt_sep.d_trie.d_rep_to_class[er], exp, lemmas);
+      if (!common_value.isNull())
       {
-        hd_mv[e] = common_value;
+        // update model value of all members of separation class
+        for (const Node& e : d_pt_sep.d_trie.d_rep_to_class[er])
+        {
+          hd_mv[e] = common_value;
+        }
+        needs_sep_resolve = exp_conflict = false;
+        continue;
       }
-      needs_sep_resolve = exp_conflict = false;
-      continue;
     }
     // we are in separation conflict, does the next condition resolve this?
     // check whether we have have exhausted our condition pool. If so, we
@@ -845,16 +859,13 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     // c_exp is a conjunction of testers applied to shared selector chains
     Node c_exp = d_unif->d_tds->getExplain()->getExplanationForEquality(ce, cv);
     exp.push_back(c_exp);
-    AlwaysAssert(Rewriter::rewrite(d_unif->d_parent->getModelValue(exp.back()))
-                 == nm->mkConst(true));
     std::map<Node, std::vector<Node>>::iterator itr =
         d_pt_sep.d_trie.d_rep_to_class.find(e);
     // since e is last in its separation class, if it becomes a representative,
     // then it is separated from all values in prev_sep_c
     if (itr != d_pt_sep.d_trie.d_rep_to_class.end())
     {
-      Trace("sygus-unif-sol") << "  ...resolves separation conflict with all"
-                              << std::endl;
+      Trace("sygus-unif-sol") << "  ...resolves separation conflict with all\n";
       needs_sep_resolve = false;
       continue;
     }
@@ -866,8 +877,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         != itr->second.end())
     {
       Trace("sygus-unif-sol")
-          << "  ...does not resolve separation conflict with current"
-          << std::endl;
+          << "  ...does not resolve separation conflict with current\n";
       // the condition does not separate e and er
       // this violates the invariant that the i^th conditional enumerator
       // resolves the i^th separation conflict

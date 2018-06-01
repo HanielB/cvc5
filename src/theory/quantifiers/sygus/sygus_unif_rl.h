@@ -279,8 +279,6 @@ class SygusUnifRl : public SygusUnif
                      bool equal = true);
     /** lemmas for unfolding evaluation functions on "repair" applications */
     std::set<Node> d_adhoc_unfolding_lemmas;
-    /** evaluation function of the function type */
-    Node d_eval;
     /**
      * Conditional enumerator variables corresponding to the condition values in
      * d_conds. These are used for generating separation lemmas during
