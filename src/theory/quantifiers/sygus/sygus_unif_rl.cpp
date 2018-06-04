@@ -375,13 +375,10 @@ void SygusUnifRl::setConditions(Node e,
   it->second.setConditions(guard, enums, conds);
 }
 
-std::vector<Node>& SygusUnifRl::getEvalPointHeads(Node c) const
+std::vector<Node>& SygusUnifRl::getEvalPointHeads(Node c)
 {
   std::map<Node, std::vector<Node>>::iterator it = d_cand_to_eval_hds.find(c);
-  if (it == d_cand_to_eval_hds.end())
-  {
-    return std::vector<Node>();
-  }
+  Assert(it != d_cand_to_eval_hds.end());
   return it->second;
 }
 
@@ -662,7 +659,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         // at the time that e was added to the trie. Notice that er and e may
         // become separated later, but to ensure the overall invariant, this
         // equality must persist in the explanation.
-        exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], lemmas));
+        exp.push_back(
+            makeEvalExp(er, e, d_unif->d_hd_to_pt[er], d_unif->d_hd_to_pt[er]));
         Trace("sygus-unif-sol") << "  ...equal model values\n";
         Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back()
                                 << "\n";
@@ -674,7 +672,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     if (!options::sygusUnifRetPool())
     {
       // (ev er pt_er) != (ev e pt_er)
-      exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], false));
+      exp.push_back(makeEvalExp(
+          er, e, d_unif->d_hd_to_pt[er], d_unif->d_hd_to_pt[er], false));
     }
     else
     {
