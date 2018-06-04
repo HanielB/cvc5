@@ -971,7 +971,7 @@ bool SygusUnifRl::DecisionTreeInfo::pickCondition(unsigned c_counter,
     {
       // set to index of the condition enum being equal to the respectively
       // failed model value, to be computed below in c_exp
-      d_exp_backtrack_size = exp.size() + 1;
+      d_exp_backtrack_size = exp.size();
     }
     pickedCond = true;
   }
