@@ -553,6 +553,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
   std::map<Node, Node> hd_mv;
   // reset the trie
   d_pt_sep.d_trie.clear();
+  // set initial backtrack size for when repairing trie with condition pool
+  d_exp_backtrack_size = -1;
   // the current explanation of why there has not yet been a separation conflict
   std::vector<Node> exp;
   // is the above explanation ready to be sent out as a lemma?
@@ -561,7 +563,6 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
   unsigned hd_counter = 0;
   // the index of the condition we are considering
   unsigned c_counter = 0;
-  d_exp_index_backtrack = -1;
   // do we need to resolve a separation conflict?
   bool needs_sep_resolve = false;
   // This loop simultaneously builds the solution in terms of a lazy trie
@@ -705,9 +706,13 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       }
     }
     // we are in separation conflict, does the next condition resolve this?
-    // check whether we have have exhausted our condition pool. If so, we
-    // are in conflict and this conflict depends on the guard.
-    if (c_counter >= d_conds.size())
+    //
+    // we try to pick a condition to add to our trie. We add to the explanation
+    // that the respective condition enumerator is equal to the respective value
+    //
+    // If we can't picke a condition then we have have exhausted our condition
+    // pool. If so, we are in conflict and this conflict depends on the guard.
+    if (!pickCondition(c_counter, er, e, exp))
     {
       Trace("sygus-unif-sol-debug") << "...condition pool exhausted\n";
       // truncated separation lemma
@@ -716,43 +721,11 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       exp_conflict = true;
       break;
     }
-    Assert(c_counter < d_conds.size());
-    Node ce = d_enums[c_counter];
-    Node cv = d_conds[c_counter];
-    Assert(ce.getType() == cv.getType());
-    if (Trace.isOn("sygus-unif-sol"))
-    {
-      std::stringstream ss;
-      Printer::getPrinter(options::outputLanguage())->toStreamSygus(ss, cv);
-      Trace("sygus-unif-sol") << "  add condition (" << c_counter << "/"
-                              << d_conds.size() << "): " << ce << " -> "
-                              << ss.str() << std::endl;
-    }
-    cv = repairConditionToSeparate(cv, e, er);
-    d_conds[c_counter] = cv;
-    // if repaired condition still does not separate heads, try condition pool
-    if (options::sygusUnifCondPool()
-        && d_pt_sep.evaluate(er, c_counter) == d_pt_sep.evaluate(e, c_counter)
-        && pickCondToSeparate(c_counter, e, er))
-    {
-      Assert(d_conds[c_counter] != cv);
-      // set the index if not already set
-      if (d_exp_index_backtrack == -1)
-      {
-        // set to index of the condition enum being equal to the respectively
-        // failed model value, to be computed below in c_exp
-        d_exp_index_backtrack = exp.size();
-      }
-    }
     // cache the separation class
     std::vector<Node> prev_sep_c = d_pt_sep.d_trie.d_rep_to_class[er];
     // add new classifier
     d_pt_sep.d_trie.addClassifier(&d_pt_sep, c_counter);
     c_counter++;
-    // add to explanation
-    // c_exp is a conjunction of testers applied to shared selector chains
-    Node c_exp = d_unif->d_tds->getExplain()->getExplanationForEquality(ce, cv);
-    exp.push_back(c_exp);
     std::map<Node, std::vector<Node>>::iterator itr =
         d_pt_sep.d_trie.d_rep_to_class.find(e);
     // since e is last in its separation class, if it becomes a representative,
@@ -810,6 +783,13 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
   }
   if (exp_conflict)
   {
+    // A condition value from the pool was used at some point, discard all
+    // explanations after that point
+    if (options::sygusUnifCondPool() && d_exp_backtrack_size != -1)
+    {
+      Assert(static_cast<unsigned>(d_exp_backtrack_size) < exp.size());
+      exp.resize(d_exp_backtrack_size);
+    }
     Node lemma = exp.size() == 1 ? exp[0] : nm->mkNode(AND, exp);
     lemma = lemma.negate();
     Trace("sygus-unif-sol") << "  ......conflict is " << lemma << std::endl;
@@ -921,7 +901,7 @@ Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate(Node cv,
   Trace("sygus-unif-sol") << "Try to repair to satisfy : " << deq << std::endl;
   std::vector<Node> values;
   values.push_back(cv);
-  src.initialize(deq, cv);
+  src.initialize(deq, values);
   std::vector<Node> repair_values;
   if (src.repairValues(values, repair_values))
   {
@@ -950,9 +930,57 @@ Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate(Node cv,
   return cv;
 }
 
-bool SygusUnifRl::DecisionTreeInfo::pickCondToSeparate(unsigned c_counter,
-                                                       Node e1,
-                                                       Node e2)
+bool SygusUnifRl::DecisionTreeInfo::pickCondition(unsigned c_counter,
+                                                  Node e1,
+                                                  Node e2,
+                                                  std::vector<Node>& exp)
+{
+  bool has_enum_cv = c_counter < d_enums.size();
+  bool pickedCond = has_enum_cv;
+  // try enumerated condition, if any
+  if (has_enum_cv)
+  {
+    Node ce = d_enums[c_counter];
+    Node cv = d_conds[c_counter];
+    Assert(ce.getType() == cv.getType());
+    if (Trace.isOn("sygus-unif-sol"))
+    {
+      std::stringstream ss;
+      Printer::getPrinter(options::outputLanguage())->toStreamSygus(ss, cv);
+      Trace("sygus-unif-sol") << "  add condition (" << c_counter << "/"
+                              << d_conds.size() << "): " << ce << " -> "
+                              << ss.str() << std::endl;
+    }
+    cv = repairConditionToSeparate(cv, e1, e2);
+    d_conds[c_counter] = cv;
+    // add to explanation
+    // c_exp is a conjunction of testers applied to shared selector chains
+    Node c_exp = d_unif->d_tds->getExplain()->getExplanationForEquality(ce, cv);
+    exp.push_back(c_exp);
+  }
+  // if (repaired) condition, if any, still does not separate heads, try
+  // condition pool
+  if (options::sygusUnifCondPool()
+      && (!has_enum_cv
+          || d_pt_sep.evaluate(e1, c_counter)
+                 == d_pt_sep.evaluate(e2, c_counter))
+      && pickConditionFromPool(c_counter, e1, e2))
+  {
+    // set the index if not already set
+    if (d_exp_backtrack_size == -1)
+    {
+      // set to index of the condition enum being equal to the respectively
+      // failed model value, to be computed below in c_exp
+      d_exp_backtrack_size = exp.size() + 1;
+    }
+    pickedCond = true;
+  }
+  return pickedCond;
+}
+
+bool SygusUnifRl::DecisionTreeInfo::pickConditionFromPool(unsigned c_counter,
+                                                          Node e1,
+                                                          Node e2)
 {
   if (Trace.isOn("sygus-unif-cond-pool-debug"))
   {
@@ -966,10 +994,14 @@ bool SygusUnifRl::DecisionTreeInfo::pickCondToSeparate(unsigned c_counter,
     }
     Trace("sygus-unif-cond-pool-debug") << "\n";
   }
+  // increase number of conditions if necessary
+  Assert(c_counter <= d_conds.size());
+  if (c_counter == d_conds.size())
+  {
+    d_conds.resize(c_counter + 1);
+  }
   for (const Node& cond : d_cond_mvs)
   {
-    // save enumerated value
-    Node cv = d_conds[c_counter];
     d_conds[c_counter] = cond;
     if (d_pt_sep.evaluate(e1, c_counter) != d_pt_sep.evaluate(e2, c_counter))
     {
@@ -980,8 +1012,6 @@ bool SygusUnifRl::DecisionTreeInfo::pickCondToSeparate(unsigned c_counter,
           << d_unif->d_hd_to_pt[e2] << "\n";
       return true;
     }
-    // reset to enumerated value
-    d_conds[c_counter] = cv;
   }
   return false;
 }

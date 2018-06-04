@@ -408,7 +408,8 @@ bool SygusRepairConst::repairValues(const std::vector<Node>& values,
       if (Trace.isOn("sygus-repair-const") || Trace.isOn("cegqi-engine"))
       {
         std::stringstream sss_v;
-        p->toStreamSygus(sss_v, values[repair_values.size() - 1]);
+        Printer::getPrinter(options::outputLanguage())
+            ->toStreamSygus(sss_v, values[repair_values.size() - 1]);
         std::stringstream sss_r;
         Printer::getPrinter(options::outputLanguage())
             ->toStreamSygus(sss_r, repair_values.back());

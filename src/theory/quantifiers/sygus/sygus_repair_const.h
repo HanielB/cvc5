@@ -79,7 +79,7 @@ class SygusRepairConst
                       bool useConstantsAsHoles = false);
   bool repairValues(const std::vector<Node>& values,
                     std::vector<Node>& repair_values,
-                    bool useConstantsAsHoles);
+                    bool useConstantsAsHoles = false);
   /** must repair?
    *
    * This returns true if n must be repaired for it to be a valid solution.

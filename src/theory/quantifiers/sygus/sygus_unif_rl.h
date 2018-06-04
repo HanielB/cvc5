@@ -309,23 +309,27 @@ class SygusUnifRl : public SygusUnif
     Node d_cond_enum;
     /** all enumerated model values for conditions */
     std::set<Node> d_cond_mvs;
-    /** index to which explanation should be backtracked to
+    /** size to which explanation should be backtracked to
      *
-     * when the condition pool is used and we still fail to produce a solution,
+     * When the condition pool is used and we still fail to produce a solution,
      * the separation lemma should reflect the failure independent of the
-     * condition pool, which means to discard everything after the first
-     * conflict that could not have been resolved with an original currently
-     * enumerated condition
+     * repairs from the condition pool. To do this we discard everything after
+     * the first conflict that could not have been resolved with an original
+     * currently enumerated condition.
      *
-     * the initial value is set to -1, meaning no index has been set yet
+     * the initial value is set to -1, meaning no size has been set yet
      */
-    int d_exp_index_backtrack;
+    int d_exp_backtrack_size;
+    bool pickCondition(unsigned c_counter,
+                       Node e1,
+                       Node e2,
+                       std::vector<Node>& exp);
     /** try separating e1 from e2 with a value from condition pool
      *
      * if it succeeds it changes the saved value in d_conds to the respective
      * index
      */
-    bool pickCondToSeparate(unsigned c_counter, Node e1, Node e2);
+    bool pickConditionFromPool(unsigned c_counter, Node e1, Node e2);
 
     /** Classifies evaluation points according to enumerated condition values
      *
