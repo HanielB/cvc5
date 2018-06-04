@@ -95,6 +95,16 @@ void CegisUnif::getTermList(const std::vector<Node>& candidates,
                                      << hd << "\n";
       enums.push_back(hd);
     }
+    // for each decision tree strategy allocated for c (these are referenced
+    // by strategy points in d_cand_to_strat_pt[c]), collect condition
+    // enumerators
+    for (const Node& e : d_cand_to_strat_pt[c])
+    {
+      // get the current unification enumerators
+      std::vector<Node> enums_dt;
+      d_u_enum_manager.getEnumeratorsForStrategyPt(e, enums_dt, 1);
+      enums.insert(enums.end(), enums_dt.begin(), enums_dt.end());
+    }
   }
 }
 
@@ -234,7 +244,7 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   {
     Trace("cegis-unif") << "CegisUnif::lemma, separation lemma : " << lem
                         << "\n";
-    d_qe->getOutputChannel().lemma(lem);
+    addRefinementLemma(lem);
   }
   return false;
 }

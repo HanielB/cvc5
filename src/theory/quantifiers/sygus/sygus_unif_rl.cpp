@@ -375,7 +375,7 @@ void SygusUnifRl::setConditions(Node e,
   it->second.setConditions(guard, enums, conds);
 }
 
-std::vector<Node> SygusUnifRl::getEvalPointHeads(Node c)
+std::vector<Node>& SygusUnifRl::getEvalPointHeads(Node c) const
 {
   std::map<Node, std::vector<Node>>::iterator it = d_cand_to_eval_hds.find(c);
   if (it == d_cand_to_eval_hds.end())
@@ -475,6 +475,7 @@ void SygusUnifRl::registerConditionalEnumerator(Node f,
       == d_cond_enums.end())
   {
     d_cond_enums.push_back(cond);
+    // TODO is this right?
     d_cand_cenums[f].push_back(cond);
     d_cenum_to_stratpt[cond].clear();
   }
@@ -656,20 +657,12 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       if (hd_mv[e] == hd_mv[er])
       {
         // merged into separation class with same model value, no conflict
-        // add to explanation
-        // this states that it mattered that (er = e) at the time that e was
-        // added to the trie. Notice that er and e may become separated later,
-        // but to ensure the overall invariant, this equality must persist in
-        // the explanation.
-        if (!options::sygusUnifRetPool())
-        {
-          exp.push_back(er.eqNode(e));
-        }
-        else
-        {
-          // e = er is a sufficient condition for (ev er pt_er) = (ev e pt_er)
-          exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], lemmas));
-        }
+        //
+        // add to explanation that it mattered that (ev er pt_er) = (ev e pt_er)
+        // at the time that e was added to the trie. Notice that er and e may
+        // become separated later, but to ensure the overall invariant, this
+        // equality must persist in the explanation.
+        exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], lemmas));
         Trace("sygus-unif-sol") << "  ...equal model values\n";
         Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back()
                                 << "\n";
@@ -680,7 +673,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     // the construction
     if (!options::sygusUnifRetPool())
     {
-      exp.push_back(e.eqNode(er).negate());
+      // (ev er pt_er) != (ev e pt_er)
+      exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], false));
     }
     else
     {
@@ -953,10 +947,9 @@ bool SygusUnifRl::DecisionTreeInfo::pickCondition(unsigned c_counter,
     }
     cv = repairConditionToSeparate(cv, e1, e2);
     d_conds[c_counter] = cv;
-    // add to explanation
-    // c_exp is a conjunction of testers applied to shared selector chains
-    Node c_exp = d_unif->d_tds->getExplain()->getExplanationForEquality(ce, cv);
-    exp.push_back(c_exp);
+    // add to explanation (ev ce pt_e1) != (ev ce pt_e2)
+    exp.push_back(makeEvalExp(
+        ce, ce, d_unif->d_hd_to_pt[e1], d_unif->d_hd_to_pt[e2], false));
   }
   // if (repaired) condition, if any, still does not separate heads, try
   // condition pool
@@ -971,7 +964,7 @@ bool SygusUnifRl::DecisionTreeInfo::pickCondition(unsigned c_counter,
     {
       // set to index of the condition enum being equal to the respectively
       // failed model value, to be computed below in c_exp
-      d_exp_backtrack_size = exp.size() + 1;
+      d_exp_backtrack_size = exp.size();
     }
     pickedCond = true;
   }
@@ -1148,6 +1141,32 @@ Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
       }
     }
   }
+  // create equality
+  Node eq = nm->mkNode(EQUAL, ev_e1, ev_e2);
+  return equal ? eq : eq.negate();
+}
+
+
+Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
+                                                Node e2,
+                                                const std::vector<Node>& pt1,
+                                                const std::vector<Node>& pt2,
+                                                bool equal)
+{
+  Assert(pt1.size() == pt2.size());
+  NodeManager* nm = NodeManager::currentNM();
+  // build (ev e1 pt1)
+  Node ev_e1;
+  std::vector<Node> e1_children;
+  e1_children.push_back(e1);
+  e1_children.insert(e1_children.end(), pt1.begin(), pt1.end());
+  ev_e1 = datatypes::DatatypesRewriter::mkSygusEvalApp(e1_children);
+  // build (ev e2 pt2)
+  Node ev_e2;
+  std::vector<Node> e2_children;
+  e2_children.push_back(e2);
+  e2_children.insert(e2_children.end(), pt2.begin(), pt2.end());
+  ev_e2 = datatypes::DatatypesRewriter::mkSygusEvalApp(e2_children);
   // create equality
   Node eq = nm->mkNode(EQUAL, ev_e1, ev_e2);
   return equal ? eq : eq.negate();

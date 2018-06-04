@@ -101,7 +101,7 @@ class SygusUnifRl : public SygusUnif
                      const std::vector<Node>& conds);
 
   /** retrieve the head of evaluation points for candidate c, if any */
-  std::vector<Node> getEvalPointHeads(Node c);
+  std::vector<Node>& getEvalPointHeads(Node c) const;
 
  protected:
   /** reference to the parent conjecture */
@@ -277,6 +277,12 @@ class SygusUnifRl : public SygusUnif
                      const std::vector<Node>& pt_e1,
                      std::vector<Node>& lemmas,
                      bool equal = true);
+    /** uncomplicated version of the above */
+    Node makeEvalExp(Node e1,
+                     Node e2,
+                     const std::vector<Node>& pt1,
+                     const std::vector<Node>& pt2,
+                     bool equal);
     /** lemmas for unfolding evaluation functions on "repair" applications */
     std::set<Node> d_adhoc_unfolding_lemmas;
     /**
