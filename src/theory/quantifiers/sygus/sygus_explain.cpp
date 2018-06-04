@@ -285,7 +285,7 @@ void SygusExplain::getExplanationFor(Node n,
                                      unsigned& sz)
 {
   std::map<TypeNode, int> var_count;
-  return getExplanationFor(n,vn,exp,et,vnr,var_count,sz);
+  return getExplanationFor(n, vn, exp, et, vnr, var_count, sz);
 }
 
 void SygusExplain::getExplanationFor(Node n,

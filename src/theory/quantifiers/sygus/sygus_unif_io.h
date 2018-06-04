@@ -310,13 +310,13 @@ class SygusUnifIo : public SygusUnif
   unsigned d_cond_count;
   /** The solution for the function of this class, if one has been found */
   Node d_solution;
-  /** 
-   * This flag is set to true if the solution construction was 
+  /**
+   * This flag is set to true if the solution construction was
    * non-deterministic with respect to failure/success.
-   * 
-   * The solution construction for the string concatenation strategy is 
+   *
+   * The solution construction for the string concatenation strategy is
    * non-deterministic with respect to success/failure. That is, choosing
-   * a particular string may lead to being unsolvable in the recursive calls, 
+   * a particular string may lead to being unsolvable in the recursive calls,
    * whereas others may not. For example, if our pool of enumerated strings is:
    *   { "A", x, "B" }
    * and our I/O example is:

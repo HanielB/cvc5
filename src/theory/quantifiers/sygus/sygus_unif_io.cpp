@@ -459,7 +459,8 @@ void SubsumeTrie::getLeaves(const std::vector<Node>& vals,
   getLeavesInternal(vals, pol, v, 0, -2);
 }
 
-SygusUnifIo::SygusUnifIo() : d_check_sol(false), d_cond_count(0), d_sol_cons_nondet(false)
+SygusUnifIo::SygusUnifIo()
+    : d_check_sol(false), d_cond_count(0), d_sol_cons_nondet(false)
 {
   d_true = NodeManager::currentNM()->mkConst(true);
   d_false = NodeManager::currentNM()->mkConst(false);
@@ -730,7 +731,7 @@ Node SygusUnifIo::constructSolutionNode(std::vector<Node>& lemmas)
         Trace("sygus-pbe") << "...solved at iteration " << i << std::endl;
         vc = vcc;
       }
-      else if( !d_sol_cons_nondet )
+      else if (!d_sol_cons_nondet)
       {
         break;
       }
@@ -854,7 +855,7 @@ void SygusUnifIo::EnumCache::addEnumValue(Node v, std::vector<Node>& results)
 }
 
 void SygusUnifIo::initializeConstructSol()
-{ 
+{
   d_context.initialize(this);
   d_sol_cons_nondet = false;
 }

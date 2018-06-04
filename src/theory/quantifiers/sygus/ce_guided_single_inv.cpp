@@ -17,9 +17,9 @@
 #include "options/quantifiers_options.h"
 #include "theory/arith/arith_msum.h"
 #include "theory/quantifiers/sygus/sygus_grammar_cons.h"
+#include "theory/quantifiers/sygus/term_database_sygus.h"
 #include "theory/quantifiers/term_enumeration.h"
 #include "theory/quantifiers/term_util.h"
-#include "theory/quantifiers/sygus/term_database_sygus.h"
 
 using namespace CVC4;
 using namespace CVC4::kind;
@@ -575,9 +575,11 @@ Node CegConjectureSingleInv::reconstructToSyntax( Node s, TypeNode stn, int& rec
   }else{
     Trace("csi-sol") << "Post-process solution..." << std::endl;
     Node prev = d_solution;
-    if( options::minSynthSol() )
+    if (options::minSynthSol())
     {
-      d_solution = d_qe->getTermDatabaseSygus()->getExtRewriter()->extendedRewrite(d_solution);
+      d_solution =
+          d_qe->getTermDatabaseSygus()->getExtRewriter()->extendedRewrite(
+              d_solution);
     }
     d_solution = postProcessSolution( d_solution );
     if( prev!=d_solution ){

@@ -1219,7 +1219,8 @@ Expr Smt2::makeSygusBoundVarList(Datatype& dt,
 }
 
 const void Smt2::getSygusPrimedVars( std::vector<Expr>& vars, bool isPrimed ) {
-  for( unsigned i=0, size = d_sygusInvVars.size(); i<size; i++ ){
+  for (unsigned i = 0, size = d_sygusInvVars.size(); i < size; i++)
+  {
     Expr v = d_sygusInvVars[i];
     std::map< Expr, bool >::iterator it = d_sygusVarPrimed.find( v );
     if( it!=d_sygusVarPrimed.end() ){

@@ -237,6 +237,7 @@ class CegisUnif : public Cegis
 
   /** using repair const */
   bool usingRepairConst() override;
+
  private:
   /** do cegis-implementation-specific intialization for this class */
   bool processInitialize(Node n,

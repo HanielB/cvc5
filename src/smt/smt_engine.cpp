@@ -1315,10 +1315,11 @@ void SmtEngine::setDefaults() {
     {
       options::cbqiMidpoint.set(true);
     }
-    if( options::sygusRepairConst() )
+    if (options::sygusRepairConst())
     {
-      if( !options::cbqi.wasSetByUser() ){
-        options::cbqi.set( true );
+      if (!options::cbqi.wasSetByUser())
+      {
+        options::cbqi.set(true);
       }
     }
   }

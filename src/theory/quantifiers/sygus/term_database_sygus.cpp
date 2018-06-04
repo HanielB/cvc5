@@ -118,7 +118,7 @@ Node TermDbSygus::getProxyVariable(TypeNode tn, Node c)
   {
     int anyC = getAnyConstantConsNum(tn);
     Node k;
-    if( anyC==-1 )
+    if (anyC == -1)
     {
       k = NodeManager::currentNM()->mkSkolem("sy", tn, "sygus proxy");
       SygusPrintProxyAttribute spa;
@@ -127,7 +127,8 @@ Node TermDbSygus::getProxyVariable(TypeNode tn, Node c)
     else
     {
       const Datatype& dt = static_cast<DatatypeType>(tn.toType()).getDatatype();
-      k = NodeManager::currentNM()->mkNode( APPLY_CONSTRUCTOR, Node::fromExpr( dt[anyC].getConstructor() ), c );
+      k = NodeManager::currentNM()->mkNode(
+          APPLY_CONSTRUCTOR, Node::fromExpr(dt[anyC].getConstructor()), c);
     }
     d_proxy_vars[tn][c] = k;
     return k;
@@ -193,8 +194,7 @@ Node TermDbSygus::canonizeBuiltin(Node n)
   return canonizeBuiltin(n, var_count);
 }
 
-Node TermDbSygus::canonizeBuiltin(Node n,
-                                  std::map<TypeNode, int>& var_count)
+Node TermDbSygus::canonizeBuiltin(Node n, std::map<TypeNode, int>& var_count)
 {
   // has it already been computed?
   if (var_count.empty() && n.hasAttribute(CanonizeBuiltinAttribute()))

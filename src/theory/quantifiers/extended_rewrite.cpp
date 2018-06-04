@@ -325,16 +325,16 @@ Node ExtendedRewriter::extendedRewriteIte(Kind itek, Node n, bool full)
   }
   // Boolean true/false return
   TypeNode tn = n.getType();
-  if( tn.isBoolean() )
+  if (tn.isBoolean())
   {
-    for( unsigned i=1; i<=2; i++ )
+    for (unsigned i = 1; i <= 2; i++)
     {
-      if( n[i].isConst() )
+      if (n[i].isConst())
       {
-        Node cond = i==1 ? n[0] : n[0].negate();
-        Node other = n[i==1 ? 2 : 1];
+        Node cond = i == 1 ? n[0] : n[0].negate();
+        Node other = n[i == 1 ? 2 : 1];
         Kind retk = AND;
-        if( n[i].getConst<bool>() )
+        if (n[i].getConst<bool>())
         {
           retk = OR;
         }
@@ -342,7 +342,7 @@ Node ExtendedRewriter::extendedRewriteIte(Kind itek, Node n, bool full)
         {
           cond = cond.negate();
         }
-        Node new_ret = nm->mkNode( retk, cond, other );
+        Node new_ret = nm->mkNode(retk, cond, other);
         if (full)
         {
           debugExtendedRewrite(n, new_ret, "ITE const return");
@@ -1250,20 +1250,20 @@ Node ExtendedRewriter::extendedRewriteBv(Node ret, bool& pol)
           nconst_count++;
           nconst_index = i;
         }
-        for( unsigned j=0; j<2; j++ )
+        for (unsigned j = 0; j < 2; j++)
         {
-          Node v = j==0 ? v1[i] : v2[i];
-          Node vo = j==0 ? v2[i] : v1[i];
+          Node v = j == 0 ? v1[i] : v2[i];
+          Node vo = j == 0 ? v2[i] : v1[i];
           // should we negate both?
-          if( v.getKind()==BITVECTOR_NOT && vo.isConst() )
+          if (v.getKind() == BITVECTOR_NOT && vo.isConst())
           {
             v = v[0];
-            vo = TermUtil::mkNegate(BITVECTOR_NOT, vo );
-            vo = Rewriter::rewrite( vo );
+            vo = TermUtil::mkNegate(BITVECTOR_NOT, vo);
+            vo = Rewriter::rewrite(vo);
             vs_changed = true;
           }
-          v1[i] = j==0 ? v : vo;
-          v2[i] = j==0 ? vo : v;
+          v1[i] = j == 0 ? v : vo;
+          v2[i] = j == 0 ? vo : v;
         }
       }
       if (nconst_count == 1)
@@ -1272,10 +1272,10 @@ Node ExtendedRewriter::extendedRewriteBv(Node ret, bool& pol)
         debugExtendedRewrite(ret, new_ret, "CONCAT eq true");
         return new_ret;
       }
-      if( vs_changed )
+      if (vs_changed)
       {
-        Node v1n = nm->mkNode(BITVECTOR_CONCAT,v1);
-        Node v2n = nm->mkNode(BITVECTOR_CONCAT,v2);
+        Node v1n = nm->mkNode(BITVECTOR_CONCAT, v1);
+        Node v2n = nm->mkNode(BITVECTOR_CONCAT, v2);
         new_ret = v1n.eqNode(v2n);
         debugExtendedRewrite(ret, new_ret, "CONCAT mod component");
         return new_ret;
@@ -2232,7 +2232,7 @@ bool ExtendedRewriter::bitVectorDisjoint(Node a, Node b)
       break;
     }
   }
-  if( dualSubsumeSuccess )
+  if (dualSubsumeSuccess)
   {
     return true;
   }
@@ -2255,31 +2255,27 @@ bool ExtendedRewriter::bitVectorDisjoint(Node a, Node b)
 void bitVectorIntervalSetIndices(Node a, unsigned& min_i, unsigned& max_i)
 {
   unsigned size = bv::utils::getSize(a);
-  Assert( size>0 );
+  Assert(size > 0);
   min_i = 0;
-  max_i = size-1;
-  if( a.isConst() )
+  max_i = size - 1;
+  if (a.isConst())
   {
-    
-    for( unsigned i=0; i<size; i++ )
+    for (unsigned i = 0; i < size; i++)
     {
-      
     }
   }
   Kind ak = a.getKind();
-  if( ak==BITVECTOR_SHL || ak==BITVECTOR_LSHR  )
+  if (ak == BITVECTOR_SHL || ak == BITVECTOR_LSHR)
   {
     // constant shift
-    if( a[1].isConst() )
+    if (a[1].isConst())
     {
-      
     }
   }
-  else if( ak==BITVECTOR_AND || ak==BITVECTOR_OR )
+  else if (ak == BITVECTOR_AND || ak == BITVECTOR_OR)
   {
-
   }
-  else if( ak==MULT )
+  else if (ak == MULT)
   {
     // powers of two combine
   }

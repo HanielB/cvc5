@@ -2270,7 +2270,7 @@ void TheoryDatatypes::getRelevantTerms( std::set<Node>& termSet ) {
             addedFirst = true;
             termSet.insert(first);
           }
-          termSet.insert( n );
+          termSet.insert(n);
         }
         ++eqc_i;
       }

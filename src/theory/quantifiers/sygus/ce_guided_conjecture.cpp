@@ -274,10 +274,10 @@ void CegConjecture::doCheck(std::vector<Node>& lems)
         Assert(d_repair_index < d_cinfo[cprog].d_inst.size());
         fail_cvs.push_back(d_cinfo[cprog].d_inst[d_repair_index]);
       }
-      if( Trace.isOn("cegqi-check") )
+      if (Trace.isOn("cegqi-check"))
       {
         Trace("cegqi-check") << "CegConjuncture : repair previous solution ";
-        for( const Node& fc : fail_cvs )
+        for (const Node& fc : fail_cvs)
         {
           std::stringstream ss;
           Printer::getPrinter(options::outputLanguage())->toStreamSygus(ss, fc);
@@ -362,7 +362,8 @@ void CegConjecture::doCheck(std::vector<Node>& lems)
         Node sk = nm->mkSkolem("rsk", v.getType());
         sks.push_back(sk);
         vars.push_back(v);
-        Trace("cegqi-check-debug") << "  introduce skolem " << sk << " for " << v << "\n";
+        Trace("cegqi-check-debug")
+            << "  introduce skolem " << sk << " for " << v << "\n";
       }
       lem = inst[0][1].substitute(
           vars.begin(), vars.end(), sks.begin(), sks.end());
@@ -403,7 +404,7 @@ void CegConjecture::doCheck(std::vector<Node>& lems)
     // either this conjecture does not have a solution, or candidate_values
     // is a solution for this conjecture.
     lem = nm->mkNode(OR, d_quant.negate(), query);
-    if( options::sygusVerifySubcall() )
+    if (options::sygusVerifySubcall())
     {
       Trace("cegqi-engine") << "  *** Direct verify..." << std::endl;
       SmtEngine verifySmt(nm->toExprManager());
@@ -424,7 +425,7 @@ void CegConjecture::doCheck(std::vector<Node>& lems)
         Trace("cegqi-engine") << std::endl;
         return;
       }
-      else if(r.asSatisfiabilityResult().isSat() == Result::UNSAT )
+      else if (r.asSatisfiabilityResult().isSat() == Result::UNSAT)
       {
         // if the result in the subcall was unsatisfiable, we avoid
         // rechecking, hence we drop "query" from the verification lemma

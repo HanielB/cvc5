@@ -459,11 +459,12 @@ TypeNode SygusGrammarNorm::normalizeSygusRec(TypeNode tn,
       // beneath the same application
       // we set its weight to zero since it should be considered at the
       // same level as constants.
-      to.d_ops.insert(to.d_ops.begin(),av.toExpr());
-      to.d_cons_names.insert(to.d_cons_names.begin(),cname);
-      to.d_cons_args_t.insert(to.d_cons_args_t.begin(),builtin_arg);
-      to.d_pc.insert(to.d_pc.begin(),printer::SygusEmptyPrintCallback::getEmptyPC());
-      to.d_weight.insert(to.d_weight.begin(),0);
+      to.d_ops.insert(to.d_ops.begin(), av.toExpr());
+      to.d_cons_names.insert(to.d_cons_names.begin(), cname);
+      to.d_cons_args_t.insert(to.d_cons_args_t.begin(), builtin_arg);
+      to.d_pc.insert(to.d_pc.begin(),
+                     printer::SygusEmptyPrintCallback::getEmptyPC());
+      to.d_weight.insert(to.d_weight.begin(), 0);
     }
   }
   /* Build normalize datatype */

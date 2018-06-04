@@ -47,17 +47,18 @@ public:
     if(node.getKind() == kind::APPLY_UF) {
       if( node.getOperator().getKind() == kind::LAMBDA ){
         TNode lambda = node.getOperator();
-        std::vector< TNode > vars;
-        std::vector< TNode > subs;
-        for( const TNode& v : lambda[0] )
+        std::vector<TNode> vars;
+        std::vector<TNode> subs;
+        for (const TNode& v : lambda[0])
         {
-          vars.push_back( v );
+          vars.push_back(v);
         }
-        for( const TNode& s : node )
+        for (const TNode& s : node)
         {
           subs.push_back(s);
         }
-        Node ret = lambda[1].substitute(vars.begin(),vars.end(),subs.begin(),subs.end());
+        Node ret = lambda[1].substitute(
+            vars.begin(), vars.end(), subs.begin(), subs.end());
         return RewriteResponse(REWRITE_AGAIN_FULL, ret);
       }else if( !canUseAsApplyUfOperator( node.getOperator() ) ){
         return RewriteResponse(REWRITE_AGAIN_FULL, getHoApplyForApplyUf(node));
