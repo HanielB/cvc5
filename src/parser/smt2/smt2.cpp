@@ -211,6 +211,7 @@ void Smt2::addTheory(Theory theory) {
   case THEORY_ARRAYS:
     addOperator(kind::SELECT, "select");
     addOperator(kind::STORE, "store");
+    addOperator(kind::EQ_RANGE, "eqrange");
     break;
 
   case THEORY_BITVECTORS:
