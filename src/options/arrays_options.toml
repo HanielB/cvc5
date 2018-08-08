@@ -73,3 +73,11 @@ header = "options/arrays_options.h"
   type       = "int"
   default    = "2"
   help       = "propagation effort for arrays: 0 is none, 1 is some, 2 is full"
+
+[[option]]
+  name       = "arraysEqrangeAsQuant"
+  category   = "regular"
+  long       = "arrays-equality-range-as-quantifiers"
+  type       = "bool"
+  default    = "true"
+  help       = "rewrites array equality range as quantifiers"
