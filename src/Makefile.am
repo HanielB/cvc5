@@ -71,6 +71,8 @@ libcvc4_la_SOURCES = \
 	preprocessing/passes/bv_gauss.h \
 	preprocessing/passes/bv_intro_pow2.cpp \
 	preprocessing/passes/bv_intro_pow2.h \
+	preprocessing/passes/eqrange_to_quant.cpp \
+	preprocessing/passes/eqrange_to_quant.h \
 	preprocessing/passes/int_to_bv.cpp \
 	preprocessing/passes/int_to_bv.h \
 	preprocessing/passes/pseudo_boolean_processor.cpp \
