@@ -14,6 +14,7 @@
 
 #include "theory/quantifiers_engine.h"
 
+#include "options/arrays_options.h"
 #include "options/quantifiers_options.h"
 #include "options/uf_options.h"
 #include "smt/smt_statistics_registry.h"
@@ -35,6 +36,7 @@
 #include "theory/quantifiers/fmf/full_model_check.h"
 #include "theory/quantifiers/fmf/model_engine.h"
 #include "theory/quantifiers/inst_propagator.h"
+#include "theory/quantifiers/inst_arrays_eqrange.h"
 #include "theory/quantifiers/inst_strategy_enumerative.h"
 #include "theory/quantifiers/instantiate.h"
 #include "theory/quantifiers/local_theory_ext.h"
@@ -243,7 +245,14 @@ QuantifiersEngine::QuantifiersEngine(context::Context* c,
     d_rel_dom = new quantifiers::RelevantDomain( this );
     d_util.push_back( d_rel_dom );
   }
-  
+
+  if (options::arraysEqrangeAsQuant())
+  {
+    d_eqrange = new quantifiers::InstArraysEqrange( this );
+    d_modules.push_back(d_eqrange);
+    needsBuilder = true;
+  }
+
   // if we require specialized ways of building the model
   if( needsBuilder ){
     Trace("quant-engine-debug") << "Initialize model engine, mbqi : " << options::mbqiMode() << " " << options::fmfBound() << std::endl;

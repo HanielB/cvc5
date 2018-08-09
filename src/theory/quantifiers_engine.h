@@ -64,6 +64,7 @@ namespace quantifiers {
   class ModelEngine;
   class BoundedIntegers;
   class QuantConflictFind;
+class InstArraysEqrange;
   class RewriteEngine;
   class QModelBuilder;
   class ConjectureGenerator;
@@ -141,6 +142,8 @@ private:
   quantifiers::BoundedIntegers * d_bint;
   /** Conflict find mechanism for quantifiers */
   quantifiers::QuantConflictFind* d_qcf;
+  /** Arrays equality range through instantitaion */
+  quantifiers::InstArraysEqrange* d_eqrange;
   /** rewrite rules utility */
   quantifiers::RewriteEngine * d_rr_engine;
   /** subgoal generator */
