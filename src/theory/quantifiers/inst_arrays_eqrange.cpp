@@ -47,10 +47,7 @@ QuantifiersModule::QEffort InstArraysEqrange::needsModel(Theory::Effort e)
   return QEFFORT_MODEL;
 }
 
-bool InstArraysEqrange::isEqrange(Node q)
-{
-  return false;
-}
+bool InstArraysEqrange::isEqrange(Node q) { return false; }
 
 void InstArraysEqrange::checkOwnership(Node q)
 {

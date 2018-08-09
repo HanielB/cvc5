@@ -64,7 +64,7 @@ namespace quantifiers {
   class ModelEngine;
   class BoundedIntegers;
   class QuantConflictFind;
-class InstArraysEqrange;
+  class InstArraysEqrange;
   class RewriteEngine;
   class QModelBuilder;
   class ConjectureGenerator;

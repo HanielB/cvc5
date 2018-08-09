@@ -35,8 +35,8 @@
 #include "theory/quantifiers/fmf/bounded_integers.h"
 #include "theory/quantifiers/fmf/full_model_check.h"
 #include "theory/quantifiers/fmf/model_engine.h"
-#include "theory/quantifiers/inst_propagator.h"
 #include "theory/quantifiers/inst_arrays_eqrange.h"
+#include "theory/quantifiers/inst_propagator.h"
 #include "theory/quantifiers/inst_strategy_enumerative.h"
 #include "theory/quantifiers/instantiate.h"
 #include "theory/quantifiers/local_theory_ext.h"
@@ -248,7 +248,7 @@ QuantifiersEngine::QuantifiersEngine(context::Context* c,
 
   if (options::arraysEqrangeAsQuant())
   {
-    d_eqrange = new quantifiers::InstArraysEqrange( this );
+    d_eqrange = new quantifiers::InstArraysEqrange(this);
     d_modules.push_back(d_eqrange);
     needsBuilder = true;
   }
