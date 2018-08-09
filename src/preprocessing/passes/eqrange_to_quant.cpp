@@ -46,7 +46,7 @@ Node EqrangeToQuant::eqrangeToQuantInternal(TNode n, NodeMap& cache)
     Node index = nm->mkBoundVar(n[2].getType());
     Node bvl = nm->mkNode(kind::BOUND_VAR_LIST, index);
     // mk quantified formula
-    // forall i. i < lb v i > ub v a[i] != b[i]
+    // forall i. i < lb v i > ub v a[i] = b[i]
     std::vector<Node> body;
     body.push_back(nm->mkNode(kind::BITVECTOR_ULT, index, n[2]));
     Trace("eqrange-as-quant-debug")
@@ -56,8 +56,7 @@ Node EqrangeToQuant::eqrangeToQuantInternal(TNode n, NodeMap& cache)
         << "...built i > ub : " << body.back() << "\n";
     body.push_back(nm->mkNode(kind::EQUAL,
                               nm->mkNode(kind::SELECT, n[0], index),
-                              nm->mkNode(kind::SELECT, n[1], index))
-                       .negate());
+                              nm->mkNode(kind::SELECT, n[1], index)));
     Trace("eqrange-as-quant-debug")
         << "...built a[i] != b[i] : " << body.back() << "\n";
     ret = nm->mkNode(kind::FORALL, bvl, nm->mkNode(kind::OR, body));
