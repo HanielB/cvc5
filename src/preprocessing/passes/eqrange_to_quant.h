@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file real_to_int.h
+/*! \file eqrange_to_quant.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Haniel Barbosa
