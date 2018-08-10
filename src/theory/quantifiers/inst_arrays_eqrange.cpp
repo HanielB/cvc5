@@ -21,6 +21,7 @@
 #include "theory/quantifiers/relevant_domain.h"
 #include "theory/quantifiers/term_database.h"
 #include "theory/quantifiers/term_util.h"
+#include "theory/bv/theory_bv_utils.h"
 
 namespace CVC4 {
 
@@ -40,8 +41,7 @@ InstArraysEqrange::InstArraysEqrange(QuantifiersEngine* qe)
 
 bool InstArraysEqrange::needsCheck(Theory::Effort e)
 {
-  // return options::arraysEqrangeAsQuant() && e == Theory::EFFORT_LAST_CALL;
-  return options::arraysEqrangeAsQuant();
+  return options::arraysEqrangeAsQuant() && e == Theory::EFFORT_LAST_CALL;
 }
 
 QuantifiersModule::QEffort InstArraysEqrange::needsModel(Theory::Effort e)
@@ -54,7 +54,8 @@ bool InstArraysEqrange::isEqrangeQuant(Node q)
   // compute attributes
   QAttributes qa;
   QuantAttributes::computeQuantAttributes(q, qa);
-  Trace("eqrange-as-quant") << "Quant is eqrange? " << (qa.d_eqrange? "true" : "false") << "\n";
+  Trace("eqrange-as-quant")
+      << "Quant is eqrange? " << (qa.d_eqrange ? "true" : "false") << "\n";
   return qa.d_eqrange;
 }
 
@@ -81,10 +82,33 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
     {
       continue;
     }
-    Trace("eqrange-as-quant") << "Checking " << q << "\n";
+    Trace("eqrange-as-quant") << "...checking " << q << "\n";
+    // getting bounds
+    Node var = q[0][0];
+    unsigned size = theory::bv::utils::getSize(var);
+    Node lb = theory::bv::utils::mkZero(size),
+         ub = theory::bv::utils::mkOnes(size);
+    for (unsigned i = 0, size = q[1].getNumChildren(); i < size; ++i)
+    {
+      Node n = q[1][i];
+      Kind k = n.getKind();
+      Assert(k == EQUAL || k == BITVECTOR_UGT || k == BITVECTOR_ULT);
+      if (k == BITVECTOR_ULT)
+      {
+        lb = n[0] == var? n[1] : n[0];
+      }
+      else if (k == BITVECTOR_UGT)
+      {
+        ub = n[0] == var? n[1] : n[0];
+      }
+    }
     // getting model
     FirstOrderModel* fm = d_quantEngine->getModel();
+    Trace("eqrange-as-quant")
+        << "......bound values: lb: " << lb << " = " << fm->getValue(lb)
+        << ", ub: " << ub << " = " << fm->getValue(ub) << "\n";
     // get relevant indices for arrays (from master equality engine)
+
     // check with values
     // add instance if failed
   }
