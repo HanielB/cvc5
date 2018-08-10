@@ -48,7 +48,7 @@ class InstArraysEqrange : public QuantifiersModule
   }
 
  private:
-  bool isEqrange(Node q);
+  bool isEqrangeQuant(Node q);
   std::unordered_set<Node, NodeHashFunction> d_claimed_quants;
 }; /* class InstArraysEqrange */
 
