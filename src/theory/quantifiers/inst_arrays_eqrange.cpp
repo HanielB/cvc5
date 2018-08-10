@@ -184,7 +184,8 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
         terms.push_back(index);
         if (d_quantEngine->getInstantiate()->addInstantiation(q, terms))
         {
-          Trace("eqrange-as-quant") << "...adding instance for " << index << "\n";
+          Trace("eqrange-as-quant")
+              << "...adding instance for " << index << "\n";
         }
       }
     }

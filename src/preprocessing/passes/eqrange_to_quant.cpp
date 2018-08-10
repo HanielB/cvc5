@@ -18,8 +18,8 @@
 
 #include <string>
 
-#include "theory/rewriter.h"
 #include "theory/quantifiers/quantifiers_attributes.h"
+#include "theory/rewriter.h"
 
 namespace CVC4 {
 namespace preprocessing {
