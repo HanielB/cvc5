@@ -60,7 +60,7 @@ class InstArraysEqrange : public QuantifiersModule
     /** arrays */
     Node a1;
     Node a2;
-  }
+  };
   std::map<Node, QuantInfo> d_quant_to_info;
 }; /* class InstArraysEqrange */
 

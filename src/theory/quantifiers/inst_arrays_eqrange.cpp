@@ -51,7 +51,7 @@ QuantifiersModule::QEffort InstArraysEqrange::needsModel(Theory::Effort e)
 
 bool InstArraysEqrange::isEqrangeQuant(Node q)
 {
-  if (q[0].size() > 1 || !q[0][0].getType().isBitVector())
+  if (q[0].getNumChildren() > 1 || !q[0][0].getType().isBitVector())
   {
     return false;
   }
@@ -162,7 +162,7 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
       {
         Node app = db->getGroundTerm(op, i);
         Trace("eqrange-as-quant") << app << "\n";
-        if ((select || store) && (app[0] == a1 || app[0] == a2))
+        if ((select || store) && (app[0] == qi.a1 || app[0] == qi.a2))
         {
           indices.insert(app[1]);
           Trace("eqrange-as-quant") << "...adding index " << app[1] << "\n";
