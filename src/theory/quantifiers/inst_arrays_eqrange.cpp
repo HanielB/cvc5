@@ -41,7 +41,7 @@ InstArraysEqrange::InstArraysEqrange(QuantifiersEngine* qe)
 
 bool InstArraysEqrange::needsCheck(Theory::Effort e)
 {
-  return options::arraysEqrangeAsQuant();
+  return options::arraysEqrangeAsQuant() && e == Theory::EFFORT_LAST_CALL;
 }
 
 QuantifiersModule::QEffort InstArraysEqrange::needsModel(Theory::Effort e)
@@ -132,7 +132,7 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
     QuantInfo qi = d_quant_to_info[q];
     // get relevant indices for arrays (from master equality engine)
     std::unordered_set<Node, NodeHashFunction> indices;
-    Trace("eqrange-as-quant") << "...selects and stores:\n";
+    Trace("eqrange-as-quant-debug") << "...selects and stores:\n";
     for (unsigned k = 0, numOps = db->getNumOperators(); k < numOps; ++k)
     {
       bool store = false, select = false;
@@ -161,11 +161,12 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
       for (unsigned i = 0, size = db->getNumGroundTerms(op); i < size; ++i)
       {
         Node app = db->getGroundTerm(op, i);
-        Trace("eqrange-as-quant") << app << "\n";
+        Trace("eqrange-as-quant-debug") << app << "\n";
         if ((select || store) && (app[0] == qi.a1 || app[0] == qi.a2))
         {
           indices.insert(app[1]);
-          Trace("eqrange-as-quant") << "...adding index " << app[1] << "\n";
+          Trace("eqrange-as-quant-debug") << "...adding index " << app[1]
+                                          << "\n";
         }
       }
     }
@@ -175,22 +176,23 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
     for (const Node& index : indices)
     {
       BitVector index_value = fm->getValue(index).getConst<BitVector>();
-      Trace("eqrange-as-quant") << "...index :" << index_value << "\n";
+      Trace("eqrange-as-quant-debug") << "...index :" << index_value << "\n";
       if (index_value.unsignedLessThan(lb_value)
           || ub_value.unsignedLessThan(index_value))
       {
-        Trace("eqrange-as-quant")
+        Trace("eqrange-as-quant-debug")
             << "......out of bounds : "
             << (index_value.unsignedLessThan(lb_value) ? "smaller\n"
                                                        : "bigger\n");
         continue;
       }
-      Trace("eqrange-as-quant") << "...test for : " << index_value << "\n";
+      Trace("eqrange-as-quant-debug") << "...test for : " << index_value
+                                      << "\n";
       Node e1 = nm->mkNode(SELECT, qi.a1, index);
       Node e2 = nm->mkNode(SELECT, qi.a2, index);
-      Trace("eqrange-as-quant")
-          << "...test for : " << e1 << " = " << fm->getValue(e1)
-          << "\n...test for : " << e2 << " = " << fm->getValue(e2) << "\n";
+      Trace("eqrange-as-quant") << "...test for : " << e1 << " = "
+                                << fm->getValue(e1) << "\n...test for : " << e2
+                                << " = " << fm->getValue(e2) << "\n\n";
       // add instance if failed
       if (fm->getValue(e1) != fm->getValue(e2))
       {
