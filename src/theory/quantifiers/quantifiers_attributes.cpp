@@ -78,15 +78,7 @@ void QuantAttributes::setUserAttribute( const std::string& attr, Node n, std::ve
     Trace("quant-attr-debug") << "Set synthesis " << n << std::endl;
     SynthesisAttribute ca;
     n.setAttribute( ca, true );
-  }
-  else if (attr == "eqrange")
-  {
-    Trace("quant-attr-debug") << "Set eqrange " << n << std::endl;
-    EqrangeAttribute ca;
-    n.setAttribute(ca, true);
-  }
-  else if (attr == "quant-inst-max-level")
-  {
+  }else if (attr == "quant-inst-max-level"){
     Assert( node_values.size()==1 );
     uint64_t lvl = node_values[0].getConst<Rational>().getNumerator().getLong();
     Trace("quant-attr-debug") << "Set instantiation level " << n << " to " << lvl << std::endl;
@@ -294,11 +286,6 @@ void QuantAttributes::computeQuantAttributes( Node q, QAttributes& qa ){
           Trace("quant-attr") << "Attribute : synthesis : " << q << std::endl;
           qa.d_synthesis = true;
         }
-        if (avar.getAttribute(EqrangeAttribute()))
-        {
-          Trace("quant-attr") << "Attribute : eqrange : " << q << std::endl;
-          qa.d_eqrange = true;
-        }
         if( avar.hasAttribute(QuantInstLevelAttribute()) ){
           qa.d_qinstLevel = avar.getAttribute(QuantInstLevelAttribute());
           Trace("quant-attr") << "Attribute : quant inst level " << qa.d_qinstLevel << " : " << q << std::endl;
@@ -375,16 +362,6 @@ bool QuantAttributes::isSynthesis( Node q ) {
   }else{
     return it->second.d_synthesis;
   }
-}
-
-bool QuantAttributes::isEqrange(Node q)
-{
-  std::map<Node, QAttributes>::iterator it = d_qattr.find(q);
-  if (it != d_qattr.end())
-  {
-    return it->second.d_eqrange;
-  }
-  return false;
 }
 
 int QuantAttributes::getQuantInstLevel( Node q ) {

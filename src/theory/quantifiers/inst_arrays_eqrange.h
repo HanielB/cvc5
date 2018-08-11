@@ -48,8 +48,20 @@ class InstArraysEqrange : public QuantifiersModule
   }
 
  private:
+  /** whether q = forall x : (bv sz). (or [(x > lb) (x < ub)] (= a[x] b[x]))) */
   bool isEqrangeQuant(Node q);
   std::unordered_set<Node, NodeHashFunction> d_claimed_quants;
+  struct QuantInfo
+  {
+    /** lower bound */
+    Node lb;
+    /** upper bound */
+    Node ub;
+    /** arrays */
+    Node a1;
+    Node a2;
+  }
+  std::map<Node, QuantInfo> d_quant_to_info;
 }; /* class InstArraysEqrange */
 
 }  // namespace quantifiers

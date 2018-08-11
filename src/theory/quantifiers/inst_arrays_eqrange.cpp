@@ -41,7 +41,7 @@ InstArraysEqrange::InstArraysEqrange(QuantifiersEngine* qe)
 
 bool InstArraysEqrange::needsCheck(Theory::Effort e)
 {
-  return options::arraysEqrangeAsQuant() && e == Theory::EFFORT_LAST_CALL;
+  return options::arraysEqrangeAsQuant();
 }
 
 QuantifiersModule::QEffort InstArraysEqrange::needsModel(Theory::Effort e)
@@ -51,12 +51,54 @@ QuantifiersModule::QEffort InstArraysEqrange::needsModel(Theory::Effort e)
 
 bool InstArraysEqrange::isEqrangeQuant(Node q)
 {
-  // compute attributes
-  QAttributes qa;
-  QuantAttributes::computeQuantAttributes(q, qa);
-  Trace("eqrange-as-quant")
-      << "Quant is eqrange? " << (qa.d_eqrange ? "true" : "false") << "\n";
-  return qa.d_eqrange;
+  if (q[0].size() > 1 || !q[0][0].getType().isBitVector())
+  {
+    return false;
+  }
+  Node var = q[0][0];
+  unsigned size = theory::bv::utils::getSize(var);
+  bool set_lb = false, set_ub = false, set_arrays = false;
+  QuantInfo qi;
+  for (const Node& n : q[1])
+  {
+    Kind k = n.getKind();
+    if (k != EQUAL && k != BITVECTOR_UGT && k != BITVECTOR_ULT)
+    {
+      return false;
+    }
+    if (k == BITVECTOR_ULT)
+    {
+      qi.lb = n[0] == var ? n[1] : n[0];
+      set_lb = true;
+    }
+    else if (k == BITVECTOR_UGT)
+    {
+      qi.ub = n[0] == var ? n[1] : n[0];
+      set_ub = true;
+    }
+    else
+    {
+      // assign arrays from equality
+      qi.a1 = n[0][0];
+      qi.a2 = n[1][0];
+      set_arrays = true;
+    }
+  }
+  if (!set_lb && !set_ub && !set_arrays)
+  {
+    return false;
+  }
+  // if bounds not set, assign beginning/end of interval
+  if (!set_lb)
+  {
+    qi.lb = theory::bv::utils::mkZero(size);
+  }
+  if (!set_ub)
+  {
+    qi.ub = theory::bv::utils::mkOnes(size);
+  }
+  d_quant_to_info[q] = qi;
+  return true;
 }
 
 void InstArraysEqrange::checkOwnership(Node q)
@@ -86,36 +128,8 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
       continue;
     }
     Trace("eqrange-as-quant") << "...checking " << q << "\n";
-    // getting bounds and arrays
-    Node var = q[0][0];
-    unsigned size = theory::bv::utils::getSize(var);
-    Node lb = theory::bv::utils::mkZero(size),
-         ub = theory::bv::utils::mkOnes(size);
-    Node a1, a2;
-    for (unsigned i = 0, size = q[1].getNumChildren(); i < size; ++i)
-    {
-      Node n = q[1][i];
-      Kind k = n.getKind();
-      Assert(k == EQUAL || k == BITVECTOR_UGT || k == BITVECTOR_ULT);
-      if (k == BITVECTOR_ULT)
-      {
-        lb = n[0] == var ? n[1] : n[0];
-      }
-      else if (k == BITVECTOR_UGT)
-      {
-        ub = n[0] == var ? n[1] : n[0];
-      }
-      else
-      {
-        // assert they are arrays
-        a1 = n[0][0];
-        a2 = n[1][0];
-      }
-    }
-    Trace("eqrange-as-quant")
-        << "......arrays: " << a1 << " | " << a2
-        << "\n......bound values: lb: " << fm->getValue(lb)
-        << ", ub: " << fm->getValue(ub) << "\n";
+    Assert(d_quant_to_info.find(q) != d_quant_to_info.end());
+    QuantInfo qi = d_quant_to_info[q];
     // get relevant indices for arrays (from master equality engine)
     std::unordered_set<Node, NodeHashFunction> indices;
     Trace("eqrange-as-quant") << "...selects and stores:\n";
@@ -156,8 +170,8 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
       }
     }
     // check with values
-    BitVector lb_value = fm->getValue(lb).getConst<BitVector>(),
-              ub_value = fm->getValue(ub).getConst<BitVector>();
+    BitVector lb_value = fm->getValue(qi.lb).getConst<BitVector>(),
+              ub_value = fm->getValue(qi.ub).getConst<BitVector>();
     for (const Node& index : indices)
     {
       BitVector index_value = fm->getValue(index).getConst<BitVector>();
@@ -172,8 +186,8 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
         continue;
       }
       Trace("eqrange-as-quant") << "...test for : " << index_value << "\n";
-      Node e1 = nm->mkNode(SELECT, a1, index);
-      Node e2 = nm->mkNode(SELECT, a2, index);
+      Node e1 = nm->mkNode(SELECT, qi.a1, index);
+      Node e2 = nm->mkNode(SELECT, qi.a2, index);
       Trace("eqrange-as-quant")
           << "...test for : " << e1 << " = " << fm->getValue(e1)
           << "\n...test for : " << e2 << " = " << fm->getValue(e2) << "\n";

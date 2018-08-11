@@ -59,10 +59,8 @@ Node EqrangeToQuant::eqrangeToQuantInternal(TNode n, NodeMap& cache)
                               nm->mkNode(kind::SELECT, n[0], index),
                               nm->mkNode(kind::SELECT, n[1], index)));
     Trace("eqrange-as-quant-debug")
-        << "...built a[i] != b[i] : " << body.back() << "\n";
+        << "...built a[i] = b[i] : " << body.back() << "\n";
     ret = nm->mkNode(kind::FORALL, bvl, nm->mkNode(kind::OR, body));
-    theory::EqrangeAttribute ca;
-    ret.setAttribute(ca, true);
   }
   else
   {
