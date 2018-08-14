@@ -41,10 +41,9 @@ class InstArraysEqrange : public QuantifiersModule
   bool needsCheck(Theory::Effort e) override;
   /** Lets quantifier engine knows this module needs a model */
   QEffort needsModel(Theory::Effort e) override;
-  /** Determines whether a given quantifier is an eqrange quantifier
-   *
-   * Eqrange quantifiers are claimed, with this module taking full ownership
-   */
+  /** Register eqrange quantifiers */
+  void registerQuantifier(Node q) override;
+  /** Takes ownership of eqrange quantifiers depending on option */
   void checkOwnership(Node q) override;
   /** Check
    *

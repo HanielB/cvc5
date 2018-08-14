@@ -30,7 +30,7 @@ EqrangeToQuant::EqrangeToQuant(PreprocessingPassContext* preprocContext)
 
 Node EqrangeToQuant::eqrangeToQuantInternal(TNode n, NodeMap& cache)
 {
-  Trace("eqrange-as-quant-debug") << "Convert : " << n << "\n";
+  Trace("eqrange-to-quant") << "Convert : " << n << "\n";
   NodeMap::iterator find = cache.find(n);
   if (find != cache.end())
   {
@@ -50,15 +50,15 @@ Node EqrangeToQuant::eqrangeToQuantInternal(TNode n, NodeMap& cache)
     // forall i. i < lb v i > ub v a[i] = b[i]
     std::vector<Node> body;
     body.push_back(nm->mkNode(kind::BITVECTOR_ULT, index, n[2]));
-    Trace("eqrange-as-quant-debug")
+    Trace("eqrange-to-quant")
         << "...built i < lb : " << body.back() << "\n";
     body.push_back(nm->mkNode(kind::BITVECTOR_UGT, index, n[3]));
-    Trace("eqrange-as-quant-debug")
+    Trace("eqrange-to-quant")
         << "...built i > ub : " << body.back() << "\n";
     body.push_back(nm->mkNode(kind::EQUAL,
                               nm->mkNode(kind::SELECT, n[0], index),
                               nm->mkNode(kind::SELECT, n[1], index)));
-    Trace("eqrange-as-quant-debug")
+    Trace("eqrange-to-quant")
         << "...built a[i] = b[i] : " << body.back() << "\n";
     ret = nm->mkNode(kind::FORALL, bvl, nm->mkNode(kind::OR, body));
   }
@@ -77,7 +77,7 @@ Node EqrangeToQuant::eqrangeToQuantInternal(TNode n, NodeMap& cache)
       ret = nm->mkNode(k, children);
     }
   }
-  Trace("eqrange-as-quant-debug") << "Converted : " << ret << "\n";
+  Trace("eqrange-to-quant") << "Converted : " << ret << "\n";
   cache[n] = ret;
   return ret;
 }

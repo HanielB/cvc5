@@ -101,16 +101,21 @@ bool InstArraysEqrange::isEqrangeQuant(Node q)
   return true;
 }
 
+void InstArraysEqrange::registerQuantifier(Node q)
+{
+  if (isEqrangeQuant(q))
+  {
+    d_claimed_quants.insert(q);
+  }
+}
+
 void InstArraysEqrange::checkOwnership(Node q)
 {
-  Trace("eqrange-as-quant") << "InstEqrange: checking ownership :" << q << "\n";
-  Assert(!isEqRange(q) || d_quantEngine->getOwner(q) == NULL);
-  if (d_quantEngine->getOwner(q) == NULL && isEqrangeQuant(q))
+  if (d_quantEngine->getOwner(q) == NULL && options::ownEqrangeQuant()
+      && isEqrangeQuant(q))
   {
-    Trace("eqrange-as-quant") << "InstArraysEqrange taking full ownership\n";
-    // take full ownership of the quantified formula
+    Trace("eqrange-quant-debug") << "InstArraysEqrange taking full ownership\n";
     d_quantEngine->setOwner(q, this);
-    d_claimed_quants.insert(q);
   }
 }
 
@@ -132,7 +137,7 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
     QuantInfo qi = d_quant_to_info[q];
     // get relevant indices for arrays (from master equality engine)
     std::unordered_set<Node, NodeHashFunction> indices;
-    Trace("eqrange-as-quant-debug") << "...selects and stores:\n";
+    Trace("eqrange-as-quant") << "...selects and stores:\n";
     for (unsigned k = 0, numOps = db->getNumOperators(); k < numOps; ++k)
     {
       bool store = false, select = false;
@@ -161,11 +166,11 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
       for (unsigned i = 0, size = db->getNumGroundTerms(op); i < size; ++i)
       {
         Node app = db->getGroundTerm(op, i);
-        Trace("eqrange-as-quant-debug") << app << "\n";
+        Trace("eqrange-as-quant") << app << "\n";
         if ((select || store) && (app[0] == qi.a1 || app[0] == qi.a2))
         {
           indices.insert(app[1]);
-          Trace("eqrange-as-quant-debug") << "...adding index " << app[1]
+          Trace("eqrange-as-quant") << "...adding index " << app[1]
                                           << "\n";
         }
       }
@@ -176,11 +181,11 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
     for (const Node& index : indices)
     {
       BitVector index_value = fm->getValue(index).getConst<BitVector>();
-      Trace("eqrange-as-quant-debug") << "...index :" << index_value << "\n";
+      Trace("eqrange-quant-index") << "...index :" << index_value << "\n";
       if (index_value.unsignedLessThan(lb_value)
           || ub_value.unsignedLessThan(index_value))
       {
-        Trace("eqrange-as-quant-debug")
+        Trace("eqrange-quant-index")
             << "......out of bounds : "
             << (index_value.unsignedLessThan(lb_value) ? "smaller\n"
                                                        : "bigger\n");

@@ -1629,3 +1629,11 @@ header = "options/quantifiers_options.h"
   type       = "bool"
   default    = "false"
   help       = "track instantiation lemmas (for proofs, unsat cores, qe and synthesis minimization)"
+
+[[option]]
+  name       = "ownEqrangeQuant"
+  category   = "regular"
+  long       = "own-eqrange-quant"
+  type       = "bool"
+  default    = "false"
+  help       = "take full ownership of arrays equality range quantifiers"
