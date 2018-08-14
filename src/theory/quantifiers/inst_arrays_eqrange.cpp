@@ -105,6 +105,7 @@ void InstArraysEqrange::registerQuantifier(Node q)
 {
   if (isEqrangeQuant(q))
   {
+    Trace("eqrange-inst-debug") << "InstArraysEqrange : claiming " << q << "\n";
     d_claimed_quants.insert(q);
   }
 }
@@ -114,15 +115,14 @@ void InstArraysEqrange::checkOwnership(Node q)
   if (d_quantEngine->getOwner(q) == NULL && options::ownEqrangeQuant()
       && isEqrangeQuant(q))
   {
-    Trace("eqrange-quant-debug") << "InstArraysEqrange taking full ownership\n";
+    Trace("eqrange-inst-debug") << "InstArraysEqrange taking full ownership\n";
     d_quantEngine->setOwner(q, this);
   }
 }
 
 void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
 {
-  Trace("eqrange-as-quant") << "---InstArraysEqrange, effort = " << e
-                            << "---\n";
+  Trace("eqrange-inst") << "---InstArraysEqrange, effort = " << e << "---\n";
   NodeManager* nm = NodeManager::currentNM();
   TermDb* db = d_quantEngine->getTermDatabase();
   FirstOrderModel* fm = d_quantEngine->getModel();
@@ -132,16 +132,17 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
     {
       continue;
     }
-    Trace("eqrange-as-quant") << "...checking " << q << "\n";
+    Trace("eqrange-inst") << "...checking " << q << "\n";
     Assert(d_quant_to_info.find(q) != d_quant_to_info.end());
     QuantInfo qi = d_quant_to_info[q];
     // get relevant indices for arrays (from master equality engine)
     std::unordered_set<Node, NodeHashFunction> indices;
-    Trace("eqrange-as-quant") << "...selects and stores:\n";
+    Trace("eqrange-inst-index") << "...selects and stores:\n";
     for (unsigned k = 0, numOps = db->getNumOperators(); k < numOps; ++k)
     {
       bool store = false, select = false;
       Node op = db->getOperator(k);
+      Trace("eqrange-inst-index") << "...testing op: " << op << "\n";
       // parametric ops are stored as an apps (so we can identify their type)
       if (op.hasOperator())
       {
@@ -166,11 +167,11 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
       for (unsigned i = 0, size = db->getNumGroundTerms(op); i < size; ++i)
       {
         Node app = db->getGroundTerm(op, i);
-        Trace("eqrange-as-quant") << app << "\n";
+        Trace("eqrange-inst-index") << "......app: " << app << "\n";
         if ((select || store) && (app[0] == qi.a1 || app[0] == qi.a2))
         {
           indices.insert(app[1]);
-          Trace("eqrange-as-quant") << "...adding index " << app[1] << "\n";
+          Trace("eqrange-inst-index") << "...adding index " << app[1] << "\n";
         }
       }
     }
@@ -180,23 +181,22 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
     for (const Node& index : indices)
     {
       BitVector index_value = fm->getValue(index).getConst<BitVector>();
-      Trace("eqrange-quant-index") << "...index :" << index_value << "\n";
+      Trace("eqrange-inst-index") << "...index :" << index_value << "\n";
       if (index_value.unsignedLessThan(lb_value)
           || ub_value.unsignedLessThan(index_value))
       {
-        Trace("eqrange-quant-index")
+        Trace("eqrange-inst-index")
             << "......out of bounds : "
             << (index_value.unsignedLessThan(lb_value) ? "smaller\n"
                                                        : "bigger\n");
         continue;
       }
-      Trace("eqrange-as-quant-debug") << "...test for : " << index_value
-                                      << "\n";
+      Trace("eqrange-inst-debug") << "...test for : " << index_value << "\n";
       Node e1 = nm->mkNode(SELECT, qi.a1, index);
       Node e2 = nm->mkNode(SELECT, qi.a2, index);
-      Trace("eqrange-as-quant") << "...test for : " << e1 << " = "
-                                << fm->getValue(e1) << "\n...test for : " << e2
-                                << " = " << fm->getValue(e2) << "\n\n";
+      Trace("eqrange-inst") << "...test for : " << e1 << " = "
+                            << fm->getValue(e1) << "\n...test for : " << e2
+                            << " = " << fm->getValue(e2) << "\n\n";
       // add instance if failed
       if (fm->getValue(e1) != fm->getValue(e2))
       {
@@ -204,8 +204,7 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
         terms.push_back(index);
         if (d_quantEngine->getInstantiate()->addInstantiation(q, terms))
         {
-          Trace("eqrange-as-quant") << "...adding instance for " << index
-                                    << "\n";
+          Trace("eqrange-inst") << "...adding instance for " << index << "\n";
         }
       }
     }
@@ -214,9 +213,11 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
 
 bool InstArraysEqrange::checkCompleteFor(Node q)
 {
-  Trace("eqrange-as-quant")
-      << "InstArraysEqrange : complete for " << q << "\n... "
-      << (d_claimed_quants.find(q) != d_claimed_quants.end()) << "\n";
+  Trace("eqrange-inst") << "InstArraysEqrange : "
+                        << (d_claimed_quants.find(q) != d_claimed_quants.end()
+                                ? ""
+                                : "not")
+                        << "complete for " << q << "\n";
   return d_claimed_quants.find(q) != d_claimed_quants.end();
 }
 
