@@ -246,7 +246,7 @@ QuantifiersEngine::QuantifiersEngine(context::Context* c,
     d_util.push_back( d_rel_dom );
   }
 
-  if (options::arraysEqrangeAsQuant())
+  if (options::arraysEqrangeAsQuant() && options::dedicatedEqrangeQuant())
   {
     d_eqrange = new quantifiers::InstArraysEqrange(this);
     d_modules.push_back(d_eqrange);

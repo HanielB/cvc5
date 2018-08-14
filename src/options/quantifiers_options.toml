@@ -1631,6 +1631,14 @@ header = "options/quantifiers_options.h"
   help       = "track instantiation lemmas (for proofs, unsat cores, qe and synthesis minimization)"
 
 [[option]]
+  name       = "dedicatedEqrangeQuant"
+  category   = "regular"
+  long       = "dedicated-eqrange-quant"
+  type       = "bool"
+  default    = "true"
+  help       = "use dedicated module to handle arrays equality range quantifiers"
+
+[[option]]
   name       = "ownEqrangeQuant"
   category   = "regular"
   long       = "own-eqrange-quant"

@@ -121,8 +121,8 @@ void InstArraysEqrange::checkOwnership(Node q)
 
 void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
 {
-  Trace("eqrange-as-quant")
-      << "---InstArraysEqrange, effort = " << e << "---\n";
+  Trace("eqrange-as-quant") << "---InstArraysEqrange, effort = " << e
+                            << "---\n";
   NodeManager* nm = NodeManager::currentNM();
   TermDb* db = d_quantEngine->getTermDatabase();
   FirstOrderModel* fm = d_quantEngine->getModel();
@@ -170,8 +170,7 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
         if ((select || store) && (app[0] == qi.a1 || app[0] == qi.a2))
         {
           indices.insert(app[1]);
-          Trace("eqrange-as-quant") << "...adding index " << app[1]
-                                          << "\n";
+          Trace("eqrange-as-quant") << "...adding index " << app[1] << "\n";
         }
       }
     }
@@ -205,8 +204,8 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
         terms.push_back(index);
         if (d_quantEngine->getInstantiate()->addInstantiation(q, terms))
         {
-          Trace("eqrange-as-quant")
-              << "...adding instance for " << index << "\n";
+          Trace("eqrange-as-quant") << "...adding instance for " << index
+                                    << "\n";
         }
       }
     }
