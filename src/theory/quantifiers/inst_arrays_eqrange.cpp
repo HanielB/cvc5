@@ -191,12 +191,12 @@ void InstArraysEqrange::check(Theory::Effort e, QEffort quant_e)
                                                        : "bigger\n");
         continue;
       }
-      Trace("eqrange-inst-debug") << "...test for : " << index_value << "\n";
+      Trace("eqrange-inst-index") << "...test for : " << index_value << "\n";
       Node e1 = nm->mkNode(SELECT, qi.a1, index);
       Node e2 = nm->mkNode(SELECT, qi.a2, index);
-      Trace("eqrange-inst") << "...test for : " << e1 << " = "
-                            << fm->getValue(e1) << "\n...test for : " << e2
-                            << " = " << fm->getValue(e2) << "\n\n";
+      Trace("eqrange-inst-index")
+          << "...test for : " << e1 << " = " << fm->getValue(e1)
+          << "\n...test for : " << e2 << " = " << fm->getValue(e2) << "\n\n";
       // add instance if failed
       if (fm->getValue(e1) != fm->getValue(e2))
       {
