@@ -2,7 +2,7 @@
 /*! \file abstraction.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Liana Hadarean, Aina Niemetz, Guy Katz
+ **   Liana Hadarean, Aina Niemetz, Mathias Preiner
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -276,7 +276,7 @@ Node AbstractionModule::computeSignature(TNode node) {
 
 Node AbstractionModule::getSignatureSkolem(TNode node)
 {
-  Assert(node.getKind() == kind::VARIABLE);
+  Assert(node.getMetaKind() == kind::metakind::VARIABLE);
   NodeManager* nm = NodeManager::currentNM();
   unsigned bitwidth = utils::getSize(node);
   if (d_signatureSkolems.find(bitwidth) == d_signatureSkolems.end())
@@ -550,8 +550,9 @@ void AbstractionModule::collectArguments(TNode node, TNode signature, std::vecto
   if (seen.find(node)!= seen.end())
     return;
 
-  if (node.getKind() == kind::VARIABLE ||
-      node.getKind() == kind::CONST_BITVECTOR) {
+  if (node.getMetaKind() == kind::metakind::VARIABLE
+      || node.getKind() == kind::CONST_BITVECTOR)
+  {
     // a constant in the node can either map to an argument of the abstraction
     // or can be hard-coded and part of the abstraction
     if (signature.getKind() == kind::SKOLEM) {
@@ -666,8 +667,7 @@ Node AbstractionModule::substituteArguments(TNode signature, TNode apply, unsign
   }
 
   if (signature.getNumChildren() == 0) {
-    Assert (signature.getKind() != kind::VARIABLE &&
-            signature.getKind() != kind::SKOLEM);
+    Assert(signature.getMetaKind() != kind::metakind::VARIABLE);
     seen[signature] = signature;
     return signature;
   }

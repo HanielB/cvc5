@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2017 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -88,6 +88,12 @@ class ExtendedRewriter
    * strictly decrease the term size of n.
    */
   Node extendedRewriteIte(Kind itek, Node n, bool full = true);
+  /** Rewrite AND/OR
+   *
+   * This implements BCP, factoring, and equality resolution for the Boolean
+   * term n whose top symbolic is AND/OR.
+   */
+  Node extendedRewriteAndOr(Node n);
   /** Pull ITE, for example:
    *
    *   D=C2 ---> false
@@ -128,6 +134,15 @@ class ExtendedRewriter
    */
   Node extendedRewriteBcp(
       Kind andk, Kind ork, Kind notk, std::map<Kind, bool>& bcp_kinds, Node n);
+  /** (type-independent) factoring, for example:
+   *
+   *   ( A V B ) ^ ( A V C ) ----> A V ( B ^ C )
+   *   ( A ^ B ) V ( A ^ C ) ----> A ^ ( B V C )
+   *
+   * This function takes as arguments the kinds that specify AND, OR, NOT.
+   * We assume that the children of n do not contain duplicates.
+   */
+  Node extendedRewriteFactoring(Kind andk, Kind ork, Kind notk, Node n);
   /** (type-independent) equality resolution, for example:
    *
    *   ( A V C ) & ( A = B ) ---> ( B V C ) & ( A = B )
@@ -212,88 +227,8 @@ class ExtendedRewriter
 
   //--------------------------------------theory-specific top-level calls
   /** extended rewrite arith */
-  Node extendedRewriteArith(Node ret, bool& pol);
-  /** extended rewrite bv */
-  Node extendedRewriteBv(Node ret, bool& pol);
+  Node extendedRewriteArith(Node ret);
   //--------------------------------------end theory-specific top-level calls
-
-  //--------------------------------------bit-vectors
-  /** bitvector subsume
-   *
-   * If this function returns 1, then a's 1 bits are a superset of b's 1 bits,
-   * in other words, (bvand (bvnot a) b) = 0 holds.
-   *
-   * If this function returns 2, then additionally at least one bit of a
-   * is 1 that is 0 in bit, that is (bvand a (bvnot b)) != 0 holds.
-   *
-   * Otherwise, this function returns 0.
-   *
-   * If strict is false, then this function will only return 0 or 1.
-   *
-   * If tryNot is true, we will try to show the subsumption by calling
-   * bitVectorSubsume( ~b, ~a ).
-   */
-  int bitVectorSubsume(Node a, Node b, bool strict = false, bool tryNot = true);
-  /** bitvector arithmetic compare
-   *
-   * If this function returns 1, then bvuge( a, b ) holds.
-   *
-   * If this function returns 2, then bvugt( a, b ) holds.
-   *
-   * Otherwise this function returns 0.
-   *
-   * If strict is false, then this function will only return 0 or 1.
-   */
-  int bitVectorArithComp(Node a, Node b, bool strict = false);
-  /** bitvector disjoint
-   *
-   * Returns true if there are no bits where a and b are both 1.
-   * That is, if this function returns true, then
-   *   (bvand a b) = 0.
-   * Note that this function is equivalent to
-   *   bitvectorSubsume( ~a, b ) && bitvectorSubsume( ~b, a ).
-   */
-  bool bitVectorDisjoint(Node a, Node b);
-  /** get the minimum/maximum */
-  void bitVectorIntervalSetIndices(Node a, unsigned& mini, unsigned& maxi);
-
-  /** mk const as the same type as n, 0 if !isNot, 1s if isNot */
-  Node mkConstBv(Node n, bool isNot);
-  /** is const bv zero
-   *
-   * Returns true if n is 0 and isNot = false,
-   * Returns true if n is max and isNot = true,
-   * return false otherwise.
-   */
-  bool isConstBv(Node n, bool isNot);
-  /** get const child */
-  Node getConstBvChild(Node n, std::vector<Node>& nconst);
-  /** has const child */
-  bool hasConstBvChild(Node n);
-  /** */
-  Node rewriteBvArith(Node ret);
-  /** */
-  Node rewriteBvShift(Node ret);
-  /** */
-  Node rewriteBvBool(Node ret);
-  /** */
-  Node normalizeBvMonomial(Node n);
-  /** get monomial sum */
-  void getBvMonomialSum(Node n, std::map<Node, Node>& msum);
-  /** mkNode */
-  Node mkNodeFromBvMonomial(Node n, std::map<Node, Node>& msum);
-  /** splice
-   *
-   * Adds k (non-concat) terms to n1v and n2v such that:
-   *   n1 is equivalent to n1v[0] ++ ... ++ n1v[k-1] and
-   *   n2 is equivalent to n2v[0] ++ ... ++ n2v[k-1],
-   * and n1v[i] and n2v[i] have equal width for i=0...k-1.
-   */
-  void spliceBv(Node n1,
-                Node n2,
-                std::vector<Node>& n1v,
-                std::vector<Node>& n2v);
-  //--------------------------------------end bit-vectors
 };
 
 } /* CVC4::theory::quantifiers namespace */

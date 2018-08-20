@@ -92,6 +92,11 @@ void SygusRepairConst::registerSygusType(TypeNode tn,
   }
 }
 
+bool SygusRepairConst::isActive() const
+{
+  return !d_base_inst.isNull() && d_allow_constant_grammar;
+}
+
 bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
                                       const std::vector<Node>& candidate_values,
                                       std::vector<Node>& repair_cv,
@@ -100,7 +105,7 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
   Assert(candidates.size() == candidate_values.size());
 
   // if no grammar type allows constants, no repair is possible
-  if (d_base_inst.isNull() || !d_allow_constant_grammar)
+  if (!isActive())
   {
     return false;
   }
@@ -622,7 +627,7 @@ Node SygusRepairConst::getFoQuery(const std::vector<Node>& candidates,
     if (it == visited.end())
     {
       visited[cur] = Node::null();
-      if (datatypes::DatatypesRewriter::isSygusEvalApp(cur))
+      if (cur.getKind() == DT_SYGUS_EVAL)
       {
         Node v = cur[0];
         if (std::find(sk_vars.begin(), sk_vars.end(), v) != sk_vars.end())
@@ -735,7 +740,10 @@ bool SygusRepairConst::getFitToLogicExcludeVar(LogicInfo& logic,
     {
       visited.insert(cur);
       Kind ck = cur.getKind();
-      if (restrictLA && (ck == NONLINEAR_MULT || ck == DIVISION))
+      bool isArithDivKind = (ck == DIVISION_TOTAL || ck == INTS_DIVISION_TOTAL
+                             || ck == INTS_MODULUS_TOTAL);
+      Assert(ck != DIVISION && ck != INTS_DIVISION && ck != INTS_MODULUS);
+      if (restrictLA && (ck == NONLINEAR_MULT || isArithDivKind))
       {
         for (unsigned j = 0, size = cur.getNumChildren(); j < size; j++)
         {
@@ -743,7 +751,7 @@ bool SygusRepairConst::getFitToLogicExcludeVar(LogicInfo& logic,
           std::map<Node, Node>::iterator itf = d_fo_to_sk.find(ccur);
           if (itf != d_fo_to_sk.end())
           {
-            if (ck == NONLINEAR_MULT || (ck == DIVISION && j == 1))
+            if (ck == NONLINEAR_MULT || (isArithDivKind && j == 1))
             {
               exvar = itf->second;
               return true;

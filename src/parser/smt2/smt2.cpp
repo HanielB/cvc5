@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds, Kshitij Bansal, Morgan Deters
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2017 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -15,6 +15,7 @@
  **/
 #include "parser/smt2/smt2.h"
 
+#include "api/cvc4cpp.h"
 #include "expr/type.h"
 #include "options/options.h"
 #include "parser/antlr_input.h"
@@ -34,10 +35,11 @@
 namespace CVC4 {
 namespace parser {
 
-Smt2::Smt2(ExprManager* exprManager, Input* input, bool strictMode, bool parseOnly) :
-  Parser(exprManager,input,strictMode,parseOnly),
-  d_logicSet(false) {
-  if( !strictModeEnabled() ) {
+Smt2::Smt2(api::Solver* solver, Input* input, bool strictMode, bool parseOnly)
+    : Parser(solver, input, strictMode, parseOnly), d_logicSet(false)
+{
+  if (!strictModeEnabled())
+  {
     addTheory(Smt2::THEORY_CORE);
   }
 }
@@ -51,8 +53,13 @@ void Smt2::addArithmeticOperators() {
   Parser::addOperator(kind::LEQ);
   Parser::addOperator(kind::GT);
   Parser::addOperator(kind::GEQ);
-  
+
+  // NOTE: this operator is non-standard
   addOperator(kind::POW, "^");
+}
+
+void Smt2::addTranscendentalOperators()
+{
   addOperator(kind::EXPONENTIAL, "exp");
   addOperator(kind::SINE, "sin");
   addOperator(kind::COSINE, "cos");
@@ -66,7 +73,6 @@ void Smt2::addArithmeticOperators() {
   addOperator(kind::ARCCOSECANT, "arccsc");
   addOperator(kind::ARCSECANT, "arcsec");
   addOperator(kind::ARCCOTANGENT, "arccot");
-
   addOperator(kind::SQRT, "sqrt");
 }
 
@@ -249,6 +255,8 @@ void Smt2::addTheory(Theory theory) {
     Parser::addOperator(kind::DIVISION);
     break;
 
+  case THEORY_TRANSCENDENTALS: addTranscendentalOperators(); break;
+
   case THEORY_QUANTIFIERS:
     break;
 
@@ -281,6 +289,7 @@ void Smt2::addTheory(Theory theory) {
 
   case THEORY_STRINGS:
     defineType("String", getExprManager()->stringType());
+    defineType("RegLan", getExprManager()->regExpType());
     defineType("Int", getExprManager()->integerType());
     addStringOperators();
     break;
@@ -297,11 +306,11 @@ void Smt2::addTheory(Theory theory) {
     defineType("Float128", getExprManager()->mkFloatingPointType(15, 113));
     addFloatingPointOperators();
     break;
-    
+
   case THEORY_SEP:
     addSepOperators();
     break;
-    
+
   default:
     std::stringstream ss;
     ss << "internal error: unsupported theory " << theory;
@@ -368,7 +377,7 @@ bool Smt2::logicIsSet() {
 }
 
 Expr Smt2::getExpressionForNameAndType(const std::string& name, Type t) {
-  if(sygus() && name[0]=='-' && 
+  if(sygus() && name[0]=='-' &&
     name.find_first_not_of("0123456789", 1) == std::string::npos) {
     //allow unary minus in sygus
     return getExprManager()->mkConst(Rational(name));
@@ -486,6 +495,11 @@ void Smt2::setLogic(std::string name) {
     } else if(d_logic.areRealsUsed()) {
       addTheory(THEORY_REALS);
     }
+
+    if (d_logic.areTranscendentalsUsed())
+    {
+      addTheory(THEORY_TRANSCENDENTALS);
+    }
   }
 
   if(d_logic.isTheoryEnabled(theory::THEORY_ARRAYS)) {
@@ -519,7 +533,7 @@ void Smt2::setLogic(std::string name) {
   if (d_logic.isTheoryEnabled(theory::THEORY_SEP)) {
     addTheory(THEORY_SEP);
   }
-  
+
 }/* Smt2::setLogic() */
 
 void Smt2::setInfo(const std::string& flag, const SExpr& sexpr) {
@@ -1011,7 +1025,7 @@ void Smt2::mkSygusDatatype( CVC4::Datatype& dt, std::vector<CVC4::Expr>& ops,
                             std::map< CVC4::Type, CVC4::Type >& sygus_to_builtin ) {
   Debug("parser-sygus") << "Making sygus datatype " << dt.getName() << std::endl;
   Debug("parser-sygus") << "  add constructors..." << std::endl;
-  
+
   Debug("parser-sygus") << "SMT2 sygus parser : Making constructors for sygus datatype " << dt.getName() << std::endl;
   Debug("parser-sygus") << "  add constructors..." << std::endl;
   // size of cnames changes, this loop must check size
@@ -1219,7 +1233,8 @@ Expr Smt2::makeSygusBoundVarList(Datatype& dt,
 }
 
 const void Smt2::getSygusPrimedVars( std::vector<Expr>& vars, bool isPrimed ) {
-  for( unsigned i=0, size = d_sygusInvVars.size(); i<size; i++ ){
+  for (unsigned i = 0, size = d_sygusInvVars.size(); i < size; i++)
+  {
     Expr v = d_sygusInvVars[i];
     std::map< Expr, bool >::iterator it = d_sygusVarPrimed.find( v );
     if( it!=d_sygusVarPrimed.end() ){

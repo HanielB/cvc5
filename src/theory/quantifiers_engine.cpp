@@ -2,9 +2,9 @@
 /*! \file quantifiers_engine.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Reynolds, Tim King, Morgan Deters
+ **   Andrew Reynolds, Morgan Deters, Tim King
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2017 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -21,7 +21,7 @@
 #include "theory/datatypes/theory_datatypes.h"
 #include "theory/quantifiers/alpha_equivalence.h"
 #include "theory/quantifiers/anti_skolem.h"
-#include "theory/quantifiers/cegqi/ceg_t_instantiator.h"
+#include "theory/quantifiers/bv_inverter.h"
 #include "theory/quantifiers/cegqi/inst_strategy_cbqi.h"
 #include "theory/quantifiers/conjecture_generator.h"
 #include "theory/quantifiers/ematching/inst_strategy_e_matching.h"
@@ -247,8 +247,10 @@ QuantifiersEngine::QuantifiersEngine(context::Context* c,
   // if we require specialized ways of building the model
   if( needsBuilder ){
     Trace("quant-engine-debug") << "Initialize model engine, mbqi : " << options::mbqiMode() << " " << options::fmfBound() << std::endl;
-    if( options::mbqiMode()==quantifiers::MBQI_FMC || options::mbqiMode()==quantifiers::MBQI_FMC_INTERVAL ||
-        options::mbqiMode()==quantifiers::MBQI_TRUST || options::fmfBound() ){
+    if (options::mbqiMode() == quantifiers::MBQI_FMC
+        || options::mbqiMode() == quantifiers::MBQI_TRUST
+        || options::fmfBound())
+    {
       Trace("quant-engine-debug") << "...make fmc builder." << std::endl;
       d_model = new quantifiers::fmcheck::FirstOrderModelFmc( this, c, "FirstOrderModelFmc" );
       d_builder = new quantifiers::fmcheck::FullModelChecker( c, this );
@@ -431,6 +433,31 @@ void QuantifiersEngine::check( Theory::Effort e ){
     Trace("quant-engine-debug") << "Master equality engine not consistent, return." << std::endl;
     return;
   }
+  if (d_conflict_c.get())
+  {
+    if (e < Theory::EFFORT_LAST_CALL)
+    {
+      // this can happen in rare cases when quantifiers is the first to realize
+      // there is a quantifier-free conflict, for example, when it discovers
+      // disequal and congruent terms in the master equality engine during
+      // term indexing. In such cases, quantifiers reports a "conflicting lemma"
+      // that is, one that is entailed to be false by the current assignment.
+      // If this lemma is not a SAT conflict, we may get another call to full
+      // effort check and the quantifier-free solvers still haven't realized
+      // there is a conflict. In this case, we return, trusting that theory
+      // combination will do the right thing (split on equalities until there is
+      // a conflict at the quantifier-free level).
+      Trace("quant-engine-debug")
+          << "Conflicting lemma already reported by quantifiers, return."
+          << std::endl;
+      return;
+    }
+    // we reported what we thought was a conflicting lemma, but now we have
+    // gotten a check at LAST_CALL effort, indicating that the lemma we reported
+    // was not conflicting. This should never happen, but in production mode, we
+    // proceed with the check.
+    Assert(false);
+  }
   bool needsCheck = !d_lemmas_waiting.empty();
   QuantifiersModule::QEffort needsModelE = QuantifiersModule::QEFFORT_NONE;
   std::vector< QuantifiersModule* > qm;
@@ -457,8 +484,6 @@ void QuantifiersEngine::check( Theory::Effort e ){
 
   Trace("quant-engine-debug2") << "Quantifiers Engine call to check, level = " << e << ", needsCheck=" << needsCheck << std::endl;
   if( needsCheck ){
-    //this will fail if a set of instances is marked as a conflict, but is not
-    Assert( !d_conflict_c.get() );
     //flush previous lemmas (for instance, if was interupted), or other lemmas to process
     flushLemmas();
     if( d_hasAddedLemma ){
@@ -620,6 +645,11 @@ void QuantifiersEngine::check( Theory::Effort e ){
                 setIncomplete = true;
               }
             }
+            if (d_conflict_c.get())
+            {
+              // we reported a conflicting lemma, should return
+              setIncomplete = true;
+            }
             //if we have a chance not to set incomplete
             if( !setIncomplete ){
               //check if we should set the incomplete flag
@@ -771,8 +801,6 @@ void QuantifiersEngine::registerQuantifierInternal(Node f)
       // this call
       Assert(d_lemmas_waiting.size() == prev_lemma_waiting);
     }
-    // TODO (#2020): remove this
-    Node ceBody = d_term_util->getInstConstantBody(f);
     Trace("quant-debug") << "...finish." << std::endl;
     d_quants[f] = true;
     AlwaysAssert(d_lemmas_waiting.size() == prev_lemma_waiting);
@@ -788,6 +816,12 @@ void QuantifiersEngine::preRegisterQuantifier(Node q)
   }
   Trace("quant-debug") << "QuantifiersEngine : Pre-register " << q << std::endl;
   d_quants_prereg.insert(q);
+  // try to reduce
+  if (reduceQuantifier(q))
+  {
+    // if we can reduce it, nothing left to do
+    return;
+  }
   // ensure that it is registered
   registerQuantifierInternal(q);
   // register with each module
@@ -839,11 +873,6 @@ void QuantifiersEngine::assertQuantifier( Node f, bool pol ){
     mdl->assertNode(f);
   }
   addTermToDatabase(d_term_util->getInstConstantBody(f), true);
-}
-
-void QuantifiersEngine::propagate( Theory::Effort level ){
-  CodeTimer codeTimer(d_statistics.d_time);
-
 }
 
 Node QuantifiersEngine::getNextDecisionRequest( unsigned& priority ){
@@ -955,23 +984,6 @@ bool QuantifiersEngine::removeLemma( Node lem ) {
 
 void QuantifiersEngine::addRequirePhase( Node lit, bool req ){
   d_phase_req_waiting[lit] = req;
-}
-
-bool QuantifiersEngine::addSplit( Node n, bool reqPhase, bool reqPhasePol ){
-  n = Rewriter::rewrite( n );
-  Node lem = NodeManager::currentNM()->mkNode( OR, n, n.notNode() );
-  if( addLemma( lem ) ){
-    Debug("inst") << "*** Add split " << n<< std::endl;
-    return true;
-  }
-  return false;
-}
-
-bool QuantifiersEngine::addSplitEquality( Node n1, Node n2, bool reqPhase, bool reqPhasePol ){
-  //Assert( !areEqual( n1, n2 ) );
-  //Assert( !areDisequal( n1, n2 ) );
-  Node fm = NodeManager::currentNM()->mkNode( EQUAL, n1, n2 );
-  return addSplit( fm );
 }
 
 bool QuantifiersEngine::addEPRAxiom( TypeNode tn ) {

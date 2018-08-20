@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2017 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -196,7 +196,7 @@ void SygusExplain::getExplanationFor(TermRecBuild& trb,
   Assert(vn.getKind() == APPLY_CONSTRUCTOR);
   Assert(vnr.isNull() || vnr.getKind() == APPLY_CONSTRUCTOR);
   std::map<unsigned, bool> cexc;
-  // for each child, 
+  // for each child,
   // check whether replacing that child by a fresh variable
   // also satisfies the invariance test.
   for (unsigned i = 0; i < vn.getNumChildren(); i++)
@@ -285,7 +285,7 @@ void SygusExplain::getExplanationFor(Node n,
                                      unsigned& sz)
 {
   std::map<TypeNode, int> var_count;
-  return getExplanationFor(n,vn,exp,et,vnr,var_count,sz);
+  return getExplanationFor(n, vn, exp, et, vnr, var_count, sz);
 }
 
 void SygusExplain::getExplanationFor(Node n,

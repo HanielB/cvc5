@@ -2,9 +2,9 @@
 /*! \file smt2.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Morgan Deters, Andrew Reynolds, Christopher L. Conway
+ **   Andrew Reynolds, Morgan Deters, Christopher L. Conway
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2017 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -34,27 +34,33 @@ namespace CVC4 {
 
 class SExpr;
 
+namespace api {
+class Solver;
+}
+
 namespace parser {
 
 class Smt2 : public Parser {
   friend class ParserBuilder;
 
 public:
-  enum Theory {
-    THEORY_ARRAYS,
-    THEORY_BITVECTORS,
-    THEORY_CORE,
-    THEORY_DATATYPES,
-    THEORY_INTS,
-    THEORY_REALS,
-    THEORY_REALS_INTS,
-    THEORY_QUANTIFIERS,
-    THEORY_SETS,
-    THEORY_STRINGS,
-    THEORY_UF,
-    THEORY_FP,
-    THEORY_SEP
-  };
+ enum Theory
+ {
+   THEORY_ARRAYS,
+   THEORY_BITVECTORS,
+   THEORY_CORE,
+   THEORY_DATATYPES,
+   THEORY_INTS,
+   THEORY_REALS,
+   THEORY_TRANSCENDENTALS,
+   THEORY_REALS_INTS,
+   THEORY_QUANTIFIERS,
+   THEORY_SETS,
+   THEORY_STRINGS,
+   THEORY_UF,
+   THEORY_FP,
+   THEORY_SEP
+ };
 
 private:
   bool d_logicSet;
@@ -62,11 +68,15 @@ private:
   std::unordered_map<std::string, Kind> operatorKindMap;
   std::pair<Expr, std::string> d_lastNamedTerm;
   // for sygus
-  std::vector<Expr> d_sygusVars, d_sygusInvVars, d_sygusConstraints, d_sygusFunSymbols;
+  std::vector<Expr> d_sygusVars, d_sygusInvVars, d_sygusConstraints,
+      d_sygusFunSymbols;
   std::map< Expr, bool > d_sygusVarPrimed;
 
 protected:
-  Smt2(ExprManager* exprManager, Input* input, bool strictMode = false, bool parseOnly = false);
+ Smt2(api::Solver* solver,
+      Input* input,
+      bool strictMode = false,
+      bool parseOnly = false);
 
 public:
   /**
@@ -87,7 +97,7 @@ public:
   bool logicIsSet() override;
 
   /**
-   * Returns the expression that name should be interpreted as. 
+   * Returns the expression that name should be interpreted as.
    */
   Expr getExpressionForNameAndType(const std::string& name, Type t) override;
 
@@ -184,6 +194,12 @@ public:
     if(name.length() > 0 && (name[0] == '.' || name[0] == '@')) {
       std::stringstream ss;
       ss << "cannot declare or define symbol `" << name << "'; symbols starting with . and @ are reserved in SMT-LIB";
+      parseError(ss.str());
+    }
+    else if (isOperatorEnabled(name))
+    {
+      std::stringstream ss;
+      ss << "Symbol `" << name << "' is shadowing a theory function symbol";
       parseError(ss.str());
     }
   }
@@ -385,6 +401,8 @@ private:
                              std::vector<Expr>& lvars);
 
   void addArithmeticOperators();
+
+  void addTranscendentalOperators();
 
   void addBitvectorOperators();
 

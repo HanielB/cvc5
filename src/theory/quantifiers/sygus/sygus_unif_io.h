@@ -2,9 +2,9 @@
 /*! \file sygus_unif_io.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Reynolds
+ **   Andrew Reynolds, Haniel Barbosa
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2017 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -143,6 +143,10 @@ class UnifContextIo : public UnifContext
     * pairs.
     */
     std::map<Node, std::map<unsigned, Node>> d_look_ahead_sols;
+    /** clear */
+    void clear() { d_look_ahead_sols.clear(); }
+    /** is empty */
+    bool empty() { return d_look_ahead_sols.empty(); }
   };
   /** map from enumerators to the above info class */
   std::map<Node, UEnumInfo> d_uinfo;
@@ -306,17 +310,19 @@ class SygusUnifIo : public SygusUnif
    * register a new value for an enumerator.
    */
   bool d_check_sol;
+  /** whether we have solved the overall conjecture */
+  bool d_solved;
   /** The number of values we have enumerated for all enumerators. */
   unsigned d_cond_count;
   /** The solution for the function of this class, if one has been found */
   Node d_solution;
-  /** 
-   * This flag is set to true if the solution construction was 
+  /**
+   * This flag is set to true if the solution construction was
    * non-deterministic with respect to failure/success.
-   * 
-   * The solution construction for the string concatenation strategy is 
+   *
+   * The solution construction for the string concatenation strategy is
    * non-deterministic with respect to success/failure. That is, choosing
-   * a particular string may lead to being unsolvable in the recursive calls, 
+   * a particular string may lead to being unsolvable in the recursive calls,
    * whereas others may not. For example, if our pool of enumerated strings is:
    *   { "A", x, "B" }
    * and our I/O example is:
@@ -409,10 +415,11 @@ class SygusUnifIo : public SygusUnif
    * exp : if this function returns true, then exp contains a (possibly
    * generalize) explanation for why v can be excluded.
    */
-  bool getExplanationForEnumeratorExclude(Node e,
-                                          Node v,
-                                          std::vector<Node>& results,
-                                          std::vector<Node>& exp);
+  bool getExplanationForEnumeratorExclude(
+      Node e,
+      Node v,
+      std::vector<Node>& results,
+      std::vector<Node>& exp);
   /** returns true if we can exlude values of e based on negative str.contains
    *
    * Values v for e may be excluded if we realize that the value of v under the

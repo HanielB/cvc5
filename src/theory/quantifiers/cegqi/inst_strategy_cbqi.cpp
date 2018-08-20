@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds, Tim King, Morgan Deters
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2017 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -13,6 +13,7 @@
  **/
 #include "theory/quantifiers/cegqi/inst_strategy_cbqi.h"
 
+#include "expr/node_algorithm.h"
 #include "options/quantifiers_options.h"
 #include "smt/term_formula_removal.h"
 #include "theory/arith/partial_model.h"
@@ -662,7 +663,7 @@ bool InstStrategyCegqi::isEligibleForInstantiation( Node n ) {
         }
       }
       //only legal if current quantified formula contains n
-      return d_curr_quant.hasSubterm(n);
+      return expr::hasSubterm(d_curr_quant, n);
     }
   }else{
     return true;

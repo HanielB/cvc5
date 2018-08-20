@@ -2,7 +2,7 @@
 /*! \file cegis_unif.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Haniel Barbosa, Andrew Reynolds
+ **   Andrew Reynolds, Haniel Barbosa, Andres Noetzli
  ** This file is part of the CVC4 project.
  ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
@@ -200,7 +200,7 @@ class CegisUnif : public Cegis
 {
  public:
   CegisUnif(QuantifiersEngine* qe, CegConjecture* p);
-  ~CegisUnif();
+  ~CegisUnif() override;
   /** Retrieves enumerators for constructing solutions
    *
    * Non-unification candidates have themselves as enumerators, while for
@@ -238,7 +238,7 @@ class CegisUnif : public Cegis
   /** using repair const */
   bool usingRepairConst() override;
  private:
-  /** do cegis-implementation-specific intialization for this class */
+  /** do cegis-implementation-specific initialization for this class */
   bool processInitialize(Node n,
                          const std::vector<Node>& candidates,
                          std::vector<Node>& lemmas) override;
