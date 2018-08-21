@@ -881,6 +881,7 @@ Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate(Node cv,
   {
     return cv;
   }
+  NodeManager* nm = NodeManager::currentNM();
   // repair condition
   SygusRepairConst src(d_unif->d_qe);
   Node t[2];
@@ -893,7 +894,7 @@ Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate(Node cv,
     std::vector<Node> children;
     children.push_back(cv);
     children.insert(children.end(), it->second.begin(), it->second.end());
-    t[i] = datatypes::DatatypesRewriter::mkSygusEvalApp(children);
+    t[i] = nm->mkNode(DT_SYGUS_EVAL, children);
   }
   Node deq = t[0].eqNode(t[1]).negate();
   Trace("sygus-unif-sol") << "Try to repair to satisfy : " << deq << std::endl;
@@ -1109,13 +1110,13 @@ Node SygusUnifRl::DecisionTreeInfo::makeEvalExp(Node e1,
   std::vector<Node> e1_children;
   e1_children.push_back(e1);
   e1_children.insert(e1_children.end(), pt_e1.begin(), pt_e1.end());
-  ev_e1 = datatypes::DatatypesRewriter::mkSygusEvalApp(e1_children);
+  ev_e1 = nm->mkNode(DT_SYGUS_EVAL, e1_children);
   // build (ev e2 pt_e1)
   Node ev_e2;
   std::vector<Node> e2_children;
   e2_children.push_back(e2);
   e2_children.insert(e2_children.end(), pt_e1.begin(), pt_e1.end());
-  ev_e2 = datatypes::DatatypesRewriter::mkSygusEvalApp(e2_children);
+  ev_e2 = nm->mkNode(DT_SYGUS_EVAL, e2_children);
   // when creating equalities, add unfolding lemmas to new evaluation point
   // based on e2's equivalent values modulo return value
   if (equal)
