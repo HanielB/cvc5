@@ -231,6 +231,57 @@ class SygusUnifRl : public SygusUnif
                        const std::vector<Node>& conds);
 
    private:
+    /** maps heads to equivalence classes of model values
+     *
+     * model values are deemed equivalent if they lead to the same evaluation on
+     * the respective evaluation point of that head. For example, in the
+     * following application of type Int
+     *    (eval f1 0 1)
+     * a set of equivalence classes for f1 would be
+     *    {{x, 0, y-1}, {1}}
+     */
+    std::map<Node, std::map<Node, std::set<Node>>> d_hd_equiv_mvs;
+    /**
+     * maps heads to the result of the evaluation application in which it
+     * appears on its current model value
+     */
+    std::map<Node, Node> d_hd_appCurrEval;
+    /** all enumerated model values for heads */
+    std::set<Node> d_hd_mvs;
+    /** adds new value to hd's pool of head values
+     *
+     * the update is done according to which value the head application
+     * evaluates to with the given head value
+     */
+    void addHeadValuePool(Node hd, Node hdv);
+    /** merge the value pools of hd each node in hds
+     *
+     * The pools are merged by computing the intersection of all the head value
+     * pools
+     *
+     * The function returns an element of the resulting pool if there is any,
+     * otherwise returning Node::null()
+     *
+     * The explanation is update accordingly
+     */
+    Node mergeHeadValuePools(Node hd,
+                             const std::vector<Node>& hds,
+                             std::vector<Node>& exp,
+                             std::vector<Node>& lemmas);
+    /**
+     * creates a (dis)equality of evaluation applications of the given heads on
+     * the given point
+     *
+     * if the equal flag is set to false then creates a disequality rather than
+     * an equality
+     */
+    Node makeEvalExp(Node e1,
+                     Node e2,
+                     const std::vector<Node>& pt_e1,
+                     std::vector<Node>& lemmas,
+                     bool equal = true);
+    /** lemmas for unfolding evaluation functions on "repair" applications */
+    std::set<Node> d_adhoc_unfolding_lemmas;
     /**
      * Conditional enumerator variables corresponding to the condition values in
      * d_conds. These are used for generating separation lemmas during
@@ -259,6 +310,30 @@ class SygusUnifRl : public SygusUnif
      * decision tree.
      */
     Node d_cond_enum;
+    /** all enumerated model values for conditions */
+    std::set<Node> d_cond_mvs;
+    /** size to which explanation should be backtracked to
+     *
+     * When the condition pool is used and we still fail to produce a solution,
+     * the separation lemma should reflect the failure independent of the
+     * repairs from the condition pool. To do this we discard everything after
+     * the first conflict that could not have been resolved with an original
+     * currently enumerated condition.
+     *
+     * the initial value is set to -1, meaning no size has been set yet
+     */
+    int d_exp_backtrack_size;
+    bool pickCondition(unsigned c_counter,
+                       Node e1,
+                       Node e2,
+                       std::vector<Node>& exp);
+    /** try separating e1 from e2 with a value from condition pool
+     *
+     * if it succeeds it changes the saved value in d_conds to the respective
+     * index
+     */
+    bool pickConditionFromPool(unsigned c_counter, Node e1, Node e2);
+
     /** Classifies evaluation points according to enumerated condition values
      *
      * Maintains the invariant that points evaluated in the same way in the
@@ -283,6 +358,8 @@ class SygusUnifRl : public SygusUnif
       /** reference to parent unif util */
       DecisionTreeInfo* d_dt;
     };
+    /** repair condition to separate */
+    Node repairConditionToSeparate(Node cv, Node e1, Node e2);
     /**
      * Utility for determining how evaluation points are separated by currently
      * enumerated condiotion values

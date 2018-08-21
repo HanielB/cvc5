@@ -52,7 +52,7 @@ bool CegisUnif::processInitialize(Node n,
     if (!d_sygus_unif.usingUnif(f))
     {
       Trace("cegis-unif") << "* non-unification candidate : " << f << std::endl;
-      d_tds->registerEnumerator(f, f, d_parent);
+      d_tds->registerEnumerator(f, f, d_parent, false, options::sygusRepairConst());
       d_non_unif_candidates.push_back(f);
     }
     else
@@ -270,6 +270,11 @@ Node CegisUnif::getNextDecisionRequest(unsigned& priority)
   return d_u_enum_manager.getNextDecisionRequest(priority);
 }
 
+bool CegisUnif::usingRepairConst()
+{
+  return false;
+}
+
 CegisUnifEnumManager::CegisUnifEnumManager(QuantifiersEngine* qe,
                                            CegConjecture* parent)
     : d_qe(qe),
@@ -468,11 +473,12 @@ void CegisUnifEnumManager::incrementNumEnumerators()
         Trace("cegis-unif-enum") << "* Registering new enumerator " << e
                                  << " to strategy point " << ci.second.d_pt
                                  << "\n";
-        d_tds->registerEnumerator(e, ci.second.d_pt, d_parent);
-        // TODO symmetry breaking for making
-        //   e distinct from ei : (ci.second.d_enums[index] \ {e})
-        // if its respective type has had at least
-        // ci.second.d_enums[index].size() distinct values enumerated
+        d_tds->registerEnumerator(e,
+                                  ci.second.d_pt,
+                                  d_parent,
+                                  false,
+                                  index == 0 ? options::sygusUnifRepairRet()
+                                             : options::sygusUnifRepairCond());
       }
     }
     // register the evaluation points at the new value

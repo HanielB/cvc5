@@ -976,6 +976,38 @@ header = "options/quantifiers_options.h"
   help       = "Unification-based function synthesis"
 
 [[option]]
+  name       = "sygusUnifRetPool"
+  category   = "regular"
+  long       = "sygus-unif-ret-pool"
+  type       = "bool"
+  default    = "false"
+  help       = "Use pool of return values in unification-based function synthesis"
+
+[[option]]
+  name       = "sygusUnifRepairCond"
+  category   = "regular"
+  long       = "sygus-unif-repair-cond"
+  type       = "bool"
+  default    = "false"
+  help       = "Repair conditions in unification-based function synthesis"
+
+[[option]]
+  name       = "sygusUnifCondPool"
+  category   = "regular"
+  long       = "sygus-unif-cond-pool"
+  type       = "bool"
+  default    = "false"
+  help       = "Use condition pool in unification-based function synthesis (may generate bigger solutions)"
+
+[[option]]
+  name       = "sygusUnifRepairRet"
+  category   = "regular"
+  long       = "sygus-unif-repair-ret"
+  type       = "bool"
+  default    = "false"
+  help       = "Repair return values in unification-based function synthesis"
+
+[[option]]
   name       = "sygusBoolIteReturnConst"
   category   = "regular"
   long       = "sygus-bool-ite-return-const"

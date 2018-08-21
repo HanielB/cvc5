@@ -77,6 +77,10 @@ class SygusRepairConst
                       const std::vector<Node>& candidate_values,
                       std::vector<Node>& repair_cv,
                       bool useConstantsAsHoles = false);
+
+  bool repairValues(const std::vector<Node>& values,
+                    std::vector<Node>& repair_values,
+                    bool useConstantsAsHoles = false);
   /**
    * Return whether this module has the possibility to repair solutions. This is
    * true if this module has been initialized, and at least one candidate has

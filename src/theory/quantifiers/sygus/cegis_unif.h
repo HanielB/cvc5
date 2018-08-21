@@ -234,7 +234,8 @@ class CegisUnif : public Cegis
                                std::vector<Node>& lems) override;
   /** get next decision request */
   Node getNextDecisionRequest(unsigned& priority) override;
-
+  /** using repair const */
+  bool usingRepairConst() override;
  private:
   /** do cegis-implementation-specific initialization for this class */
   bool processInitialize(Node n,
