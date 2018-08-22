@@ -1010,6 +1010,15 @@ header = "options/quantifiers_options.h"
   help       = "statically minimize sygus grammars"
 
 [[option]]
+  name       = "sygusBvGrammarCheap"
+  category   = "regular"
+  long       = "sygus-bv-grammar-cheap"
+  type       = "bool"
+  default    = "false"
+  read_only  = true
+  help       = "don't use div and rem in default BV grammar"
+
+[[option]]
   name       = "sygusAddConstGrammar"
   category   = "regular"
   long       = "sygus-add-const-grammar"

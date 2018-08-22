@@ -592,14 +592,17 @@ void CegGrammarConstructor::mkSygusDefaultGrammar(
                                      BITVECTOR_XOR,
                                      BITVECTOR_PLUS,
                                      BITVECTOR_SUB,
-                                     BITVECTOR_MULT,
-                                     BITVECTOR_UDIV_TOTAL,
-                                     BITVECTOR_UREM_TOTAL,
-                                     BITVECTOR_SDIV,
-                                     BITVECTOR_SREM,
                                      BITVECTOR_SHL,
                                      BITVECTOR_LSHR,
                                      BITVECTOR_ASHR};
+      if (!options::sygusBvGrammarCheap())
+      {
+        bin_kinds.push_back(BITVECTOR_MULT);
+        bin_kinds.push_back(BITVECTOR_UDIV_TOTAL);
+        bin_kinds.push_back(BITVECTOR_UREM_TOTAL);
+        bin_kinds.push_back(BITVECTOR_SDIV);
+        bin_kinds.push_back(BITVECTOR_SREM);
+      };
       for (const Kind k : bin_kinds)
       {
         Trace("sygus-grammar-def") << "...add for " << k << std::endl;
