@@ -240,7 +240,8 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
     std::stringstream ss;
     ss << filename << "__q" << d_queries.size() << ".smt2";
     std::ofstream outfile(ss.str());
-    outfile << "(set-logic " << smte->getLogicInfo() << ")\n";
+    // outfile << "(set-logic " << smte->getLogicInfo() << ")\n";
+    outfile << "(set-logic BV)\n";
     for (const Node& v : sk_vars)
     {
       Node fov = d_sk_to_fo[v];
