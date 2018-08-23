@@ -222,6 +222,7 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
   }
   if (options::dumpRepairConstQueries())
   {
+    // TODO force output language to be SMT2 when this option is set
     // Get benchmark name without path and file extension
     SmtEngine* smte = smt::currentSmtEngine();
     std::string filename = smte->getFilename();
@@ -246,12 +247,8 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
       outfile << "(declare-fun " << fov << " () " << fov.getType() << ")\n";
     }
     ss.str("");
-    // TODO this breaks in LIA because of "-1"
-    // TODO Bitvectors break because of (BitVec) and e.g. bvudiv_total
-    Printer::getPrinter(language::output::LANG_SMTLIB_V2_6)
-        ->toStreamSygus(ss, fo_body);
-    outfile << "\n(assert " << ss.str()
-            << ")\n\n(check-sat)\n";
+    // prints in output language
+    outfile << "\n(assert " << fo_body << ")\n\n(check-sat)\n";
     outfile.close();
   }
   Trace("cegqi-engine") << "Repairing previous solution..." << std::endl;
