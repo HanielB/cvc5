@@ -15,6 +15,7 @@
 #include "theory/quantifiers/sygus/sygus_repair_const.h"
 
 #include "options/base_options.h"
+#include "options/quantifiers_options.h"
 #include "printer/printer.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
@@ -219,7 +220,14 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
       fo_body = nm->mkNode(AND, children);
     }
   }
-
+  if (options::dumpRepairConstQueries())
+  {
+    std::stringstream ss;
+    ss << smt::currentSmtEngine()->getFilename() << "_" << d_queries.size() << ".smt2";
+    Trace("test") << "WOULD HAVE PRINTED: " << ss.str() << "\n";
+    // std::ofstream outfile (ss.str());
+    // outfile << fo_body << std::endl;
+  }
   Trace("cegqi-engine") << "Repairing previous solution..." << std::endl;
   // make the satisfiability query
   SmtEngine repcChecker(nm->toExprManager());

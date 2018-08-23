@@ -260,7 +260,8 @@ class CVC4_PUBLIC SmtEngine {
   Result d_status;
 
   /**
-   * The name of the input (if any).
+   * The name of the input file (if any) or the name set through the setInfo (if
+   * any).
    */
   std::string d_filename;
 
@@ -494,6 +495,10 @@ class CVC4_PUBLIC SmtEngine {
   void setOption(const std::string& key, const CVC4::SExpr& value)
       /* throw(OptionException, ModalException) */;
 
+  /** sets d_filename */
+  void setFilename(std::string filename);
+  /** return the input name (if any) */
+  std::string getFilename() const;
   /**
    * Get the model (only if immediately preceded by a SAT
    * or INVALID query).  Only permitted if CVC4 was built with model
