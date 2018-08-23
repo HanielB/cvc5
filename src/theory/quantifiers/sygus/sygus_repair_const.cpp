@@ -222,11 +222,37 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
   }
   if (options::dumpRepairConstQueries())
   {
+    // Get benchmark name without path and file extension
+    SmtEngine* smte = smt::currentSmtEngine();
+    std::string filename = smte->getFilename();
+    std::size_t found = filename.rfind("/");
+    Assert(found != std::string::npos);
+    filename = filename.substr(found + 1);
+    found = filename.rfind(".sl");
+    if (found == std::string::npos)
+    {
+      found = filename.rfind(".sy");
+    }
+    Assert(found != std::string::npos);
+    filename = filename.substr(0, found);
+    // build dump file name based on query number
     std::stringstream ss;
-    ss << smt::currentSmtEngine()->getFilename() << "_" << d_queries.size() << ".smt2";
-    Trace("test") << "WOULD HAVE PRINTED: " << ss.str() << "\n";
-    // std::ofstream outfile (ss.str());
-    // outfile << fo_body << std::endl;
+    ss << filename << "__q" << d_queries.size() << ".smt2";
+    std::ofstream outfile(ss.str());
+    outfile << "(set-logic " << smte->getLogicInfo() << ")\n";
+    for (const Node& v : sk_vars)
+    {
+      Node fov = d_sk_to_fo[v];
+      outfile << "(declare-fun " << fov << " () " << fov.getType() << ")\n";
+    }
+    ss.str("");
+    // TODO this breaks in LIA because of "-1"
+    // TODO Bitvectors break because of (BitVec) and e.g. bvudiv_total
+    Printer::getPrinter(language::output::LANG_SMTLIB_V2_6)
+        ->toStreamSygus(ss, fo_body);
+    outfile << "\n(assert " << ss.str()
+            << ")\n\n(check-sat)\n";
+    outfile.close();
   }
   Trace("cegqi-engine") << "Repairing previous solution..." << std::endl;
   // make the satisfiability query
