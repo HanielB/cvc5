@@ -52,7 +52,8 @@ bool CegisUnif::processInitialize(Node n,
     if (!d_sygus_unif.usingUnif(f))
     {
       Trace("cegis-unif") << "* non-unification candidate : " << f << std::endl;
-      d_tds->registerEnumerator(f, f, d_parent, false, options::sygusRepairConst());
+      d_tds->registerEnumerator(
+          f, f, d_parent, false, options::sygusRepairConst());
       d_non_unif_candidates.push_back(f);
     }
     else
@@ -112,7 +113,8 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   }
   if (!satisfiedRl)
   {
-    Trace("cegis-unif") << "..added refinement lemmas\n---CegisUnif Engine---\n";
+    Trace("cegis-unif")
+        << "..added refinement lemmas\n---CegisUnif Engine---\n";
     // if we didn't satisfy the specification, there is no way to repair
     return false;
   }
@@ -249,7 +251,8 @@ void CegisUnif::registerRefinementLemma(const std::vector<Node>& vars,
   std::map<Node, std::vector<Node>> eval_pts;
   Node plem = d_sygus_unif.addRefLemma(lem, eval_pts);
   addRefinementLemma(plem);
-  Trace("cegis-unif-lemma") << "CegisUnif::lemma, refinement lemma : " << plem << "\n";
+  Trace("cegis-unif-lemma") << "CegisUnif::lemma, refinement lemma : " << plem
+                            << "\n";
   // Notify the enumeration manager if there are new evaluation points
   for (const std::pair<const Node, std::vector<Node>>& ep : eval_pts)
   {
@@ -273,11 +276,7 @@ Node CegisUnif::getNextDecisionRequest(unsigned& priority)
   return d_u_enum_manager.getNextDecisionRequest(priority);
 }
 
-bool CegisUnif::usingRepairConst()
-{
-  return false;
-}
-
+bool CegisUnif::usingRepairConst() { return false; }
 CegisUnifEnumManager::CegisUnifEnumManager(QuantifiersEngine* qe,
                                            CegConjecture* parent)
     : d_qe(qe),

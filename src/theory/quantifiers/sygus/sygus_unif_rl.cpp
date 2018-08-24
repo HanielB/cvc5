@@ -742,7 +742,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         != itr->second.end())
     {
       Trace("sygus-unif-sol")
-        << "  ...does not resolve separation conflict with current\n";
+          << "  ...does not resolve separation conflict with current\n";
       // the condition does not separate e and er
       // this violates the invariant that the i^th conditional enumerator
       // resolves the i^th separation conflict
