@@ -112,6 +112,7 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   }
   if (!satisfiedRl)
   {
+    Trace("cegis-unif") << "..added refinement lemmas\n---CegisUnif Engine---\n";
     // if we didn't satisfy the specification, there is no way to repair
     return false;
   }
@@ -231,8 +232,10 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   Assert(!lemmas.empty());
   for (const Node& lem : lemmas)
   {
-    Trace("cegis-unif") << "CegisUnif::lemma, separation lemma : " << lem
-                        << "\n";
+    Trace("cegis-unif") << "..failed to separate heads\n";
+    Trace("cegis-unif-lemma") << "CegisUnif::lemma, separation lemma : " << lem
+                              << "\n";
+    Trace("cegis-unif") << "---CegisUnif Engine---\n";
     d_qe->getOutputChannel().lemma(lem);
   }
   return false;
@@ -246,7 +249,7 @@ void CegisUnif::registerRefinementLemma(const std::vector<Node>& vars,
   std::map<Node, std::vector<Node>> eval_pts;
   Node plem = d_sygus_unif.addRefLemma(lem, eval_pts);
   addRefinementLemma(plem);
-  Trace("cegis-unif-lemma") << "* Refinement lemma:\n" << plem << "\n";
+  Trace("cegis-unif-lemma") << "CegisUnif::lemma, refinement lemma : " << plem << "\n";
   // Notify the enumeration manager if there are new evaluation points
   for (const std::pair<const Node, std::vector<Node>>& ep : eval_pts)
   {
