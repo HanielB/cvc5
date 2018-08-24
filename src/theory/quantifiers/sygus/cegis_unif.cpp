@@ -201,6 +201,9 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   }
   if (addedUnifEnumSymBreakLemma)
   {
+    Trace("cegis-unif")
+        << "..added unif enum symmetry breaking lemma\n---CegisUnif Engine---\n";
+    // if we didn't satisfy the specification, there is no way to repair
     return false;
   }
   // set the conditions
