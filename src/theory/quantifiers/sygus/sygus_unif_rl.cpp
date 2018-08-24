@@ -709,7 +709,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     // we try to pick a condition to add to our trie. We add to the explanation
     // that the respective condition enumerator is equal to the respective value
     //
-    // If we can't picke a condition then we have have exhausted our condition
+    // If we can't pick a condition then we have have exhausted our condition
     // pool. If so, we are in conflict and this conflict depends on the guard.
     if (!pickCondition(c_counter, er, e, exp))
     {
