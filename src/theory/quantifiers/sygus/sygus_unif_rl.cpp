@@ -1007,8 +1007,11 @@ bool SygusUnifRl::DecisionTreeInfo::pickConditionFromPool(unsigned c_counter,
       Trace("sygus-unif-cond-pool")
           << "  ...picked from pool "
           << d_unif->d_tds->sygusToBuiltin(cond, cond.getType())
-          << " to separate " << e1 << d_unif->d_hd_to_pt[e1] << " | " << e2
-          << d_unif->d_hd_to_pt[e2] << "\n";
+          << " to separate " << e1;
+      Trace("sygus-unif-cond-pool-debug") << d_unif->d_hd_to_pt[e1];
+      Trace("sygus-unif-cond-pool") << " | " << e2;
+      Trace("sygus-unif-cond-pool-debug") << d_unif->d_hd_to_pt[e2];
+      Trace("sygus-unif-cond-pool") << "\n";
       return true;
     }
   }
