@@ -277,6 +277,9 @@ class CegisUnif : public Cegis
   SygusUnifRl d_sygus_unif;
   /** enumerator manager utility */
   CegisUnifEnumManager d_u_enum_manager;
+  /** map from condition enumerators to active guards (in case they are
+   * enumerated indepedently of the return values) */
+  std::map<Node, Node> d_enum_to_active_guard;
   /* The null node */
   Node d_null;
   /** the unification candidates */
