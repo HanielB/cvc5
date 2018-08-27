@@ -891,10 +891,14 @@ Node SygusUnifRl::DecisionTreeInfo::PointSeparator::extractSol(
     if (trie->d_children.size() == 1 || children[2] == children[3])
     {
       cache[cur] = children[i];
-      Trace("sygus-unif-sol-debug") << "......no cond, build "
-                                    << d_dt->d_unif->d_tds->sygusToBuiltin(
-                                           cache[cur], cache[cur].getType())
-                                    << "\n";
+      Trace("sygus-unif-sol-debug")
+          << "......no need for cond "
+          << d_dt->d_unif->d_tds->sygusToBuiltin(d_dt->d_conds[index],
+                                                 d_dt->d_conds[index].getType())
+          << ", build "
+          << d_dt->d_unif->d_tds->sygusToBuiltin(cache[cur],
+                                                 cache[cur].getType())
+          << "\n";
       continue;
     }
     Assert(trie->d_children.size() == 2);
