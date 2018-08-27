@@ -96,6 +96,7 @@ class CegisUnifEnumManager
   /** map from condition enumerators to active guards (in case they are
    * enumerated indepedently of the return values) */
   std::map<Node, Node> d_enum_to_active_guard;
+
  private:
   /** reference to quantifier engine */
   QuantifiersEngine* d_qe;
