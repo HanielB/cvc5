@@ -345,10 +345,8 @@ Node SygusUnifRl::constructSol(
   }
   EnumTypeInfoStrat* etis = snode.d_strats[itd->second.getStrategyIndex()];
   Node sol = itd->second.buildSol(etis->d_cons, lemmas);
-  if (sol.isNull())
-  {
-    Assert(!lemmas.empty());
-  }
+  Assert(options::sygusUnifCondIndependent() || !sol.isNull()
+         || !lemmas.empty());
   return sol;
 }
 

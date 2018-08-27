@@ -262,7 +262,8 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
     return true;
   }
 
-  Assert(!lemmas.empty());
+  // TODO tie this to the lemma for getting a new condition value
+  Assert(options::sygusUnifCondIndependent() || !lemmas.empty());
   for (const Node& lem : lemmas)
   {
     Trace("cegis-unif") << "..failed to separate heads\n";
