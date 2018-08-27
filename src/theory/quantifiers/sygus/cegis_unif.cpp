@@ -143,7 +143,8 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
         {
           Assert(unif_enums[index][e].size() == 1);
           Node eu = unif_enums[index][e][0];
-          Assert(d_u_enum_manager.d_enum_to_active_guard.contains(eu));
+          Assert(d_u_enum_manager.d_enum_to_active_guard.find(eu)
+                 != d_u_enum_manager.d_enum_to_active_guard.end());
           Node g = d_u_enum_manager.d_enum_to_active_guard[eu];
           // Get whether the active guard for this enumerator is true, otherwise
           // there are no more values for it, and hence we ignore it
@@ -229,10 +230,11 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
       d_sygus_unif.setConditions(
           e, cost_lit, unif_enums[1][e], unif_values[1][e]);
       // if condition enumerator had value, exclude this value
-      if (!options::sygusUnifCondIndependent() && !unif_enums[1][e].empty())
+      if (options::sygusUnifCondIndependent() && !unif_enums[1][e].empty())
       {
           Node eu = unif_enums[1][e][0];
-          Assert(d_u_enum_manager.d_enum_to_active_guard.contains(eu));
+          Assert(d_u_enum_manager.d_enum_to_active_guard.find(eu)
+                 != d_u_enum_manager.d_enum_to_active_guard.end());
           Node g = d_u_enum_manager.d_enum_to_active_guard[eu];
           Node exp_exc = d_tds->getExplain()->getExplanationForEquality(
               eu, unif_values[1][e][0]).negate();
