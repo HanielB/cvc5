@@ -513,7 +513,7 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
   d_enums.insert(d_enums.end(), enums.begin(), enums.end());
   d_conds.insert(d_conds.end(), conds.begin(), conds.end());
   // add to condition pool
-  if (options::sygusUnifCondPool())
+  if (options::sygusUnifCondIndependent() || options::sygusUnifCondPool())
   {
     if (Trace.isOn("sygus-unif-cond-pool"))
     {
@@ -564,6 +564,42 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
   unsigned c_counter = 0;
   // do we need to resolve a separation conflict?
   bool needs_sep_resolve = false;
+  if (options::sygusUnifCondIndependent())
+  {
+    // add conditions
+    d_conds.clear();
+    d_conds.insert(d_conds.end(), d_cond_mvs.begin(), d_cond_mvs.end());
+    unsigned num_conds = d_conds.size();
+    for (unsigned i = 0; i < num_conds; ++i)
+    {
+      d_pt_sep.d_trie.addClassifier(&d_pt_sep, i);
+    }
+    // add heads
+    for (const Node& e : d_hds)
+    {
+      Node v = d_unif->d_parent->getModelValue(e);
+      hd_mv[e] = v;
+      Node er = d_pt_sep.d_trie.add(e, &d_pt_sep, num_conds);
+      // are we in conflict?
+      if (er == e)
+      {
+        // new separation class, no conflict
+        continue;
+      }
+      Assert(hd_mv.find(er) != hd_mv.end());
+      // merged into separation class with same model value, no conflict
+      if (hd_mv[e] == hd_mv[er])
+      {
+        continue;
+      }
+      // conflict. Explanation?
+      Trace("sygus-unif-sol") << "  ...can't separate " << e << " from " << er
+                              << std::endl;
+      return Node::null();
+    }
+    Trace("sygus-unif-sol") << "...ready to build solution from DT\n";
+    return d_pt_sep.extractSol(cons, hd_mv);
+  }
   // This loop simultaneously builds the solution in terms of a lazy trie
   // (LazyTrieMulti), and checks whether a separation conflict exists. We
   // enforce that the separation conflicts we encounter while building
@@ -794,15 +830,21 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     lemmas.push_back(lemma);
     return Node::null();
   }
-
   Trace("sygus-unif-sol") << "...ready to build solution from DT\n";
+  return d_pt_sep.extractSol(cons, hd_mv);
+}
+
+Node SygusUnifRl::DecisionTreeInfo::PointSeparator::extractSol(
+    Node cons, std::map<Node, Node>& hd_mv)
+{
   // Traverse trie and build ITE with cons
+  NodeManager* nm = NodeManager::currentNM();
   std::map<IndTriePair, Node> cache;
   std::map<IndTriePair, Node>::iterator it;
   std::vector<IndTriePair> visit;
   unsigned index = 0;
   LazyTrie* trie;
-  IndTriePair root = IndTriePair(0, &d_pt_sep.d_trie.d_trie);
+  IndTriePair root = IndTriePair(0, &d_trie.d_trie);
   visit.push_back(root);
   while (!visit.empty())
   {
@@ -819,10 +861,10 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       {
         Assert(hd_mv.find(trie->d_lazy_child) != hd_mv.end());
         cache[cur] = hd_mv[trie->d_lazy_child];
-        Trace("sygus-unif-sol-debug")
-            << "......leaf, build "
-            << d_unif->d_tds->sygusToBuiltin(cache[cur], cache[cur].getType())
-            << "\n";
+        Trace("sygus-unif-sol-debug") << "......leaf, build "
+                                      << d_dt->d_unif->d_tds->sygusToBuiltin(
+                                             cache[cur], cache[cur].getType())
+                                      << "\n";
         continue;
       }
       cache[cur] = Node::null();
@@ -838,7 +880,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     Assert(trie->d_children.size() == 1 || trie->d_children.size() == 2);
     std::vector<Node> children(4);
     children[0] = cons;
-    children[1] = d_conds[index];
+    children[1] = d_dt->d_conds[index];
     unsigned i = 0;
     for (std::pair<const Node, LazyTrie>& p_nt : trie->d_children)
     {
@@ -851,23 +893,23 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     if (trie->d_children.size() == 1 || children[2] == children[3])
     {
       cache[cur] = children[i];
-      Trace("sygus-unif-sol-debug")
-          << "......no cond, build "
-          << d_unif->d_tds->sygusToBuiltin(cache[cur], cache[cur].getType())
-          << "\n";
+      Trace("sygus-unif-sol-debug") << "......no cond, build "
+                                    << d_dt->d_unif->d_tds->sygusToBuiltin(
+                                           cache[cur], cache[cur].getType())
+                                    << "\n";
       continue;
     }
     Assert(trie->d_children.size() == 2);
     cache[cur] = nm->mkNode(APPLY_CONSTRUCTOR, children);
     Trace("sygus-unif-sol-debug")
         << "......build node "
-        << d_unif->d_tds->sygusToBuiltin(cache[cur], cache[cur].getType())
+        << d_dt->d_unif->d_tds->sygusToBuiltin(cache[cur], cache[cur].getType())
         << "\n";
   }
   Assert(cache.find(root) != cache.end());
   Assert(!cache.find(root)->second.isNull());
   Trace("sygus-unif-sol") << "...solution is "
-                          << d_unif->d_tds->sygusToBuiltin(
+                          << d_dt->d_unif->d_tds->sygusToBuiltin(
                                  cache[root], cache[root].getType())
                           << "\n";
   return cache[root];

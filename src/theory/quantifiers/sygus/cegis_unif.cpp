@@ -121,6 +121,7 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   // the unification enumerators (return values, conditions) and their model
   // values
   NodeManager* nm = NodeManager::currentNM();
+  Valuation& valuation = d_qe->getValuation();
   bool addedUnifEnumSymBreakLemma = false;
   Node cost_lit = d_u_enum_manager.getCurrentLiteral();
   std::map<Node, std::vector<Node>> unif_enums[2];
@@ -142,8 +143,8 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
         {
           Assert(unif_enums[index][e].size() == 1);
           Node eu = unif_enums[index][e][0];
-          Assert(d_enum_to_active_guard.contains(eu));
-          Node g = d_enum_to_active_guard[eu];
+          Assert(d_u_enum_manager.d_enum_to_active_guard.contains(eu));
+          Node g = d_u_enum_manager.d_enum_to_active_guard[eu];
           // Get whether the active guard for this enumerator is true, otherwise
           // there are no more values for it, and hence we ignore it
           Node gstatus = valuation.getSatValue(g);
@@ -230,12 +231,12 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
       // if condition enumerator had value, exclude this value
       if (!options::sygusUnifCondIndependent() && !unif_enums[1][e].empty())
       {
-          Node eu = unif_enums[index][e][0];
-          Assert(d_enum_to_active_guard.contains(eu));
-          Node g = d_enum_to_active_guard[eu];
+          Node eu = unif_enums[1][e][0];
+          Assert(d_u_enum_manager.d_enum_to_active_guard.contains(eu));
+          Node g = d_u_enum_manager.d_enum_to_active_guard[eu];
           Node exp_exc = d_tds->getExplain()->getExplanationForEquality(
-              eu, unif_values[1][e]).negate();
-          lems.insert(nm->mkNode(OR, g.negate(), exp_exc));
+              eu, unif_values[1][e][0]).negate();
+          lems.push_back(nm->mkNode(OR, g.negate(), exp_exc));
       }
     }
   }
@@ -373,22 +374,22 @@ void CegisUnifEnumManager::initialize(
       // instantiate template for removing redundant operators
       if (!ci.second.d_sbt_lemma_tmpl[1].first.isNull())
       {
-        Node templ = ci.second.d_sbt_lemma_tmpl[index].first;
-        TNode templ_var = ci.second.d_sbt_lemma_tmpl[index].second;
-        Node sym_break_red_ops = templ.substitute(templ_var, e);
+        Node templ = ci.second.d_sbt_lemma_tmpl[1].first;
+        TNode templ_var = ci.second.d_sbt_lemma_tmpl[1].second;
+        Node sym_break_red_ops = templ.substitute(templ_var, ceu);
         Trace("cegis-unif-enum-lemma")
-            << "CegisUnifEnum::lemma, remove redundant ops of " << e << " : "
+            << "CegisUnifEnum::lemma, remove redundant ops of " << ceu << " : "
             << sym_break_red_ops << "\n";
         d_qe->getOutputChannel().lemma(sym_break_red_ops);
       }
       // register the enumerator
-      ci.second.d_enums[1].push_back(e);
-      Trace("cegis-unif-enum") << "* Registering new enumerator " << e
+      ci.second.d_enums[1].push_back(ceu);
+      Trace("cegis-unif-enum") << "* Registering new enumerator " << ceu
                                << " to strategy point " << ci.second.d_pt
                                << "\n";
       d_tds->registerEnumerator(
-          e, ci.second.d_pt, d_parent, true, options::sygusUnifRepairCond());
-      d_enum_to_active_guard[e] = d_tds->getActiveGuardForEnumerator(e);
+          ceu, ci.second.d_pt, d_parent, true, options::sygusUnifRepairCond());
+      d_enum_to_active_guard[ceu] = d_tds->getActiveGuardForEnumerator(ceu);
     }
   }
 }

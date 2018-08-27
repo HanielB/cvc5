@@ -353,7 +353,8 @@ class SygusUnifRl : public SygusUnif
 
       /** the lazy trie for building the separation classes */
       LazyTrieMulti d_trie;
-
+      /** extracts solution from decision tree built */
+      Node extractSol(Node cons, std::map<Node, Node>& hd_mv);
      private:
       /** reference to parent unif util */
       DecisionTreeInfo* d_dt;
