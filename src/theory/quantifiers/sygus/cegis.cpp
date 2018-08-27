@@ -175,7 +175,8 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
           break;
         }
       }
-      Trace("cegis") << "    " << enums[i] << (isUnit ? "*" : "") << " -> ";
+      Trace("cegis") << "    " << enums[i]
+                     << (options::sygusUnif() && isUnit ? "*" : "") << " -> ";
       std::stringstream ss;
       Printer::getPrinter(options::outputLanguage())
           ->toStreamSygus(ss, enum_values[i]);
