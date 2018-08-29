@@ -14,6 +14,8 @@
 
 #include "theory/quantifiers/sygus/sygus_unif_rl.h"
 
+#include <math.h>
+
 #include "options/base_options.h"
 #include "options/quantifiers_options.h"
 #include "printer/printer.h"
@@ -835,6 +837,11 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
 Node SygusUnifRl::DecisionTreeInfo::PointSeparator::extractSol(
     Node cons, std::map<Node, Node>& hd_mv)
 {
+  // rebuild decision tree using heuristic learning
+  if (options::sygusUnifBooleanHeuristicDT())
+  {
+    recomputeSolHeuristically(hd_mv);
+  }
   // Traverse trie and build ITE with cons
   NodeManager* nm = NodeManager::currentNM();
   std::map<IndTriePair, Node> cache;
@@ -915,6 +922,127 @@ Node SygusUnifRl::DecisionTreeInfo::PointSeparator::extractSol(
                                  cache[root], cache[root].getType())
                           << "\n";
   return cache[root];
+}
+
+void SygusUnifRl::DecisionTreeInfo::PointSeparator::recomputeSolHeuristically(
+    std::map<Node, Node>& hd_mv)
+{
+  // reset the trie
+  d_trie.clear();
+  // TODO workaround and not really sure this is the last condition, since I put
+  // a set here. Maybe make d_cond_mvs into a vector
+  Node backup_last_cond = d_dt->d_conds.back();
+  d_dt->d_conds.clear();
+  for (const Node& e : d_dt->d_hds)
+  {
+    d_trie.add(e, this, 0);
+  }
+  // init vector of conds
+  std::vector<Node> conds;
+  conds.insert(conds.end(), d_dt->d_cond_mvs.begin(), d_dt->d_cond_mvs.end());
+
+  // recursively build trie by picking best condition for respective points
+  buildDt(d_dt->d_hds, conds, hd_mv);
+  // if no condition was added (i.e. points are already classified), use last
+  // condition as candidate
+  if (d_dt->d_conds.empty())
+  {
+    Trace("sygus-unif-dt") << "......using last condition as candidate\n";
+    d_dt->d_conds.push_back(backup_last_cond);
+    d_trie.addClassifier(this, d_dt->d_conds.size() - 1);
+  }
+}
+
+void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
+    std::vector<Node>& pts,
+    std::vector<Node> conds,
+    std::map<Node, Node>& hd_mv)
+{
+  // test if fully classified
+  if (pts.size() < 2)
+  {
+    Trace("sygus-unif-dt") << "......set fully classified\n";
+    return;
+  }
+  Node v1 = hd_mv[pts[0]];
+  unsigned i = 1, size = pts.size();
+  for (; i < size; ++i)
+  {
+    if (hd_mv[pts[i]] != v1)
+    {
+      break;
+    }
+  }
+  if (i == size)
+  {
+    Trace("sygus-unif-dt") << "......set fully classified\n";
+    return;
+  }
+  // pick condition to further classify
+  double maxgain = -1;
+  unsigned picked_cond = 0;
+  std::vector<std::pair<std::vector<Node>, std::vector<Node>>> splits;
+  double current_set_entropy = getEntropy(pts, hd_mv);
+  for (unsigned i = 0, size = conds.size(); i < size; ++i)
+  {
+    std::pair<std::vector<Node>, std::vector<Node>> split =
+        evaluateCond(pts, conds[i]);
+    splits.push_back(split);
+    double gain = current_set_entropy - getEntropy(split.first, hd_mv)
+                  - getEntropy(split.second, hd_mv);
+    Trace("sygus-unif-dt") << "....gain of " << conds[i] << " is " << gain
+                           << "\n";
+    if (gain > maxgain)
+    {
+      maxgain = gain;
+      picked_cond = i;
+    }
+  }
+  // add picked condition
+  d_dt->d_conds.push_back(conds[picked_cond]);
+  conds.erase(conds.begin() + picked_cond);
+  d_trie.addClassifier(this, d_dt->d_conds.size() - 1);
+  // recurse
+  buildDt(splits[picked_cond].first, conds, hd_mv);
+  buildDt(splits[picked_cond].second, conds, hd_mv);
+}
+
+std::pair<std::vector<Node>, std::vector<Node>>
+SygusUnifRl::DecisionTreeInfo::PointSeparator::evaluateCond(
+    std::vector<Node>& pts, Node cond)
+{
+  std::vector<Node> good, bad;
+  for (const Node& pt : pts)
+  {
+    if (computeCond(cond, pt) == d_true)
+    {
+      good.push_back(pt);
+      continue;
+    }
+    Assert(computeCond(cond, pt) == d_false);
+    bad.push_back(pt);
+  }
+  return std::pair<std::vector<Node>, std::vector<Node>>(good, bad);
+}
+
+double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
+    const std::vector<Node>& pts, std::map<Node, Node>& hd_mv)
+{
+  double p = 0, n = 0;
+  // get number of good and bad points
+  for (const Node& e : pts)
+  {
+    if (d_dt->d_unif->d_tds->sygusToBuiltin(hd_mv[e]) == d_true)
+    {
+      p++;
+      continue;
+    }
+    Assert(d_dt->d_unif->d_tds->sygusToBuiltin(hd_mv[e]) == d_false);
+    n++;
+  }
+  return p == 0 || n == 0 ? 0
+                          : (-p / (p + n) * log2(p / (p + n)))
+                                - (n / (p + n) * log2(n / (p + n)));
 }
 
 Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate(Node cv,
@@ -1203,6 +1331,8 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::initialize(
     DecisionTreeInfo* dt)
 {
   d_dt = dt;
+  d_true = NodeManager::currentNM()->mkConst(true);
+  d_false = NodeManager::currentNM()->mkConst(false);
 }
 
 Node SygusUnifRl::DecisionTreeInfo::PointSeparator::evaluate(Node n,
@@ -1211,16 +1341,28 @@ Node SygusUnifRl::DecisionTreeInfo::PointSeparator::evaluate(Node n,
   Assert(index < d_dt->d_conds.size());
   // Retrieve respective built_in condition
   Node cond = d_dt->d_conds[index];
+  return computeCond(cond, n);
+}
+
+Node SygusUnifRl::DecisionTreeInfo::PointSeparator::computeCond(Node cond, Node hd)
+{
+  std::pair<Node, Node> cond_hd = std::pair<Node, Node>(cond, hd);
+  std::map<std::pair<Node, Node>, Node>::iterator it =
+      d_eval_cond_hd.find(cond_hd);
+  if (it != d_eval_cond_hd.end())
+  {
+    return it->second;
+  }
   TypeNode tn = cond.getType();
   Node builtin_cond = d_dt->d_unif->d_tds->sygusToBuiltin(cond, tn);
   // Retrieve evaluation point
-  Assert(d_dt->d_unif->d_hd_to_pt.find(n) != d_dt->d_unif->d_hd_to_pt.end());
-  std::vector<Node> pt = d_dt->d_unif->d_hd_to_pt[n];
+  Assert(d_dt->d_unif->d_hd_to_pt.find(hd) != d_dt->d_unif->d_hd_to_pt.end());
+  std::vector<Node> pt = d_dt->d_unif->d_hd_to_pt[hd];
   // compute the result
   if (Trace.isOn("sygus-unif-rl-sep"))
   {
     Trace("sygus-unif-rl-sep") << "Evaluate cond " << builtin_cond << " on pt "
-                               << n << " ( ";
+                               << hd << " ( ";
     for (const Node& pti : pt)
     {
       Trace("sygus-unif-rl-sep") << pti << " ";
@@ -1240,6 +1382,7 @@ Node SygusUnifRl::DecisionTreeInfo::PointSeparator::evaluate(Node n,
                                << std::endl;
   }
   Assert(res.isConst());
+  d_eval_cond_hd[cond_hd] = res;
   return res;
 }
 

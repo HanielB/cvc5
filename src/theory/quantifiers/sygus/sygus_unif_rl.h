@@ -223,6 +223,8 @@ class SygusUnifRl : public SygusUnif
     std::vector<Node> d_conds;
     /** gathered evaluation point heads */
     std::vector<Node> d_hds;
+    /** all enumerated model values for conditions */
+    std::set<Node> d_cond_mvs;
     /** get condition enumerator */
     Node getConditionEnumerator() const { return d_cond_enum; }
     /** set conditions */
@@ -310,8 +312,6 @@ class SygusUnifRl : public SygusUnif
      * decision tree.
      */
     Node d_cond_enum;
-    /** all enumerated model values for conditions */
-    std::set<Node> d_cond_mvs;
     /** size to which explanation should be backtracked to
      *
      * When the condition pool is used and we still fail to produce a solution,
@@ -359,6 +359,20 @@ class SygusUnifRl : public SygusUnif
      private:
       /** reference to parent unif util */
       DecisionTreeInfo* d_dt;
+      /** true and false nodes */
+      Node d_true;
+      Node d_false;
+      /** cache of conditions evaluations on heads */
+      std::map<std::pair<Node, Node>, Node> d_eval_cond_hd;
+      std::pair<std::vector<Node>, std::vector<Node>> evaluateCond(
+          std::vector<Node>& pts, Node cond);
+      void recomputeSolHeuristically(std::map<Node, Node>& hd_mv);
+      void buildDt(std::vector<Node>& pts,
+                   std::vector<Node> conds,
+                   std::map<Node, Node>& hd_mv);
+      double getEntropy(const std::vector<Node>& pts,
+                      std::map<Node, Node>& hd_mv);
+      Node computeCond(Node cond, Node hd);
     };
     /** repair condition to separate */
     Node repairConditionToSeparate(Node cv, Node e1, Node e2);
