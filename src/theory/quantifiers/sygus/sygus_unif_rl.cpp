@@ -593,8 +593,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
         continue;
       }
       // conflict. Explanation?
-      Trace("sygus-unif-sol")
-          << "  ...can't separate " << e << " from " << er << std::endl;
+      Trace("sygus-unif-sol") << "  ...can't separate " << e << " from " << er
+                              << std::endl;
       return Node::null();
     }
     Trace("sygus-unif-sol") << "...ready to build solution from DT\n";
@@ -706,8 +706,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
           exp.push_back(makeEvalExp(er, e, d_unif->d_hd_to_pt[er], lemmas));
         }
         Trace("sygus-unif-sol") << "  ...equal model values\n";
-        Trace("sygus-unif-sol")
-            << "  ...add to explanation " << exp.back() << "\n";
+        Trace("sygus-unif-sol") << "  ...add to explanation " << exp.back()
+                                << "\n";
         continue;
       }
     }
@@ -719,8 +719,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     }
     else
     {
-      Trace("sygus-unif-sol-debug")
-          << "  ...try merge " << e << " with " << er << "\n";
+      Trace("sygus-unif-sol-debug") << "  ...try merge " << e << " with " << er
+                                    << "\n";
       // try repairing model to solve separation conflict
       //
       // the function will also include in the explanation an equality between
@@ -812,8 +812,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     Assert(!new_er.isNull());
     er = new_er;
     needs_sep_resolve = true;
-    Trace("sygus-unif-sol")
-        << "  ...now try separating " << e << " from " << er << std::endl;
+    Trace("sygus-unif-sol") << "  ...now try separating " << e << " from " << er
+                            << std::endl;
   }
   if (exp_conflict)
   {
@@ -1040,9 +1040,8 @@ double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
     Assert(d_dt->d_unif->d_tds->sygusToBuiltin(hd_mv[e]) == d_false);
     n++;
   }
-  return p == 0 || n == 0 ? 0
-                          : (-p / (p + n) * log2(p / (p + n)))
-                                - (n / (p + n) * log2(n / (p + n)));
+  return p == 0 || n == 0 ? 0 : (-p / (p + n) * log2(p / (p + n)))
+                                    - (n / (p + n) * log2(n / (p + n)));
 }
 
 Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate(Node cv,
@@ -1118,9 +1117,9 @@ bool SygusUnifRl::DecisionTreeInfo::pickCondition(unsigned c_counter,
     {
       std::stringstream ss;
       Printer::getPrinter(options::outputLanguage())->toStreamSygus(ss, cv);
-      Trace("sygus-unif-sol")
-          << "  add condition (" << c_counter << "/" << d_conds.size()
-          << "): " << ce << " -> " << ss.str() << std::endl;
+      Trace("sygus-unif-sol") << "  add condition (" << c_counter << "/"
+                              << d_conds.size() << "): " << ce << " -> "
+                              << ss.str() << std::endl;
     }
     cv = repairConditionToSeparate(cv, e1, e2);
     d_conds[c_counter] = cv;
@@ -1208,21 +1207,21 @@ void SygusUnifRl::DecisionTreeInfo::addHeadValuePool(Node hd, Node hdv)
   }
   d_hd_mvs.insert(hdv);
   // add value to each head of type tn, including input hd
-  Trace("sygus-unif-sol-debug")
-      << "  ...new pool value: " << builtin_hdv << "\n";
+  Trace("sygus-unif-sol-debug") << "  ...new pool value: " << builtin_hdv
+                                << "\n";
   for (const Node& hdi : d_hds)
   {
     Node res = d_unif->d_tds->evaluateBuiltin(
         tn, builtin_hdv, d_unif->d_hd_to_pt[hdi]);
     if (Trace.isOn("sygus-unif-sol-debug"))
     {
-      Trace("sygus-unif-sol-debug")
-          << "  ......" << hdi << d_unif->d_hd_to_pt[hdi] << " --> "
-          << "[" << res << "] = [";
+      Trace("sygus-unif-sol-debug") << "  ......" << hdi
+                                    << d_unif->d_hd_to_pt[hdi] << " --> "
+                                    << "[" << res << "] = [";
       for (const Node& v : d_hd_equiv_mvs[hdi][res])
       {
-        Trace("sygus-unif-sol-debug")
-            << " " << d_unif->d_tds->sygusToBuiltin(v, tn);
+        Trace("sygus-unif-sol-debug") << " "
+                                      << d_unif->d_tds->sygusToBuiltin(v, tn);
       }
       Trace("sygus-unif-sol-debug") << " ] <+ " << builtin_hdv << "\n";
     }
@@ -1255,10 +1254,10 @@ Node SygusUnifRl::DecisionTreeInfo::mergeHeadValuePools(
     {
       exp.push_back(
           makeEvalExp(hdi, hd, d_unif->d_hd_to_pt[hdi], lemmas, false));
-      Trace("sygus-unif-sol-debug")
-          << "  ......couldn't merge " << hd << " with " << hdi << "\n";
-      Trace("sygus-unif-sol-debug")
-          << "  ...add to explanation " << exp.back() << "\n";
+      Trace("sygus-unif-sol-debug") << "  ......couldn't merge " << hd
+                                    << " with " << hdi << "\n";
+      Trace("sygus-unif-sol-debug") << "  ...add to explanation " << exp.back()
+                                    << "\n";
       return Node::null();
     }
   }
@@ -1344,7 +1343,8 @@ Node SygusUnifRl::DecisionTreeInfo::PointSeparator::evaluate(Node n,
   return computeCond(cond, n);
 }
 
-Node SygusUnifRl::DecisionTreeInfo::PointSeparator::computeCond(Node cond, Node hd)
+Node SygusUnifRl::DecisionTreeInfo::PointSeparator::computeCond(Node cond,
+                                                                Node hd)
 {
   std::pair<Node, Node> cond_hd = std::pair<Node, Node>(cond, hd);
   std::map<std::pair<Node, Node>, Node>::iterator it =

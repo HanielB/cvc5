@@ -267,8 +267,8 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   for (const Node& lem : lemmas)
   {
     Trace("cegis-unif") << "..failed to separate heads\n";
-    Trace("cegis-unif-lemma")
-        << "CegisUnif::lemma, separation lemma : " << lem << "\n";
+    Trace("cegis-unif-lemma") << "CegisUnif::lemma, separation lemma : " << lem
+                              << "\n";
     Trace("cegis-unif") << "---CegisUnif Engine---\n";
     d_qe->getOutputChannel().lemma(lem);
   }
@@ -283,8 +283,8 @@ void CegisUnif::registerRefinementLemma(const std::vector<Node>& vars,
   std::map<Node, std::vector<Node>> eval_pts;
   Node plem = d_sygus_unif.addRefLemma(lem, eval_pts);
   addRefinementLemma(plem);
-  Trace("cegis-unif-lemma")
-      << "CegisUnif::lemma, refinement lemma : " << plem << "\n";
+  Trace("cegis-unif-lemma") << "CegisUnif::lemma, refinement lemma : " << plem
+                            << "\n";
   // Notify the enumeration manager if there are new evaluation points
   for (const std::pair<const Node, std::vector<Node>>& ep : eval_pts)
   {
@@ -388,9 +388,9 @@ void CegisUnifEnumManager::initialize(
       }
       // register the enumerator
       ci.second.d_enums[1].push_back(ceu);
-      Trace("cegis-unif-enum")
-          << "* Registering new enumerator " << ceu << " to strategy point "
-          << ci.second.d_pt << "\n";
+      Trace("cegis-unif-enum") << "* Registering new enumerator " << ceu
+                               << " to strategy point " << ci.second.d_pt
+                               << "\n";
       d_tds->registerEnumerator(
           ceu, ci.second.d_pt, d_parent, true, options::sygusUnifRepairCond());
       d_enum_to_active_guard[ceu] = d_tds->getActiveGuardForEnumerator(ceu);
