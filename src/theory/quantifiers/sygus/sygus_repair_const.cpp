@@ -269,17 +269,11 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
     try
     {
       repcChecker.reset(new SmtEngine(&em));
-      Trace("sygus-repair-const") << ".....created new engine\n";
       repcChecker->setTimeLimit(options::sygusRepairConstTimeout(), true);
-      Trace("sygus-repair-const") << ".....set timeout\n";
       repcChecker->setLogic(smt::currentSmtEngine()->getLogicInfo());
-      Trace("sygus-repair-const") << ".....set logic\n";
       Expr e_fo_body = fo_body.toExpr().exportTo(&em, varMap);
-      Trace("sygus-repair-const") << ".....exported formula expression\n";
       repcChecker->assertFormula(e_fo_body);
-      Trace("sygus-repair-const") << ".....asserted formula\n";
       r = repcChecker->checkSat();
-      Trace("sygus-repair-const") << ".....did check-sat\n";
     }
     catch (const CVC4::ExportUnsupportedException& e)
     {
