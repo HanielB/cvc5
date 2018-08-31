@@ -369,7 +369,8 @@ class SygusUnifRl : public SygusUnif
       void recomputeSolHeuristically(std::map<Node, Node>& hd_mv);
       void buildDt(std::vector<Node>& pts,
                    std::vector<Node> conds,
-                   std::map<Node, Node>& hd_mv);
+                   std::map<Node, Node>& hd_mv,
+                   int ind);
       double getEntropy(const std::vector<Node>& pts,
                         std::map<Node, Node>& hd_mv);
       Node computeCond(Node cond, Node hd);

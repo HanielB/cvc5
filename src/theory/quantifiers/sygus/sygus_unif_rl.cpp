@@ -942,7 +942,7 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::recomputeSolHeuristically(
   conds.insert(conds.end(), d_dt->d_cond_mvs.begin(), d_dt->d_cond_mvs.end());
 
   // recursively build trie by picking best condition for respective points
-  buildDt(d_dt->d_hds, conds, hd_mv);
+  buildDt(d_dt->d_hds, conds, hd_mv, 1);
   // if no condition was added (i.e. points are already classified), use last
   // condition as candidate
   if (d_dt->d_conds.empty())
@@ -956,11 +956,12 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::recomputeSolHeuristically(
 void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
     std::vector<Node>& pts,
     std::vector<Node> conds,
-    std::map<Node, Node>& hd_mv)
+    std::map<Node, Node>& hd_mv, int ind)
 {
   // test if fully classified
   if (pts.size() < 2)
   {
+    indent("sygus-unif-dt", ind);
     Trace("sygus-unif-dt") << "......set fully classified\n";
     return;
   }
@@ -975,6 +976,7 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
   }
   if (i == size)
   {
+    indent("sygus-unif-dt", ind);
     Trace("sygus-unif-dt") << "......set fully classified\n";
     return;
   }
@@ -990,8 +992,11 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
     splits.push_back(split);
     double gain = current_set_entropy - getEntropy(split.first, hd_mv)
                   - getEntropy(split.second, hd_mv);
-    Trace("sygus-unif-dt") << "....gain of " << conds[i] << " is " << gain
-                           << "\n";
+    indent("sygus-unif-dt-debug", ind);
+    Trace("sygus-unif-dt-debug") << "....gain of "
+                           << d_dt->d_unif->d_tds->sygusToBuiltin(
+                                  conds[i], conds[i].getType())
+                           << " is " << gain << "\n";
     if (gain > maxgain)
     {
       maxgain = gain;
@@ -999,12 +1004,18 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
     }
   }
   // add picked condition
+  indent("sygus-unif-dt", ind);
+  Trace("sygus-unif-dt") << "..picked condition "
+                         << d_dt->d_unif->d_tds->sygusToBuiltin(
+                                conds[picked_cond],
+                                conds[picked_cond].getType())
+                         << "\n";
   d_dt->d_conds.push_back(conds[picked_cond]);
   conds.erase(conds.begin() + picked_cond);
   d_trie.addClassifier(this, d_dt->d_conds.size() - 1);
   // recurse
-  buildDt(splits[picked_cond].first, conds, hd_mv);
-  buildDt(splits[picked_cond].second, conds, hd_mv);
+  buildDt(splits[picked_cond].first, conds, hd_mv,ind+1);
+  buildDt(splits[picked_cond].second, conds, hd_mv,ind+1);
 }
 
 std::pair<std::vector<Node>, std::vector<Node>>
