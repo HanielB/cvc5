@@ -207,18 +207,6 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
                                   << std::endl;
       return false;
     }
-
-    // do miniscoping explicitly
-    if (fo_body[1].getKind() == AND)
-    {
-      Node bvl = fo_body[0];
-      std::vector<Node> children;
-      for (const Node& conj : fo_body[1])
-      {
-        children.push_back(nm->mkNode(FORALL, bvl, conj));
-      }
-      fo_body = nm->mkNode(AND, children);
-    }
   }
   if (options::dumpRepairConstQueries())
   {
