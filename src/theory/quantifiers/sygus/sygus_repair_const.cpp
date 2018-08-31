@@ -275,6 +275,11 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
       repcChecker->setOption("miniscope-quant", true);
       repcChecker->setOption("miniscope-quant-fv", true);
       repcChecker->setOption("quant-split", true);
+      if (options::sygusRepairConstExtRew())
+      {
+        repcChecker->setOption("ext-rew-prep", true);
+        repcChecker->setOption("ext-rew-prep-agg", true);
+      }
       // export
       Expr e_fo_body = fo_body.toExpr().exportTo(&em, varMap);
       repcChecker->assertFormula(e_fo_body);
