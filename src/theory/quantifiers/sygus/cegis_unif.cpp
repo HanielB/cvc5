@@ -266,12 +266,11 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   Assert(options::sygusUnifCondIndependent() || !lemmas.empty());
   for (const Node& lem : lemmas)
   {
-    Trace("cegis-unif") << "..failed to separate heads\n";
     Trace("cegis-unif-lemma") << "CegisUnif::lemma, separation lemma : " << lem
                               << "\n";
-    Trace("cegis-unif") << "---CegisUnif Engine---\n";
     d_qe->getOutputChannel().lemma(lem);
   }
+  Trace("cegis-unif") << "..failed to separate heads\n---CegisUnif Engine---\n";
   return false;
 }
 
