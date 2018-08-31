@@ -962,7 +962,8 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
   if (pts.size() < 2)
   {
     indent("sygus-unif-dt", ind);
-    Trace("sygus-unif-dt") << "......set fully classified\n";
+    Trace("sygus-unif-dt") << "..set fully classified: " << (pts.empty() ? "empty" : "unary")
+                           << "\n";
     return;
   }
   Node v1 = hd_mv[pts[0]];
@@ -977,7 +978,13 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
   if (i == size)
   {
     indent("sygus-unif-dt", ind);
-    Trace("sygus-unif-dt") << "......set fully classified\n";
+    Trace("sygus-unif-dt") << "..set fully classified: " << pts.size() << " "
+                           << (d_dt->d_unif->d_tds->sygusToBuiltin(v1,
+                                                                   v1.getType())
+                                       == d_true
+                                   ? "good"
+                                   : "bad")
+                           << " points\n";
     return;
   }
   // pick condition to further classify
@@ -993,7 +1000,7 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
     double gain = current_set_entropy - getEntropy(split.first, hd_mv)
                   - getEntropy(split.second, hd_mv);
     indent("sygus-unif-dt-debug", ind);
-    Trace("sygus-unif-dt-debug") << "....gain of "
+    Trace("sygus-unif-dt-debug") << "..gain of "
                            << d_dt->d_unif->d_tds->sygusToBuiltin(
                                   conds[i], conds[i].getType())
                            << " is " << gain << "\n";
