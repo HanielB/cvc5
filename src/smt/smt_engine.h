@@ -260,8 +260,7 @@ class CVC4_PUBLIC SmtEngine {
   Result d_status;
 
   /**
-   * The name of the input file (if any) or the name set through the setInfo (if
-   * any).
+   * The input file name (if any) or the name set through setInfo (if any)
    */
   std::string d_filename;
 
@@ -269,7 +268,7 @@ class CVC4_PUBLIC SmtEngine {
    * Verbosity of various commands.
    */
   std::map<std::string, Integer> d_commandVerbosity;
-  
+
 
   /** ReplayStream for the solver. */
   ExprStream* d_replayStream;
@@ -495,7 +494,7 @@ class CVC4_PUBLIC SmtEngine {
   void setOption(const std::string& key, const CVC4::SExpr& value)
       /* throw(OptionException, ModalException) */;
 
-  /** sets d_filename */
+  /** sets the input name */
   void setFilename(std::string filename);
   /** return the input name (if any) */
   std::string getFilename() const;
@@ -743,7 +742,7 @@ class CVC4_PUBLIC SmtEngine {
    * extended command get-qe-disjunct, which can be used
    * for incrementally computing the result of a
    * quantifier elimination.
-   * 
+   *
    * The argument strict is whether to output
    * warnings, such as when an unexpected logic is used.
    */
@@ -755,7 +754,7 @@ class CVC4_PUBLIC SmtEngine {
    * Get list of quantified formulas that were instantiated
    */
   void getInstantiatedQuantifiedFormulas( std::vector< Expr >& qs );
-   
+
   /**
    * Get instantiations
    */
@@ -959,7 +958,7 @@ class CVC4_PUBLIC SmtEngine {
   */
   bool getExpressionName(Expr e, std::string& name) const;
 
-  /** set expression name 
+  /** set expression name
   * Sets the expression name of e to name.
   * This information is user-context-dependent.
   * If e already has a name, it is overwritten.

@@ -123,7 +123,19 @@ void CegConjecture::assign( Node q ) {
   // initialize the sygus constant repair utility
   if (options::sygusRepairConst())
   {
-    d_sygus_rconst->initialize(d_base_inst.negate(), d_candidates);
+    // Use non-rewritter version of quantifier
+    if (options::dumpRepairConstQueries())
+    {
+      d_sygus_rconst->initialize(
+          d_qe->getInstantiate()
+              ->getInstantiation(d_embed_quant, vars, d_candidates)
+              .negate(),
+          d_candidates);
+    }
+    else
+    {
+      d_sygus_rconst->initialize(d_base_inst.negate(), d_candidates);
+    }
     if (options::sygusConstRepairAbort())
     {
       if (!d_sygus_rconst->isActive())
