@@ -997,8 +997,11 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
     std::pair<std::vector<Node>, std::vector<Node>> split =
         evaluateCond(pts, conds[i]);
     splits.push_back(split);
-    double gain = current_set_entropy - getEntropy(split.first, hd_mv)
-                  - getEntropy(split.second, hd_mv);
+    Assert(pts.size() == split.first.size() + split.second.size());
+    double gain = current_set_entropy
+                  - (split.first.size() * getEntropy(split.first, hd_mv)
+                     + split.second.size() * getEntropy(split.second, hd_mv))
+                        / pts.size();
     indent("sygus-unif-dt-debug", ind);
     Trace("sygus-unif-dt-debug") << "..gain of "
                            << d_dt->d_unif->d_tds->sygusToBuiltin(
@@ -1058,8 +1061,8 @@ double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
     Assert(d_dt->d_unif->d_tds->sygusToBuiltin(hd_mv[e]) == d_false);
     n++;
   }
-  return p == 0 || n == 0 ? 0 : (-p / (p + n) * log2(p / (p + n)))
-                                    - (n / (p + n) * log2(n / (p + n)));
+  return p == 0 || n == 0 ? 0 : ((-p / (p + n)) * log2(p / (p + n)))
+                                    - ((n / (p + n)) * log2(n / (p + n)));
 }
 
 Node SygusUnifRl::DecisionTreeInfo::repairConditionToSeparate(Node cv,
