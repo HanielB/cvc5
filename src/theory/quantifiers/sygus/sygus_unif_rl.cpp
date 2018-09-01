@@ -929,10 +929,6 @@ Node SygusUnifRl::DecisionTreeInfo::PointSeparator::extractSol(
   }
   Assert(cache.find(root) != cache.end());
   Assert(!cache.find(root)->second.isNull());
-  Trace("sygus-unif-sol") << "...solution is "
-                          << d_dt->d_unif->d_tds->sygusToBuiltin(
-                                 cache[root], cache[root].getType())
-                          << "\n";
   return cache[root];
 }
 
