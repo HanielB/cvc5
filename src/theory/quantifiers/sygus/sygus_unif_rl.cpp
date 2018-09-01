@@ -838,7 +838,7 @@ Node SygusUnifRl::DecisionTreeInfo::PointSeparator::extractSol(
     Node cons, std::map<Node, Node>& hd_mv)
 {
   // rebuild decision tree using heuristic learning
-  if (options::sygusUnifBooleanHeuristicDT())
+  if (options::sygusUnifBooleanHeuristicDt())
   {
     recomputeSolHeuristically(hd_mv);
   }
