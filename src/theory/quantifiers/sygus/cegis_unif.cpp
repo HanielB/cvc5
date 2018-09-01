@@ -288,7 +288,7 @@ void CegisUnif::registerRefinementLemma(const std::vector<Node>& vars,
   for (const std::pair<const Node, std::vector<Node>>& ep : eval_pts)
   {
     Assert(d_cand_to_strat_pt.find(ep.first) != d_cand_to_strat_pt.end());
-    // Notify each startegy point of the respective candidate
+    // Notify each strategy point of the respective candidate
     for (const Node& n : d_cand_to_strat_pt[ep.first])
     {
       d_u_enum_manager.registerEvalPts(ep.second, n);
