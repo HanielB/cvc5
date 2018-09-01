@@ -375,6 +375,18 @@ void SygusUnifRl::setConditions(Node e,
   it->second.setConditions(guard, enums, conds);
 }
 
+void SygusUnifRl::setEntailed(Node e, Node hd)
+{
+  std::map<Node, DecisionTreeInfo>::iterator it = d_stratpt_to_dt.find(e);
+  Assert(it != d_stratpt_to_dt.end());
+  // set hd as entailed for the appropriate tree
+  Assert(std::find(it->second.d_hds_entailed.begin(),
+                   it->second.d_hds_entailed.end(),
+                   hd)
+         == it->second.d_hds_entailed.end());
+  it->second.d_hds_entailed.push_back(hd);
+}
+
 std::vector<Node> SygusUnifRl::getEvalPointHeads(Node c)
 {
   std::map<Node, std::vector<Node>>::iterator it = d_cand_to_eval_hds.find(c);
@@ -947,7 +959,10 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::recomputeSolHeuristically(
   // condition as candidate
   if (d_dt->d_conds.empty())
   {
-    Trace("sygus-unif-dt") << "......using last condition as candidate\n";
+    Trace("sygus-unif-dt") << "......using last condition "
+                           << d_dt->d_unif->d_tds->sygusToBuiltin(
+                                  backup_last_cond, backup_last_cond.getType())
+                           << " as candidate\n";
     d_dt->d_conds.push_back(backup_last_cond);
     d_trie.addClassifier(this, d_dt->d_conds.size() - 1);
   }
