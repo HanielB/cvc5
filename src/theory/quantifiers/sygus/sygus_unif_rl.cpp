@@ -1002,17 +1002,18 @@ void SygusUnifRl::DecisionTreeInfo::PointSeparator::buildDt(
   double maxgain = -1;
   unsigned picked_cond = 0;
   std::vector<std::pair<std::vector<Node>, std::vector<Node>>> splits;
-  double current_set_entropy = getEntropy(pts, hd_mv);
+  double current_set_entropy = getEntropy(pts, hd_mv, ind);
   for (unsigned i = 0, size = conds.size(); i < size; ++i)
   {
     std::pair<std::vector<Node>, std::vector<Node>> split =
         evaluateCond(pts, conds[i]);
     splits.push_back(split);
     Assert(pts.size() == split.first.size() + split.second.size());
-    double gain = current_set_entropy
-                  - (split.first.size() * getEntropy(split.first, hd_mv)
-                     + split.second.size() * getEntropy(split.second, hd_mv))
-                        / pts.size();
+    double gain =
+        current_set_entropy
+        - (split.first.size() * getEntropy(split.first, hd_mv, ind)
+           + split.second.size() * getEntropy(split.second, hd_mv, ind))
+              / pts.size();
     indent("sygus-unif-dt-debug", ind);
     Trace("sygus-unif-dt-debug") << "..gain of "
                            << d_dt->d_unif->d_tds->sygusToBuiltin(
@@ -1058,19 +1059,52 @@ SygusUnifRl::DecisionTreeInfo::PointSeparator::evaluateCond(
 }
 
 double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
-    const std::vector<Node>& pts, std::map<Node, Node>& hd_mv)
+    const std::vector<Node>& pts, std::map<Node, Node>& hd_mv, int ind)
 {
   double p = 0, n = 0;
+  double p_u = 0, n_u = 0, i_p = 0, i_n = 0;
   // get number of good and bad points
   for (const Node& e : pts)
   {
     if (d_dt->d_unif->d_tds->sygusToBuiltin(hd_mv[e]) == d_true)
     {
       p++;
+      if (Trace.isOn("sygus-unif-dt-debug"))
+      {
+        if (std::find(
+                d_dt->d_hds_entailed.begin(), d_dt->d_hds_entailed.end(), e)
+            == d_dt->d_hds_entailed.end())
+        {
+          i_p++;
+        }
+        else
+        {
+          p_u++;
+        }
+      }
       continue;
     }
     Assert(d_dt->d_unif->d_tds->sygusToBuiltin(hd_mv[e]) == d_false);
     n++;
+    if (Trace.isOn("sygus-unif-dt-debug"))
+    {
+      if (std::find(d_dt->d_hds_entailed.begin(), d_dt->d_hds_entailed.end(), e)
+          == d_dt->d_hds_entailed.end())
+      {
+        i_n++;
+      }
+      else
+      {
+        n_u++;
+      }
+    }
+  }
+  if (Trace.isOn("sygus-unif-dt-debug"))
+  {
+    indent("sygus-unif-dt-debug", ind + 2);
+    Trace("sygus-unif-dt-debug")
+        << "split was G : " << p_u << " | B : " << n_u << " | I_+ : " << i_p
+        << " | I_- : " << i_n << "\n";
   }
   return p == 0 || n == 0 ? 0 : ((-p / (p + n)) * log2(p / (p + n)))
                                     - ((n / (p + n)) * log2(n / (p + n)));

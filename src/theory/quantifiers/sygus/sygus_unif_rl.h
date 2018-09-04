@@ -379,7 +379,8 @@ class SygusUnifRl : public SygusUnif
                    std::map<Node, Node>& hd_mv,
                    int ind);
       double getEntropy(const std::vector<Node>& pts,
-                        std::map<Node, Node>& hd_mv);
+                        std::map<Node, Node>& hd_mv,
+                        int ind);
       Node computeCond(Node cond, Node hd);
     };
     /** repair condition to separate */
