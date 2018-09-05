@@ -1062,7 +1062,8 @@ double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
     const std::vector<Node>& pts, std::map<Node, Node>& hd_mv, int ind)
 {
   double p = 0, n = 0;
-  double p_u = 0, n_u = 0, i_p = 0, i_n = 0;
+  double u_p = 0, u_n = 0, i_p = 0, i_n = 0;
+  std::vector<Node> pts_u_p, pts_u_n, pts_i_p, pts_i_n;
   // get number of good and bad points
   for (const Node& e : pts)
   {
@@ -1076,10 +1077,12 @@ double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
             == d_dt->d_hds_entailed.end())
         {
           i_p++;
+          pts_i_p.push_back(e);
         }
         else
         {
-          p_u++;
+          u_p++;
+          pts_u_p.push_back(e);
         }
       }
       continue;
@@ -1092,10 +1095,12 @@ double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
           == d_dt->d_hds_entailed.end())
       {
         i_n++;
+        pts_i_n.push_back(e);
       }
       else
       {
-        n_u++;
+        u_n++;
+        pts_u_n.push_back(e);
       }
     }
   }
@@ -1103,8 +1108,28 @@ double SygusUnifRl::DecisionTreeInfo::PointSeparator::getEntropy(
   {
     indent("sygus-unif-dt-debug", ind + 2);
     Trace("sygus-unif-dt-debug")
-        << "split was G : " << p_u << " | B : " << n_u << " | I_+ : " << i_p
+        << "split was G : " << u_p << " | B : " << u_n << " | I_+ : " << i_p
         << " | I_- : " << i_n << "\n";
+    if (!pts_u_p.empty())
+    {
+      indent("sygus-unif-dt-debug", ind + 2);
+      Trace("sygus-unif-dt-debug") << "..  G : " << pts_u_p << "\n";
+    }
+    if (!pts_u_n.empty())
+    {
+      indent("sygus-unif-dt-debug", ind + 2);
+      Trace("sygus-unif-dt-debug") << "..  B : " << pts_u_n << "\n";
+    }
+    if (!pts_i_p.empty())
+    {
+      indent("sygus-unif-dt-debug", ind + 2);
+      Trace("sygus-unif-dt-debug") << "..I_+ : " << pts_i_p << "\n";
+    }
+    if (!pts_i_n.empty())
+    {
+      indent("sygus-unif-dt-debug", ind + 2);
+      Trace("sygus-unif-dt-debug") << "..I_- : " << pts_i_n << "\n";
+    }
   }
   return p == 0 || n == 0 ? 0 : ((-p / (p + n)) * log2(p / (p + n)))
                                     - ((n / (p + n)) * log2(n / (p + n)));
