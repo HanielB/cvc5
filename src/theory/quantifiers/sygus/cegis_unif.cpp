@@ -644,8 +644,8 @@ void CegisUnifEnumManager::registerEvalPtAtSize(Node e,
     disj.push_back(ei.eqNode(itc->second.d_enums[0][i]));
   }
   Node lem = NodeManager::currentNM()->mkNode(OR, disj);
-  Trace("cegis-unif-enum-lemma") << "CegisUnifEnum::lemma, domain:" << lem
-                                 << "\n";
+  Trace("cegis-unif-enum-lemma")
+      << "CegisUnifEnum::lemma, domain:" << lem << "\n";
   d_qe->getOutputChannel().lemma(lem);
 }
 
