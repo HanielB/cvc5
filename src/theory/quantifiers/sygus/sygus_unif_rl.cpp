@@ -397,6 +397,13 @@ std::vector<Node> SygusUnifRl::getEvalPointHeads(Node c)
   return it->second;
 }
 
+std::vector<Node> SygusUnifRl::getEvalPointOfHead(Node hd)
+{
+  std::map<Node, std::vector<Node>>::iterator it = d_hd_to_pt.find(hd);
+  Assert(it != d_hd_to_pt.end());
+  return it->second;
+}
+
 void SygusUnifRl::registerStrategy(
     Node f,
     std::vector<Node>& enums,

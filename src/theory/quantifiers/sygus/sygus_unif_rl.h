@@ -108,6 +108,8 @@ class SygusUnifRl : public SygusUnif
   void setEntailed(Node e, Node hd);
   /** retrieve the head of evaluation points for candidate c, if any */
   std::vector<Node> getEvalPointHeads(Node c);
+  /** retrieve the evaluation point of head */
+  std::vector<Node> getEvalPointOfHead(Node hd);
 
  protected:
   /** reference to the parent conjecture */
