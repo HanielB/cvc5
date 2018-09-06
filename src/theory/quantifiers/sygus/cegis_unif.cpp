@@ -28,7 +28,7 @@ namespace theory {
 namespace quantifiers {
 
 CegisUnif::CegisUnif(QuantifiersEngine* qe, CegConjecture* p)
-    : Cegis(qe, p), d_sygus_unif(p), d_u_enum_manager(qe, p)
+  : Cegis(qe, p), d_sygus_unif(p), d_u_enum_manager(qe, p, this)
 {
 }
 
@@ -318,9 +318,10 @@ Node CegisUnif::getNextDecisionRequest(unsigned& priority)
 
 bool CegisUnif::usingRepairConst() { return false; }
 CegisUnifEnumManager::CegisUnifEnumManager(QuantifiersEngine* qe,
-                                           CegConjecture* parent)
+                                           CegConjecture* parent, CegisUnif* cegis_unif)
     : d_qe(qe),
       d_parent(parent),
+      d_cegis_unif(cegis_unif),
       d_ret_dec(qe->getSatContext(), false),
       d_curr_guq_val(qe->getSatContext(), 0)
 {
@@ -396,9 +397,32 @@ void CegisUnifEnumManager::initialize(
       }
       // register the enumerator
       ci.second.d_enums[1].push_back(ceu);
-      Trace("cegis-unif-enum") << "* Registering new enumerator " << ceu
-                               << " to strategy point " << ci.second.d_pt
-                               << "\n";
+      Trace("cegis-unif-enum")
+          << "* Registering new enumerator " << ceu << " to strategy point "
+          << ci.second.d_pt << "\n";
+      // initialize arguments relevancy flags
+      const Datatype& dt =
+          static_cast<DatatypeType>(ceu.getType().toType()).getDatatype();
+      Node var_list = Node::fromExpr(dt.getSygusVarList());
+      std::vector<bool> cond_relevant_args(var_list.getNumChildren());
+      std::fill(cond_relevant_args.begin(), cond_relevant_args.end(), false);
+      ci.second.d_cond_relevant_args.insert(
+          ci.second.d_cond_relevant_args.end(),
+          cond_relevant_args.begin(),
+          cond_relevant_args.end());
+      if (Trace.isOn("cegis-unif-enum-relevancy"))
+      {
+        Trace("cegis-unif-enum-relevancy")
+            << "  Relevant arguments of " << ceu << " :\n";
+        for (unsigned i = 0, size = ci.second.d_cond_relevant_args.size(); i < size;
+             ++i)
+        {
+          Trace("cegis-unif-enum-relevancy")
+              << "    " << i << " : " << ci.second.d_cond_relevant_args[i]
+              << "\n";
+        }
+      }
+
       d_tds->registerEnumerator(
           ceu, ci.second.d_pt, d_parent, true, options::sygusUnifRepairCond());
       d_enum_to_active_guard[ceu] = d_tds->getActiveGuardForEnumerator(ceu);
@@ -431,6 +455,7 @@ void CegisUnifEnumManager::getEnumeratorsForStrategyPt(Node e,
 
 void CegisUnifEnumManager::registerEvalPts(const std::vector<Node>& eis, Node e)
 {
+  bool new_relevant = false;
   // candidates of the same type are managed
   std::map<Node, StrategyPtInfo>::iterator it = d_ce_info.find(e);
   Assert(it != d_ce_info.end());
@@ -439,12 +464,50 @@ void CegisUnifEnumManager::registerEvalPts(const std::vector<Node>& eis, Node e)
   // register at all already allocated sizes
   for (const Node& ei : eis)
   {
+    if (Trace.isOn("cegis-unif-enum-relevancy"))
+    {
+      if (it->second.d_eval_points.size() - eis.size() > 0)
+      {
+        Node last = it->second.d_eval_points[it->second.d_eval_points.size()
+                                             - eis.size() - 1];
+        // get points
+
+        std::vector<Node> last_pt = d_cegis_unif->d_sygus_unif.getEvalPointOfHead(last);
+        std::vector<Node> ei_pt = d_cegis_unif->d_sygus_unif.getEvalPointOfHead(ei);
+        Trace("cegis-unif-enum-relevancy-debug")
+            << "....testing heads " << last << " vs " << ei << " i.e. pt "
+            << last_pt << " against " << ei_pt << "\n";
+        for (unsigned i = 0, size = last_pt.size(); i < size; ++i)
+        {
+          if (!it->second.d_cond_relevant_args[i] && last_pt[i] != ei_pt[i])
+          {
+            Trace("cegis-unif-enum-relevancy")
+                << "...new hd " << ei << " makes relevant arg " << i << "\n";
+            it->second.d_cond_relevant_args[i] = true;
+            new_relevant = true;
+          }
+        }
+      }
+    }
+
     Assert(ei.getType() == e.getType());
     for (const std::pair<const unsigned, Node>& p : d_guq_lit)
     {
       Trace("cegis-unif-enum") << "...for cand " << e << " adding hd " << ei
                                << " at size " << p.first << "\n";
       registerEvalPtAtSize(e, ei, p.second, p.first);
+    }
+  }
+  if (Trace.isOn("cegis-unif-enum-relevancy") && new_relevant)
+  {
+    Trace("cegis-unif-enum-relevancy")
+        << "  Relevant arguments of " << it->second.d_enums[1][0] << " :\n";
+    for (unsigned i = 0, size = it->second.d_cond_relevant_args.size();
+         i < size;
+         ++i)
+    {
+      Trace("cegis-unif-enum-relevancy")
+          << "    " << i << " : " << it->second.d_cond_relevant_args[i] << "\n";
     }
   }
 }
@@ -540,9 +603,9 @@ void CegisUnifEnumManager::incrementNumEnumerators()
         }
         // register the enumerator
         ci.second.d_enums[index].push_back(e);
-        Trace("cegis-unif-enum") << "* Registering new enumerator " << e
-                                 << " to strategy point " << ci.second.d_pt
-                                 << "\n";
+        Trace("cegis-unif-enum")
+            << "* Registering new enumerator " << e << " to strategy point "
+            << ci.second.d_pt << "\n";
         d_tds->registerEnumerator(e,
                                   ci.second.d_pt,
                                   d_parent,
