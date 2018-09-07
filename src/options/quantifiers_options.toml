@@ -996,7 +996,7 @@ header = "options/quantifiers_options.h"
   category   = "regular"
   long       = "sygus-unif-cond-indpendent-no-repeat-sol"
   type       = "bool"
-  default    = "false"
+  default    = "true"
   help       = "Don't try repeated solutions"
 
 [[option]]
