@@ -49,7 +49,9 @@ class CegisUnif;
 class CegisUnifEnumManager
 {
  public:
-  CegisUnifEnumManager(QuantifiersEngine* qe, CegConjecture* parent, CegisUnif* cegis_unif);
+  CegisUnifEnumManager(QuantifiersEngine* qe,
+                       CegConjecture* parent,
+                       CegisUnif* cegis_unif);
   /** initialize candidates
    *
    * Notify this class that it will be managing enumerators for the vector

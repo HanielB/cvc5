@@ -135,8 +135,10 @@ public:
   /** returns the query and build the instantiation from candidates to values
    * representing last solution. If no instantiation exists, return Node::null()
    */
-  Node getLastSolInst(std::vector<Node>& candidates, std::vector<Node>& candidate_values);
-private:
+  Node getLastSolInst(std::vector<Node>& candidates,
+                      std::vector<Node>& candidate_values);
+
+ private:
   /** reference to quantifier engine */
   QuantifiersEngine * d_qe;
   /** The feasible guard. */

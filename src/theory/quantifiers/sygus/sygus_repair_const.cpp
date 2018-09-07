@@ -348,8 +348,8 @@ bool SygusRepairConst::repairValues(const std::vector<Node>& values,
       Printer* p = Printer::getPrinter(options::outputLanguage());
       std::stringstream ss;
       p->toStreamSygus(ss, v);
-      Trace("sygus-repair-const") << "Value #" << i << " : " << ss.str()
-                                  << std::endl;
+      Trace("sygus-repair-const")
+          << "Value #" << i << " : " << ss.str() << std::endl;
       if (skeleton == v)
       {
         Trace("sygus-repair-const") << "...value unchanged" << std::endl;
@@ -358,8 +358,8 @@ bool SygusRepairConst::repairValues(const std::vector<Node>& values,
       {
         std::stringstream sss;
         p->toStreamSygus(sss, skeleton);
-        Trace("sygus-repair-const") << "...inferred skeleton : " << sss.str()
-                                    << std::endl;
+        Trace("sygus-repair-const")
+            << "...inferred skeleton : " << sss.str() << std::endl;
       }
     }
     skeletons.push_back(skeleton);
@@ -466,8 +466,8 @@ bool SygusRepairConst::repairValues(const std::vector<Node>& values,
     }
     Trace("cegqi-engine") << "...success:" << std::endl;
     Trace("cegqi-engine") << ss.str();
-    Trace("sygus-repair-const") << "Repaired constants in solution : "
-                                << std::endl;
+    Trace("sygus-repair-const")
+        << "Repaired constants in solution : " << std::endl;
     Trace("sygus-repair-const") << ss.str();
     return true;
   }

@@ -28,7 +28,7 @@ namespace theory {
 namespace quantifiers {
 
 CegisUnif::CegisUnif(QuantifiersEngine* qe, CegConjecture* p)
-  : Cegis(qe, p), d_sygus_unif(p), d_u_enum_manager(qe, p, this)
+    : Cegis(qe, p), d_sygus_unif(p), d_u_enum_manager(qe, p, this)
 {
 }
 
@@ -318,7 +318,8 @@ Node CegisUnif::getNextDecisionRequest(unsigned& priority)
 
 bool CegisUnif::usingRepairConst() { return false; }
 CegisUnifEnumManager::CegisUnifEnumManager(QuantifiersEngine* qe,
-                                           CegConjecture* parent, CegisUnif* cegis_unif)
+                                           CegConjecture* parent,
+                                           CegisUnif* cegis_unif)
     : d_qe(qe),
       d_parent(parent),
       d_cegis_unif(cegis_unif),
@@ -414,7 +415,8 @@ void CegisUnifEnumManager::initialize(
       {
         Trace("cegis-unif-enum-relevancy")
             << "  Relevant arguments of " << ceu << " :\n";
-        for (unsigned i = 0, size = ci.second.d_cond_relevant_args.size(); i < size;
+        for (unsigned i = 0, size = ci.second.d_cond_relevant_args.size();
+             i < size;
              ++i)
         {
           Trace("cegis-unif-enum-relevancy")
