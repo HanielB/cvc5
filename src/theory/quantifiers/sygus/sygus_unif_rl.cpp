@@ -19,6 +19,8 @@
 #include "options/base_options.h"
 #include "options/quantifiers_options.h"
 #include "printer/printer.h"
+#include "smt/smt_engine.h"
+#include "smt/smt_engine_scope.h"
 #include "theory/datatypes/datatypes_rewriter.h"
 #include "theory/quantifiers/sygus/ce_guided_conjecture.h"
 #include "theory/quantifiers/sygus/term_database_sygus.h"
@@ -257,64 +259,144 @@ Node SygusUnifRl::addRefLemma(Node lemma,
     Node c = cp.first;
     unsigned prevn = 0;
     std::map<Node, unsigned>::iterator itp = prev_n_eval_hds.find(c);
+  Node last;
+  std::vector<Node> last_pt;
     if (itp != prev_n_eval_hds.end())
     {
       prevn = itp->second;
     }
-    for (unsigned j = prevn, size = cp.second.size(); j < size; j++)
+  if (Trace.isOn("cegis-unif-enum-relevancy"))
+  {
+    if (prevn > 0)
     {
-      eval_hds[c].push_back(cp.second[j]);
-      if (Trace.isOn("cegis-unif-enum-relevancy") && j > 0)
+    last = cp.second[prevn - 1];
+    }
+    else if (cp.second.size() > 1)
+    {
+      last = cp.second[0];
+    }
+    if (!last.isNull())
+    {
+      last_pt = getEvalPointOfHead(last);
+    }
+  }
+  for (unsigned j = prevn, size = cp.second.size(); j < size; j++)
+  {
+    eval_hds[c].push_back(cp.second[j]);
+    if (Trace.isOn("cegis-unif-enum-relevancy") && !last.isNull()
+        && cp.second[j] != last)
+    {
+      NodeManager* nm = NodeManager::currentNM();
+      std::vector<unsigned> diff;
+      Node ei = cp.second[j];
+      // get points
+      std::vector<Node> ei_pt = getEvalPointOfHead(ei);
+      Trace("cegis-unif-enum-relevancy-debug")
+          << "  * SygusUnifRl\n....testing heads " << last << " vs " << ei
+          << " i.e. pt " << last_pt << " against " << ei_pt << "\n";
+      for (unsigned i = 0, size_i = last_pt.size(); i < size_i; ++i)
       {
-        std::vector<unsigned> diff;
-        Node last = cp.second[prevn];
-        Node ei = cp.second[j];
-        // get points
-        std::vector<Node> last_pt = getEvalPointOfHead(last);
-        std::vector<Node> ei_pt = getEvalPointOfHead(ei);
+        if (last_pt[i] != ei_pt[i])
+        {
+          Trace("cegis-unif-enum-relevancy")
+              << "...new hd " << ei << " differs from hd " << last << " in arg "
+              << i << "\n";
+          diff.push_back(i);
+        }
+      }
+      if (!diff.empty())
+      {
+        std::vector<Node> candidates, candidate_values;
+        Node query = d_parent->getLastSolInst(candidates, candidate_values);
+        Assert(!query.isNull());
+        query = query.substitute(candidates.begin(),
+                                 candidates.end(),
+                                 candidate_values.begin(),
+                                 candidate_values.end());
+        // skolemize and introduce the skolem variables
+        Assert(query.getKind() == NOT && query[0].getKind() == FORALL);
         Trace("cegis-unif-enum-relevancy-debug")
-            << "....testing heads " << last << " vs " << ei << " i.e. pt "
-            << last_pt << " against " << ei_pt << "\n";
-        for (unsigned i = 0, size_i = last_pt.size(); i < size_i; ++i)
+            << "..minimizing checking query " << query << "\n";
+        std::vector<Node> sks;
+        std::vector<Node> vars;
+        for (const Node& v : query[0][0])
         {
-          if (last_pt[i] != ei_pt[i])
+          Node sk = nm->mkSkolem("rsk", v.getType());
+          sks.push_back(sk);
+          vars.push_back(v);
+          Trace("cegis-unif-enum-relevancy-debug")
+              << "  introduce skolem " << sk << " for " << v << "\n";
+        }
+        query = query[0][1].substitute(
+            vars.begin(), vars.end(), sks.begin(), sks.end());
+        query = query.negate();
+        query = Rewriter::rewrite(query);
+        // eagerly unfold applications of evaluation function
+        std::map<Node, Node> visited_n;
+        query = d_qe->getTermDatabaseSygus()->getEagerUnfold(query, visited_n);
+        // create minimization equalites
+        std::map<unsigned, Node> ind_eqs;
+        for (unsigned i : diff)
+        {
+          ind_eqs[i] = nm->mkNode(EQUAL, sks[i], last_pt[i]);
+        }
+        // verify
+        Result r;
+        do
+        {
+          SmtEngine verifySmt(nm->toExprManager());
+          verifySmt.setLogic(smt::currentSmtEngine()->getLogicInfo());
+          // add guards
+          std::vector<Node> min_eqs;
+          for (std::pair<const unsigned, Node>& p : ind_eqs)
           {
-            Trace("cegis-unif-enum-relevancy") << "...new hd " << ei
-                                               << " differs from hd " << last
-                                               << in " arg " << i << "\n";
-            diff.push_back(i);
+            min_eqs.push_back(p.second);
           }
-        }
-        // TODO for each arg, create equality with respective var and value at last_pt
-
-        // TODO recreate query (d_parent->d_base_inst) by replacing candidates
-        // by their values.
-        //
-        // This is trick because unif does not have values explicitly, I'd have
-        // to save them from the previous iteration... or to save the
-        // information in the parent conjecture. Oh, actually, check the
-        // "recordInstantiation" instruction just before the actual verification
-        // call
-        //
-        // Then there is all this skolemization stuff that d_parint does in
-        // "doCheck"...
-      }
-
-      // Add new point to respective decision trees
-      Assert(d_cand_cenums.find(c) != d_cand_cenums.end());
-      for (const Node& cenum : d_cand_cenums[c])
-      {
-        Assert(d_cenum_to_stratpt.find(cenum) != d_cenum_to_stratpt.end());
-        for (const Node& stratpt : d_cenum_to_stratpt[cenum])
+          min_eqs.push_back(query);
+          Node min_query = nm->mkNode(AND, min_eqs);
+          Trace("cegis-unif-enum-relevancy-debug")
+              << " check min query " << min_query << "\n";
+          verifySmt.assertFormula(min_query.toExpr());
+          r = verifySmt.checkSat();
+          Trace("cegis-unif-enum-relevancy-debug")
+              << "  result was " << r << "\n";
+          // if no model, remove one of the equalities and try again
+          if (r != Result::SAT && !ind_eqs.empty())
+          {
+            ind_eqs.erase(ind_eqs.begin());
+          }
+          else
+          {
+            break;
+          }
+        } while (true);
+        // Found with at least one arg diff minimazation
+        if (r == Result::SAT)
         {
-          Assert(d_stratpt_to_dt.find(stratpt) != d_stratpt_to_dt.end());
-          Trace("sygus-unif-rl-dt") << "Register point with head "
-                                    << cp.second[j] << " to strategy point "
-                                    << stratpt << "\n";
-          // Register new point from new head
-          d_stratpt_to_dt[stratpt].d_hds.push_back(cp.second[j]);
+          Trace("cegis-unif-enum-relevancy") << "  could remove from diff ";
+          for (std::pair<const unsigned, Node>& p : ind_eqs)
+          {
+            Trace("cegis-unif-enum-relevancy") << p.first << ",  ";
+          }
+          Trace("cegis-unif-enum-relevancy") << "\n";
         }
       }
+    }
+
+    // Add new point to respective decision trees
+    Assert(d_cand_cenums.find(c) != d_cand_cenums.end());
+    for (const Node& cenum : d_cand_cenums[c])
+    {
+      Assert(d_cenum_to_stratpt.find(cenum) != d_cenum_to_stratpt.end());
+      for (const Node& stratpt : d_cenum_to_stratpt[cenum])
+      {
+        Assert(d_stratpt_to_dt.find(stratpt) != d_stratpt_to_dt.end());
+        Trace("sygus-unif-rl-dt") << "Register point with head " << cp.second[j]
+                                  << " to strategy point " << stratpt << "\n";
+        // Register new point from new head
+        d_stratpt_to_dt[stratpt].d_hds.push_back(cp.second[j]);
+      }
+    }
     }
   }
 
@@ -653,7 +735,14 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
       return Node::null();
     }
     Trace("sygus-unif-sol") << "...ready to build solution from DT\n";
-    return d_pt_sep.extractSol(cons, hd_mv);
+    Node sol = d_pt_sep.extractSol(cons, hd_mv);
+    // repeated solution
+    if (d_sols.find(sol) != d_sols.end())
+    {
+      return Node::null();
+    }
+    d_sols.insert(sol);
+    return sol;
   }
   // This loop simultaneously builds the solution in terms of a lazy trie
   // (LazyTrieMulti), and checks whether a separation conflict exists. We

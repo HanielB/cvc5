@@ -462,34 +462,46 @@ void CegisUnifEnumManager::registerEvalPts(const std::vector<Node>& eis, Node e)
   it->second.d_eval_points.insert(
       it->second.d_eval_points.end(), eis.begin(), eis.end());
   // register at all already allocated sizes
+  Node last;
+  std::vector<Node> last_pt;
+  if (Trace.isOn("cegis-unif-enum-relevancy"))
+  {
+    if (it->second.d_eval_points.size() - eis.size() > 0)
+    {
+      last =
+          it->second
+              .d_eval_points[it->second.d_eval_points.size() - eis.size() - 1];
+    }
+    else if (eis.size() > 1)
+    {
+      last = eis[0];
+    }
+    if (!last.isNull())
+    {
+      last_pt = d_cegis_unif->d_sygus_unif.getEvalPointOfHead(last);
+    }
+  }
   for (const Node& ei : eis)
   {
-    if (Trace.isOn("cegis-unif-enum-relevancy"))
+    if (Trace.isOn("cegis-unif-enum-relevancy") && !last.isNull() && ei != last)
     {
-      if (it->second.d_eval_points.size() - eis.size() > 0)
+      // get points
+      std::vector<Node> ei_pt =
+          d_cegis_unif->d_sygus_unif.getEvalPointOfHead(ei);
+      Trace("cegis-unif-enum-relevancy-debug")
+          << "....testing heads " << last << " vs " << ei << " i.e. pt "
+          << last_pt << " against " << ei_pt << "\n";
+      for (unsigned i = 0, size = last_pt.size(); i < size; ++i)
       {
-        Node last = it->second.d_eval_points[it->second.d_eval_points.size()
-                                             - eis.size() - 1];
-        // get points
-
-        std::vector<Node> last_pt = d_cegis_unif->d_sygus_unif.getEvalPointOfHead(last);
-        std::vector<Node> ei_pt = d_cegis_unif->d_sygus_unif.getEvalPointOfHead(ei);
-        Trace("cegis-unif-enum-relevancy-debug")
-            << "....testing heads " << last << " vs " << ei << " i.e. pt "
-            << last_pt << " against " << ei_pt << "\n";
-        for (unsigned i = 0, size = last_pt.size(); i < size; ++i)
+        if (!it->second.d_cond_relevant_args[i] && last_pt[i] != ei_pt[i])
         {
-          if (!it->second.d_cond_relevant_args[i] && last_pt[i] != ei_pt[i])
-          {
-            Trace("cegis-unif-enum-relevancy")
-                << "...new hd " << ei << " makes relevant arg " << i << "\n";
-            it->second.d_cond_relevant_args[i] = true;
-            new_relevant = true;
-          }
+          Trace("cegis-unif-enum-relevancy")
+              << "...new hd " << ei << " makes relevant arg " << i << "\n";
+          it->second.d_cond_relevant_args[i] = true;
+          new_relevant = true;
         }
       }
     }
-
     Assert(ei.getType() == e.getType());
     for (const std::pair<const unsigned, Node>& p : d_guq_lit)
     {

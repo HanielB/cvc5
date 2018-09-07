@@ -890,6 +890,23 @@ bool CegConjecture::getSynthSolutionsInternal(std::vector<Node>& sols,
   return true;
 }
 
+Node CegConjecture::getLastSolInst(std::vector<Node>& candidates,
+                                   std::vector<Node>& candidate_values)
+{
+  Assert(!d_candidates.empty());
+  if (d_cinfo[d_candidates[0]].d_inst.empty())
+  {
+    return Node::null();
+  }
+  for (const Node& cand : d_candidates)
+  {
+    candidates.push_back(cand);
+    Assert(d_cinfo.find(cand) != d_cinfo.end());
+    candidate_values.push_back(d_cinfo[cand].d_inst.back());
+  }
+  return d_base_inst;
+}
+
 Node CegConjecture::getSymmetryBreakingPredicate(
     Node x, Node e, TypeNode tn, unsigned tindex, unsigned depth)
 {

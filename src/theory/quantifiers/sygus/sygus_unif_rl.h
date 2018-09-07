@@ -259,6 +259,8 @@ class SygusUnifRl : public SygusUnif
     std::map<Node, Node> d_hd_appCurrEval;
     /** all enumerated model values for heads */
     std::set<Node> d_hd_mvs;
+    /** built solutions */
+    std::set<Node> d_sols;
     /** adds new value to hd's pool of head values
      *
      * the update is done according to which value the head application
