@@ -739,7 +739,8 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
     Trace("sygus-unif-sol") << "...ready to build solution from DT\n";
     Node sol = d_pt_sep.extractSol(cons, hd_mv);
     // repeated solution
-    if (d_sols.find(sol) != d_sols.end())
+    if (if options::sygusUnifCondIndNoRepeatSol()
+        && d_sols.find(sol) != d_sols.end())
     {
       return Node::null();
     }
