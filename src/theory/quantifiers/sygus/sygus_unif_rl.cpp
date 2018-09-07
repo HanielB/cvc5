@@ -264,6 +264,42 @@ Node SygusUnifRl::addRefLemma(Node lemma,
     for (unsigned j = prevn, size = cp.second.size(); j < size; j++)
     {
       eval_hds[c].push_back(cp.second[j]);
+      if (Trace.isOn("cegis-unif-enum-relevancy") && j > 0)
+      {
+        std::vector<unsigned> diff;
+        Node last = cp.second[prevn];
+        Node ei = cp.second[j];
+        // get points
+        std::vector<Node> last_pt = getEvalPointOfHead(last);
+        std::vector<Node> ei_pt = getEvalPointOfHead(ei);
+        Trace("cegis-unif-enum-relevancy-debug")
+            << "....testing heads " << last << " vs " << ei << " i.e. pt "
+            << last_pt << " against " << ei_pt << "\n";
+        for (unsigned i = 0, size_i = last_pt.size(); i < size_i; ++i)
+        {
+          if (last_pt[i] != ei_pt[i])
+          {
+            Trace("cegis-unif-enum-relevancy") << "...new hd " << ei
+                                               << " differs from hd " << last
+                                               << in " arg " << i << "\n";
+            diff.push_back(i);
+          }
+        }
+        // TODO for each arg, create equality with respective var and value at last_pt
+
+        // TODO recreate query (d_parent->d_base_inst) by replacing candidates
+        // by their values.
+        //
+        // This is trick because unif does not have values explicitly, I'd have
+        // to save them from the previous iteration... or to save the
+        // information in the parent conjecture. Oh, actually, check the
+        // "recordInstantiation" instruction just before the actual verification
+        // call
+        //
+        // Then there is all this skolemization stuff that d_parint does in
+        // "doCheck"...
+      }
+
       // Add new point to respective decision trees
       Assert(d_cand_cenums.find(c) != d_cand_cenums.end());
       for (const Node& cenum : d_cand_cenums[c])
