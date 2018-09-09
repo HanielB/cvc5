@@ -652,7 +652,8 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
   d_enums.insert(d_enums.end(), enums.begin(), enums.end());
   d_conds.insert(d_conds.end(), conds.begin(), conds.end());
   // add to condition pool
-  if (options::sygusUnifCondIndependent() || options::sygusUnifCondPool())
+  if (options::sygusUnifCondIndependent() || options::sygusUnifCondPool()
+      || Trace.isOn("cegis"))
   {
     if (Trace.isOn("sygus-unif-cond-pool"))
     {
@@ -667,6 +668,8 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
       }
     }
     d_cond_mvs.insert(conds.begin(), conds.end());
+    Trace("cegis") << "  now " << d_cond_mvs.size()
+                   << " unique condition values enumerated\n";
   }
 }
 
