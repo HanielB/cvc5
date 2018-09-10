@@ -381,7 +381,8 @@ Node SygusUnifRl::addRefLemma(Node lemma,
             ind_eqs[i] = nm->mkNode(EQUAL, sks[i], last_pt[i]);
             sk_to_ind[sks[i]] = i;
             Trace("cegis-unif-enum-relevancy-debug2")
-                << "  adding equality for diff " << i << " :  " << ind_eqs[i] << "\n";
+                << "  adding equality for diff " << i << " :  " << ind_eqs[i]
+                << "\n";
           }
           // verify
           Result r;
@@ -446,16 +447,16 @@ Node SygusUnifRl::addRefLemma(Node lemma,
           {
             for (std::pair<const unsigned, Node>& p : ind_eqs)
             {
-              AlwaysAssert(std::find(diff.begin(), diff.end(), p.first) != diff.end());
+              AlwaysAssert(std::find(diff.begin(), diff.end(), p.first)
+                           != diff.end());
               diff.erase(std::find(diff.begin(), diff.end(), p.first));
             }
-          Trace("cegis-unif-enum-relevancy")
-              << "...diff " << ei << " vs " << last
-              << " after min is : ";
-          for (unsigned i : diff)
-          {
-            Trace("cegis-unif-enum-relevancy") << i << ", ";
-          }
+            Trace("cegis-unif-enum-relevancy")
+                << "...diff " << ei << " vs " << last << " after min is : ";
+            for (unsigned i : diff)
+            {
+              Trace("cegis-unif-enum-relevancy") << i << ", ";
+            }
             Trace("cegis-unif-enum-relevancy") << "\n";
           }
         }
