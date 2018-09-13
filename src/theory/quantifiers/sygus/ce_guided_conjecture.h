@@ -132,7 +132,13 @@ public:
       Node x, Node e, TypeNode tn, unsigned tindex, unsigned depth);
   /** print out debug information about this conjecture */
   void debugPrint( const char * c );
-private:
+  /** returns the query and build the instantiation from candidates to values
+   * representing last solution. If no instantiation exists, return Node::null()
+   */
+  Node getLastSolInst(std::vector<Node>& candidates,
+                      std::vector<Node>& candidate_values);
+
+ private:
   /** reference to quantifier engine */
   QuantifiersEngine * d_qe;
   /** The feasible guard. */

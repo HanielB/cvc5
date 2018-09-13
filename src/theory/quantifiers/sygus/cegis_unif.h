@@ -26,6 +26,8 @@ namespace CVC4 {
 namespace theory {
 namespace quantifiers {
 
+class CegisUnif;
+
 /** Cegis Unif Enumeration Manager
  *
  * This class enforces a decision heuristic that limits the number of
@@ -47,7 +49,9 @@ namespace quantifiers {
 class CegisUnifEnumManager
 {
  public:
-  CegisUnifEnumManager(QuantifiersEngine* qe, CegConjecture* parent);
+  CegisUnifEnumManager(QuantifiersEngine* qe,
+                       CegConjecture* parent,
+                       CegisUnif* cegis_unif);
   /** initialize candidates
    *
    * Notify this class that it will be managing enumerators for the vector
@@ -103,6 +107,8 @@ class CegisUnifEnumManager
   TermDbSygus* d_tds;
   /** reference to the parent conjecture */
   CegConjecture* d_parent;
+  /** reference to the cegis unif */
+  CegisUnif* d_cegis_unif;
   /** whether this module has been initialized */
   bool d_initialized;
   /** null node */
@@ -140,6 +146,8 @@ class CegisUnifEnumManager
      * index 1 stores the template for conditions.
      */
     std::pair<Node, Node> d_sbt_lemma_tmpl[2];
+    /** associates each cond argument to whether its relevant or not */
+    std::vector<bool> d_cond_relevant_args;
   };
   /** map strategy points to the above info */
   std::map<Node, StrategyPtInfo> d_ce_info;
@@ -248,6 +256,11 @@ class CegisUnif : public Cegis
                                std::vector<Node>& lems) override;
   /** get next decision request */
   Node getNextDecisionRequest(unsigned& priority) override;
+  /**
+   * Sygus unif utility. This class implements the core algorithm (e.g. decision
+   * tree learning) that this module relies upon.
+   */
+  SygusUnifRl d_sygus_unif;
 
  private:
   /** do cegis-implementation-specific initialization for this class */
@@ -282,11 +295,6 @@ class CegisUnif : public Cegis
                                   std::vector<Node>& candidate_values,
                                   bool satisfiedRl,
                                   std::vector<Node>& lems) override;
-  /**
-   * Sygus unif utility. This class implements the core algorithm (e.g. decision
-   * tree learning) that this module relies upon.
-   */
-  SygusUnifRl d_sygus_unif;
   /** enumerator manager utility */
   CegisUnifEnumManager d_u_enum_manager;
   /* The null node */

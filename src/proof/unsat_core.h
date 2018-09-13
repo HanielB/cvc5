@@ -56,6 +56,8 @@ public:
 
   size_t size() const { return d_core.size(); }
 
+  std::vector<Expr> getAssertions() const { return d_core; }
+
   typedef std::vector<Expr>::const_iterator iterator;
   typedef std::vector<Expr>::const_iterator const_iterator;
 

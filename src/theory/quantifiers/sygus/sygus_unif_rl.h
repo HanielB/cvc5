@@ -100,8 +100,16 @@ class SygusUnifRl : public SygusUnif
                      const std::vector<Node>& enums,
                      const std::vector<Node>& conds);
 
+  /** set entailed head
+   *
+   * Informs the decision trees of strategy point e that evaluation point head
+   * hd has its return value entailed by the refinement lemmas
+   */
+  void setEntailed(Node e, Node hd);
   /** retrieve the head of evaluation points for candidate c, if any */
   std::vector<Node> getEvalPointHeads(Node c);
+  /** retrieve the evaluation point of head */
+  std::vector<Node> getEvalPointOfHead(Node hd);
 
  protected:
   /** reference to the parent conjecture */
@@ -236,13 +244,14 @@ class SygusUnifRl : public SygusUnif
     std::vector<Node> d_hds;
     /** all enumerated model values for conditions */
     std::unordered_set<Node, NodeHashFunction> d_cond_mvs;
+    /** heads whose return values are entailed by the refinement lemmas */
+    std::vector<Node> d_hds_entailed;
     /** get condition enumerator */
     Node getConditionEnumerator() const { return d_cond_enum; }
     /** set conditions */
     void setConditions(Node guard,
                        const std::vector<Node>& enums,
                        const std::vector<Node>& conds);
-
    private:
     /** true and false nodes */
     Node d_true;

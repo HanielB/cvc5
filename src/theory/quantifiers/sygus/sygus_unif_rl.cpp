@@ -14,9 +14,13 @@
 
 #include "theory/quantifiers/sygus/sygus_unif_rl.h"
 
+#include <math.h>
+
 #include "options/base_options.h"
 #include "options/quantifiers_options.h"
 #include "printer/printer.h"
+#include "smt/smt_engine.h"
+#include "smt/smt_engine_scope.h"
 #include "theory/datatypes/datatypes_rewriter.h"
 #include "theory/quantifiers/sygus/ce_guided_conjecture.h"
 #include "theory/quantifiers/sygus/term_database_sygus.h"
@@ -227,6 +231,39 @@ Node SygusUnifRl::purifyLemma(Node n,
   return nb;
 }
 
+void initializeChecker(std::unique_ptr<SmtEngine>& checker,
+                       ExprManager& em,
+                       ExprManagerMapCollection& varMap,
+                       std::vector<Node>& queries)
+{
+  // To support a separate timeout for the subsolver, we need to create
+  // a separate ExprManager with its own options. This requires that
+  // the expressions sent to the subsolver can be exported from on
+  // ExprManager to another. If the export fails, we throw an
+  // OptionException.
+  try
+  {
+    checker.reset(new SmtEngine(&em));
+    checker->setLogic(smt::currentSmtEngine()->getLogicInfo());
+    // set option
+    checker->setOption("produce-unsat-cores", true);
+    checker->setOption("dump-unsat-cores-full", true);
+    // export
+    for (const Node& query : queries)
+    {
+      Expr e_query = query.toExpr().exportTo(&em, varMap);
+      checker->assertFormula(e_query);
+    }
+  }
+  catch (const CVC4::ExportUnsupportedException& e)
+  {
+    std::stringstream msg;
+    msg << "Unable to export but exporting expressions is required for "
+           "--sygus-repair-const-timeout.";
+    throw OptionException(msg.str());
+  }
+}
+
 Node SygusUnifRl::addRefLemma(Node lemma,
                               std::map<Node, std::vector<Node>>& eval_hds)
 {
@@ -257,13 +294,176 @@ Node SygusUnifRl::addRefLemma(Node lemma,
     Node c = cp.first;
     unsigned prevn = 0;
     std::map<Node, unsigned>::iterator itp = prev_n_eval_hds.find(c);
+    Node last;
+    std::vector<Node> last_pt;
     if (itp != prev_n_eval_hds.end())
     {
       prevn = itp->second;
     }
+    if (Trace.isOn("cegis-unif-enum-relevancy"))
+    {
+      if (prevn > 0)
+      {
+        last = cp.second[prevn - 1];
+      }
+      else if (cp.second.size() > 1)
+      {
+        last = cp.second[0];
+      }
+      if (!last.isNull())
+      {
+        last_pt = getEvalPointOfHead(last);
+      }
+    }
     for (unsigned j = prevn, size = cp.second.size(); j < size; j++)
     {
       eval_hds[c].push_back(cp.second[j]);
+      if (Trace.isOn("cegis-unif-enum-relevancy") && !last.isNull()
+          && cp.second[j] != last)
+      {
+        NodeManager* nm = NodeManager::currentNM();
+        std::vector<unsigned> diff;
+        Node ei = cp.second[j];
+        // get points
+        std::vector<Node> ei_pt = getEvalPointOfHead(ei);
+        Trace("cegis-unif-enum-relevancy-debug")
+            << "  * SygusUnifRl\n....testing heads " << last << " vs " << ei
+            << " i.e. pt " << last_pt << " against " << ei_pt << "\n";
+        for (unsigned i = 0, size_i = last_pt.size(); i < size_i; ++i)
+        {
+          if (last_pt[i] != ei_pt[i])
+          {
+            diff.push_back(i);
+          }
+        }
+        if (!diff.empty())
+        {
+          Trace("cegis-unif-enum-relevancy")
+              << "...new hd " << ei << " differs from hd " << last
+              << " in args ";
+          for (unsigned i : diff)
+          {
+            Trace("cegis-unif-enum-relevancy") << i << ", ";
+          }
+          Trace("cegis-unif-enum-relevancy") << "\n";
+          std::vector<Node> candidates, candidate_values;
+          Node query = d_parent->getLastSolInst(candidates, candidate_values);
+          Assert(!query.isNull());
+          query = query.substitute(candidates.begin(),
+                                   candidates.end(),
+                                   candidate_values.begin(),
+                                   candidate_values.end());
+          // skolemize and introduce the skolem variables
+          Assert(query.getKind() == NOT && query[0].getKind() == FORALL);
+          Trace("cegis-unif-enum-relevancy-debug2")
+              << "..minimizing checking query " << query << "\n";
+          std::vector<Node> sks;
+          std::vector<Node> vars;
+          for (const Node& v : query[0][0])
+          {
+            Node sk = nm->mkSkolem("rsk", v.getType());
+            sks.push_back(sk);
+            vars.push_back(v);
+            Trace("cegis-unif-enum-relevancy-debug2")
+                << "  introduce skolem " << sk << " for " << v << "\n";
+          }
+          query = query[0][1].substitute(
+              vars.begin(), vars.end(), sks.begin(), sks.end());
+          query = query.negate();
+          query = Rewriter::rewrite(query);
+          // eagerly unfold applications of evaluation function
+          std::map<Node, Node> visited_n;
+          query =
+              d_qe->getTermDatabaseSygus()->getEagerUnfold(query, visited_n);
+          // create minimization equalites
+          std::map<unsigned, Node> ind_eqs;
+          std::map<Node, unsigned> sk_to_ind;
+          for (unsigned i : diff)
+          {
+            ind_eqs[i] = nm->mkNode(EQUAL, sks[i], last_pt[i]);
+            sk_to_ind[sks[i]] = i;
+            Trace("cegis-unif-enum-relevancy-debug2")
+                << "  adding equality for diff " << i << " :  " << ind_eqs[i]
+                << "\n";
+          }
+          // verify
+          Result r;
+          do
+          {
+            // add guards
+            std::vector<Node> min_eqs;
+            for (std::pair<const unsigned, Node>& p : ind_eqs)
+            {
+              min_eqs.push_back(p.second);
+            }
+            Trace("cegis-unif-enum-relevancy-debug")
+                << " check min query with eqs " << min_eqs << "\n";
+            min_eqs.push_back(query);
+            // make the satisfiability query and check it
+            ExprManagerMapCollection varMap;
+            ExprManager em(nm->getOptions());
+            std::unique_ptr<SmtEngine> minPointChecker;
+            initializeChecker(minPointChecker, em, varMap, min_eqs);
+            r = minPointChecker->checkSat();
+            Trace("cegis-unif-enum-relevancy-debug")
+                << "  result was " << r << "\n";
+            // if no model, remove one of the equalities and try again
+            if (r != Result::SAT && !ind_eqs.empty())
+            {
+              AlwaysAssert(r == Result::UNSAT);
+              UnsatCore core = minPointChecker->getUnsatCore();
+              Trace("cegis-unif-enum-relevancy-debug")
+                  << "  ..unsat core has size " << core.size() << " and is "
+                  << core << "\n";
+              std::map<Expr, unsigned> e_sk_to_ind;
+              for (const Node& sk : sks)
+              {
+                Expr e_sk = sk.toExpr().exportTo(&em, varMap);
+                e_sk_to_ind[e_sk] = sk_to_ind[sk];
+              }
+              std::vector<Expr> assertions = core.getAssertions();
+              for (const Expr& assertion : assertions)
+              {
+                // Only care for variable equalities
+                if (assertion.getKind() != EQUAL
+                    || assertion.getNumChildren() != 2)
+                {
+                  continue;
+                }
+                Expr e_sk =
+                    assertion[0].isConst() ? assertion[1] : assertion[0];
+                AlwaysAssert(e_sk_to_ind.find(e_sk) != e_sk_to_ind.end());
+                Trace("cegis-unif-enum-relevancy-debug")
+                    << "  Can't remove from diff ind " << e_sk_to_ind[e_sk]
+                    << "\n";
+                ind_eqs.erase(ind_eqs.find(e_sk_to_ind[e_sk]));
+              }
+            }
+            else
+            {
+              break;
+            }
+          } while (true);
+          // Found with at least one arg diff minimization, remove from diff
+          if (r == Result::SAT)
+          {
+            for (std::pair<const unsigned, Node>& p : ind_eqs)
+            {
+              AlwaysAssert(std::find(diff.begin(), diff.end(), p.first)
+                           != diff.end());
+              diff.erase(std::find(diff.begin(), diff.end(), p.first));
+            }
+            Trace("cegis-unif-enum-relevancy")
+                << "...diff " << ei << " vs " << last << " after min is : ";
+            for (unsigned i : diff)
+            {
+              Trace("cegis-unif-enum-relevancy") << i << ", ";
+            }
+            Trace("cegis-unif-enum-relevancy") << "\n";
+          }
+        }
+      }
+
       // Add new point to respective decision trees
       Assert(d_cand_cenums.find(c) != d_cand_cenums.end());
       for (const Node& cenum : d_cand_cenums[c])
@@ -375,6 +575,18 @@ void SygusUnifRl::setConditions(Node e,
   it->second.setConditions(guard, enums, conds);
 }
 
+void SygusUnifRl::setEntailed(Node e, Node hd)
+{
+  std::map<Node, DecisionTreeInfo>::iterator it = d_stratpt_to_dt.find(e);
+  Assert(it != d_stratpt_to_dt.end());
+  // set hd as entailed for the appropriate tree
+  Assert(std::find(it->second.d_hds_entailed.begin(),
+                   it->second.d_hds_entailed.end(),
+                   hd)
+         == it->second.d_hds_entailed.end());
+  it->second.d_hds_entailed.push_back(hd);
+}
+
 std::vector<Node> SygusUnifRl::getEvalPointHeads(Node c)
 {
   std::map<Node, std::vector<Node>>::iterator it = d_cand_to_eval_hds.find(c);
@@ -382,6 +594,13 @@ std::vector<Node> SygusUnifRl::getEvalPointHeads(Node c)
   {
     return std::vector<Node>();
   }
+  return it->second;
+}
+
+std::vector<Node> SygusUnifRl::getEvalPointOfHead(Node hd)
+{
+  std::map<Node, std::vector<Node>>::iterator it = d_hd_to_pt.find(hd);
+  Assert(it != d_hd_to_pt.end());
   return it->second;
 }
 
