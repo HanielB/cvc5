@@ -904,8 +904,16 @@ Node CegConjecture::getLastVerificationLemma(
   {
     var_to_sk[d_inner_vars[i]] = d_ce_sk_vars[i];
     sk_to_var[d_ce_sk_vars[i]] = d_inner_vars[i];
+    Trace("cegis-unif-enum-relevancy-debug2")
+        << "..building map " << d_ce_sk_vars[i] << "<->" << d_inner_vars[i]
+        << "\n";
   }
   return d_lems.back();
+}
+
+Node CegConjecture::getBaseInst()
+{
+  return d_base_inst;
 }
 
 Node CegConjecture::getSymmetryBreakingPredicate(

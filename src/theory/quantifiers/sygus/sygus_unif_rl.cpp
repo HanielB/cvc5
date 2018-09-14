@@ -232,18 +232,28 @@ Node SygusUnifRl::purifyLemma(Node n,
 }
 
 // we assume that are no nested apps of candidates and there is a single candidate
-void collectCandApps(Node n, std::set<Node>& apps)
+void SygusUnifRl::collectCandApps(Node n, std::set<Node>& apps, int ind)
 {
+  indent("cegis-unif-enum-relevancy-debug3", ind+1);
+  Trace("cegis-unif-enum-relevancy-debug3") << "..traversing " << n << "\n";
   // Whether application of a function-to-synthesize
   if (n.getKind() == DT_SYGUS_EVAL)
   {
+    indent("cegis-unif-enum-relevancy-debug3", ind+2);
+    Trace("cegis-unif-enum-relevancy-debug3") << "..found app : " << n << "\n";
     apps.insert(n);
+    return;
   }
   // Travese
-  for (TNode ni : n)
+  if (n.getNumChildren() > 0)
   {
-    collectCandApps(ni, apps);
+    for (const Node& ni : n)
+    {
+      collectCandApps(ni, apps,ind+1);
+    }
   }
+  indent("cegis-unif-enum-relevancy-debug3", ind+1);
+  Trace("cegis-unif-enum-relevancy-debug3") << "..done\n";
 }
 
 void initializeChecker(std::unique_ptr<SmtEngine>& checker,
@@ -279,7 +289,7 @@ void initializeChecker(std::unique_ptr<SmtEngine>& checker,
   }
 }
 
-Node SygusUnifRl::addRefLemma(std::vector<Node>& vars,
+Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
                               Node lemma,
                               std::map<Node, std::vector<Node>>& eval_hds)
 {
@@ -318,11 +328,12 @@ Node SygusUnifRl::addRefLemma(std::vector<Node>& vars,
     }
     std::vector<Node> sks, mvs, concrete_apps;
     std::set<Node> apps;
-    std::unordered_map<Node, Node, NodeHashFunction> var_to_sk, sk_to_var,
-        capp_to_arg_vars;
-    Node query;
+    std::unordered_map<Node, Node, NodeHashFunction> var_to_sk, sk_to_var;
+    std::unordered_map<Node, std::vector<Node>, NodeHashFunction> capp_to_arg_vars;
+    Node query, base_lem;
     if (Trace.isOn("cegis-unif-enum-relevancy"))
     {
+      Trace("cegis-unif-enum-relevancy") << " * Relevancy analysis\n";
       // retrieve query and var / sk relations
       query = d_parent->getLastVerificationLemma(var_to_sk, sk_to_var);
       for (const std::pair<const Node, Node>& p : var_to_sk)
@@ -331,26 +342,42 @@ Node SygusUnifRl::addRefLemma(std::vector<Node>& vars,
       }
       Assert(!query.isNull());
       // retrieve model values of vars
-      d_parent->getModelValues(vars, mvs);
+      d_parent->getModelValues(sks, mvs);
       // retrieve cand applications
-      collectCandApps(query, apps);
+      base_lem = d_parent->getBaseInst();
+      Assert(base_lem.getKind() == NOT && base_lem[0].getKind() == FORALL);
+      base_lem = base_lem[0][1];
+      base_lem =
+          base_lem.substitute(vars.begin(), vars.end(), sks.begin(), sks.end());
+      Trace("cegis-unif-enum-relevancy-debug2") << "..search for apps in query "
+                                                << base_lem << "\n";
+      collectCandApps(base_lem, apps, 0);
+      Trace("cegis-unif-enum-relevancy-debug2") << "..collected apps from query :";
       for (const Node& app : apps)
       {
+        Trace("cegis-unif-enum-relevancy-debug2") << "  " << app;
         std::vector<Node> arg_vars;
-        for (unsigned i = 0, size = app.size(); i < size; ++i)
+        for (unsigned i = 1, size = app.getNumChildren(); i < size; ++i)
         {
           std::vector<Node>::iterator it =
               std::find(sks.begin(), sks.end(), app[i]);
           if (it != sks.end())
           {
-            arg_vars[i] = sk_to_var(*it);
+            arg_vars[i] = sk_to_var[*it];
           }
         }
         Node concrete_app =
-            app.substitute(vars.begin(), vars.end(), mvs.begin(), mvs.end());
+            app.substitute(sks.begin(), sks.end(), mvs.begin(), mvs.end());
         capp_to_arg_vars[concrete_app] = arg_vars;
         concrete_apps.push_back(concrete_app);
       }
+      Trace("cegis-unif-enum-relevancy-debug2") << "\n";
+      Trace("cegis-unif-enum-relevancy-debug2") << "..generated concrete apps :";
+      for (const Node& capp : concrete_apps)
+      {
+        Trace("cegis-unif-enum-relevancy-debug2") << "  " << capp;
+      }
+      Trace("cegis-unif-enum-relevancy-debug2") << "\n";
       if (prevn > 0)
       {
         last = cp.second[prevn - 1];
@@ -372,8 +399,9 @@ Node SygusUnifRl::addRefLemma(std::vector<Node>& vars,
       {
         // get variables of head
         std::vector<Node> children, pt = getEvalPointOfHead(cp.second[j]);
-        children.push_back(cp.second[j]);
+        children.push_back(cp.first);
         children.insert(children.end(), pt.begin(), pt.end());
+        Trace("cegis-unif-enum-relevancy-debug2") << "  search for capp " << nm->mkNode(DT_SYGUS_EVAL, children) << "\n";
         std::vector<Node>::iterator it =
             std::find(concrete_apps.begin(),
                       concrete_apps.end(),
@@ -381,10 +409,18 @@ Node SygusUnifRl::addRefLemma(std::vector<Node>& vars,
         Assert(it != concrete_apps.end());
         Assert(capp_to_arg_vars.find(*it) != capp_to_arg_vars.end());
         d_hd_to_arg_vars[cp.second[j]] = capp_to_arg_vars[*it];
+        Trace("cegis-unif-enum-relevancy-debug2")
+            << "..hd " << cp.second[j] << " is associated with vars ";
+        for (unsigned i = 0, size = capp_to_arg_vars[*it].size(); i < size; ++i)
+        {
+          Trace("cegis-unif-enum-relevancy-debug2")
+            << "    " << i << " -> " << capp_to_arg_vars[*it][i] << "\n";
+        }
       }
       if (Trace.isOn("cegis-unif-enum-relevancy") && !last.isNull()
           && cp.second[j] != last)
       {
+        continue;
         std::vector<unsigned> diff;
         Node ei = cp.second[j];
         // get points

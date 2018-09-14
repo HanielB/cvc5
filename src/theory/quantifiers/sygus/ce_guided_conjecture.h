@@ -137,6 +137,7 @@ public:
   Node getLastVerificationLemma(
       std::unordered_map<Node, Node, NodeHashFunction>& var_to_sk,
       std::unordered_map<Node, Node, NodeHashFunction>& sk_to_var);
+  Node getBaseInst();
 
  private:
   /** reference to quantifier engine */
