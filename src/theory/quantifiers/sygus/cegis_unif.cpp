@@ -442,6 +442,28 @@ void CegisUnifEnumManager::setUpEnumerator(Node e,
         << "CegisUnifEnum::lemma, enum sym break:" << sym_break << "\n";
     d_qe->getOutputChannel().lemma(sym_break);
   }
+  // initialize arguments relevancy flags
+  if (options::sygusUnifCondIndependent() && index == 1)
+  {
+    const Datatype& dt =
+        static_cast<DatatypeType>(e.getType().toType()).getDatatype();
+    Node var_list = Node::fromExpr(dt.getSygusVarList());
+    std::vector<bool> cond_relevant_args(var_list.getNumChildren());
+    std::fill(cond_relevant_args.begin(), cond_relevant_args.end(), false);
+    si.d_cond_relevant_args.insert(si.d_cond_relevant_args.end(),
+                                   cond_relevant_args.begin(),
+                                   cond_relevant_args.end());
+    if (Trace.isOn("cegis-unif-enum-relevancy"))
+    {
+      Trace("cegis-unif-enum-relevancy") << "  Relevant arguments of " << e
+                                         << " :\n";
+      for (unsigned i = 0, size = si.d_cond_relevant_args.size(); i < size; ++i)
+      {
+        Trace("cegis-unif-enum-relevancy")
+            << "    " << i << " : " << si.d_cond_relevant_args[i] << "\n";
+      }
+    }
+  }
   // register the enumerator
   si.d_enums[index].push_back(e);
   Trace("cegis-unif-enum") << "* Registering new enumerator " << e
