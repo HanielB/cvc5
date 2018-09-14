@@ -276,7 +276,7 @@ void CegisUnif::registerRefinementLemma(const std::vector<Node>& vars,
 {
   // Notify lemma to unification utility and get its purified form
   std::map<Node, std::vector<Node>> eval_pts;
-  Node plem = d_sygus_unif.addRefLemma(lem, eval_pts);
+  Node plem = d_sygus_unif.addRefLemma(vars, lem, eval_pts);
   addRefinementLemma(plem);
   Trace("cegis-unif-lemma")
       << "CegisUnif::lemma, refinement lemma : " << plem << "\n";

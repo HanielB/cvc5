@@ -395,7 +395,7 @@ void CegConjecture::doCheck(std::vector<Node>& lems)
     lem = d_qe->getTermDatabaseSygus()->getEagerUnfold(lem, visited_n);
     // record the instantiation
     // this is used for remembering the solution
-    recordInstantiation(candidate_values);
+    recordInstantiation(lem, candidate_values);
     Node query = lem;
     if (query.isConst() && !query.getConst<bool>() && options::sygusStream())
     {
@@ -890,21 +890,22 @@ bool CegConjecture::getSynthSolutionsInternal(std::vector<Node>& sols,
   return true;
 }
 
-Node CegConjecture::getLastSolInst(std::vector<Node>& candidates,
-                                   std::vector<Node>& candidate_values)
+Node CegConjecture::getLastVerificationLemma(
+    std::unordered_map<Node, Node, NodeHashFunction>& var_to_sk,
+    std::unordered_map<Node, Node, NodeHashFunction>& sk_to_var)
 {
-  Assert(!d_candidates.empty());
-  if (d_cinfo[d_candidates[0]].d_inst.empty())
+  if (d_lems.empty())
   {
     return Node::null();
   }
-  for (const Node& cand : d_candidates)
+  Assert(!isGround());
+  Assert(d_inner_vars.size() && d_ce_sk_vars.size());
+  for (unsigned i = 0, size = d_inner_vars.size(); i < size; ++i)
   {
-    candidates.push_back(cand);
-    Assert(d_cinfo.find(cand) != d_cinfo.end());
-    candidate_values.push_back(d_cinfo[cand].d_inst.back());
+    var_to_sk[d_inner_vars[i]] = d_ce_sk_vars[i];
+    sk_to_var[d_ce_sk_vars[i]] = d_inner_vars[i];
   }
-  return d_base_inst;
+  return d_lems.back();
 }
 
 Node CegConjecture::getSymmetryBreakingPredicate(

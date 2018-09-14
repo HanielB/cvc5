@@ -132,11 +132,11 @@ public:
       Node x, Node e, TypeNode tn, unsigned tindex, unsigned depth);
   /** print out debug information about this conjecture */
   void debugPrint( const char * c );
-  /** returns the query and build the instantiation from candidates to values
-   * representing last solution. If no instantiation exists, return Node::null()
+  /** returns the last verification lemma. If none exists, return Node::null()
    */
-  Node getLastSolInst(std::vector<Node>& candidates,
-                      std::vector<Node>& candidate_values);
+  Node getLastVerificationLemma(
+      std::unordered_map<Node, Node, NodeHashFunction>& var_to_sk,
+      std::unordered_map<Node, Node, NodeHashFunction>& sk_to_var);
 
  private:
   /** reference to quantifier engine */
@@ -198,7 +198,8 @@ public:
    * vector may be set to empty (e.g. for ground synthesis conjectures).
    */
   bool d_set_ce_sk_vars;
-
+  /** list of verification lemmas */
+  std::vector<Node> d_lems;
   /** the asserted (negated) conjecture */
   Node d_quant;
   /** (negated) conjecture after simplification */
@@ -228,6 +229,11 @@ public:
     for( unsigned i=0; i<vs.size(); i++ ){
       d_cinfo[d_candidates[i]].d_inst.push_back( vs[i] );
     }
+  }
+  void recordInstantiation(Node lem, std::vector<Node>& vs)
+  {
+    d_lems.push_back(lem);
+    recordInstantiation(vs);
   }
   /** get synth solutions internal
    *

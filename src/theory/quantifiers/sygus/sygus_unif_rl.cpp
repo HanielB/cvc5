@@ -231,6 +231,21 @@ Node SygusUnifRl::purifyLemma(Node n,
   return nb;
 }
 
+// we assume that are no nested apps of candidates and there is a single candidate
+void collectCandApps(Node n, std::set<Node>& apps)
+{
+  // Whether application of a function-to-synthesize
+  if (n.getKind() == DT_SYGUS_EVAL)
+  {
+    apps.insert(n);
+  }
+  // Travese
+  for (TNode ni : n)
+  {
+    collectCandApps(ni, apps);
+  }
+}
+
 void initializeChecker(std::unique_ptr<SmtEngine>& checker,
                        ExprManager& em,
                        ExprManagerMapCollection& varMap,
@@ -264,7 +279,8 @@ void initializeChecker(std::unique_ptr<SmtEngine>& checker,
   }
 }
 
-Node SygusUnifRl::addRefLemma(Node lemma,
+Node SygusUnifRl::addRefLemma(std::vector<Node>& vars,
+                              Node lemma,
                               std::map<Node, std::vector<Node>>& eval_hds)
 {
   Trace("sygus-unif-rl-purify")
@@ -300,8 +316,41 @@ Node SygusUnifRl::addRefLemma(Node lemma,
     {
       prevn = itp->second;
     }
+    std::vector<Node> sks, mvs, concrete_apps;
+    std::set<Node> apps;
+    std::unordered_map<Node, Node, NodeHashFunction> var_to_sk, sk_to_var,
+        capp_to_arg_vars;
+    Node query;
     if (Trace.isOn("cegis-unif-enum-relevancy"))
     {
+      // retrieve query and var / sk relations
+      query = d_parent->getLastVerificationLemma(var_to_sk, sk_to_var);
+      for (const std::pair<const Node, Node>& p : var_to_sk)
+      {
+        sks.push_back(p.second);
+      }
+      Assert(!query.isNull());
+      // retrieve model values of vars
+      d_parent->getModelValues(vars, mvs);
+      // retrieve cand applications
+      collectCandApps(query, apps);
+      for (const Node& app : apps)
+      {
+        std::vector<Node> arg_vars;
+        for (unsigned i = 0, size = app.size(); i < size; ++i)
+        {
+          std::vector<Node>::iterator it =
+              std::find(sks.begin(), sks.end(), app[i]);
+          if (it != sks.end())
+          {
+            arg_vars[i] = sk_to_var(*it);
+          }
+        }
+        Node concrete_app =
+            app.substitute(vars.begin(), vars.end(), mvs.begin(), mvs.end());
+        capp_to_arg_vars[concrete_app] = arg_vars;
+        concrete_apps.push_back(concrete_app);
+      }
       if (prevn > 0)
       {
         last = cp.second[prevn - 1];
@@ -315,13 +364,27 @@ Node SygusUnifRl::addRefLemma(Node lemma,
         last_pt = getEvalPointOfHead(last);
       }
     }
+    NodeManager* nm = NodeManager::currentNM();
     for (unsigned j = prevn, size = cp.second.size(); j < size; j++)
     {
       eval_hds[c].push_back(cp.second[j]);
+      if (Trace.isOn("cegis-unif-enum-relevancy"))
+      {
+        // get variables of head
+        std::vector<Node> children, pt = getEvalPointOfHead(cp.second[j]);
+        children.push_back(cp.second[j]);
+        children.insert(children.end(), pt.begin(), pt.end());
+        std::vector<Node>::iterator it =
+            std::find(concrete_apps.begin(),
+                      concrete_apps.end(),
+                      nm->mkNode(DT_SYGUS_EVAL, children));
+        Assert(it != concrete_apps.end());
+        Assert(capp_to_arg_vars.find(*it) != capp_to_arg_vars.end());
+        d_hd_to_arg_vars[cp.second[j]] = capp_to_arg_vars[*it];
+      }
       if (Trace.isOn("cegis-unif-enum-relevancy") && !last.isNull()
           && cp.second[j] != last)
       {
-        NodeManager* nm = NodeManager::currentNM();
         std::vector<unsigned> diff;
         Node ei = cp.second[j];
         // get points
@@ -333,54 +396,24 @@ Node SygusUnifRl::addRefLemma(Node lemma,
         {
           if (last_pt[i] != ei_pt[i])
           {
+            Trace("cegis-unif-enum-relevancy") << "...new hd " << ei
+                                               << " differs from hd " << last
+                                               << " in arg " << i << "\n";
+            Trace("cegis-unif-enum-relevancy-debug")
+                << "     " << ei << " -> " << d_hd_to_arg_vars[ei][i]
+                << "\n     " << last << d_hd_to_arg_vars[ei][i] << "\n";
             diff.push_back(i);
           }
         }
         if (!diff.empty())
         {
-          Trace("cegis-unif-enum-relevancy")
-              << "...new hd " << ei << " differs from hd " << last
-              << " in args ";
-          for (unsigned i : diff)
-          {
-            Trace("cegis-unif-enum-relevancy") << i << ", ";
-          }
-          Trace("cegis-unif-enum-relevancy") << "\n";
-          std::vector<Node> candidates, candidate_values;
-          Node query = d_parent->getLastSolInst(candidates, candidate_values);
           Assert(!query.isNull());
-          query = query.substitute(candidates.begin(),
-                                   candidates.end(),
-                                   candidate_values.begin(),
-                                   candidate_values.end());
-          // skolemize and introduce the skolem variables
-          Assert(query.getKind() == NOT && query[0].getKind() == FORALL);
-          Trace("cegis-unif-enum-relevancy-debug2")
-              << "..minimizing checking query " << query << "\n";
-          std::vector<Node> sks;
-          std::vector<Node> vars;
-          for (const Node& v : query[0][0])
-          {
-            Node sk = nm->mkSkolem("rsk", v.getType());
-            sks.push_back(sk);
-            vars.push_back(v);
-            Trace("cegis-unif-enum-relevancy-debug2")
-                << "  introduce skolem " << sk << " for " << v << "\n";
-          }
-          query = query[0][1].substitute(
-              vars.begin(), vars.end(), sks.begin(), sks.end());
-          query = query.negate();
-          query = Rewriter::rewrite(query);
-          // eagerly unfold applications of evaluation function
-          std::map<Node, Node> visited_n;
-          query =
-              d_qe->getTermDatabaseSygus()->getEagerUnfold(query, visited_n);
           // create minimization equalites
           std::map<unsigned, Node> ind_eqs;
           std::map<Node, unsigned> sk_to_ind;
           for (unsigned i : diff)
           {
-            ind_eqs[i] = nm->mkNode(EQUAL, sks[i], last_pt[i]);
+            ind_eqs[i] = nm->mkNode(EQUAL, var_to_sk[d_hd_to_arg_vars[ei][i]], last_pt[i]);
             sk_to_ind[sks[i]] = i;
             Trace("cegis-unif-enum-relevancy-debug2")
                 << "  adding equality for diff " << i << " :  " << ind_eqs[i]
