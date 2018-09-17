@@ -97,8 +97,6 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   TermDbSygus* d_tds;
   /** reference to the parent conjecture */
   CegConjecture* d_parent;
-  /** reference to the cegis unif */
-  CegisUnif* d_cegis_unif;
   /** whether this module has been initialized */
   bool d_initialized;
   /** null node */
@@ -265,6 +263,11 @@ class CegisUnif : public Cegis
                                   std::vector<Node>& candidate_values,
                                   bool satisfiedRl,
                                   std::vector<Node>& lems) override;
+  /**
+   * Sygus unif utility. This class implements the core algorithm (e.g. decision
+   * tree learning) that this module relies upon.
+   */
+  SygusUnifRl d_sygus_unif;
   /** enumerator manager utility */
   CegisUnifEnumDecisionStrategy d_u_enum_manager;
   /* The null node */

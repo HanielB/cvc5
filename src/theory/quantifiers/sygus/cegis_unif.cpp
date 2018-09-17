@@ -29,7 +29,7 @@ namespace theory {
 namespace quantifiers {
 
 CegisUnif::CegisUnif(QuantifiersEngine* qe, CegConjecture* p)
-    : Cegis(qe, p), d_sygus_unif(p), d_u_enum_manager(qe, p, this)
+    : Cegis(qe, p), d_sygus_unif(p), d_u_enum_manager(qe, p)
 {
 }
 
@@ -567,71 +567,20 @@ void CegisUnifEnumDecisionStrategy::setUpEnumerator(Node e,
 
 void CegisUnifEnumDecisionStrategy::registerEvalPts(const std::vector<Node>& eis, Node e)
 {
-  bool new_relevant = false;
   // candidates of the same type are managed
   std::map<Node, StrategyPtInfo>::iterator it = d_ce_info.find(e);
   Assert(it != d_ce_info.end());
   it->second.d_eval_points.insert(
       it->second.d_eval_points.end(), eis.begin(), eis.end());
   // register at all already allocated sizes
-  Node last;
-  std::vector<Node> last_pt;
-  if (Trace.isOn("cegis-unif-enum-relevancy"))
-  {
-    if (it->second.d_eval_points.size() - eis.size() > 0)
-    {
-      last =
-          it->second
-              .d_eval_points[it->second.d_eval_points.size() - eis.size() - 1];
-    }
-    else if (eis.size() > 1)
-    {
-      last = eis[0];
-    }
-    if (!last.isNull())
-    {
-      last_pt = d_cegis_unif->d_sygus_unif.getEvalPointOfHead(last);
-    }
-  }
   for (const Node& ei : eis)
   {
-    if (Trace.isOn("cegis-unif-enum-relevancy") && !last.isNull() && ei != last)
-    {
-      // get points
-      std::vector<Node> ei_pt =
-          d_cegis_unif->d_sygus_unif.getEvalPointOfHead(ei);
-      Trace("cegis-unif-enum-relevancy-debug")
-          << "....testing heads " << last << " vs " << ei << " i.e. pt "
-          << last_pt << " against " << ei_pt << "\n";
-      for (unsigned i = 0, size = last_pt.size(); i < size; ++i)
-      {
-        if (!it->second.d_cond_relevant_args[i] && last_pt[i] != ei_pt[i])
-        {
-          Trace("cegis-unif-enum-relevancy")
-              << "...new hd " << ei << " makes relevant arg " << i << "\n";
-          it->second.d_cond_relevant_args[i] = true;
-          new_relevant = true;
-        }
-      }
-    }
     Assert(ei.getType() == e.getType());
     for (unsigned j = 0, size = d_literals.size(); j < size; j++)
     {
       Trace("cegis-unif-enum") << "...for cand " << e << " adding hd " << ei
                                << " at size " << j << "\n";
       registerEvalPtAtSize(e, ei, d_literals[j], j + 1);
-    }
-  }
-  if (Trace.isOn("cegis-unif-enum-relevancy") && new_relevant)
-  {
-    Trace("cegis-unif-enum-relevancy")
-        << "  Relevant arguments of " << it->second.d_enums[1][0] << " :\n";
-    for (unsigned i = 0, size = it->second.d_cond_relevant_args.size();
-         i < size;
-         ++i)
-    {
-      Trace("cegis-unif-enum-relevancy")
-          << "    " << i << " : " << it->second.d_cond_relevant_args[i] << "\n";
     }
   }
 }
