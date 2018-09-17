@@ -341,14 +341,17 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
     std::unordered_map<Node, Node, NodeHashFunction> sk_to_var, sk_to_mv;
     std::unordered_map<Node, std::vector<Node>, NodeHashFunction>
         capp_to_arg_constraints;
+    std::unordered_map<Node, std::vector<bool>, NodeHashFunction>
+        capp_to_arg_is_core;
     std::unordered_map<Node, std::vector<std::vector<Node>>, NodeHashFunction>
         capp_to_arg_vars;
+    std::unordered_set<Node, NodeHashFunction> sk_core;
     Node query, base_lem;
     if (Trace.isOn("cegis-unif-enum-relevancy"))
     {
       Trace("cegis-unif-enum-relevancy") << " * Relevancy analysis\n";
       // retrieve query, skolems and their model values
-      query = d_parent->getLastVerificationLemma(sks, sk_mvs);
+      query = d_parent->getLastVerificationLemma(sks, sk_mvs, sk_core);
       // build sk / var relation
       Assert(sks.size() == vars.size());
       for (unsigned i = 0, size = sks.size(); i < size; ++i)
@@ -374,8 +377,10 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
             << "..parse app : " << app << "\n";
         std::vector<Node> arg_constraints;
         std::vector<std::vector<Node>> arg_vars;
+        std::vector<bool> arg_is_core;
         for (unsigned i = 1, size = app.getNumChildren(); i < size; ++i)
         {
+          arg_is_core.push_back(false);
           arg_vars.push_back(std::vector<Node>());
           if (app[i].isConst())
           {
@@ -400,12 +405,18 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
             Trace("cegis-unif-enum-relevancy-debug3")
                 << "....arg " << i << " : adding var " << arg_vars.back().back()
                 << "\n";
+            // if not yet set and sk in core, mark arg as part of core
+            if (!arg_is_core[i - 1] && sk_core.find(arg_sk) != sk_core.end())
+            {
+              arg_is_core[i - 1] = true;
+            }
           }
         }
         Node concrete_app = Rewriter::rewrite(app.substitute(
             sks.begin(), sks.end(), sk_mvs.begin(), sk_mvs.end()));
         capp_to_arg_vars[concrete_app] = arg_vars;
         capp_to_arg_constraints[concrete_app] = arg_constraints;
+        capp_to_arg_is_core[concrete_app] = arg_is_core;
         concrete_apps.push_back(concrete_app);
         Trace("cegis-unif-enum-relevancy-debug3")
             << "..adding concrete app " << concrete_app << "\n";
@@ -452,6 +463,7 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
         Assert(capp_to_arg_vars.find(*it) != capp_to_arg_vars.end());
         d_hd_to_arg_vars[cp.second[j]] = capp_to_arg_vars[*it];
         d_hd_to_arg_constraints[cp.second[j]] = capp_to_arg_constraints[*it];
+        d_hd_to_arg_is_core[cp.second[j]] = capp_to_arg_is_core[*it];
         Trace("cegis-unif-enum-relevancy-debug2")
             << "..hd " << cp.second[j] << " is associated with capp " << *it
             << " and vars and constraints\n";
@@ -480,8 +492,10 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
                 << "...new hd " << ei << " differs from hd " << last
                 << " in arg " << i << "\n";
             Trace("cegis-unif-enum-relevancy-debug")
-                << "     " << ei << " -> " << d_hd_to_arg_constraints[ei][i]
-                << "\n     " << last << " -> "
+                << "     " << ei << " -> "
+                << (d_hd_to_arg_is_core[ei][i] ? "*" : "")
+                << d_hd_to_arg_constraints[ei][i] << "\n     " << last << " -> "
+                << (d_hd_to_arg_is_core[last][i] ? "*" : "")
                 << d_hd_to_arg_constraints[last][i] << "\n";
             diff.push_back(i);
           }

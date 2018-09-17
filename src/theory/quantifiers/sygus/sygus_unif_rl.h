@@ -152,6 +152,9 @@ class SygusUnifRl : public SygusUnif
   /** maps eval heads to the non-constant constraints corresponding to each
    * argument */
   std::map<Node, std::vector<Node>> d_hd_to_arg_constraints;
+  /** maps eval heads to whether each of its args had variables present in the
+   * model core from its derivation */
+  std::map<Node, std::vector<bool>> d_hd_to_arg_is_core;
   /**
    * maps applications of unif functions-to-synthesize to the result of their
    * purification */

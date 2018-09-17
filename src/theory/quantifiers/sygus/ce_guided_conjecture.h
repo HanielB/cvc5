@@ -136,7 +136,8 @@ public:
    */
   Node getLastVerificationLemma(
       std::vector<Node>& sks,
-      std::vector<Node>& sk_mvs);
+      std::vector<Node>& sk_mvs,
+      std::unordered_map<Node, NodeHashFunction>& sk_core);
   Node getBaseInst();
 
  private:
@@ -194,6 +195,9 @@ public:
    * (satisfiable, failed) verification lemma.
    */
   std::vector<Node> d_ce_sk_var_mvs;
+  /** the subset of d_ce_sk_vars which was present in the model core of the of
+   * the model for the verification lemma */
+  std::unordered_set<Node, NodeHashFunction> d_ce_sk_var_core;
   /**
    * Whether the above vector has been set. We have this flag since the above
    * vector may be set to empty (e.g. for ground synthesis conjectures).

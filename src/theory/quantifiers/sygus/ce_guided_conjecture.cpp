@@ -425,13 +425,15 @@ void CegConjecture::doCheck(std::vector<Node>& lems)
         {
           Node mv = Node::fromExpr(verifySmt.getValue(v.toExpr()));
           Trace("cegqi-engine")
-              << v
-              << (options::produceModelCores()
-                          && Trace.isOn("cegis-unif-enum-relevancy")
-                          && verifySmt.getModel()->isModelCoreSymbol(v.toExpr())
-                      ? "*"
-                      : "")
-              << " -> " << mv << " ";
+            << v;
+          if (options::produceModelCores()
+              && Trace.isOn("cegis-unif-enum-relevancy")
+              && verifySmt.getModel()->isModelCoreSymbol(v.toExpr()))
+          {
+            Trace("cegqi-engine") << "*";
+            d_ce_sk_var_core.insert(v);
+          }
+          Trace("cegqi-engine") << " -> " << mv << " ";
           d_ce_sk_var_mvs.push_back(mv);
         }
         Trace("cegqi-engine") << std::endl;
@@ -522,6 +524,7 @@ void CegConjecture::doRefine( std::vector< Node >& lems ){
   d_set_ce_sk_vars = false;
   d_ce_sk_vars.clear();
   d_ce_sk_var_mvs.clear();
+  d_ce_sk_var_core.clear();
 }
 
 void CegConjecture::preregisterConjecture( Node q ) {
@@ -897,8 +900,10 @@ bool CegConjecture::getSynthSolutionsInternal(std::vector<Node>& sols,
   return true;
 }
 
-Node CegConjecture::getLastVerificationLemma(std::vector<Node>& sks,
-                                             std::vector<Node>& sk_mvs)
+Node CegConjecture::getLastVerificationLemma(
+    std::vector<Node>& sks,
+    std::vector<Node>& sk_mvs,
+    std::unordered_map<Node, NodeHashFunction>& sk_core)
 {
   if (d_lems.empty())
   {
@@ -908,6 +913,7 @@ Node CegConjecture::getLastVerificationLemma(std::vector<Node>& sks,
   Assert(d_ce_sk_vars.size() && d_ce_sk_var_mvs.size());
   sks = d_ce_sk_vars;
   sk_mvs = d_ce_sk_var_mvs;
+  sk_core.insert(d_ce_sk_var_core.begin(), d_ce_sk_var_core.end());
   return d_lems.back();
 }
 
