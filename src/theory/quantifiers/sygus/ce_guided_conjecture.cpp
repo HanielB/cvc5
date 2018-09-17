@@ -424,7 +424,14 @@ void CegConjecture::doCheck(std::vector<Node>& lems)
         for (const Node& v : d_ce_sk_vars)
         {
           Node mv = Node::fromExpr(verifySmt.getValue(v.toExpr()));
-          Trace("cegqi-engine") << v << " -> " << mv << " ";
+          Trace("cegqi-engine")
+              << v
+              << (options::produceModelCores()
+                          && Trace.isOn("cegis-unif-enum-relevancy")
+                          && verifySmt.getModel()->isModelCoreSymbol(v.toExpr())
+                      ? "*"
+                      : "")
+              << " -> " << mv << " ";
           d_ce_sk_var_mvs.push_back(mv);
         }
         Trace("cegqi-engine") << std::endl;
