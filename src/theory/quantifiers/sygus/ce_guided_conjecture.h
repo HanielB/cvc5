@@ -135,8 +135,8 @@ public:
   /** returns the last verification lemma. If none exists, return Node::null()
    */
   Node getLastVerificationLemma(
-      std::unordered_map<Node, Node, NodeHashFunction>& var_to_sk,
-      std::unordered_map<Node, Node, NodeHashFunction>& sk_to_var);
+      std::vector<Node>& sks,
+      std::vector<Node>& sk_mvs);
   Node getBaseInst();
 
  private:

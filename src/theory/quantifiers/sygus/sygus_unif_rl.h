@@ -78,7 +78,7 @@ class SygusUnifRl : public SygusUnif
   Node addRefLemma(const std::vector<Node>& vars,
                    Node lemma,
                    std::map<Node, std::vector<Node>>& eval_hds);
-  void collectCandApps(Node n, std::set<Node>& apps, int ind);
+  void collectCandApps(Node n, std::set<Node>& apps);
   /**
    * whether f is being synthesized with unification strategies. This can be
    * checked through wehether f has conditional or point enumerators (we use the
@@ -147,8 +147,11 @@ class SygusUnifRl : public SygusUnif
   std::map<Node, std::vector<Node>> d_hd_to_pt;
   /** maps unif candidates to heads of their evaluation points */
   std::map<Node, std::vector<Node>> d_cand_to_eval_hds;
-  /** maps eval heads to the variable corresponding to each argument */
-  std::map<Node, std::vector<Node>> d_hd_to_arg_vars;
+  /** maps eval heads to the variables corresponding to each argument */
+  std::map<Node, std::vector<std::vector<Node>>> d_hd_to_arg_vars;
+  /** maps eval heads to the non-constant constraints corresponding to each
+   * argument */
+  std::map<Node, std::vector<Node>> d_hd_to_arg_constraints;
   /**
    * maps applications of unif functions-to-synthesize to the result of their
    * purification */

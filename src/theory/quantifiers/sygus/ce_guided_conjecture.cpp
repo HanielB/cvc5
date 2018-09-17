@@ -890,24 +890,17 @@ bool CegConjecture::getSynthSolutionsInternal(std::vector<Node>& sols,
   return true;
 }
 
-Node CegConjecture::getLastVerificationLemma(
-    std::unordered_map<Node, Node, NodeHashFunction>& var_to_sk,
-    std::unordered_map<Node, Node, NodeHashFunction>& sk_to_var)
+Node CegConjecture::getLastVerificationLemma(std::vector<Node>& sks,
+                                             std::vector<Node>& sk_mvs)
 {
   if (d_lems.empty())
   {
     return Node::null();
   }
   Assert(!isGround());
-  Assert(d_inner_vars.size() && d_ce_sk_vars.size());
-  for (unsigned i = 0, size = d_inner_vars.size(); i < size; ++i)
-  {
-    var_to_sk[d_inner_vars[i]] = d_ce_sk_vars[i];
-    sk_to_var[d_ce_sk_vars[i]] = d_inner_vars[i];
-    Trace("cegis-unif-enum-relevancy-debug2")
-        << "..building map " << d_ce_sk_vars[i] << "<->" << d_inner_vars[i]
-        << "\n";
-  }
+  Assert(d_ce_sk_vars.size() && d_ce_sk_var_mvs.size());
+  sks = d_ce_sk_vars;
+  sk_mvs = d_ce_sk_var_mvs;
   return d_lems.back();
 }
 
