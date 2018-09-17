@@ -492,10 +492,10 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
                 << "...new hd " << ei << " differs from hd " << last
                 << " in arg " << i << "\n";
             Trace("cegis-unif-enum-relevancy-debug")
-                << "     " << ei << " -> "
-                << (d_hd_to_arg_is_core[ei][i] ? "*" : "")
-                << d_hd_to_arg_constraints[ei][i] << "\n     " << last << " -> "
-                << (d_hd_to_arg_is_core[last][i] ? "*" : "")
+                << "     " << ei << " ->"
+                << (d_hd_to_arg_is_core[ei][i] ? "* " : " ")
+                << d_hd_to_arg_constraints[ei][i] << "\n     " << last << " ->"
+                << (d_hd_to_arg_is_core[last][i] ? "* " : " ")
                 << d_hd_to_arg_constraints[last][i] << "\n";
             diff.push_back(i);
           }

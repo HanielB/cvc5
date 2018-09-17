@@ -137,7 +137,7 @@ public:
   Node getLastVerificationLemma(
       std::vector<Node>& sks,
       std::vector<Node>& sk_mvs,
-      std::unordered_map<Node, NodeHashFunction>& sk_core);
+      std::unordered_set<Node, NodeHashFunction>& sk_core);
   Node getBaseInst();
 
  private:
