@@ -395,7 +395,7 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
           Assert(!arg_sks.empty());
           for (const Node& arg_sk : arg_sks)
           {
-            Assert(sk_to_var.find(sk) != sk_to_var.end());
+            Assert(sk_to_var.find(arg_sk) != sk_to_var.end());
             arg_vars.back().push_back(sk_to_var[arg_sk]);
             Trace("cegis-unif-enum-relevancy-debug3")
                 << "....arg " << i << " : adding var " << arg_vars.back().back()
