@@ -586,8 +586,8 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
               std::unique_ptr<SmtEngine> minPointChecker;
               initializeChecker(minPointChecker, em, varMap, min_eqs);
               r = minPointChecker->checkSat();
-              Trace("cegis-unif-enum-relevancy-debug") << "  result was " << r
-                                                       << "\n";
+              Trace("cegis-unif-enum-relevancy-debug")
+                  << "  result was " << r << "\n";
               // if no model, remove one of the equalities and try again
               if (r != Result::SAT && !ind_eqs.empty())
               {
@@ -644,14 +644,26 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
                              != diff.end());
                 diff.erase(std::find(diff.begin(), diff.end(), p.first));
               }
-              Trace("cegis-unif-enum-relevancy") << "    diff " << curr << " vs "
-                                                 << prev << " after min is : ";
-              for (unsigned i : diff)
+              if (!diff.empty())
               {
-                Trace("cegis-unif-enum-relevancy") << i << ", ";
+                Trace("cegis-unif-enum-relevancy")
+                    << "    diff " << curr << " vs " << prev
+                    << " after min is : ";
+                for (unsigned i : diff)
+                {
+                  Trace("cegis-unif-enum-relevancy") << i << ", ";
+                }
+                Trace("cegis-unif-enum-relevancy") << "\n";
               }
-              Trace("cegis-unif-enum-relevancy") << "\n";
+              else
+              {
+                Trace("cegis-unif-enum-relevancy") << "    SPURIOUS\n";
+              }
             }
+          }
+          else
+          {
+            Trace("cegis-unif-enum-relevancy") << "    SPURIOUS\n";
           }
         }
       }
