@@ -493,6 +493,9 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
           std::vector<unsigned> diff;
           for (unsigned i = 0, size_i = prev_pt.size(); i < size_i; ++i)
           {
+            // Only consider for diff arguments in both model cores
+            if (curr_pt[i] != prev_pt[i] && d_hd_to_arg_is_core[curr][i]
+                && d_hd_to_arg_is_core[prev][i])
             {
               Trace("cegis-unif-enum-relevancy-debug") << "...new hd " << curr
                                                  << " differs from hd " << prev
