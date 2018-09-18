@@ -22,8 +22,10 @@
 #include "context/cdhashset.h"
 #include "context/cdlist.h"
 #include "expr/attribute.h"
+#include "theory/decision_manager.h"
 #include "theory/strings/regexp_elim.h"
 #include "theory/strings/regexp_operation.h"
+#include "theory/strings/skolem_cache.h"
 #include "theory/strings/theory_strings_preprocess.h"
 #include "theory/theory.h"
 #include "theory/uf/equality_engine.h"
@@ -276,7 +278,6 @@ private:
   NodeSet d_pregistered_terms_cache;
   NodeSet d_registered_terms_cache;
   NodeSet d_length_lemma_terms_cache;
-  NodeSet d_skolem_ne_reg_cache;
   // preprocess cache
   StringsPreprocess d_preproc;
   NodeBoolMap d_preproc_cache;
@@ -392,22 +393,53 @@ private:
     bool d_model_active;
   };
   std::map< Node, ExtfInfoTmp > d_extf_info_tmp;
-private:
-  class InferInfo {
-  public:
+
+ private:
+  /** Length status, used for the registerLength function below */
+  enum LengthStatus
+  {
+    LENGTH_SPLIT,
+    LENGTH_ONE,
+    LENGTH_GEQ_ONE
+  };
+  /** register length
+   *
+   * This method is called on non-constant string terms n. It sends a lemma
+   * on the output channel that ensures that the length n satisfies its assigned
+   * status (given by argument s).
+   *
+   * If the status is LENGTH_ONE, we send the lemma len( n ) = 1.
+   *
+   * If the status is LENGTH_GEQ, we send a lemma n != "" ^ len( n ) > 0.
+   *
+   * If the status is LENGTH_SPLIT, we send a send a lemma of the form:
+   *   ( n = "" ^ len( n ) = 0 ) OR len( n ) > 0
+   * This method also ensures that, when applicable, the left branch is taken
+   * first via calls to requirePhase.
+   */
+  void registerLength(Node n, LengthStatus s);
+
+  //------------------------- candidate inferences
+  class InferInfo
+  {
+   public:
     unsigned d_i;
     unsigned d_j;
     bool d_rev;
-    std::vector< Node > d_ant;
-    std::vector< Node > d_antn;
-    std::map< int, std::vector< Node > > d_new_skolem;
+    std::vector<Node> d_ant;
+    std::vector<Node> d_antn;
+    std::map<LengthStatus, std::vector<Node> > d_new_skolem;
     Node d_conc;
     Inference d_id;
-    std::map< Node, bool > d_pending_phase;
+    std::map<Node, bool> d_pending_phase;
     unsigned d_index;
     Node d_nf_pair[2];
     bool sendAsLemma();
   };
+  //------------------------- end candidate inferences
+  /** cache of all skolems */
+  SkolemCache d_sk_cache;
+
   void checkConstantEquivalenceClasses( TermIndex* ti, std::vector< Node >& vecc );
   void checkExtfInference( Node n, Node nr, ExtfInfoTmp& in, int effort );
   Node getSymbolicDefinition( Node n, std::vector< Node >& exp );
@@ -532,48 +564,13 @@ private:
   void sendLemma(Node ant, Node conc, const char* c);
   void sendInfer(Node eq_exp, Node eq, const char* c);
   bool sendSplit(Node a, Node b, const char* c, bool preq = true);
-  /** send length lemma
-   *
-   * This method is called on non-constant string terms n. It sends a lemma
-   * on the output channel that ensures that len( n ) >= 0. In particular, the
-   * this lemma is typically of the form:
-   *   ( n = "" ^ len( n ) = 0 ) OR len( n ) > 0
-   * This method also ensures that, when applicable, the left branch is taken
-   * first via calls to requirePhase.
-   */
-  void sendLengthLemma(Node n);
+
   /** mkConcat **/
   inline Node mkConcat(Node n1, Node n2);
   inline Node mkConcat(Node n1, Node n2, Node n3);
   inline Node mkConcat(const std::vector<Node>& c);
   inline Node mkLength(Node n);
-  // mkSkolem
-  enum
-  {
-    sk_id_c_spt,
-    sk_id_vc_spt,
-    sk_id_vc_bin_spt,
-    sk_id_v_spt,
-    sk_id_c_spt_rev,
-    sk_id_vc_spt_rev,
-    sk_id_vc_bin_spt_rev,
-    sk_id_v_spt_rev,
-    sk_id_ctn_pre,
-    sk_id_ctn_post,
-    sk_id_dc_spt,
-    sk_id_dc_spt_rem,
-    sk_id_deq_x,
-    sk_id_deq_y,
-    sk_id_deq_z,
-  };
-  std::map<Node, std::map<Node, std::map<int, Node> > > d_skolem_cache;
-  /** the set of all skolems we have generated */
-  std::unordered_set<Node, NodeHashFunction> d_all_skolems;
-  Node mkSkolemCached(
-      Node a, Node b, int id, const char* c, int isLenSplit = 0);
-  inline Node mkSkolemS(const char* c, int isLenSplit = 0);
-  void registerNonEmptySkolem(Node sk);
-  // inline Node mkSkolemI(const char * c);
+
   /** mkExplain **/
   Node mkExplain(std::vector<Node>& a);
   Node mkExplain(std::vector<Node>& a, std::vector<Node>& an);
@@ -582,8 +579,18 @@ private:
   /** get concat vector */
   void getConcatVec(Node n, std::vector<Node>& c);
 
-  // get equivalence classes
+  /** get equivalence classes
+   *
+   * This adds the representative of all equivalence classes to eqcs
+   */
   void getEquivalenceClasses(std::vector<Node>& eqcs);
+  /** get relevant equivalence classes
+   *
+   * This adds the representative of all equivalence classes that contain at
+   * least one term in termSet.
+   */
+  void getRelevantEquivalenceClasses(std::vector<Node>& eqcs,
+                                     std::set<Node>& termSet);
 
   // separate into collections with equal length
   void separateByLength(std::vector<Node>& n,
@@ -637,10 +644,40 @@ private:
   context::CDO< Node > d_input_var_lsum;
   context::CDHashMap< int, Node > d_cardinality_lits;
   context::CDO< int > d_curr_cardinality;
+  /** String sum of lengths decision strategy
+   *
+   * This decision strategy enforces that len(x_1) + ... + len(x_k) <= n
+   * for a minimal natural number n, where x_1, ..., x_n is the list of
+   * input variables of the problem of type String.
+   *
+   * This decision strategy is enabled by option::stringsFmf().
+   */
+  class StringSumLengthDecisionStrategy : public DecisionStrategyFmf
+  {
+   public:
+    StringSumLengthDecisionStrategy(context::Context* c,
+                                    context::UserContext* u,
+                                    Valuation valuation);
+    /** make literal */
+    Node mkLiteral(unsigned i) override;
+    /** identify */
+    std::string identify() const override;
+    /** is initialized */
+    bool isInitialized();
+    /** initialize */
+    void initialize(const std::vector<Node>& vars);
+
+   private:
+    /**
+     * User-context-dependent node corresponding to the sum of the lengths of
+     * input variables of type string
+     */
+    context::CDO<Node> d_input_var_lsum;
+  };
+  /** an instance of the above class */
+  std::unique_ptr<StringSumLengthDecisionStrategy> d_sslds;
 
  public:
-  //for finite model finding
-  Node getNextDecisionRequest(unsigned& priority) override;
   // ppRewrite
   Node ppRewrite(TNode atom) override;
 
@@ -652,7 +689,6 @@ private:
     IntStat d_eq_splits;
     IntStat d_deq_splits;
     IntStat d_loop_lemmas;
-    IntStat d_new_skolems;
     Statistics();
     ~Statistics();
   };/* class TheoryStrings::Statistics */

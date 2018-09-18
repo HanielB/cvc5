@@ -741,7 +741,7 @@ header = "options/quantifiers_options.h"
   read_only  = true
   help       = "optimization, skip instances based on possibly irrelevant portions of quantified formulas"
 
-### Rewrite rules options 
+### Rewrite rules options
 
 [[option]]
   name       = "quantRewriteRules"
@@ -761,7 +761,7 @@ header = "options/quantifiers_options.h"
   read_only  = true
   help       = "add one instance of rewrite rule per round"
 
-### Induction options 
+### Induction options
 
 [[option]]
   name       = "quantInduction"
@@ -997,7 +997,7 @@ header = "options/quantifiers_options.h"
   long       = "sygus-unif-cond-indpendent-no-repeat-sol"
   type       = "bool"
   default    = "true"
-  help       = "Don't try repeated solutions"
+  help       = "Do not try repeated solutions when using independent synthesis of conditions in unification-based function synthesis"
 
 [[option]]
   name       = "sygusUnifCondPool"
@@ -1220,7 +1220,7 @@ header = "options/quantifiers_options.h"
   type       = "bool"
   default    = "true"
   help       = "Minimize synthesis solutions"
-  
+
 [[option]]
   name       = "sygusEvalOpt"
   category   = "regular"
@@ -1236,7 +1236,7 @@ header = "options/quantifiers_options.h"
   type       = "bool"
   default    = "false"
   help       = "static inference techniques for computing whether arguments of functions-to-synthesize are relevant"
-  
+
 # Internal uses of sygus
 
 [[option]]
@@ -1338,11 +1338,11 @@ header = "options/quantifiers_options.h"
   help       = "use satisfiability check to verify correctness of candidate rewrites"
 
 [[option]]
-  name       = "sygusRewSynthCheckTimeout"
+  name       = "sygusExprMinerCheckTimeout"
   category   = "regular"
-  long       = "sygus-rr-synth-check-timeout=N"
+  long       = "sygus-expr-miner-check-timeout=N"
   type       = "unsigned long"
-  help       = "timeout (in milliseconds) for the satisfiability check to verify correctness of candidate rewrites"
+  help       = "timeout (in milliseconds) for satisfiability checks in expression miners"
 
 # CEGQI applied to general quantified formulas
 
