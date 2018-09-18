@@ -330,8 +330,6 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
     Node c = cp.first;
     unsigned prevn = 0;
     std::map<Node, unsigned>::iterator itp = prev_n_eval_hds.find(c);
-    Node last;
-    std::vector<Node> last_pt;
     if (itp != prev_n_eval_hds.end())
     {
       prevn = itp->second;
@@ -429,18 +427,6 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
         Trace("cegis-unif-enum-relevancy-debug2") << "  " << capp;
       }
       Trace("cegis-unif-enum-relevancy-debug2") << "\n";
-      if (prevn > 0)
-      {
-        last = cp.second[prevn - 1];
-      }
-      else if (cp.second.size() > 1)
-      {
-        last = cp.second[0];
-      }
-      if (!last.isNull())
-      {
-        last_pt = getEvalPointOfHead(last);
-      }
     }
     NodeManager* nm = NodeManager::currentNM();
     for (unsigned j = prevn, size = cp.second.size(); j < size; j++)
@@ -474,167 +460,171 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
               << "         " << capp_to_arg_constraints[*it][i] << "\n";
         }
       }
-      if (Trace.isOn("cegis-unif-enum-relevancy") && !last.isNull()
-          && cp.second[j] != last)
+      if (Trace.isOn("cegis-unif-enum-relevancy") && j > 0)
       {
-        std::vector<unsigned> diff;
-        Node ei = cp.second[j];
-        // get points
-        std::vector<Node> ei_pt = getEvalPointOfHead(ei);
-        Trace("cegis-unif-enum-relevancy-debug")
-            << "  * SygusUnifRl\n....testing heads " << last << " vs " << ei
-            << " i.e. pt " << last_pt << " against " << ei_pt << "\n";
-        for (unsigned i = 0, size_i = last_pt.size(); i < size_i; ++i)
+        for (unsigned k = 0; k < j; ++k)
         {
-          if (last_pt[i] != ei_pt[i])
+          // get points
+          Node curr = cp.second[j];
+          Node prev = eval_hds[c][k];
+          std::vector<Node> prev_pt = getEvalPointOfHead(prev);
+          std::vector<Node> curr_pt = getEvalPointOfHead(curr);
+          Trace("cegis-unif-enum-relevancy-debug")
+              << "  * SygusUnifRl\n....testing heads " << prev << " vs " << curr
+              << " i.e. pt " << prev_pt << " against " << curr_pt << "\n";
+          std::vector<unsigned> diff;
+          for (unsigned i = 0, size_i = prev_pt.size(); i < size_i; ++i)
           {
-            Trace("cegis-unif-enum-relevancy")
-                << "...new hd " << ei << " differs from hd " << last
-                << " in arg " << i << "\n";
-            Trace("cegis-unif-enum-relevancy-debug")
-                << "     " << ei << " ->"
-                << (d_hd_to_arg_is_core[ei][i] ? "* " : " ")
-                << d_hd_to_arg_constraints[ei][i] << "\n     " << last << " ->"
-                << (d_hd_to_arg_is_core[last][i] ? "* " : " ")
-                << d_hd_to_arg_constraints[last][i] << "\n";
-            diff.push_back(i);
-          }
-        }
-        if (!diff.empty())
-        {
-          // create minimization equalites
-          std::map<unsigned, Node> ind_eqs;
-          std::map<Node, std::vector<unsigned>> sk_to_ind;
-          std::unordered_set<Node, NodeHashFunction> unchanged_sk;
-          unchanged_sk.insert(sks.begin(), sks.end());
-          for (unsigned i : diff)
-          {
-            // TODO ignore indices for which variables are different???????
-            // create equality with the argument constraint
-            Assert(d_hd_to_arg_constraints[ei][i] != Node::null());
-            Node eq =
-                nm->mkNode(EQUAL, d_hd_to_arg_constraints[ei][i], last_pt[i]);
-            eq =
-                eq.substitute(vars.begin(), vars.end(), sks.begin(), sks.end());
-            ind_eqs[i] = eq;
-            // map each skolem of the variables of that arg to the index
-            for (const Node& v : d_hd_to_arg_vars[ei][i])
+            if (prev_pt[i] != curr_pt[i])
             {
-              Node sk = v.substitute(
+              Trace("cegis-unif-enum-relevancy") << "...new hd " << curr
+                                                 << " differs from hd " << prev
+                                                 << " in arg " << i << "\n";
+              Trace("cegis-unif-enum-relevancy-debug")
+                  << "     " << curr << " ->"
+                  << (d_hd_to_arg_is_core[curr][i] ? "* " : " ")
+                  << d_hd_to_arg_constraints[curr][i] << "\n     " << prev
+                  << " ->" << (d_hd_to_arg_is_core[prev][i] ? "* " : " ")
+                  << d_hd_to_arg_constraints[prev][i] << "\n";
+              diff.push_back(i);
+            }
+          }
+          if (!diff.empty())
+          {
+            // create minimization equalites
+            std::map<unsigned, Node> ind_eqs;
+            std::map<Node, std::vector<unsigned>> sk_to_ind;
+            std::unordered_set<Node, NodeHashFunction> unchanged_sk;
+            unchanged_sk.insert(sks.begin(), sks.end());
+            for (unsigned i : diff)
+            {
+              // TODO ignore indices for which variables are different???????
+              // create equality with the argument constraint
+              Assert(d_hd_to_arg_constraints[curr][i] != Node::null());
+              Node eq = nm->mkNode(
+                  EQUAL, d_hd_to_arg_constraints[curr][i], prev_pt[i]);
+              eq = eq.substitute(
                   vars.begin(), vars.end(), sks.begin(), sks.end());
-              Assert(sk != v);
-              sk_to_ind[sk].push_back(i);
-              // erase from all skolems
-              std::unordered_set<Node, NodeHashFunction>::iterator it =
-                  unchanged_sk.find(sk);
-              if (it != unchanged_sk.end())
+              ind_eqs[i] = eq;
+              // map each skolem of the variables of that arg to the index
+              for (const Node& v : d_hd_to_arg_vars[curr][i])
               {
-                unchanged_sk.erase(it);
-              }
-            }
-            Trace("cegis-unif-enum-relevancy-debug2")
-                << "  adding equality for diff " << i << " :  "
-                << ind_eqs[i].substitute(
-                       sks.begin(), sks.end(), vars.begin(), vars.end())
-                << "\n";
-          }
-          // collect previous assignments on variables not in diff
-          std::vector<Node> model_eqs;
-          for (const Node& sk : unchanged_sk)
-          {
-            AlwaysAssert(sk_to_mv.find(sk) != sk_to_mv.end());
-            model_eqs.push_back(nm->mkNode(EQUAL, sk, sk_to_mv[sk]));
-          }
-          // verify
-          Result r;
-          do
-          {
-            // add min guards
-            std::vector<Node> min_eqs;
-            Trace("cegis-unif-enum-relevancy-debug")
-                << " check min query with eqs";
-            for (std::pair<const unsigned, Node>& p : ind_eqs)
-            {
-              min_eqs.push_back(p.second);
-              Trace("cegis-unif-enum-relevancy-debug")
-                  << " "
-                  << min_eqs.back().substitute(
-                         sks.begin(), sks.end(), vars.begin(), vars.end());
-            }
-            Trace("cegis-unif-enum-relevancy-debug") << "\n";
-            min_eqs.insert(min_eqs.end(), model_eqs.begin(), model_eqs.end());
-            min_eqs.push_back(query);
-            // make the satisfiability query and check it
-            ExprManagerMapCollection varMap;
-            ExprManager em(nm->getOptions());
-            std::unique_ptr<SmtEngine> minPointChecker;
-            initializeChecker(minPointChecker, em, varMap, min_eqs);
-            r = minPointChecker->checkSat();
-            Trace("cegis-unif-enum-relevancy-debug")
-                << "  result was " << r << "\n";
-            // if no model, remove one of the equalities and try again
-            if (r != Result::SAT && !ind_eqs.empty())
-            {
-              AlwaysAssert(r == Result::UNSAT);
-              UnsatCore core = minPointChecker->getUnsatCore();
-              Trace("cegis-unif-enum-relevancy-debug")
-                  << "  ..unsat core has size " << core.size();
-              Trace("cegis-unif-enum-relevancy-debug2") << " and is " << core;
-              Trace("cegis-unif-enum-relevancy-debug") << "\n";
-              std::map<Node, std::vector<unsigned>> e_sk_to_ind;
-              for (const Node& sk : sks)
-              {
-                Node e_sk = Node::fromExpr(sk.toExpr().exportTo(&em, varMap));
-                e_sk_to_ind[e_sk] = sk_to_ind[sk];
-              }
-              std::vector<Expr> assertions = core.getAssertions();
-              for (const Expr& assertion : assertions)
-              {
-                // Only care for variable equalities
-                if (assertion.getKind() != EQUAL
-                    || assertion.getNumChildren() != 2)
+                Node sk = v.substitute(
+                    vars.begin(), vars.end(), sks.begin(), sks.end());
+                Assert(sk != v);
+                sk_to_ind[sk].push_back(i);
+                // erase from all skolems
+                std::unordered_set<Node, NodeHashFunction>::iterator it =
+                    unchanged_sk.find(sk);
+                if (it != unchanged_sk.end())
                 {
-                  continue;
+                  unchanged_sk.erase(it);
                 }
-                std::unordered_set<Node, NodeHashFunction> e_sks;
-                collectSks(Node::fromExpr(assertion), e_sks);
-                for (const Node& e_sk : e_sks)
+              }
+              Trace("cegis-unif-enum-relevancy-debug2")
+                  << "  adding equality for diff " << i << " :  "
+                  << ind_eqs[i].substitute(
+                         sks.begin(), sks.end(), vars.begin(), vars.end())
+                  << "\n";
+            }
+            // collect previous assignments on variables not in diff
+            std::vector<Node> model_eqs;
+            for (const Node& sk : unchanged_sk)
+            {
+              AlwaysAssert(sk_to_mv.find(sk) != sk_to_mv.end());
+              model_eqs.push_back(nm->mkNode(EQUAL, sk, sk_to_mv[sk]));
+            }
+            // verify
+            Result r;
+            do
+            {
+              // add min guards
+              std::vector<Node> min_eqs;
+              Trace("cegis-unif-enum-relevancy-debug")
+                  << " check min query with eqs";
+              for (std::pair<const unsigned, Node>& p : ind_eqs)
+              {
+                min_eqs.push_back(p.second);
+                Trace("cegis-unif-enum-relevancy-debug")
+                    << " "
+                    << min_eqs.back().substitute(
+                           sks.begin(), sks.end(), vars.begin(), vars.end());
+              }
+              Trace("cegis-unif-enum-relevancy-debug") << "\n";
+              min_eqs.insert(min_eqs.end(), model_eqs.begin(), model_eqs.end());
+              min_eqs.push_back(query);
+              // make the satisfiability query and check it
+              ExprManagerMapCollection varMap;
+              ExprManager em(nm->getOptions());
+              std::unique_ptr<SmtEngine> minPointChecker;
+              initializeChecker(minPointChecker, em, varMap, min_eqs);
+              r = minPointChecker->checkSat();
+              Trace("cegis-unif-enum-relevancy-debug") << "  result was " << r
+                                                       << "\n";
+              // if no model, remove one of the equalities and try again
+              if (r != Result::SAT && !ind_eqs.empty())
+              {
+                AlwaysAssert(r == Result::UNSAT);
+                UnsatCore core = minPointChecker->getUnsatCore();
+                Trace("cegis-unif-enum-relevancy-debug")
+                    << "  ..unsat core has size " << core.size();
+                Trace("cegis-unif-enum-relevancy-debug2") << " and is " << core;
+                Trace("cegis-unif-enum-relevancy-debug") << "\n";
+                std::map<Node, std::vector<unsigned>> e_sk_to_ind;
+                for (const Node& sk : sks)
                 {
-                  AlwaysAssert(e_sk_to_ind.find(e_sk) != e_sk_to_ind.end());
-                  for (unsigned i : e_sk_to_ind[e_sk])
+                  Node e_sk = Node::fromExpr(sk.toExpr().exportTo(&em, varMap));
+                  e_sk_to_ind[e_sk] = sk_to_ind[sk];
+                }
+                std::vector<Expr> assertions = core.getAssertions();
+                for (const Expr& assertion : assertions)
+                {
+                  // Only care for variable equalities
+                  if (assertion.getKind() != EQUAL
+                      || assertion.getNumChildren() != 2)
                   {
-                    std::map<unsigned, Node>::iterator it = ind_eqs.find(i);
-                    if (it != ind_eqs.end())
+                    continue;
+                  }
+                  std::unordered_set<Node, NodeHashFunction> e_sks;
+                  collectSks(Node::fromExpr(assertion), e_sks);
+                  for (const Node& e_sk : e_sks)
+                  {
+                    AlwaysAssert(e_sk_to_ind.find(e_sk) != e_sk_to_ind.end());
+                    for (unsigned i : e_sk_to_ind[e_sk])
                     {
-                      Trace("cegis-unif-enum-relevancy-debug")
-                          << "  Can't remove from diff index " << i << "\n";
-                      ind_eqs.erase(it);
+                      std::map<unsigned, Node>::iterator it = ind_eqs.find(i);
+                      if (it != ind_eqs.end())
+                      {
+                        Trace("cegis-unif-enum-relevancy-debug")
+                            << "  Can't remove from diff index " << i << "\n";
+                        ind_eqs.erase(it);
+                      }
                     }
                   }
                 }
               }
-            }
-            else
+              else
+              {
+                break;
+              }
+            } while (true);
+            // Found with at least one arg diff minimization, remove from diff
+            if (r == Result::SAT)
             {
-              break;
+              for (std::pair<const unsigned, Node>& p : ind_eqs)
+              {
+                AlwaysAssert(std::find(diff.begin(), diff.end(), p.first)
+                             != diff.end());
+                diff.erase(std::find(diff.begin(), diff.end(), p.first));
+              }
+              Trace("cegis-unif-enum-relevancy") << "...diff " << curr << " vs "
+                                                 << prev << " after min is : ";
+              for (unsigned i : diff)
+              {
+                Trace("cegis-unif-enum-relevancy") << i << ", ";
+              }
+              Trace("cegis-unif-enum-relevancy") << "\n";
             }
-          } while (true);
-          // Found with at least one arg diff minimization, remove from diff
-          if (r == Result::SAT)
-          {
-            for (std::pair<const unsigned, Node>& p : ind_eqs)
-            {
-              AlwaysAssert(std::find(diff.begin(), diff.end(), p.first)
-                           != diff.end());
-              diff.erase(std::find(diff.begin(), diff.end(), p.first));
-            }
-            Trace("cegis-unif-enum-relevancy")
-                << "...diff " << ei << " vs " << last << " after min is : ";
-            for (unsigned i : diff)
-            {
-              Trace("cegis-unif-enum-relevancy") << i << ", ";
-            }
-            Trace("cegis-unif-enum-relevancy") << "\n";
           }
         }
       }
