@@ -462,39 +462,39 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
       }
       if (Trace.isOn("cegis-unif-enum-relevancy") && j > 0)
       {
-        for (unsigned k = 0; k < (j - 1); ++k)
+        Trace("cegis-unif-enum-relevancy") << "\n Checking new hd " << cp.second[j] << "\n";
+        for (unsigned k = 0; k < j; ++k)
         {
           // get points
           Node curr = cp.second[j];
           Node prev = d_cand_to_eval_hds[c][k];
           std::vector<Node> prev_pt = getEvalPointOfHead(prev);
           std::vector<Node> curr_pt = getEvalPointOfHead(curr);
-          if (Trace.isOn("cegis-unif-enum-relevancy-debug"))
+          if (Trace.isOn("cegis-unif-enum-relevancy"))
           {
-            Trace("cegis-unif-enum-relevancy-debug")
-                << "  * SygusUnifRl\n....testing heads " << curr << " vs "
+            Trace("cegis-unif-enum-relevancy")
+                << " ..testing heads " << curr << " vs "
                 << prev << " i.e.\n    [";
             for (unsigned i = 0, size_i = curr_pt.size(); i < size_i; ++i)
             {
-              Trace("cegis-unif-enum-relevancy-debug")
+              Trace("cegis-unif-enum-relevancy")
                   << curr_pt[i] << (d_hd_to_arg_is_core[curr][i] ? "*" : "")
                   << (i == size_i - 1 ? "" : ", ");
             }
-            Trace("cegis-unif-enum-relevancy-debug") << "] vs [";
+            Trace("cegis-unif-enum-relevancy") << "] vs [";
             for (unsigned i = 0, size_i = prev_pt.size(); i < size_i; ++i)
             {
-              Trace("cegis-unif-enum-relevancy-debug")
+              Trace("cegis-unif-enum-relevancy")
                   << prev_pt[i] << (d_hd_to_arg_is_core[prev][i] ? "*" : "")
                   << (i == size_i - 1 ? "" : ", ");
             }
-            Trace("cegis-unif-enum-relevancy-debug") << "]\n";
+            Trace("cegis-unif-enum-relevancy") << "]\n";
           }
           std::vector<unsigned> diff;
           for (unsigned i = 0, size_i = prev_pt.size(); i < size_i; ++i)
           {
-            if (prev_pt[i] != curr_pt[i])
             {
-              Trace("cegis-unif-enum-relevancy") << "...new hd " << curr
+              Trace("cegis-unif-enum-relevancy-debug") << "...new hd " << curr
                                                  << " differs from hd " << prev
                                                  << " in arg " << i << "\n";
               Trace("cegis-unif-enum-relevancy-debug")
@@ -508,6 +508,16 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
           }
           if (!diff.empty())
           {
+            if (!Trace.isOn("cegis-unif-enum-relevancy-debug"))
+            {
+              Trace("cegis-unif-enum-relevancy")
+                  << "    diff " << curr << " vs " << prev << " is : ";
+              for (unsigned i : diff)
+              {
+                Trace("cegis-unif-enum-relevancy") << i << ", ";
+              }
+              Trace("cegis-unif-enum-relevancy") << "\n";
+            }
             // create minimization equalites
             std::map<unsigned, Node> ind_eqs;
             std::map<Node, std::vector<unsigned>> sk_to_ind;
@@ -634,7 +644,7 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
                              != diff.end());
                 diff.erase(std::find(diff.begin(), diff.end(), p.first));
               }
-              Trace("cegis-unif-enum-relevancy") << "...diff " << curr << " vs "
+              Trace("cegis-unif-enum-relevancy") << "    diff " << curr << " vs "
                                                  << prev << " after min is : ";
               for (unsigned i : diff)
               {
