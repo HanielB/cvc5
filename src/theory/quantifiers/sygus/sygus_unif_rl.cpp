@@ -462,11 +462,11 @@ Node SygusUnifRl::addRefLemma(const std::vector<Node>& vars,
       }
       if (Trace.isOn("cegis-unif-enum-relevancy") && j > 0)
       {
-        for (unsigned k = 0; k < j; ++k)
+        for (unsigned k = 0; k < (j - 1); ++k)
         {
           // get points
           Node curr = cp.second[j];
-          Node prev = eval_hds[c][k];
+          Node prev = d_cand_to_eval_hds[c][k];
           std::vector<Node> prev_pt = getEvalPointOfHead(prev);
           std::vector<Node> curr_pt = getEvalPointOfHead(curr);
           Trace("cegis-unif-enum-relevancy-debug")
