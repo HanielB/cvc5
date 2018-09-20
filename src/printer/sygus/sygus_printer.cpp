@@ -37,8 +37,6 @@ namespace CVC4 {
 namespace printer {
 namespace sygus {
 
-static string smtKindString(Kind k, Variant v);
-
 void SygusPrinter::toStream(
     std::ostream& out, TNode n, int toDepth, bool types, size_t dag) const
 {
@@ -1128,21 +1126,6 @@ static void toStream(std::ostream& out,
   out << "(set-logic " << c->getLogic() << ")";
 }
 
-static void toStream(std::ostream& out, const ConstraintCommand* c)
-{
-  out << "(constraint " << c->getExpr() << ")";
-}
-
-static void toStream(std::ostream& out, const CheckSynthCommand* c)
-{
-  out << "(check-synth)";
-}
-
-static void toStream(std::ostream& out, const SynthFunCommand* c)
-{
-  out << "(check-synth)";
-}
-
 static void toStream(std::ostream& out, const CommandSequence* c)
 {
   CommandSequence::const_iterator i = c->begin();
@@ -1166,7 +1149,7 @@ static void toStream(std::ostream& out, const CommandSequence* c)
 static void toStream(std::ostream& out, const DeclareVarCommand* c)
 {
   Type type = c->getType();
-  out << "(declare-fun " << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
   if (type.isFunction())
   {
     FunctionType ft = type;
@@ -1226,26 +1209,65 @@ static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
   out << ") " << type << ")";
 }
 
-static void toStream(std::ostream& out, const Datatype& d)
+static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 {
-  for (Datatype::const_iterator ctor = d.begin(), ctor_end = d.end();
-       ctor != ctor_end;
-       ++ctor)
-  {
-    if (ctor != d.begin()) out << " ";
-    out << "(" << maybeQuoteSymbol(ctor->getName());
-
-    for (DatatypeConstructor::const_iterator arg = ctor->begin(),
-                                             arg_end = ctor->end();
-         arg != arg_end;
-         ++arg)
-    {
-      out << " (" << arg->getSelector() << " "
-          << static_cast<SelectorType>(arg->getType()).getRangeType() << ")";
+  Expr func = c->getFunction();
+  const vector<Expr>* formals = &c->getFormals();
+  out << "(define-fun " << func << " (";
+  Type type = func.getType();
+  Expr formula = c->getFormula();
+  if(type.isFunction()) {
+    vector<Expr> f;
+    if(formals->empty()) {
+      const vector<Type>& params = FunctionType(type).getArgTypes();
+      for(vector<Type>::const_iterator j = params.begin(); j != params.end(); ++j) {
+        f.push_back(NodeManager::currentNM()->mkSkolem("a", TypeNode::fromType(*j), "",
+                                                       NodeManager::SKOLEM_NO_NOTIFY).toExpr());
+      }
+      formula = NodeManager::currentNM()->toExprManager()->mkExpr(kind::APPLY_UF, formula, f);
+      formals = &f;
     }
-    out << ")";
+    vector<Expr>::const_iterator i = formals->begin();
+    for(;;) {
+      out << "(" << (*i) << " " << (*i).getType() << ")";
+      ++i;
+      if(i != formals->end()) {
+        out << " ";
+      } else {
+        break;
+      }
+    }
+    type = FunctionType(type).getRangeType();
   }
+  out << ") " << type << " " << formula << ")";
 }
+
+static void toStream(std::ostream& out, const SynthFunCommand* c)
+{
+  out << "(check-synth)";
+}
+
+static void toStream(std::ostream& out, const SynthInvCommand* c)
+{
+  out << "(check-synth)";
+}
+
+static void toStream(std::ostream& out, const ConstraintCommand* c)
+{
+  out << "(constraint " << c->getExpr() << ")";
+}
+
+static void toStream(std::ostream& out, const InvConstraintCommand* c)
+{
+  out << "(inv-constraint " << c->getExpr() << ")";
+}
+
+static void toStream(std::ostream& out, const CheckSynthCommand* c)
+{
+  out << "(check-synth)";
+}
+
+
 
 
 }  // namespace sygus
