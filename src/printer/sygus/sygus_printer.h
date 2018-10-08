@@ -46,12 +46,9 @@ class SygusPrinter : public CVC4::Printer
 
   void toStream(std::ostream& out, const CommandStatus* s) const override;
 
+  void toStreamSygus(std::ostream& out, TNode n) const override;
+
  private:
-  void toStream(
-      std::ostream& out, TNode n, int toDepth, bool types, TypeNode nt) const;
-  void toStream(std::ostream& out,
-                const Model& m,
-                const Command* c) const override;
   void toStream(std::ostream& out, const SExpr& sexpr) const;
 }; /* class SygusPrinter */
 
