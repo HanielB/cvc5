@@ -3649,14 +3649,6 @@ vector<Expr> SmtEngine::getUnsatAssumptions(void)
   return res;
 }
 
-Result SmtEngine::checkSynth(const Expr& e)
-{
-  SmtScope smts(this);
-  Trace("smt") << "Check synth: " << e << std::endl;
-  Trace("smt-synth") << "Check synthesis conjecture: " << e << std::endl;
-  return checkSatisfiability(e, true, false);
-}
-
 Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
 {
   Assert(ex.getExprManager() == d_exprManager);
@@ -3680,6 +3672,26 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
   d_private->addFormula(e.getNode(), inUnsatCore);
   return quickCheck().asValidityResult();
 }/* SmtEngine::assertFormula() */
+
+
+/*
+   --------------------------------------------------------------------------
+    SyGuS commands handling
+   --------------------------------------------------------------------------
+*/
+
+void SmtEngine::addSygusConstraint(Expr constraint)
+{
+  d_sygusConstraints.push_back(constraint);
+}
+
+Result SmtEngine::checkSynth(const Expr& e)
+{
+  SmtScope smts(this);
+  Trace("smt") << "Check synth: " << e << std::endl;
+  Trace("smt-synth") << "Check synthesis conjecture: " << e << std::endl;
+  return checkSatisfiability(e, true, false);
+}
 
 Node SmtEngine::postprocess(TNode node, TypeNode expectedType) const {
   return node;

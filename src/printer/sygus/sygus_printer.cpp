@@ -33,6 +33,8 @@
 #include "theory/substitutions.h"
 #include "theory/theory_model.h"
 
+use namespace kind;
+
 namespace CVC4 {
 namespace printer {
 namespace sygus {
@@ -213,7 +215,7 @@ static void toStream(std::ostream& out, const DeclareVarCommand* c)
 static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
 {
   Type type = c->getType();
-  out << "(declare-fun " << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
   if (type.isFunction())
   {
     FunctionType ft = type;
@@ -255,28 +257,26 @@ static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
 static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 {
   Expr func = c->getFunction();
-  const vector<Expr>* formals = &c->getFormals();
+  const std::vector<Expr>* formals = &c->getFormals();
   out << "(define-fun " << func << " (";
   Type type = func.getType();
   Expr formula = c->getFormula();
+  NodeManager* nm = NodeManager::currentNM();
   if (type.isFunction())
   {
-    vector<Expr> f;
+    std::vector<Expr> f;
     if (formals->empty())
     {
-      const vector<Type>& params = FunctionType(type).getArgTypes();
-      for (vector<Type>::const_iterator j = params.begin(); j != params.end();
-           ++j)
+      const std::vector<Type>& params = FunctionType(type).getArgTypes();
+      for (const Type& type : params)
       {
-        f.push_back(NodeManager::currentNM()
-                        ->mkSkolem("a",
-                                   TypeNode::fromType(*j),
-                                   "",
-                                   NodeManager::SKOLEM_NO_NOTIFY)
+        f.push_back(nm->mkSkolem("a",
+                                 TypeNode::fromType(type),
+                                 "",
+                                 NodeManager::SKOLEM_NO_NOTIFY)
                         .toExpr());
       }
-      formula = NodeManager::currentNM()->toExprManager()->mkExpr(
-          kind::APPLY_UF, formula, f);
+      formula = nm->toExprManager()->mkExpr(APPLY_UF, formula, f);
       formals = &f;
     }
     vector<Expr>::const_iterator i = formals->begin();
@@ -300,7 +300,9 @@ static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 
 static void toStream(std::ostream& out, const SynthFunCommand* c)
 {
-  out << "(check-synth)";
+  out << "(synth-fun ";
+
+  out << ")";
 }
 
 static void toStream(std::ostream& out, const SynthInvCommand* c)
@@ -315,7 +317,13 @@ static void toStream(std::ostream& out, const ConstraintCommand* c)
 
 static void toStream(std::ostream& out, const InvConstraintCommand* c)
 {
-  out << "(inv-constraint " << c->getExpr() << ")";
+  out << "(inv-constraint";
+  const Expr& place_holders = c->getPlaceHolders();
+  for (const Expr& e : place_holders)
+  {
+    out << " " << e;
+  }
+  out << ")";
 }
 
 static void toStream(std::ostream& out, const CheckSynthCommand* c)

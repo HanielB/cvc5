@@ -96,7 +96,7 @@ private:
   bool logicIsSet() override;
 
   /**
-   * Returns the expression that name should be interpreted as. 
+   * Returns the expression that name should be interpreted as.
    */
   Expr getExpressionForNameAndType(const std::string& name, Type t) override;
 
@@ -272,10 +272,6 @@ private:
                         std::vector<std::string>& unresolved_gterm_sym,
                         std::map< CVC4::Type, CVC4::Type >& sygus_to_builtin );
 
-
-  void addSygusConstraint(Expr constraint) {
-    d_sygusConstraints.push_back(constraint);
-  }
 
   Expr getSygusConstraints() {
     switch(d_sygusConstraints.size()) {

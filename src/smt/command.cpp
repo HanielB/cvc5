@@ -562,12 +562,87 @@ Command* QueryCommand::clone() const
 std::string QueryCommand::getCommandName() const { return "query"; }
 
 /* -------------------------------------------------------------------------- */
+/* class ConstraintCommand                                                    */
+/* -------------------------------------------------------------------------- */
+
+ConstraintCommand::ConstraintCommand(const Expr& e) : d_expr(e) {}
+
+void ConstraintCommand::invoke(SmtEngine* smtEngine)
+{
+  try
+  {
+    smtEngine->assertSygusConstraint(d_expr);
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+Expr ConstraintCommand::getExpr() const { return d_expr; }
+
+Command* ConstraintCommand::exportTo(ExprManager* exprManager,
+                                     ExprManagerMapCollection& variableMap)
+{
+  return new ConstraintCommand(d_expr.exportTo(exprManager, variableMap));
+}
+
+Command* ConstraintCommand::clone() const
+{
+  return new ConstraintCommand(d_expr);
+}
+
+std::string ConstraintCommand::getCommandName() const { return "constraint"; }
+
+/* -------------------------------------------------------------------------- */
+/* class InvConstraintCommand                                                    */
+/* -------------------------------------------------------------------------- */
+
+InvConstraintCommand::InvConstraintCommand(
+    const Expr& e, const std::vector<Expr>& place_holders)
+    : d_expr(e), d_place_holders(place_holders)
+{
+}
+
+void InvConstraintCommand::invoke(SmtEngine* smtEngine)
+{
+  try
+  {
+    smtEngine->assertSygusConstraint(d_expr);
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+Expr InvConstraintCommand::getExpr() const { return d_expr; }
+
+const std : vector<Expr>& InvConstraintCommand::getPlaceHolders() const
+{
+  return d_place_holders;
+}
+
+Command* InvConstraintCommand::exportTo(ExprManager* exprManager,
+                                     ExprManagerMapCollection& variableMap)
+{
+  return new InvConstraintCommand(d_expr.exportTo(exprManager, variableMap),
+                                  d_place_holders);
+}
+
+Command* InvConstraintCommand::clone() const
+{
+  return new InvConstraintCommand(d_expr, d_place_holders);
+}
+
+std::string InvConstraintCommand::getCommandName() const { return "inv-constraint"; }
+
+/* -------------------------------------------------------------------------- */
 /* class CheckSynthCommand                                                    */
 /* -------------------------------------------------------------------------- */
 
-CheckSynthCommand::CheckSynthCommand() : d_expr() {}
-CheckSynthCommand::CheckSynthCommand(const Expr& expr) : d_expr(expr) {}
-Expr CheckSynthCommand::getExpr() const { return d_expr; }
 void CheckSynthCommand::invoke(SmtEngine* smtEngine)
 {
   try
@@ -624,17 +699,12 @@ void CheckSynthCommand::printResult(std::ostream& out, uint32_t verbosity) const
 Command* CheckSynthCommand::exportTo(ExprManager* exprManager,
                                      ExprManagerMapCollection& variableMap)
 {
-  CheckSynthCommand* c =
-      new CheckSynthCommand(d_expr.exportTo(exprManager, variableMap));
-  c->d_result = d_result;
-  return c;
+  return new CheckSynthCommand();
 }
 
 Command* CheckSynthCommand::clone() const
 {
-  CheckSynthCommand* c = new CheckSynthCommand(d_expr);
-  c->d_result = d_result;
-  return c;
+  return new CheckSynthCommand();
 }
 
 std::string CheckSynthCommand::getCommandName() const { return "check-synth"; }

@@ -613,14 +613,89 @@ class CVC4_PUBLIC QueryCommand : public Command
   std::string getCommandName() const override;
 }; /* class QueryCommand */
 
+/* ------------------- sygus commands  ------------------ */
+
+class CVC4_PUBLIC DeclareVarCommand : public DeclarationDefinitionCommand
+{
+ protected:
+  Expr d_func;
+  Type d_type;
+
+ public:
+  DeclareVarCommand(const std::string& id, Expr var, Type type);
+  Expr getVar() const;
+  Type getType() const;
+  void invoke(SmtEngine* smtEngine) override{};
+  Command* exportTo(ExprManager* exprManager,
+                    ExprManagerMapCollection& variableMap) override{};
+  Command* clone() const override{};
+  std::string getCommandName() const override;
+};
+
+class CVC4_PUBLIC DeclarePrimedVarCommand : public DeclarationDefinitionCommand
+{
+ protected:
+  Expr d_func;
+  Type d_type;
+
+ public:
+  DeclareVarCommand(const std::string& id, Expr var, Type type);
+  Expr getVar() const;
+  Type getType() const;
+  void invoke(SmtEngine* smtEngine) override{};
+  Command* exportTo(ExprManager* exprManager,
+                    ExprManagerMapCollection& variableMap) override{};
+  Command* clone() const override{};
+  std::string getCommandName() const override;
+};
+
+class CVC4_PUBLIC ConstraintCommand : public Command
+{
+ protected:
+  Expr d_expr;
+
+ public:
+  ConstraintCommand(const Expr& e);
+
+  Expr getExpr() const;
+
+  /** default interface */
+  void invoke(SmtEngine* smtEngine) override{};
+  Command* exportTo(ExprManager* exprManager,
+                    ExprManagerMapCollection& variableMap) override{};
+  Command* clone() const override{};
+  std::string getCommandName() const override;
+};
+
+class CVC4_PUBLIC InvConstraintCommand : public Command
+{
+ protected:
+  Expr d_expr;
+  std::vector<Expr> d_place_holders;
+
+ public:
+  InvConstraintCommand(const Expr& e,
+                       const std::vector<Expr>& place_holders);
+
+  Expr getExpr() const;
+  const std::vector<Expr>& getPlaceHolders() const;
+
+  /** default interface */
+  void invoke(SmtEngine* smtEngine) override{};
+  Command* exportTo(ExprManager* exprManager,
+                    ExprManagerMapCollection& variableMap) override{};
+  Command* clone() const override{};
+  std::string getCommandName() const override;
+};
+
 class CVC4_PUBLIC CheckSynthCommand : public Command
 {
  public:
-  CheckSynthCommand();
-  CheckSynthCommand(const Expr& expr);
+  CheckSynthCommand() {};
 
-  Expr getExpr() const;
   Result getResult() const;
+
+  /** default interface */
   void invoke(SmtEngine* smtEngine) override;
   void printResult(std::ostream& out, uint32_t verbosity = 2) const override;
   Command* exportTo(ExprManager* exprManager,
@@ -629,13 +704,13 @@ class CVC4_PUBLIC CheckSynthCommand : public Command
   std::string getCommandName() const override;
 
  protected:
-  /** the assertion of check-synth */
-  Expr d_expr;
   /** result of the check-synth call */
   Result d_result;
   /** string stream that stores the output of the solution */
   std::stringstream d_solution;
 }; /* class CheckSynthCommand */
+
+/* ------------------- sygus commands  ------------------ */
 
 // this is TRANSFORM in the CVC presentation language
 class CVC4_PUBLIC SimplifyCommand : public Command
