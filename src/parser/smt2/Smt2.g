@@ -722,55 +722,8 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
         PARSER_STATE->parseError("Bad syntax for inv-constraint: expected 4 "
                                  "arguments.");
       }
-      // get variables (regular and their respective primed versions)
-      std::vector<Expr> vars, primed_vars;
-      PARSER_STATE->getSygusInvVars(terms[0].getType(), vars, primed_vars);
-      // make relevant terms; 0 -> Inv, 1 -> Pre, 2 -> Trans, 3 -> Post
-      for (unsigned i = 0; i < 4; ++i)
-      {
-        Expr op = terms[i];
-        Debug("parser-sygus")
-            << "Make inv-constraint term #" << i << " : " << op << " with type "
-            << op.getType() << "..." << std::endl;
-        std::vector<Expr> children;
-        children.push_back(op);
-        // transition relation applied over both variable lists
-        if (i == 2)
-        {
-          children.insert(children.end(), vars.begin(), vars.end());
-          children.insert(
-              children.end(), primed_vars.begin(), primed_vars.end());
-        }
-        else
-        {
-          children.insert(children.end(), vars.begin(), vars.end());
-        }
-        terms[i] = EXPR_MANAGER->mkExpr(i == 0 ? kind::APPLY_UF : kind::APPLY,
-                                        children);
-        // make application of Inv on primed variables
-        if (i == 0)
-        {
-          children.clear();
-          children.push_back(op);
-          children.insert(
-              children.end(), primed_vars.begin(), primed_vars.end());
-          terms.push_back(EXPR_MANAGER->mkExpr(kind::APPLY_UF, children));
-        }
-      }
-      //make constraints
-      std::vector< Expr > conj;
-      conj.push_back( EXPR_MANAGER->mkExpr(kind::IMPLIES, terms[1],
-                                           terms[0] ) );
-      const Expr term0_and_2 = EXPR_MANAGER->mkExpr(kind::AND, terms[0],
-                                                    terms[2] );
-      conj.push_back( EXPR_MANAGER->mkExpr(kind::IMPLIES, term0_and_2,
-                                           terms[4] ) );
-      conj.push_back( EXPR_MANAGER->mkExpr(kind::IMPLIES, terms[0], terms[3]) );
-      Expr ic = EXPR_MANAGER->mkExpr( kind::AND, conj );
-      Debug("parser-sygus") << "...read invariant constraint " << ic
-                            << std::endl;
-      PARSER_STATE->addSygusConstraint(ic);
-      cmd->reset(new InvConstraintCommand(ic, terms));
+
+      cmd->reset(new InvConstraintCommand(terms));
     }
   | /* check-synth */
     CHECK_SYNTH_TOK

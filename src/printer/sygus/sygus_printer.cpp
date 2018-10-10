@@ -164,9 +164,7 @@ void SygusPrinter::toStream(std::ostream& out, const CommandStatus* s) const
   s->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }
 
-static void toStream(std::ostream& out,
-                     const SetBenchmarkLogicCommand* c,
-                     Variant v)
+static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
 {
   out << "(set-logic " << c->getLogic() << ")";
 }
@@ -191,46 +189,15 @@ static void toStream(std::ostream& out, const CommandSequence* c)
   }
 }
 
-static void toStream(std::ostream& out, const DeclareVarCommand* c)
+static void toStream(std::ostream& out, const CommentCommand* c)
 {
-  Type type = c->getType();
-  out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
-  if (type.isFunction())
-  {
-    FunctionType ft = type;
-    const vector<Type> argTypes = ft.getArgTypes();
-    if (argTypes.size() > 0)
-    {
-      copy(argTypes.begin(),
-           argTypes.end() - 1,
-           ostream_iterator<Type>(out, " "));
-      out << argTypes.back();
-    }
-    type = ft.getRangeType();
+  string s = c->getComment();
+  size_t pos = 0;
+  while((pos = s.find_first_of('"', pos)) != string::npos) {
+    s.replace(pos, 1, (v == z3str_variant || v == smt2_0_variant) ? "\\\"" : "\"\"");
+    pos += 2;
   }
-
-  out << ") " << type << ")";
-}
-
-static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
-{
-  Type type = c->getType();
-  out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
-  if (type.isFunction())
-  {
-    FunctionType ft = type;
-    const vector<Type> argTypes = ft.getArgTypes();
-    if (argTypes.size() > 0)
-    {
-      copy(argTypes.begin(),
-           argTypes.end() - 1,
-           ostream_iterator<Type>(out, " "));
-      out << argTypes.back();
-    }
-    type = ft.getRangeType();
-  }
-
-  out << ") " << type << ")";
+  out << "(set-info :notes \"" << s << "\")";
 }
 
 static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
@@ -250,7 +217,6 @@ static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
     }
     type = ft.getRangeType();
   }
-
   out << ") " << type << ")";
 }
 
@@ -296,6 +262,48 @@ static void toStream(std::ostream& out, const DefineFunctionCommand* c)
     type = FunctionType(type).getRangeType();
   }
   out << ") " << type << " " << formula << ")";
+}
+
+static void toStream(std::ostream& out, const DeclareVarCommand* c)
+{
+  Type type = c->getType();
+  out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  if (type.isFunction())
+  {
+    FunctionType ft = type;
+    const vector<Type> argTypes = ft.getArgTypes();
+    if (argTypes.size() > 0)
+    {
+      copy(argTypes.begin(),
+           argTypes.end() - 1,
+           ostream_iterator<Type>(out, " "));
+      out << argTypes.back();
+    }
+    type = ft.getRangeType();
+  }
+
+  out << ") " << type << ")";
+}
+
+static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
+{
+  Type type = c->getType();
+  out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  if (type.isFunction())
+  {
+    FunctionType ft = type;
+    const vector<Type> argTypes = ft.getArgTypes();
+    if (argTypes.size() > 0)
+    {
+      copy(argTypes.begin(),
+           argTypes.end() - 1,
+           ostream_iterator<Type>(out, " "));
+      out << argTypes.back();
+    }
+    type = ft.getRangeType();
+  }
+
+  out << ") " << type << ")";
 }
 
 static void toStream(std::ostream& out, const SynthFunCommand* c)

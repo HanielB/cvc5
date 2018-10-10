@@ -670,14 +670,11 @@ class CVC4_PUBLIC ConstraintCommand : public Command
 class CVC4_PUBLIC InvConstraintCommand : public Command
 {
  protected:
-  Expr d_expr;
   std::vector<Expr> d_place_holders;
 
  public:
-  InvConstraintCommand(const Expr& e,
-                       const std::vector<Expr>& place_holders);
+  InvConstraintCommand(const std::vector<Expr>& place_holders);
 
-  Expr getExpr() const;
   const std::vector<Expr>& getPlaceHolders() const;
 
   /** default interface */

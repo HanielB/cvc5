@@ -307,11 +307,11 @@ void Smt2::addTheory(Theory theory) {
     defineType("Float128", getExprManager()->mkFloatingPointType(15, 113));
     addFloatingPointOperators();
     break;
-    
+
   case THEORY_SEP:
     addSepOperators();
     break;
-    
+
   default:
     std::stringstream ss;
     ss << "internal error: unsupported theory " << theory;
@@ -378,7 +378,7 @@ bool Smt2::logicIsSet() {
 }
 
 Expr Smt2::getExpressionForNameAndType(const std::string& name, Type t) {
-  if(sygus() && name[0]=='-' && 
+  if(sygus() && name[0]=='-' &&
     name.find_first_not_of("0123456789", 1) == std::string::npos) {
     //allow unary minus in sygus
     return getExprManager()->mkConst(Rational(name));
@@ -540,7 +540,7 @@ void Smt2::setLogic(std::string name) {
   if (d_logic.isTheoryEnabled(theory::THEORY_SEP)) {
     addTheory(THEORY_SEP);
   }
-  
+
 }/* Smt2::setLogic() */
 
 void Smt2::setInfo(const std::string& flag, const SExpr& sexpr) {
@@ -1027,7 +1027,7 @@ void Smt2::mkSygusDatatype( CVC4::Datatype& dt, std::vector<CVC4::Expr>& ops,
                             std::map< CVC4::Type, CVC4::Type >& sygus_to_builtin ) {
   Debug("parser-sygus") << "Making sygus datatype " << dt.getName() << std::endl;
   Debug("parser-sygus") << "  add constructors..." << std::endl;
-  
+
   Debug("parser-sygus") << "SMT2 sygus parser : Making constructors for sygus datatype " << dt.getName() << std::endl;
   Debug("parser-sygus") << "  add constructors..." << std::endl;
   // size of cnames changes, this loop must check size
@@ -1232,43 +1232,6 @@ Expr Smt2::makeSygusBoundVarList(Datatype& dt,
     lvars.push_back(v);
   }
   return getExprManager()->mkExpr(kind::BOUND_VAR_LIST, lvars);
-}
-
-const void Smt2::getSygusInvVars(FunctionType t,
-                                 std::vector<Expr>& vars,
-                                 std::vector<Expr>& primed_vars)
-{
-  std::vector<Type> argTypes = t.getArgTypes();
-  ExprManager* em = getExprManager();
-  for (const Type& ti : argTypes)
-  {
-    vars.push_back(em->mkBoundVar(ti));
-    d_sygusVars.push_back(vars.back());
-    std::stringstream ss;
-    ss << vars.back() << "'";
-    primed_vars.push_back(em->mkBoundVar(ss.str(), ti));
-    d_sygusVars.push_back(primed_vars.back());
-#ifdef CVC4_ASSERTIONS
-    bool find_new_declared_var = false;
-    for (const Expr& e : d_sygusVarPrimed)
-    {
-      if (e.getType() == ti)
-      {
-        d_sygusVarPrimed.erase(
-            std::find(d_sygusVarPrimed.begin(), d_sygusVarPrimed.end(), e));
-        find_new_declared_var = true;
-        break;
-      }
-    }
-    if (!find_new_declared_var)
-    {
-      ss.str("");
-      ss << "warning: decleared primed variables do not match invariant's "
-            "type\n";
-      warning(ss.str());
-    }
-#endif
-  }
 }
 
 const void Smt2::addSygusFunSymbol( Type t, Expr synth_fun ){

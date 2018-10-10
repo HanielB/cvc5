@@ -609,7 +609,7 @@ void InvConstraintCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
-    smtEngine->assertSygusConstraint(d_expr);
+    smtEngine->assertSygusConstraint(d_place_holders);
     d_commandStatus = CommandSuccess::instance();
   }
   catch (exception& e)
@@ -618,9 +618,7 @@ void InvConstraintCommand::invoke(SmtEngine* smtEngine)
   }
 }
 
-Expr InvConstraintCommand::getExpr() const { return d_expr; }
-
-const std : vector<Expr>& InvConstraintCommand::getPlaceHolders() const
+const std::vector<Expr>& InvConstraintCommand::getPlaceHolders() const
 {
   return d_place_holders;
 }
@@ -628,13 +626,12 @@ const std : vector<Expr>& InvConstraintCommand::getPlaceHolders() const
 Command* InvConstraintCommand::exportTo(ExprManager* exprManager,
                                      ExprManagerMapCollection& variableMap)
 {
-  return new InvConstraintCommand(d_expr.exportTo(exprManager, variableMap),
-                                  d_place_holders);
+  return new InvConstraintCommand(d_place_holders);
 }
 
 Command* InvConstraintCommand::clone() const
 {
-  return new InvConstraintCommand(d_expr, d_place_holders);
+  return new InvConstraintCommand(d_place_holders);
 }
 
 std::string InvConstraintCommand::getCommandName() const { return "inv-constraint"; }

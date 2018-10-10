@@ -268,7 +268,7 @@ class CVC4_PUBLIC SmtEngine {
    * Verbosity of various commands.
    */
   std::map<std::string, Integer> d_commandVerbosity;
-  
+
 
   /** ReplayStream for the solver. */
   ExprStream* d_replayStream;
@@ -444,6 +444,14 @@ class CVC4_PUBLIC SmtEngine {
    */
   std::pair<Expr, Expr> getSepHeapAndNilExpr();
 
+
+  /*------------------- sygus utils ------------------*/
+  std::vector<Expr> d_sygusVars;
+  std::vector<Expr> d_sygusVarPrimed;
+  std::vector<Expr> d_sygusConstraints;
+  std::vector<Expr> d_sygusFunSymbols;
+  /*------------------- end of sygus utils ------------------*/
+
  public:
 
   /**
@@ -608,11 +616,17 @@ class CVC4_PUBLIC SmtEngine {
    */
   std::vector<Expr> getUnsatAssumptions(void);
 
+  /*------------------- sygus commands  ------------------*/
+
+  void assertSygusConstraint(Expr constraint);
+  void assertSygusInvConstraint(const std::vector<Expr>& place_holders);
   /**
    * Assert a synthesis conjecture to the current context and call
    * check().  Returns sat, unsat, or unknown result.
    */
-  Result checkSynth(const Expr& e) /* throw(Exception) */;
+  Result checkSynth() /* throw(Exception) */;
+
+  /*------------------- end of sygus commands-------------*/
 
   /**
    * Simplify a formula without doing "much" work.  Does not involve
@@ -742,7 +756,7 @@ class CVC4_PUBLIC SmtEngine {
    * extended command get-qe-disjunct, which can be used
    * for incrementally computing the result of a
    * quantifier elimination.
-   * 
+   *
    * The argument strict is whether to output
    * warnings, such as when an unexpected logic is used.
    */
@@ -754,7 +768,7 @@ class CVC4_PUBLIC SmtEngine {
    * Get list of quantified formulas that were instantiated
    */
   void getInstantiatedQuantifiedFormulas( std::vector< Expr >& qs );
-   
+
   /**
    * Get instantiations
    */
@@ -958,7 +972,7 @@ class CVC4_PUBLIC SmtEngine {
   */
   bool getExpressionName(Expr e, std::string& name) const;
 
-  /** set expression name 
+  /** set expression name
   * Sets the expression name of e to name.
   * This information is user-context-dependent.
   * If e already has a name, it is overwritten.

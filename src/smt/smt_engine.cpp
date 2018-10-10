@@ -3676,20 +3676,117 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
 
 /*
    --------------------------------------------------------------------------
-    SyGuS commands handling
+    Handling SyGuS commands
    --------------------------------------------------------------------------
 */
 
-void SmtEngine::addSygusConstraint(Expr constraint)
+void SmtEngine::assertSygusConstraint(Expr constraint)
 {
   d_sygusConstraints.push_back(constraint);
+
+  Trace("smt") << "SmtEngine::assertSygusConstrant: " << constraint << "\n";
+  if (Dump.isOn("raw-benchmark"))
+  {
+    Dump("raw-benchmark") << ConstraintCommand(constraint);
+  }
 }
 
-Result SmtEngine::checkSynth(const Expr& e)
+void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
+{
+  // build invariant constraint
+
+  // get variables (regular and their respective primed versions)
+  std::vector<Expr> vars, primed_vars;
+  FunctionType t = static_cast<FunctionType>(place_holders[0].getType());
+  std::vector<Type> argTypes = t.getArgTypes();
+  ExprManager* em = getExprManager();
+  for (const Type& ti : argTypes)
+  {
+    vars.push_back(em->mkBoundVar(ti));
+    d_sygusVars.push_back(vars.back());
+    std::stringstream ss;
+    ss << vars.back() << "'";
+    primed_vars.push_back(em->mkBoundVar(ss.str(), ti));
+    d_sygusVars.push_back(primed_vars.back());
+#ifdef CVC4_ASSERTIONS
+    bool find_new_declared_var = false;
+    for (const Expr& e : d_sygusVarPrimed)
+    {
+      if (e.getType() == ti)
+      {
+        d_sygusVarPrimed.erase(
+            std::find(d_sygusVarPrimed.begin(), d_sygusVarPrimed.end(), e));
+        find_new_declared_var = true;
+        break;
+      }
+    }
+    if (!find_new_declared_var)
+    {
+      ss.str("");
+      ss << "warning: declared primed variables do not match invariant's "
+            "type\n";
+      warning(ss.str());
+    }
+#endif
+  }
+
+  // make relevant terms; 0 -> Inv, 1 -> Pre, 2 -> Trans, 3 -> Post
+  for (unsigned i = 0; i < 4; ++i)
+  {
+    Expr op = place_holders[i];
+    Debug("parser-sygus") << "Make inv-constraint term #" << i << " : " << op
+                          << " with type " << op.getType() << "..."
+                          << std::endl;
+    std::vector<Expr> children;
+    children.push_back(op);
+    // transition relation applied over both variable lists
+    if (i == 2)
+    {
+      children.insert(children.end(), vars.begin(), vars.end());
+      children.insert(children.end(), primed_vars.begin(), primed_vars.end());
+    }
+    else
+    {
+      children.insert(children.end(), vars.begin(), vars.end());
+    }
+    place_holders[i] =
+        d_exprManager->mkExpr(i == 0 ? kind::APPLY_UF : kind::APPLY, children);
+    // make application of Inv on primed variables
+    if (i == 0)
+    {
+      children.clear();
+      children.push_back(op);
+      children.insert(children.end(), primed_vars.begin(), primed_vars.end());
+      place_holders.push_back(d_exprManager->mkExpr(kind::APPLY_UF, children));
+    }
+  }
+  // make constraints
+  std::vector<Expr> conj;
+  conj.push_back(d_exprManager->mkExpr(kind::IMPLIES, place_holders[1], place_holders[0]));
+  const Expr term0_and_2 = d_exprManager->mkExpr(kind::AND, place_holders[0], place_holders[2]);
+  conj.push_back(d_exprManager->mkExpr(kind::IMPLIES, term0_and_2, place_holders[4]));
+  conj.push_back(d_exprManager->mkExpr(kind::IMPLIES, place_holders[0], place_holders[3]));
+  Expr constraint = d_exprManager->mkExpr(kind::AND, conj);
+  Debug("parser-sygus") << "...read invariant constraint " << ic << std::endl;
+
+  d_sygusConstraints.push_back(constraint);
+
+  Trace("smt") << "SmtEngine::assertSygusInvConstrant: " << constraint << "\n";
+  if (Dump.isOn("raw-benchmark"))
+  {
+    Dump("raw-benchmark") << InvConstraintCommand(place_holders);
+  }
+}
+
+Result SmtEngine::checkSynth()
 {
   SmtScope smts(this);
-  Trace("smt") << "Check synth: " << e << std::endl;
-  Trace("smt-synth") << "Check synthesis conjecture: " << e << std::endl;
+  // build synthesis conjecture from asserted constraints and declared
+  // variables/functions
+
+
+  Trace("smt") << "Check synthesis conjecture: " << e << std::endl;
+
   return checkSatisfiability(e, true, false);
 }
 
