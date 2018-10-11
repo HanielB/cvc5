@@ -447,7 +447,7 @@ class CVC4_PUBLIC SmtEngine {
 
   /*------------------- sygus utils ------------------*/
   std::vector<Expr> d_sygusVars;
-  std::vector<Expr> d_sygusVarPrimed;
+  std::vector<Type> d_sygusPrimedVarTypes;
   std::vector<Expr> d_sygusConstraints;
   std::vector<Expr> d_sygusFunSymbols;
   /*------------------- end of sygus utils ------------------*/
@@ -618,6 +618,9 @@ class CVC4_PUBLIC SmtEngine {
 
   /*------------------- sygus commands  ------------------*/
 
+  void declareSygusVar(const std::string& id, Expr var, Type type);
+  void declareSygusPrimedVar(const std::string& id, Type type);
+  void declareSygusFunctionVar(const std::string& id, Expr var, Type type);
   void assertSygusConstraint(Expr constraint);
   void assertSygusInvConstraint(const std::vector<Expr>& place_holders);
   /**

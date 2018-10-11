@@ -618,13 +618,15 @@ class CVC4_PUBLIC QueryCommand : public Command
 class CVC4_PUBLIC DeclareVarCommand : public DeclarationDefinitionCommand
 {
  protected:
-  Expr d_func;
+  Expr d_var;
   Type d_type;
 
  public:
   DeclareVarCommand(const std::string& id, Expr var, Type type);
   Expr getVar() const;
   Type getType() const;
+
+  /** default interface */
   void invoke(SmtEngine* smtEngine) override{};
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override{};
@@ -635,19 +637,63 @@ class CVC4_PUBLIC DeclareVarCommand : public DeclarationDefinitionCommand
 class CVC4_PUBLIC DeclarePrimedVarCommand : public DeclarationDefinitionCommand
 {
  protected:
-  Expr d_func;
   Type d_type;
 
  public:
-  DeclareVarCommand(const std::string& id, Expr var, Type type);
-  Expr getVar() const;
+  DeclarePrimedVarCommand(const std::string& id, Type type);
   Type getType() const;
+
+  /** default interface */
   void invoke(SmtEngine* smtEngine) override{};
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override{};
   Command* clone() const override{};
   std::string getCommandName() const override;
 };
+
+class CVC4_PUBLIC DeclareSygusFunctionCommand : public DeclarationDefinitionCommand
+{
+ protected:
+  Expr d_func;
+  Type d_type;
+
+ public:
+  DeclareSygusFunctionCommand(const std::string& id, Expr func, Type type);
+  Expr getFunction() const;
+  Type getType() const;
+
+  /** default interface */
+  void invoke(SmtEngine* smtEngine) override;
+  Command* exportTo(ExprManager* exprManager,
+                    ExprManagerMapCollection& variableMap) override;
+  Command* clone() const override;
+  std::string getCommandName() const override;
+}; /* class DeclareFunctionCommand */
+
+
+class CVC4_PUBLIC SynthFunCommand : public DeclarationDefinitionCommand
+{
+ protected:
+  Expr d_func;
+  Type d_type;
+  Datatype d_grammar;
+  bool d_isInv;
+
+ public:
+  SynthFunCommand(const std::string& id, Expr func, Type type, bool isInv = false);
+  SynthFunCommand(const std::string& id, Expr func, Type type, Datatype grammar, bool isInv = false);
+  Expr getFunction() const;
+  Type getType() const;
+  Datatype getGrammar() const;
+  bool isInv() const;
+
+  /** default interface */
+  void invoke(SmtEngine* smtEngine) override;
+  Command* exportTo(ExprManager* exprManager,
+                    ExprManagerMapCollection& variableMap) override;
+  Command* clone() const override;
+  std::string getCommandName() const override;
+}; /* class DeclareFunctionCommand */
 
 class CVC4_PUBLIC ConstraintCommand : public Command
 {

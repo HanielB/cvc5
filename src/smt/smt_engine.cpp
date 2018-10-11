@@ -3680,6 +3680,43 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
    --------------------------------------------------------------------------
 */
 
+void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
+{
+  d_sygusVars.push_back(var);
+  Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
+  if (Dump.isOn("raw-benchmark"))
+  {
+    Dump("raw-benchmark") << DeclareVarCommand(id, var, type);
+  }
+}
+
+void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
+{
+#ifdef CVC4_ASSERTIONS
+  d_sygusPrimedVarTypes.push_back(type);
+#endif
+  Trace("smt") << "SmtEngine::declareSygusPrimedVar: " << id << "\n";
+  if (Dump.isOn("raw-benchmark"))
+  {
+    Dump("raw-benchmark") << DeclarePrimedVarCommand(id, type);
+  }
+}
+
+void SmtEngine::declareSygusFunctionVar(const std::string& id, Expr var, Type type)
+{
+  d_sygusVars.push_back(var);
+  Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
+  if (Dump.isOn("raw-benchmark"))
+  {
+    Dump("raw-benchmark") << DeclareSygusFunctionCommand(id, var, type);
+  }
+}
+
+void SmtEngine::declareSynthFun()
+{
+
+}
+
 void SmtEngine::assertSygusConstraint(Expr constraint)
 {
   d_sygusConstraints.push_back(constraint);
@@ -3697,25 +3734,25 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
 
   // get variables (regular and their respective primed versions)
   std::vector<Expr> vars, primed_vars;
+  // variables are built based on the invariant type
   FunctionType t = static_cast<FunctionType>(place_holders[0].getType());
   std::vector<Type> argTypes = t.getArgTypes();
-  ExprManager* em = getExprManager();
   for (const Type& ti : argTypes)
   {
-    vars.push_back(em->mkBoundVar(ti));
+    vars.push_back(d_exprManager->mkBoundVar(ti));
     d_sygusVars.push_back(vars.back());
     std::stringstream ss;
     ss << vars.back() << "'";
-    primed_vars.push_back(em->mkBoundVar(ss.str(), ti));
+    primed_vars.push_back(d_exprManager->mkBoundVar(ss.str(), ti));
     d_sygusVars.push_back(primed_vars.back());
 #ifdef CVC4_ASSERTIONS
     bool find_new_declared_var = false;
-    for (const Expr& e : d_sygusVarPrimed)
+    for (const Type& t : d_sygusVarPrimedTypes)
     {
-      if (e.getType() == ti)
+      if (t == ti)
       {
-        d_sygusVarPrimed.erase(
-            std::find(d_sygusVarPrimed.begin(), d_sygusVarPrimed.end(), e));
+        d_sygusPrimedVarTypes.erase(std::find(
+            d_sygusPrimedVarTypes.begin(), d_sygusPrimedVarTypes.end(), t));
         find_new_declared_var = true;
         break;
       }
@@ -3784,11 +3821,28 @@ Result SmtEngine::checkSynth()
   // build synthesis conjecture from asserted constraints and declared
   // variables/functions
 
+  //   Expr bvl;
+  // if (!sygus_vars.empty())
+  // {
+  //   bvl = MK_EXPR(kind::BOUND_VAR_LIST, sygus_vars);
+  // }
+  // // associate this variable list with the synth fun
+  // std::vector< Expr > attr_val_bvl;
+  // attr_val_bvl.push_back( bvl );
+  // Command* cattr_bvl = new SetUserAttributeCommand("sygus-synth-fun-var-list", synth_fun, attr_val_bvl);
+  // cattr_bvl->setMuted(true);
+  // PARSER_STATE->preemptCommand(cattr_bvl);
 
   Trace("smt") << "Check synthesis conjecture: " << e << std::endl;
 
   return checkSatisfiability(e, true, false);
 }
+
+/*
+   --------------------------------------------------------------------------
+    End of Handling SyGuS commands
+   --------------------------------------------------------------------------
+*/
 
 Node SmtEngine::postprocess(TNode node, TypeNode expectedType) const {
   return node;

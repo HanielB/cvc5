@@ -562,6 +562,133 @@ Command* QueryCommand::clone() const
 std::string QueryCommand::getCommandName() const { return "query"; }
 
 /* -------------------------------------------------------------------------- */
+/* class DeclareVarCommand                                                    */
+/* -------------------------------------------------------------------------- */
+
+DeclareVarCommand::DeclareVarCommand(const std::string& id, Expr var, Type t)
+    : DeclarationDefinitionCommand(id), d_var(var), d_type(t)
+{
+}
+
+Expr DeclareVarCommand::getVar() const { return d_var; }
+Type DeclareVarCommand::getType() const { return d_type; }
+
+void DeclareVarCommand::invoke(SmtEngine* smtEngine)
+{
+  try
+  {
+    smtEngine->declareSygusVar(d_symbol, d_var, d_type);
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+Command* DeclareVarCommand::exportTo(ExprManager* exprManager,
+                                     ExprManagerMapCollection& variableMap)
+{
+  return new DeclareVarCommand(d_symbol,
+                               d_var.exportTo(exprManager, variableMap),
+                               d_type.exportTo(exprManager, variableMap));
+}
+
+Command* DeclareVarCommand::clone() const
+{
+  return new DeclareVarCommand(d_symbol, d_var, d_type);
+}
+
+std::string DeclareVarCommand::getCommandName() const { return "declare-var"; }
+
+/* -------------------------------------------------------------------------- */
+/* class DeclarePrimedVarCommand                                              */
+/* -------------------------------------------------------------------------- */
+
+DeclarePrimedVarCommand::DeclarePrimedVarCommand(const std::string& id, Type t)
+    : DeclarationDefinitionCommand(id), d_type(t)
+{
+}
+
+Type DeclarePrimedVarCommand::getType() const { return d_type; }
+
+void DeclarePrimedVarCommand::invoke(SmtEngine* smtEngine)
+{
+  try
+  {
+    smtEngine->declareSygusPrimedVar(d_symbol, d_type);
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+Command* DeclarePrimedVarCommand::exportTo(
+    ExprManager* exprManager, ExprManagerMapCollection& variableMap)
+{
+  return new DeclarePrimedVarCommand(d_symbol,
+                                     d_type.exportTo(exprManager, variableMap));
+}
+
+Command* DeclarePrimedVarCommand::clone() const
+{
+  return new DeclarePrimedVarCommand(d_symbol, d_type);
+}
+
+std::string DeclarePrimedVarCommand::getCommandName() const
+{
+  return "declare-primed-var";
+}
+
+/* -------------------------------------------------------------------------- */
+/* class DeclareSygusFunctionCommand                                          */
+/* -------------------------------------------------------------------------- */
+
+DeclareSygusFunctionCommand::DeclareSygusFunctionCommand(const std::string& id,
+                                                         Expr func,
+                                                         Type t)
+    : DeclarationDefinitionCommand(id), d_func(func), d_type(t)
+{
+}
+
+Expr DeclareSygusFunctionCommand::getFunction() const { return d_func; }
+Type DeclareSygusFunctionCommand::getType() const { return d_type; }
+
+void DeclareSygusFunctionCommand::invoke(SmtEngine* smtEngine)
+{
+  try
+  {
+    smtEngine->declareSygusFunctionVar(d_symbol, d_func, d_type);
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+Command* DeclareSygusFunctionCommand::exportTo(
+    ExprManager* exprManager, ExprManagerMapCollection& variableMap)
+{
+  return new DeclareSygusFunctionCommand(
+      d_symbol,
+      d_func.exportTo(exprManager, variableMap),
+      d_type.exportTo(exprManager, variableMap));
+}
+
+Command* DeclareSygusFunctionCommand::clone() const
+{
+  return new DeclareSygusFunctionCommand(d_symbol, d_func, d_type);
+}
+
+std::string DeclareSygusFunctionCommand::getCommandName() const
+{
+  return "declare-fun";
+}
+
+/* -------------------------------------------------------------------------- */
 /* class ConstraintCommand                                                    */
 /* -------------------------------------------------------------------------- */
 

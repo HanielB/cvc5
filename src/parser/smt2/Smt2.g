@@ -356,13 +356,14 @@ command [std::unique_ptr<CVC4::Command>* cmd]
       if (PARSER_STATE->sygus())
       {
         // it is a higher-order universal variable
-        PARSER_STATE->mkSygusVar(name, t);
+        Expr func = PARSER_STATE->mkBoundVar(name, t);
+        cmd->reset(new DeclareSygusFunctionCommand(name, func, t));
       }
       else
       {
         Expr func = PARSER_STATE->mkVar(name, t, ExprManager::VAR_FLAG_NONE, true);
+        cmd->reset(new DeclareFunctionCommand(name, func, t));
       }
-      cmd->reset(new DeclareFunctionCommand(name, func, t));
     }
   | /* function definition */
     DEFINE_FUN_TOK { PARSER_STATE->checkThatLogicIsSet(); }
@@ -616,16 +617,19 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
     symbol[name,CHECK_UNDECLARED,SYM_VARIABLE]
     { PARSER_STATE->checkUserSymbol(name); }
     sortSymbol[t,CHECK_DECLARED]
-    { PARSER_STATE->mkSygusVar(name, t);
-      cmd->reset(new DeclareVarCommand());
+    {
+      Expr var = PARSER_STATE->mkBoundVar(name, t);
+      cmd->reset(new DeclareVarCommand(name, var, t));
     }
   | /* declare-primed-var */
     DECLARE_PRIMED_VAR_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     symbol[name,CHECK_UNDECLARED,SYM_VARIABLE]
     { PARSER_STATE->checkUserSymbol(name); }
     sortSymbol[t,CHECK_DECLARED]
-    { PARSER_STATE->mkSygusVar(name, t, true);
-      cmd->reset(new DeclarePrimedVarCommand());
+    {
+      // spurious command, we do not need to create a variable. We only keep
+      // track of the command for sanity checking / dumping
+      cmd->reset(new DeclarePrimedVarCommand(name, t));
     }
 
   | /* synth-fun */
@@ -640,7 +644,6 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
       if( range.isFunction() ){
         PARSER_STATE->parseError("Cannot use synth-fun with function return type.");
       }
-      seq.reset(new CommandSequence());
       std::vector<Type> var_sorts;
       for(std::vector<std::pair<std::string, CVC4::Type> >::const_iterator i =
             sortedVarNames.begin(), iend = sortedVarNames.end(); i != iend;
@@ -667,17 +670,6 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
         Expr v = PARSER_STATE->mkBoundVar((*i).first, (*i).second);
         sygus_vars.push_back( v );
       }
-      Expr bvl;
-      if (!sygus_vars.empty())
-      {
-        bvl = MK_EXPR(kind::BOUND_VAR_LIST, sygus_vars);
-      }
-      // associate this variable list with the synth fun
-      std::vector< Expr > attr_val_bvl;
-      attr_val_bvl.push_back( bvl );
-      Command* cattr_bvl = new SetUserAttributeCommand("sygus-synth-fun-var-list", synth_fun, attr_val_bvl);
-      cattr_bvl->setMuted(true);
-      PARSER_STATE->preemptCommand(cattr_bvl);
       // set the sygus type to be range by default, which is overwritten below
       // if a grammar is provided
       sygus_type = range;
@@ -690,7 +682,6 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
       PARSER_STATE->popScope();
       // store a dummy variable which stands for second-order quantification, linked to synth fun by an attribute
       PARSER_STATE->addSygusFunSymbol(sygus_type, synth_fun);
-      cmd->reset(seq.release());
     }
   | /* constraint */
     CONSTRAINT_TOK {

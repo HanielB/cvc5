@@ -630,20 +630,6 @@ void Smt2::includeFile(const std::string& filename) {
   }
 }
 
-void Smt2::mkSygusVar(const std::string& name, const Type& type, bool isPrimed)
-{
-  if (!isPrimed)
-  {
-    d_sygusVars.push_back(mkBoundVar(name, type));
-  }
-#ifdef CVC4_ASSERTIONS
-  else
-  {
-    d_sygusVarPrimed.push_back(mkBoundVar(name, type));
-  }
-#endif
-}
-
 void Smt2::mkSygusConstantsForType( const Type& type, std::vector<CVC4::Expr>& ops ) {
   if( type.isInteger() ){
     ops.push_back(getExprManager()->mkConst(Rational(0)));

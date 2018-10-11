@@ -266,29 +266,25 @@ static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 
 static void toStream(std::ostream& out, const DeclareVarCommand* c)
 {
-  Type type = c->getType();
   out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
-  if (type.isFunction())
-  {
-    FunctionType ft = type;
-    const vector<Type> argTypes = ft.getArgTypes();
-    if (argTypes.size() > 0)
-    {
-      copy(argTypes.begin(),
-           argTypes.end() - 1,
-           ostream_iterator<Type>(out, " "));
-      out << argTypes.back();
-    }
-    type = ft.getRangeType();
-  }
-
+  Type type = c->getType();
+  Assert(!type.isFunction()));
   out << ") " << type << ")";
 }
 
 static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
 {
-  Type type = c->getType();
   out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  Type type = c->getType();
+  Assert(!type.isFunction()));
+  out << ") " << type << ")";
+}
+
+static void toStream(std::ostream& out, const SynthFunCommand* c)
+{
+  out << "(synth-" << (c->isInv() ? "inv" : "fun")
+      << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  Type type = c->getType();
   if (type.isFunction())
   {
     FunctionType ft = type;
@@ -302,20 +298,14 @@ static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
     }
     type = ft.getRangeType();
   }
-
-  out << ") " << type << ")";
-}
-
-static void toStream(std::ostream& out, const SynthFunCommand* c)
-{
-  out << "(synth-fun ";
-
+  out << ") " << type;
+  // print grammar, if any
+  //
+  // for each datatype in grammar
+  //   name
+  //   sygus type
+  //   constructors in order
   out << ")";
-}
-
-static void toStream(std::ostream& out, const SynthInvCommand* c)
-{
-  out << "(check-synth)";
 }
 
 static void toStream(std::ostream& out, const ConstraintCommand* c)
