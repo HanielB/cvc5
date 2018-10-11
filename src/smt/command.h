@@ -675,16 +675,24 @@ class CVC4_PUBLIC SynthFunCommand : public DeclarationDefinitionCommand
 {
  protected:
   Expr d_func;
-  Type d_type;
-  Datatype d_grammar;
+  Expr d_vars;
+  /** sygus type of the function-to-synthesize
+   *
+   * Note that
+   */
+  Type d_sygusType;
   bool d_isInv;
 
  public:
-  SynthFunCommand(const std::string& id, Expr func, Type type, bool isInv = false);
-  SynthFunCommand(const std::string& id, Expr func, Type type, Datatype grammar, bool isInv = false);
+  SynthFunCommand(const std::string& id,
+                  Expr func,
+                  Type type,
+                  bool isInv,
+                  const std::vector<Expr>& vars);
+  SynthFunCommand(const std::string& id, Expr func, Type type, bool isInv);
   Expr getFunction() const;
-  Type getType() const;
-  Datatype getGrammar() const;
+  const std::vector<Expr>& getVars() const;
+  Type getSygusType() const;
   bool isInv() const;
 
   /** default interface */

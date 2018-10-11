@@ -446,10 +446,29 @@ class CVC4_PUBLIC SmtEngine {
 
 
   /*------------------- sygus utils ------------------*/
+  /**
+   * sygus variables declared (from "declare-var" and "declare-fun" commands)
+   *
+   * The SyGuS semantics for declared variables is that they are implicitly
+   * universally quantified in the constraints.
+   */
   std::vector<Expr> d_sygusVars;
+  /** types of sygus primed variables (for debugging) */
   std::vector<Type> d_sygusPrimedVarTypes;
+  /** sygus constraints */
   std::vector<Expr> d_sygusConstraints;
+  /** functions-to-synthesize */
   std::vector<Expr> d_sygusFunSymbols;
+  /** maps functions-to-synthesize to their respective input variables lists */
+  std::map<Expr, std::vector<Expr>> d_sygusFunVars;
+  /** maps functions-to-synthesize to their respective sygus types
+   *
+   * SyGuS types are either a SyGuS datatype corresponding to syntactic
+   * restrictions for the function-to-synthesize, if there are any, or the
+   * return type of the function, otherwise.
+   */
+  std::map<Expr, std::vector<Type>> d_sygusFunSygusType;
+
   /*------------------- end of sygus utils ------------------*/
 
  public:
@@ -621,7 +640,17 @@ class CVC4_PUBLIC SmtEngine {
   void declareSygusVar(const std::string& id, Expr var, Type type);
   void declareSygusPrimedVar(const std::string& id, Type type);
   void declareSygusFunctionVar(const std::string& id, Expr var, Type type);
+  void declareSynthFun(const std::string& id,
+                       Expr func,
+                       Type type,
+                       bool isInv,
+                       const std::vector<Expr>& vars);
   void assertSygusConstraint(Expr constraint);
+  /** retrieves the invariant variables (both regular and primed)
+   *
+   * To ensure that the variable list represent the correct argument type order
+   * the type  of the invariant predicate is used during the variable retrieval
+   */
   void assertSygusInvConstraint(const std::vector<Expr>& place_holders);
   /**
    * Assert a synthesis conjecture to the current context and call

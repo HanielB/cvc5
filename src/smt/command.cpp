@@ -689,6 +689,68 @@ std::string DeclareSygusFunctionCommand::getCommandName() const
 }
 
 /* -------------------------------------------------------------------------- */
+/* class SynthFunCommand                                                    */
+/* -------------------------------------------------------------------------- */
+
+SynthFunCommand::SynthFunCommand(const std::string& id,
+                                 Expr func,
+                                 Type sygusType,
+                                 bool isInv,
+                                 const std::vector<Expr>& vars)
+    : DeclarationDefinitionCommand(id),
+      d_func(func),
+      d_sygusType(type),
+      d_isInv(isInv),
+      d_vars(vars)
+{
+}
+
+SynthFunCommand::SynthFunCommand(const std::string& id,
+                                 Expr func,
+                                 Type type,
+                                 bool isInv)
+  : SynthFunCommand(id, func, type, isInv, {})
+{
+}
+
+Expr SynthFunCommand::getFunction() const { return d_func; }
+const SynthFunCommand::std::vector<Expr>& getVars() const { return d_vars; }
+Type SynthFunCommand::getSygusType() const { return d_sygusType; }
+bool SynthFunCommand::isInv() const { return d_isInv; }
+
+void SynthFunCommand::invoke(SmtEngine* smtEngine)
+{
+  try
+  {
+    smtEngine->declareSynthFun(d_symbol, d_func, d_sygusType, d_isInv, d_vars);
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+Command* SynthFunCommand::exportTo(ExprManager* exprManager,
+                                   ExprManagerMapCollection& variableMap)
+{
+  return new SynthFunCommand(d_symbol,
+                             d_func.exportTo(exprManager, variableMap),
+                             d_sygusType.exportTo(exprManager, variableMap),
+                             d_isInv);
+}
+
+Command* SynthFunCommand::clone() const
+{
+  return new SynthFunCommand(d_symbol, d_func, d_sygusType, d_isInv, d_vars);
+}
+
+std::string SynthFunCommand::getCommandName() const
+{
+  return d_isInv ? "synth-inv" : "synth-fun";
+}
+
+/* -------------------------------------------------------------------------- */
 /* class ConstraintCommand                                                    */
 /* -------------------------------------------------------------------------- */
 

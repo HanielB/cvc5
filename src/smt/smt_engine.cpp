@@ -3698,7 +3698,6 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
   return quickCheck().asValidityResult();
 }/* SmtEngine::assertFormula() */
 
-
 /*
    --------------------------------------------------------------------------
     Handling SyGuS commands
@@ -3727,7 +3726,9 @@ void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
   }
 }
 
-void SmtEngine::declareSygusFunctionVar(const std::string& id, Expr var, Type type)
+void SmtEngine::declareSygusFunctionVar(const std::string& id,
+                                        Expr var,
+                                        Type type)
 {
   d_sygusVars.push_back(var);
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
@@ -3737,9 +3738,20 @@ void SmtEngine::declareSygusFunctionVar(const std::string& id, Expr var, Type ty
   }
 }
 
-void SmtEngine::declareSynthFun()
+void SmtEngine::declareSynthFun(const std::string& id,
+                                Expr func,
+                                Type sygusType,
+                                bool isInv,
+                                const std::vector<Expr>& vars)
 {
-
+  d_sygusFunSymbols.push_back(func);
+  d_sygusFunVars[func] = vars;
+  d_sygusFunSygusType[func] = sygusType;
+  Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
+  if (Dump.isOn("raw-benchmark"))
+  {
+    Dump("raw-benchmark") << SynthFunCommand(id, func, sygusType, isInv);
+  }
 }
 
 void SmtEngine::assertSygusConstraint(Expr constraint)
@@ -3824,10 +3836,14 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
   }
   // make constraints
   std::vector<Expr> conj;
-  conj.push_back(d_exprManager->mkExpr(kind::IMPLIES, place_holders[1], place_holders[0]));
-  const Expr term0_and_2 = d_exprManager->mkExpr(kind::AND, place_holders[0], place_holders[2]);
-  conj.push_back(d_exprManager->mkExpr(kind::IMPLIES, term0_and_2, place_holders[4]));
-  conj.push_back(d_exprManager->mkExpr(kind::IMPLIES, place_holders[0], place_holders[3]));
+  conj.push_back(
+      d_exprManager->mkExpr(kind::IMPLIES, place_holders[1], place_holders[0]));
+  const Expr term0_and_2 =
+      d_exprManager->mkExpr(kind::AND, place_holders[0], place_holders[2]);
+  conj.push_back(
+      d_exprManager->mkExpr(kind::IMPLIES, term0_and_2, place_holders[4]));
+  conj.push_back(
+      d_exprManager->mkExpr(kind::IMPLIES, place_holders[0], place_holders[3]));
   Expr constraint = d_exprManager->mkExpr(kind::AND, conj);
   Debug("parser-sygus") << "...read invariant constraint " << ic << std::endl;
 
@@ -3845,18 +3861,59 @@ Result SmtEngine::checkSynth()
   SmtScope smts(this);
   // build synthesis conjecture from asserted constraints and declared
   // variables/functions
+  Expr sygusVar = d_exprManager->mkVar("sygus", d_exprManager->booleanType());
+  Expr inst_attr = d_exprManager->mkExpr(kind::INST_ATTRIBUTE, sygusVar);
+  Expr sygusAttr = d_exprManager->mkExpr(kind::INST_PATTERN_LIST, inst_attr);
+  std::vector<Expr> bodyv;
+  Trace("smt") << "Sygus : Constructing sygus constraint...\n";
+  unsigned n_constraints = d_sygusConstraints.size();
+  Expr body = n_constraints == 0
+                  ? d_exprManager()->mkConst(true)
+                  : (n_constraints == 1 ? d_sygusConstraints[0]
+                                        : d_exprManager()->mkExpr(
+                                              kind::AND, d_sygusConstraints));
+  body = body.notExpr();
+  Trace("smt") << "...constructed sygus constraint " << body << std::endl;
+  if (!d_sygusVars.empty())
+  {
+    Expr boundVars = d_exprManager->mkExpr(kind::BOUND_VAR_LIST, d_sygusVars);
+    body = d_exprManager->mkExpr(kind::EXISTS, boundVars, body);
+    Trace("smt") << "...constructed exists " << body << std::endl;
+  }
+  if (!d_sygusFunSymbols.empty())
+  {
+    Expr boundVars =
+        d_exprManager->mkExpr(kind::BOUND_VAR_LIST, d_sygusFunSymbols);
+    body = d_exprManager->mkExpr(kind::FORALL, boundVars, body, sygusAttr);
+  }
+  Trace("smt") << "...constructed forall " << body << std::endl;
 
-  //   Expr bvl;
-  // if (!sygus_vars.empty())
-  // {
-  //   bvl = MK_EXPR(kind::BOUND_VAR_LIST, sygus_vars);
-  // }
-  // // associate this variable list with the synth fun
-  // std::vector< Expr > attr_val_bvl;
-  // attr_val_bvl.push_back( bvl );
-  // Command* cattr_bvl = new SetUserAttributeCommand("sygus-synth-fun-var-list", synth_fun, attr_val_bvl);
-  // cattr_bvl->setMuted(true);
-  // PARSER_STATE->preemptCommand(cattr_bvl);
+  // set attribute for synthesis conjecture
+  setUserAttribute("sygus", sygusVar, {}, "");
+
+  // set attributes for functions-to-synthesize
+  for (const Expr& synth_fun : d_sygusFunSymbols)
+  {
+    // associate var list with function-to-synthesize
+    Assert(d_sygusFunVars.find(synth_fun) != d_sygusFunVars.end());
+    const std::vector<Expr>& vars = d_sygusFunVars[synth_fun];
+    Expr bvl;
+    if (!vars.empty())
+    {
+      bvl = d_exprManager->mkExpr(kind::BOUND_VAR_LIST, sygus_vars);
+    }
+    std::vector<Expr> attr_val_bvl;
+    attr_val_bvl.push_back(bvl);
+    setUserAttribute("sygus-synth-fun-var-list", synth_fun, attr_val_bvl, "");
+    // Variable "sfproxy" carries the type, which may be a SyGuS datatype
+    // that corresponds to syntactic restrictions.
+    Assert(d_sygusFunSygusType.find(synth_fun) != d_sygusFunSygusType.end());
+    Type sygus_type = d_sygusFunSygusType[synth_fun];
+    Expr sym = mkBoundVar("sfproxy", sygus_type);
+    std::vector<Expr> attr_value;
+    attr_value.push_back(sym);
+    setUserAttribute("sygus-synth-grammar", synth_fun, attr_value, "");
+  }
 
   Trace("smt") << "Check synthesis conjecture: " << e << std::endl;
 

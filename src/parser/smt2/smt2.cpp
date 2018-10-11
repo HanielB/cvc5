@@ -1220,22 +1220,6 @@ Expr Smt2::makeSygusBoundVarList(Datatype& dt,
   return getExprManager()->mkExpr(kind::BOUND_VAR_LIST, lvars);
 }
 
-const void Smt2::addSygusFunSymbol( Type t, Expr synth_fun ){
-  // When constructing the synthesis conjecture, we quantify on the
-  // (higher-order) bound variable synth_fun.
-  d_sygusFunSymbols.push_back(synth_fun);
-
-  // Variable "sfproxy" carries the type, which may be a SyGuS datatype
-  // that corresponds to syntactic restrictions.
-  Expr sym = mkBoundVar("sfproxy", t);
-  std::vector< Expr > attr_value;
-  attr_value.push_back(sym);
-  Command* cattr =
-      new SetUserAttributeCommand("sygus-synth-grammar", synth_fun, attr_value);
-  cattr->setMuted(true);
-  preemptCommand(cattr);
-}
-
 InputLanguage Smt2::getLanguage() const
 {
   ExprManager* em = getExprManager();
