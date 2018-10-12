@@ -627,10 +627,10 @@ class CVC4_PUBLIC DeclareVarCommand : public DeclarationDefinitionCommand
   Type getType() const;
 
   /** default interface */
-  void invoke(SmtEngine* smtEngine) override{};
+  void invoke(SmtEngine* smtEngine) override;
   Command* exportTo(ExprManager* exprManager,
-                    ExprManagerMapCollection& variableMap) override{};
-  Command* clone() const override{};
+                    ExprManagerMapCollection& variableMap) override;
+  Command* clone() const override;
   std::string getCommandName() const override;
 };
 
@@ -644,10 +644,10 @@ class CVC4_PUBLIC DeclarePrimedVarCommand : public DeclarationDefinitionCommand
   Type getType() const;
 
   /** default interface */
-  void invoke(SmtEngine* smtEngine) override{};
+  void invoke(SmtEngine* smtEngine) override;
   Command* exportTo(ExprManager* exprManager,
-                    ExprManagerMapCollection& variableMap) override{};
-  Command* clone() const override{};
+                    ExprManagerMapCollection& variableMap) override;
+  Command* clone() const override;
   std::string getCommandName() const override;
 };
 
@@ -675,21 +675,20 @@ class CVC4_PUBLIC SynthFunCommand : public DeclarationDefinitionCommand
 {
  protected:
   Expr d_func;
-  Expr d_vars;
   /** sygus type of the function-to-synthesize
    *
    * Note that
    */
   Type d_sygusType;
   bool d_isInv;
-
+  std::vector<Expr> d_vars;
  public:
   SynthFunCommand(const std::string& id,
                   Expr func,
-                  Type type,
+                  Type sygusType,
                   bool isInv,
                   const std::vector<Expr>& vars);
-  SynthFunCommand(const std::string& id, Expr func, Type type, bool isInv);
+  SynthFunCommand(const std::string& id, Expr func, Type sygusType, bool isInv);
   Expr getFunction() const;
   const std::vector<Expr>& getVars() const;
   Type getSygusType() const;
@@ -714,10 +713,10 @@ class CVC4_PUBLIC ConstraintCommand : public Command
   Expr getExpr() const;
 
   /** default interface */
-  void invoke(SmtEngine* smtEngine) override{};
+  void invoke(SmtEngine* smtEngine) override;
   Command* exportTo(ExprManager* exprManager,
-                    ExprManagerMapCollection& variableMap) override{};
-  Command* clone() const override{};
+                    ExprManagerMapCollection& variableMap) override;
+  Command* clone() const override;
   std::string getCommandName() const override;
 };
 
@@ -732,10 +731,10 @@ class CVC4_PUBLIC InvConstraintCommand : public Command
   const std::vector<Expr>& getPlaceHolders() const;
 
   /** default interface */
-  void invoke(SmtEngine* smtEngine) override{};
+  void invoke(SmtEngine* smtEngine) override;
   Command* exportTo(ExprManager* exprManager,
-                    ExprManagerMapCollection& variableMap) override{};
-  Command* clone() const override{};
+                    ExprManagerMapCollection& variableMap) override;
+  Command* clone() const override;
   std::string getCommandName() const override;
 };
 

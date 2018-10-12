@@ -699,7 +699,7 @@ SynthFunCommand::SynthFunCommand(const std::string& id,
                                  const std::vector<Expr>& vars)
     : DeclarationDefinitionCommand(id),
       d_func(func),
-      d_sygusType(type),
+      d_sygusType(sygusType),
       d_isInv(isInv),
       d_vars(vars)
 {
@@ -707,14 +707,14 @@ SynthFunCommand::SynthFunCommand(const std::string& id,
 
 SynthFunCommand::SynthFunCommand(const std::string& id,
                                  Expr func,
-                                 Type type,
+                                 Type sygusType,
                                  bool isInv)
-  : SynthFunCommand(id, func, type, isInv, {})
+  : SynthFunCommand(id, func, sygusType, isInv, {})
 {
 }
 
 Expr SynthFunCommand::getFunction() const { return d_func; }
-const SynthFunCommand::std::vector<Expr>& getVars() const { return d_vars; }
+const std::vector<Expr>& SynthFunCommand::getVars() const { return d_vars; }
 Type SynthFunCommand::getSygusType() const { return d_sygusType; }
 bool SynthFunCommand::isInv() const { return d_isInv; }
 
@@ -789,8 +789,8 @@ std::string ConstraintCommand::getCommandName() const { return "constraint"; }
 /* -------------------------------------------------------------------------- */
 
 InvConstraintCommand::InvConstraintCommand(
-    const Expr& e, const std::vector<Expr>& place_holders)
-    : d_expr(e), d_place_holders(place_holders)
+    const std::vector<Expr>& place_holders)
+    : d_place_holders(place_holders)
 {
 }
 
@@ -798,7 +798,7 @@ void InvConstraintCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
-    smtEngine->assertSygusConstraint(d_place_holders);
+    smtEngine->assertSygusInvConstraint(d_place_holders);
     d_commandStatus = CommandSuccess::instance();
   }
   catch (exception& e)
@@ -833,7 +833,7 @@ void CheckSynthCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
-    d_result = smtEngine->checkSynth(d_expr);
+    d_result = smtEngine->checkSynth();
     d_commandStatus = CommandSuccess::instance();
     smt::SmtScope scope(smtEngine);
     d_solution.clear();

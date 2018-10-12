@@ -735,7 +735,8 @@ sygusCommand [std::unique_ptr<CVC4::Command>* cmd]
  */
 sygusGrammar[CVC4::Type & ret,
              std::vector<CVC4::Expr>& sygus_vars,
-             std::string& fun] @declarations
+             std::string& fun]
+@declarations
 {
   Type t;
   std::string name;

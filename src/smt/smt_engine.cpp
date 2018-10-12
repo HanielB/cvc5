@@ -3706,7 +3706,7 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
 
 void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
 {
-  d_sygusVars.push_back(var);
+  d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
@@ -3730,7 +3730,7 @@ void SmtEngine::declareSygusFunctionVar(const std::string& id,
                                         Expr var,
                                         Type type)
 {
-  d_sygusVars.push_back(var);
+  d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
@@ -3744,12 +3744,19 @@ void SmtEngine::declareSynthFun(const std::string& id,
                                 bool isInv,
                                 const std::vector<Expr>& vars)
 {
-  d_sygusFunSymbols.push_back(func);
-  d_sygusFunVars[func] = vars;
-  // whether sygus type encodes syntax restrictions
-  if (sygusType.isDatatype() && sygusType.getDatatype().isSygus())
+  Node fn = Node::fromExpr(func);
+  d_sygusFunSymbols.push_back(fn);
+  std::vector<Node> var_nodes;
+  for (const Expr& v: vars)
   {
-    d_sygusFunSygusType[func] = sygusType;
+    var_nodes.push_back(Node::fromExpr(v));
+  }
+  d_sygusFunVars[fn] = var_nodes;
+  // whether sygus type encodes syntax restrictions
+  if (sygusType.isDatatype()
+      && static_cast<DatatypeType>(sygusType).getDatatype().isSygus())
+  {
+    d_sygusFunSyntax[fn] = TypeNode::fromType(sygusType);
   }
   Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
   if (Dump.isOn("raw-benchmark"))
@@ -3771,24 +3778,30 @@ void SmtEngine::assertSygusConstraint(Expr constraint)
 
 void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
 {
+  SmtScope smts(this);
   // build invariant constraint
 
   // get variables (regular and their respective primed versions)
-  std::vector<Expr> vars, primed_vars;
+  std::vector<Node> terms, vars, primed_vars;
+  for (const Expr& e : place_holders)
+  {
+    terms.push_back(Node::fromExpr(e));
+  }
   // variables are built based on the invariant type
   FunctionType t = static_cast<FunctionType>(place_holders[0].getType());
   std::vector<Type> argTypes = t.getArgTypes();
   for (const Type& ti : argTypes)
   {
-    vars.push_back(d_exprManager->mkBoundVar(ti));
+    TypeNode tn = TypeNode::fromType(ti);
+    vars.push_back(d_nodeManager->mkBoundVar(tn));
     d_sygusVars.push_back(vars.back());
     std::stringstream ss;
     ss << vars.back() << "'";
-    primed_vars.push_back(d_exprManager->mkBoundVar(ss.str(), ti));
+    primed_vars.push_back(d_nodeManager->mkBoundVar(ss.str(), tn));
     d_sygusVars.push_back(primed_vars.back());
 #ifdef CVC4_ASSERTIONS
     bool find_new_declared_var = false;
-    for (const Type& t : d_sygusVarPrimedTypes)
+    for (const Type& t : d_sygusPrimedVarTypes)
     {
       if (t == ti)
       {
@@ -3800,10 +3813,9 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
     }
     if (!find_new_declared_var)
     {
-      ss.str("");
-      ss << "warning: declared primed variables do not match invariant's "
-            "type\n";
-      warning(ss.str());
+      Warning()
+          << "warning: declared primed variables do not match invariant's "
+             "type\n";
     }
 #endif
   }
@@ -3811,11 +3823,10 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
   // make relevant terms; 0 -> Inv, 1 -> Pre, 2 -> Trans, 3 -> Post
   for (unsigned i = 0; i < 4; ++i)
   {
-    Expr op = place_holders[i];
-    Debug("parser-sygus") << "Make inv-constraint term #" << i << " : " << op
-                          << " with type " << op.getType() << "..."
-                          << std::endl;
-    std::vector<Expr> children;
+    Node op = terms[i];
+    Trace("smt-debug") << "Make inv-constraint term #" << i << " : " << op
+                       << " with type " << op.getType() << "...\n";
+    std::vector<Node> children;
     children.push_back(op);
     // transition relation applied over both variable lists
     if (i == 2)
@@ -3827,29 +3838,24 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
     {
       children.insert(children.end(), vars.begin(), vars.end());
     }
-    place_holders[i] =
-        d_exprManager->mkExpr(i == 0 ? kind::APPLY_UF : kind::APPLY, children);
+    terms[i] =
+        d_nodeManager->mkNode(i == 0 ? kind::APPLY_UF : kind::APPLY, children);
     // make application of Inv on primed variables
     if (i == 0)
     {
       children.clear();
       children.push_back(op);
       children.insert(children.end(), primed_vars.begin(), primed_vars.end());
-      place_holders.push_back(d_exprManager->mkExpr(kind::APPLY_UF, children));
+      terms.push_back(d_nodeManager->mkNode(kind::APPLY_UF, children));
     }
   }
   // make constraints
-  std::vector<Expr> conj;
-  conj.push_back(
-      d_exprManager->mkExpr(kind::IMPLIES, place_holders[1], place_holders[0]));
-  const Expr term0_and_2 =
-      d_exprManager->mkExpr(kind::AND, place_holders[0], place_holders[2]);
-  conj.push_back(
-      d_exprManager->mkExpr(kind::IMPLIES, term0_and_2, place_holders[4]));
-  conj.push_back(
-      d_exprManager->mkExpr(kind::IMPLIES, place_holders[0], place_holders[3]));
-  Expr constraint = d_exprManager->mkExpr(kind::AND, conj);
-  Debug("parser-sygus") << "...read invariant constraint " << ic << std::endl;
+  std::vector<Node> conj;
+  conj.push_back(d_nodeManager->mkNode(kind::IMPLIES, terms[1], terms[0]));
+  Node term0_and_2 = d_nodeManager->mkNode(kind::AND, terms[0], terms[2]);
+  conj.push_back(d_nodeManager->mkNode(kind::IMPLIES, term0_and_2, terms[4]));
+  conj.push_back(d_nodeManager->mkNode(kind::IMPLIES, terms[0], terms[3]));
+  Node constraint = d_nodeManager->mkNode(kind::AND, conj);
 
   d_sygusConstraints.push_back(constraint);
 
@@ -3865,67 +3871,69 @@ Result SmtEngine::checkSynth()
   SmtScope smts(this);
   // build synthesis conjecture from asserted constraints and declared
   // variables/functions
-  Expr sygusVar = d_exprManager->mkVar("sygus", d_exprManager->booleanType());
-  Expr inst_attr = d_exprManager->mkExpr(kind::INST_ATTRIBUTE, sygusVar);
-  Expr sygusAttr = d_exprManager->mkExpr(kind::INST_PATTERN_LIST, inst_attr);
-  std::vector<Expr> bodyv;
+  Node sygusVar = d_nodeManager->mkSkolem("sygus", d_nodeManager->booleanType());
+  Node inst_attr = d_nodeManager->mkNode(kind::INST_ATTRIBUTE, sygusVar);
+  Node sygusAttr = d_nodeManager->mkNode(kind::INST_PATTERN_LIST, inst_attr);
+  std::vector<Node> bodyv;
   Trace("smt") << "Sygus : Constructing sygus constraint...\n";
   unsigned n_constraints = d_sygusConstraints.size();
-  Expr body = n_constraints == 0
-                  ? d_exprManager()->mkConst(true)
+  Node body = n_constraints == 0
+                  ? d_nodeManager->mkConst(true)
                   : (n_constraints == 1 ? d_sygusConstraints[0]
-                                        : d_exprManager()->mkExpr(
+                                        : d_nodeManager->mkNode(
                                               kind::AND, d_sygusConstraints));
-  body = body.notExpr();
+  body = body.notNode();
   Trace("smt") << "...constructed sygus constraint " << body << std::endl;
   if (!d_sygusVars.empty())
   {
-    Expr boundVars = d_exprManager->mkExpr(kind::BOUND_VAR_LIST, d_sygusVars);
-    body = d_exprManager->mkExpr(kind::EXISTS, boundVars, body);
+    Node boundVars = d_nodeManager->mkNode(kind::BOUND_VAR_LIST, d_sygusVars);
+    body = d_nodeManager->mkNode(kind::EXISTS, boundVars, body);
     Trace("smt") << "...constructed exists " << body << std::endl;
   }
   if (!d_sygusFunSymbols.empty())
   {
-    Expr boundVars =
-        d_exprManager->mkExpr(kind::BOUND_VAR_LIST, d_sygusFunSymbols);
-    body = d_exprManager->mkExpr(kind::FORALL, boundVars, body, sygusAttr);
+    Node boundVars =
+        d_nodeManager->mkNode(kind::BOUND_VAR_LIST, d_sygusFunSymbols);
+    body = d_nodeManager->mkNode(kind::FORALL, boundVars, body, sygusAttr);
   }
   Trace("smt") << "...constructed forall " << body << std::endl;
 
   // set attribute for synthesis conjecture
-  setUserAttribute("sygus", sygusVar, {}, "");
+  setUserAttribute("sygus", sygusVar.toExpr(), {}, "");
 
   // set attributes for functions-to-synthesize
-  for (const Expr& synth_fun : d_sygusFunSymbols)
+  for (const Node& synth_fun : d_sygusFunSymbols)
   {
     // associate var list with function-to-synthesize
     Assert(d_sygusFunVars.find(synth_fun) != d_sygusFunVars.end());
-    const std::vector<Expr>& vars = d_sygusFunVars[synth_fun];
-    Expr bvl;
+    const std::vector<Node>& vars = d_sygusFunVars[synth_fun];
+    Node bvl;
     if (!vars.empty())
     {
-      bvl = d_exprManager->mkExpr(kind::BOUND_VAR_LIST, sygus_vars);
+      bvl = d_nodeManager->mkNode(kind::BOUND_VAR_LIST, vars);
     }
     std::vector<Expr> attr_val_bvl;
-    attr_val_bvl.push_back(bvl);
-    setUserAttribute("sygus-synth-fun-var-list", synth_fun, attr_val_bvl, "");
+    attr_val_bvl.push_back(bvl.toExpr());
+    setUserAttribute(
+        "sygus-synth-fun-var-list", synth_fun.toExpr(), attr_val_bvl, "");
     // If the function has syntax restrition, bulid a variable "sfproxy" which
     // carries the type, a SyGuS datatype that corresponding to the syntactic
     // restrictions.
-    std::map<Expr, Type>::const_iterator it =
-        d_sygusFunSygusType.find(synth_fun);
-    if (it != d_sygusFunSygusType.end())
+    std::map<Node, TypeNode>::const_iterator it =
+        d_sygusFunSyntax.find(synth_fun);
+    if (it != d_sygusFunSyntax.end())
     {
-      Expr sym = mkBoundVar("sfproxy", it->second);
+      Node sym = d_nodeManager->mkBoundVar("sfproxy", it->second);
       std::vector<Expr> attr_value;
-      attr_value.push_back(sym);
-      setUserAttribute("sygus-synth-grammar", synth_fun, attr_value, "");
+      attr_value.push_back(sym.toExpr());
+      setUserAttribute(
+          "sygus-synth-grammar", synth_fun.toExpr(), attr_value, "");
     }
   }
 
-  Trace("smt") << "Check synthesis conjecture: " << e << std::endl;
+  Trace("smt") << "Check synthesis conjecture: " << body << std::endl;
 
-  return checkSatisfiability(e, true, false);
+  return checkSatisfiability(body.toExpr(), true, false);
 }
 
 /*
