@@ -284,7 +284,7 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
 {
   out << "(synth-" << (c->isInv() ? "inv" : "fun")
       << CVC4::quoteSymbol(c->getSymbol()) << " (";
-  Type type = c->getType();
+  Type type = c->getFunction().getType();
   if (type.isFunction())
   {
     FunctionType ft = type;
@@ -298,13 +298,62 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
     }
     type = ft.getRangeType();
   }
-  out << ") " << type;
+  out << ")";
+  if (!c->isInv())
+  {
+    out << " " << type;
+  }
   // print grammar, if any
-  //
-  // for each datatype in grammar
-  //   name
-  //   sygus type
-  //   constructors in order
+  Type sygusType = c->getSygusType();
+  if (sygusType.isDatatype() && sygusType.getDatatype().isSygus())
+  {
+    out << "\n(";
+    std::unordered_set<Type> grammarTypes;
+    std::queue<Type> typesToPrint;
+    grammarTypes.insert(sygusType);
+    typesToPrint.push_back(sygusType);
+    // for each datatype in grammar
+    //   name
+    //   sygus type
+    //   constructors in order
+    do
+    {
+      Type curr = typesToPrint.pop_front();
+      Assert(curr.isDatatype() && curr.getDatatype().isSygus());
+      const Datatype& dt = curr.getDatatype();
+      out << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
+      for (const DatatypeConstructor& cons : dt)
+      {
+        // TODO use sygusprintcallback
+        out << cons.getName();
+        DatatypeConstructor::const_iterator i = cons.begin(),
+                                            i_end = cons.end();
+        if (i != i_end)
+        {
+          out << "(";
+          do
+          {
+            out << *i;
+            Type argType = (*i).getRangeType();
+            // if fresh type
+            if (grammarTypes.insert(argType).second)
+            {
+              typesToPrint.push_back(argType);
+            }
+            if (++i != i_end)
+            {
+              out << ", ";
+            }
+          } while (i != i_end);
+          out << ")";
+        }
+        out << "\n";
+      }
+      out << ")\n";
+    } while (!grammarTypes.empty());
+
+    out << ")";
+  }
   out << ")";
 }
 
