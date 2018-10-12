@@ -3746,7 +3746,11 @@ void SmtEngine::declareSynthFun(const std::string& id,
 {
   d_sygusFunSymbols.push_back(func);
   d_sygusFunVars[func] = vars;
-  d_sygusFunSygusType[func] = sygusType;
+  // whether sygus type encodes syntax restrictions
+  if (sygusType.isDatatype() && sygusType.getDatatype().isSygus())
+  {
+    d_sygusFunSygusType[func] = sygusType;
+  }
   Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
@@ -3905,14 +3909,18 @@ Result SmtEngine::checkSynth()
     std::vector<Expr> attr_val_bvl;
     attr_val_bvl.push_back(bvl);
     setUserAttribute("sygus-synth-fun-var-list", synth_fun, attr_val_bvl, "");
-    // Variable "sfproxy" carries the type, which may be a SyGuS datatype
-    // that corresponds to syntactic restrictions.
-    Assert(d_sygusFunSygusType.find(synth_fun) != d_sygusFunSygusType.end());
-    Type sygus_type = d_sygusFunSygusType[synth_fun];
-    Expr sym = mkBoundVar("sfproxy", sygus_type);
-    std::vector<Expr> attr_value;
-    attr_value.push_back(sym);
-    setUserAttribute("sygus-synth-grammar", synth_fun, attr_value, "");
+    // If the function has syntax restrition, bulid a variable "sfproxy" which
+    // carries the type, a SyGuS datatype that corresponding to the syntactic
+    // restrictions.
+    std::map<Expr, Type>::const_iterator it =
+        d_sygusFunSygusType.find(synth_fun);
+    if (it != d_sygusFunSygusType.end())
+    {
+      Expr sym = mkBoundVar("sfproxy", it->second);
+      std::vector<Expr> attr_value;
+      attr_value.push_back(sym);
+      setUserAttribute("sygus-synth-grammar", synth_fun, attr_value, "");
+    }
   }
 
   Trace("smt") << "Check synthesis conjecture: " << e << std::endl;

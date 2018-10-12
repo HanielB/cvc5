@@ -461,13 +461,12 @@ class CVC4_PUBLIC SmtEngine {
   std::vector<Expr> d_sygusFunSymbols;
   /** maps functions-to-synthesize to their respective input variables lists */
   std::map<Expr, std::vector<Expr>> d_sygusFunVars;
-  /** maps functions-to-synthesize to their respective sygus types
+  /** maps functions-to-synthesize to their respective syntactic restrictions
    *
-   * SyGuS types are either a SyGuS datatype corresponding to syntactic
-   * restrictions for the function-to-synthesize, if there are any, or the
-   * return type of the function, otherwise.
+   * If function has syntactic restrictinos, these are encoded as a SyGuS datatype
+   * type
    */
-  std::map<Expr, std::vector<Type>> d_sygusFunSygusType;
+  std::map<Expr, Type> d_sygusFunSyntax;
 
   /*------------------- end of sygus utils ------------------*/
 
