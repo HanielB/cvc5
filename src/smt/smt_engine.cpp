@@ -3964,7 +3964,7 @@ Result SmtEngine::checkSynth()
   Trace("smt") << "Check synthesis conjecture: " << body << std::endl;
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << CheckSynthCmomand();
+    Dump("raw-benchmark") << CheckSynthCommand();
   }
   return checkSatisfiability(body.toExpr(), true, false);
 }

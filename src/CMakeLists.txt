@@ -118,6 +118,8 @@ libcvc4_add_sources(
   printer/printer.h
   printer/smt2/smt2_printer.cpp
   printer/smt2/smt2_printer.h
+  printer/sygus/sygus_printer.cpp
+  printer/sygus/sygus_printer.h
   printer/sygus_print_callback.cpp
   printer/sygus_print_callback.h
   printer/tptp/tptp_printer.cpp

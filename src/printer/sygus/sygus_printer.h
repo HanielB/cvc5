@@ -30,6 +30,7 @@ namespace sygus {
 class SygusPrinter : public CVC4::Printer
 {
  public:
+  SygusPrinter() {};
   using CVC4::Printer::toStream;
 
   void toStream(std::ostream& out,
@@ -45,10 +46,13 @@ class SygusPrinter : public CVC4::Printer
                 size_t dag) const override;
 
   void toStream(std::ostream& out, const CommandStatus* s) const override;
-
+  void toStream(std::ostream& out, const Model& m) const override {};
   void toStreamSygus(std::ostream& out, TNode n) const override;
 
  private:
+  void toStream(std::ostream& out,
+                const Model& m,
+                const Command* c) const override {};
   void toStream(std::ostream& out, const SExpr& sexpr) const;
 }; /* class SygusPrinter */
 

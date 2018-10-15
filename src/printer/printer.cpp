@@ -22,6 +22,7 @@
 #include "printer/ast/ast_printer.h"
 #include "printer/cvc/cvc_printer.h"
 #include "printer/smt2/smt2_printer.h"
+#include "printer/sygus/sygus_printer.h"
 #include "printer/tptp/tptp_printer.h"
 
 using namespace std;
@@ -61,8 +62,7 @@ unique_ptr<Printer> Printer::makePrinter(OutputLanguage lang)
         new printer::smt2::Smt2Printer(printer::smt2::z3str_variant));
 
   case LANG_SYGUS:
-    return unique_ptr<Printer>(
-        new printer::smt2::Smt2Printer(printer::smt2::sygus_variant));
+    return unique_ptr<Printer>(new printer::sygus::SygusPrinter());
 
   case LANG_AST:
     return unique_ptr<Printer>(new printer::ast::AstPrinter());

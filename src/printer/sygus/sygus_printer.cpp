@@ -32,8 +32,7 @@
 #include "theory/quantifiers/quantifiers_attributes.h"
 #include "theory/substitutions.h"
 #include "theory/theory_model.h"
-
-use namespace kind;
+#include "util/smt2_quote_string.h"
 
 namespace CVC4 {
 namespace printer {
@@ -155,7 +154,7 @@ void SygusPrinter::toStream(std::ostream& out,
   }
 
   out << "ERROR: don't know how to print a Command of class: "
-      << typeid(*c).name() << endl;
+      << typeid(*c).name() << "\n";
 
 } /* SygusPrinter::toStream(Command*) */
 
@@ -179,7 +178,7 @@ static void toStream(std::ostream& out, const CommandSequence* c)
       out << *i;
       if (++i != c->end())
       {
-        out << endl;
+        out << std::endl;
       }
       else
       {
@@ -187,88 +186,23 @@ static void toStream(std::ostream& out, const CommandSequence* c)
       }
     }
   }
-}
-
-static void toStream(std::ostream& out, const CommentCommand* c)
-{
-  string s = c->getComment();
-  size_t pos = 0;
-  while((pos = s.find_first_of('"', pos)) != string::npos) {
-    s.replace(pos, 1, (v == z3str_variant || v == smt2_0_variant) ? "\\\"" : "\"\"");
-    pos += 2;
-  }
-  out << "(set-info :notes \"" << s << "\")";
 }
 
 static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
 {
-  Type type = c->getType();
-  out << "(declare-fun " << CVC4::quoteSymbol(c->getSymbol()) << " (";
-  if (type.isFunction())
-  {
-    FunctionType ft = type;
-    const vector<Type> argTypes = ft.getArgTypes();
-    if (argTypes.size() > 0)
-    {
-      copy(argTypes.begin(),
-           argTypes.end() - 1,
-           ostream_iterator<Type>(out, " "));
-      out << argTypes.back();
-    }
-    type = ft.getRangeType();
-  }
-  out << ") " << type << ")";
+  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 {
-  Expr func = c->getFunction();
-  const std::vector<Expr>* formals = &c->getFormals();
-  out << "(define-fun " << func << " (";
-  Type type = func.getType();
-  Expr formula = c->getFormula();
-  NodeManager* nm = NodeManager::currentNM();
-  if (type.isFunction())
-  {
-    std::vector<Expr> f;
-    if (formals->empty())
-    {
-      const std::vector<Type>& params = FunctionType(type).getArgTypes();
-      for (const Type& type : params)
-      {
-        f.push_back(nm->mkSkolem("a",
-                                 TypeNode::fromType(type),
-                                 "",
-                                 NodeManager::SKOLEM_NO_NOTIFY)
-                        .toExpr());
-      }
-      formula = nm->toExprManager()->mkExpr(APPLY_UF, formula, f);
-      formals = &f;
-    }
-    vector<Expr>::const_iterator i = formals->begin();
-    for (;;)
-    {
-      out << "(" << (*i) << " " << (*i).getType() << ")";
-      ++i;
-      if (i != formals->end())
-      {
-        out << " ";
-      }
-      else
-      {
-        break;
-      }
-    }
-    type = FunctionType(type).getRangeType();
-  }
-  out << ") " << type << " " << formula << ")";
+  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const DeclareVarCommand* c)
 {
   out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
   Type type = c->getType();
-  Assert(!type.isFunction()));
+  Assert(!type.isFunction());
   out << ") " << type << ")";
 }
 
@@ -276,7 +210,7 @@ static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
 {
   out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
   Type type = c->getType();
-  Assert(!type.isFunction()));
+  Assert(!type.isFunction());
   out << ") " << type << ")";
 }
 
@@ -288,12 +222,12 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
   if (type.isFunction())
   {
     FunctionType ft = type;
-    const vector<Type> argTypes = ft.getArgTypes();
+    const std::vector<Type> argTypes = ft.getArgTypes();
     if (argTypes.size() > 0)
     {
       copy(argTypes.begin(),
            argTypes.end() - 1,
-           ostream_iterator<Type>(out, " "));
+           std::ostream_iterator<Type>(out, " "));
       out << argTypes.back();
     }
     type = ft.getRangeType();
@@ -305,11 +239,12 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
   }
   // print grammar, if any
   Type sygusType = c->getSygusType();
-  if (sygusType.isDatatype() && sygusType.getDatatype().isSygus())
+  if (sygusType.isDatatype()
+      && static_cast<DatatypeType>(sygusType).getDatatype().isSygus())
   {
     out << "\n(";
-    std::unordered_set<Type> grammarTypes;
-    std::queue<Type> typesToPrint;
+    std::set<Type> grammarTypes;
+    std::list<Type> typesToPrint;
     grammarTypes.insert(sygusType);
     typesToPrint.push_back(sygusType);
     // for each datatype in grammar
@@ -318,9 +253,11 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
     //   constructors in order
     do
     {
-      Type curr = typesToPrint.pop_front();
-      Assert(curr.isDatatype() && curr.getDatatype().isSygus());
-      const Datatype& dt = curr.getDatatype();
+      Type curr = typesToPrint.front();
+      typesToPrint.pop_front();
+      Assert(curr.isDatatype()
+             && static_cast<DatatypeType>(curr).getDatatype().isSygus());
+      const Datatype& dt = static_cast<DatatypeType>(curr).getDatatype();
       out << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
       for (const DatatypeConstructor& cons : dt)
       {
@@ -365,7 +302,7 @@ static void toStream(std::ostream& out, const ConstraintCommand* c)
 static void toStream(std::ostream& out, const InvConstraintCommand* c)
 {
   out << "(inv-constraint";
-  const Expr& place_holders = c->getPlaceHolders();
+  const std::vector<Expr>& place_holders = c->getPlaceHolders();
   for (const Expr& e : place_holders)
   {
     out << " " << e;
@@ -377,6 +314,17 @@ static void toStream(std::ostream& out, const CheckSynthCommand* c)
 {
   out << "(check-synth)";
 }
+
+template <class T>
+static bool tryToStream(std::ostream& out, const Command* c)
+{
+  if(typeid(*c) == typeid(T)) {
+    toStream(out, dynamic_cast<const T*>(c));
+    return true;
+  }
+  return false;
+}
+
 
 }  // namespace sygus
 }  // namespace printer
