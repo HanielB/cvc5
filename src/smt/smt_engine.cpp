@@ -497,6 +497,31 @@ class SmtEnginePrivate : public NodeManagerListener {
   /* Finishes the initialization of the private portion of SMTEngine. */
   void finishInit();
 
+  /*------------------- sygus utils ------------------*/
+  /**
+   * sygus variables declared (from "declare-var" and "declare-fun" commands)
+   *
+   * The SyGuS semantics for declared variables is that they are implicitly
+   * universally quantified in the constraints.
+   */
+  std::vector<Node> d_sygusVars;
+  /** types of sygus primed variables (for debugging) */
+  std::vector<Type> d_sygusPrimedVarTypes;
+  /** sygus constraints */
+  std::vector<Node> d_sygusConstraints;
+  /** functions-to-synthesize */
+  std::vector<Node> d_sygusFunSymbols;
+  /** maps functions-to-synthesize to their respective input variables lists */
+  std::map<Node, std::vector<Node>> d_sygusFunVars;
+  /** maps functions-to-synthesize to their respective syntactic restrictions
+   *
+   * If function has syntactic restrictinos, these are encoded as a SyGuS
+   * datatype type
+   */
+  std::map<Node, TypeNode> d_sygusFunSyntax;
+
+  /*------------------- end of sygus utils ------------------*/
+
  private:
   std::unique_ptr<PreprocessingPassContext> d_preprocessingPassContext;
 
@@ -3706,7 +3731,7 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
 
 void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
 {
-  d_sygusVars.push_back(Node::fromExpr(var));
+  d_private->d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
@@ -3717,7 +3742,7 @@ void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
 void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
 {
 #ifdef CVC4_ASSERTIONS
-  d_sygusPrimedVarTypes.push_back(type);
+  d_private->d_sygusPrimedVarTypes.push_back(type);
 #endif
   Trace("smt") << "SmtEngine::declareSygusPrimedVar: " << id << "\n";
   if (Dump.isOn("raw-benchmark"))
@@ -3730,7 +3755,7 @@ void SmtEngine::declareSygusFunctionVar(const std::string& id,
                                         Expr var,
                                         Type type)
 {
-  d_sygusVars.push_back(Node::fromExpr(var));
+  d_private->d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
@@ -3745,18 +3770,18 @@ void SmtEngine::declareSynthFun(const std::string& id,
                                 const std::vector<Expr>& vars)
 {
   Node fn = Node::fromExpr(func);
-  d_sygusFunSymbols.push_back(fn);
+  d_private->d_sygusFunSymbols.push_back(fn);
   std::vector<Node> var_nodes;
-  for (const Expr& v: vars)
+  for (const Expr& v : vars)
   {
     var_nodes.push_back(Node::fromExpr(v));
   }
-  d_sygusFunVars[fn] = var_nodes;
+  d_private->d_sygusFunVars[fn] = var_nodes;
   // whether sygus type encodes syntax restrictions
   if (sygusType.isDatatype()
       && static_cast<DatatypeType>(sygusType).getDatatype().isSygus())
   {
-    d_sygusFunSyntax[fn] = TypeNode::fromType(sygusType);
+    d_private->d_sygusFunSyntax[fn] = TypeNode::fromType(sygusType);
   }
   Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
   if (Dump.isOn("raw-benchmark"))
@@ -3767,8 +3792,7 @@ void SmtEngine::declareSynthFun(const std::string& id,
 
 void SmtEngine::assertSygusConstraint(Expr constraint)
 {
-  d_sygusConstraints.push_back(constraint);
-
+  d_private->d_sygusConstraints.push_back(constraint);
   Trace("smt") << "SmtEngine::assertSygusConstrant: " << constraint << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
@@ -3794,19 +3818,21 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
   {
     TypeNode tn = TypeNode::fromType(ti);
     vars.push_back(d_nodeManager->mkBoundVar(tn));
-    d_sygusVars.push_back(vars.back());
+    d_private->d_sygusVars.push_back(vars.back());
     std::stringstream ss;
     ss << vars.back() << "'";
     primed_vars.push_back(d_nodeManager->mkBoundVar(ss.str(), tn));
-    d_sygusVars.push_back(primed_vars.back());
+    d_private->d_sygusVars.push_back(primed_vars.back());
 #ifdef CVC4_ASSERTIONS
     bool find_new_declared_var = false;
-    for (const Type& t : d_sygusPrimedVarTypes)
+    for (const Type& t : d_private->d_sygusPrimedVarTypes)
     {
       if (t == ti)
       {
-        d_sygusPrimedVarTypes.erase(std::find(
-            d_sygusPrimedVarTypes.begin(), d_sygusPrimedVarTypes.end(), t));
+        d_private->d_sygusPrimedVarTypes.erase(
+            std::find(d_private->d_sygusPrimedVarTypes.begin(),
+                      d_private->d_sygusPrimedVarTypes.end(),
+                      t));
         find_new_declared_var = true;
         break;
       }
@@ -3857,7 +3883,7 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
   conj.push_back(d_nodeManager->mkNode(kind::IMPLIES, terms[0], terms[3]));
   Node constraint = d_nodeManager->mkNode(kind::AND, conj);
 
-  d_sygusConstraints.push_back(constraint);
+  d_private->d_sygusConstraints.push_back(constraint);
 
   Trace("smt") << "SmtEngine::assertSygusInvConstrant: " << constraint << "\n";
   if (Dump.isOn("raw-benchmark"))
@@ -3871,29 +3897,32 @@ Result SmtEngine::checkSynth()
   SmtScope smts(this);
   // build synthesis conjecture from asserted constraints and declared
   // variables/functions
-  Node sygusVar = d_nodeManager->mkSkolem("sygus", d_nodeManager->booleanType());
+  Node sygusVar =
+      d_nodeManager->mkSkolem("sygus", d_nodeManager->booleanType());
   Node inst_attr = d_nodeManager->mkNode(kind::INST_ATTRIBUTE, sygusVar);
   Node sygusAttr = d_nodeManager->mkNode(kind::INST_PATTERN_LIST, inst_attr);
   std::vector<Node> bodyv;
   Trace("smt") << "Sygus : Constructing sygus constraint...\n";
-  unsigned n_constraints = d_sygusConstraints.size();
+  unsigned n_constraints = d_private->d_sygusConstraints.size();
   Node body = n_constraints == 0
                   ? d_nodeManager->mkConst(true)
-                  : (n_constraints == 1 ? d_sygusConstraints[0]
-                                        : d_nodeManager->mkNode(
-                                              kind::AND, d_sygusConstraints));
+                  : (n_constraints == 1
+                         ? d_private->d_sygusConstraints[0]
+                         : d_nodeManager->mkNode(
+                               kind::AND, d_private->d_sygusConstraints));
   body = body.notNode();
   Trace("smt") << "...constructed sygus constraint " << body << std::endl;
-  if (!d_sygusVars.empty())
+  if (!d_private->d_sygusVars.empty())
   {
-    Node boundVars = d_nodeManager->mkNode(kind::BOUND_VAR_LIST, d_sygusVars);
+    Node boundVars =
+        d_nodeManager->mkNode(kind::BOUND_VAR_LIST, d_private->d_sygusVars);
     body = d_nodeManager->mkNode(kind::EXISTS, boundVars, body);
     Trace("smt") << "...constructed exists " << body << std::endl;
   }
-  if (!d_sygusFunSymbols.empty())
+  if (!d_private->d_sygusFunSymbols.empty())
   {
-    Node boundVars =
-        d_nodeManager->mkNode(kind::BOUND_VAR_LIST, d_sygusFunSymbols);
+    Node boundVars = d_nodeManager->mkNode(kind::BOUND_VAR_LIST,
+                                           d_private->d_sygusFunSymbols);
     body = d_nodeManager->mkNode(kind::FORALL, boundVars, body, sygusAttr);
   }
   Trace("smt") << "...constructed forall " << body << std::endl;
@@ -3902,11 +3931,12 @@ Result SmtEngine::checkSynth()
   setUserAttribute("sygus", sygusVar.toExpr(), {}, "");
 
   // set attributes for functions-to-synthesize
-  for (const Node& synth_fun : d_sygusFunSymbols)
+  for (const Node& synth_fun : d_private->d_sygusFunSymbols)
   {
     // associate var list with function-to-synthesize
-    Assert(d_sygusFunVars.find(synth_fun) != d_sygusFunVars.end());
-    const std::vector<Node>& vars = d_sygusFunVars[synth_fun];
+    Assert(d_private->d_sygusFunVars.find(synth_fun)
+           != d_private->d_sygusFunVars.end());
+    const std::vector<Node>& vars = d_private->d_sygusFunVars[synth_fun];
     Node bvl;
     if (!vars.empty())
     {
@@ -3920,8 +3950,8 @@ Result SmtEngine::checkSynth()
     // carries the type, a SyGuS datatype that corresponding to the syntactic
     // restrictions.
     std::map<Node, TypeNode>::const_iterator it =
-        d_sygusFunSyntax.find(synth_fun);
-    if (it != d_sygusFunSyntax.end())
+        d_private->d_sygusFunSyntax.find(synth_fun);
+    if (it != d_private->d_sygusFunSyntax.end())
     {
       Node sym = d_nodeManager->mkBoundVar("sfproxy", it->second);
       std::vector<Expr> attr_value;
@@ -3932,7 +3962,10 @@ Result SmtEngine::checkSynth()
   }
 
   Trace("smt") << "Check synthesis conjecture: " << body << std::endl;
-
+  if (Dump.isOn("raw-benchmark"))
+  {
+    Dump("raw-benchmark") << CheckSynthCmomand();
+  }
   return checkSatisfiability(body.toExpr(), true, false);
 }
 
