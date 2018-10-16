@@ -215,23 +215,30 @@ static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
 
 static void toStream(std::ostream& out, const SynthFunCommand* c)
 {
-  out << "(synth-" << (c->isInv() ? "inv" : "fun")
-      << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  out << "(synth-" << (c->isInv() ? "inv" : "fun") << " "
+      << CVC4::quoteSymbol(c->getSymbol()) << " ";
   Type type = c->getFunction().getType();
+  const std::vector<Expr>& vars = c->getVars();
+  Assert(!type.isFunction() || !vars.empty());
   if (type.isFunction())
   {
-    FunctionType ft = type;
-    const std::vector<Type> argTypes = ft.getArgTypes();
-    if (argTypes.size() > 0)
+    // print variable list
+    std::vector<Expr>::const_iterator i = vars.begin(), i_end = vars.end();
+    Assert(i != i_end);
+    out << "(";
+    do
     {
-      copy(argTypes.begin(),
-           argTypes.end() - 1,
-           std::ostream_iterator<Type>(out, " "));
-      out << argTypes.back();
-    }
+      out << "(" << *i << " " << (*i).getType() << ")";
+      if (++i != i_end)
+      {
+        out << " ";
+      }
+    } while (i != i_end);
+    out << ")";
+    FunctionType ft = type;
     type = ft.getRangeType();
   }
-  out << ")";
+  // if not invariant-to-synthesize, print return type
   if (!c->isInv())
   {
     out << " " << type;
@@ -258,6 +265,10 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
              && static_cast<DatatypeType>(curr).getDatatype().isSygus());
       const Datatype& dt = static_cast<DatatypeType>(curr).getDatatype();
       out << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
+      if (dt.getSygusAllowConst())
+      {
+        out << "(Constant " << dt.getSygusType() << ") ";
+      }
       for (const DatatypeConstructor& cons : dt)
       {
         // TODO use sygusprintcallback

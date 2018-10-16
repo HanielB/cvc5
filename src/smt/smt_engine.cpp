@@ -3786,7 +3786,7 @@ void SmtEngine::declareSynthFun(const std::string& id,
   Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << SynthFunCommand(id, func, sygusType, isInv);
+    Dump("raw-benchmark") << SynthFunCommand(id, func, sygusType, isInv, vars);
   }
 }
 
