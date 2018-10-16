@@ -118,8 +118,6 @@ void DumpC::setDumpFromString(const std::string& optarg) {
       Dump.on("bv-abstraction");
     } else if(!strcmp(optargPtr, "bv-algebraic")) {
       Dump.on("bv-algebraic");
-    } else if(!strcmp(optargPtr, "sygus-benchmark")) {
-      Dump.on("sygus-benchmark");
     } else {
       throw OptionException(std::string("unknown option for --dump: `") +
                             optargPtr + "'.  Try --dump help.");
@@ -153,10 +151,6 @@ declarations\n\
 raw-benchmark\n\
 + Dump all user-commands as they are received (including assertions) without\n\
   any preprocessing and without any internally-created commands.\n\
-\n\
-sygus-benchmark\n\
-+ Dump all sygus-commands as they are received without any preprocessing\n\
-  and without any internally-created commands.\n\
 \n\
 skolems\n\
 + Dump internally-created skolem variable declarations.  These can\n\
