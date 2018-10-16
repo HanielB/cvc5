@@ -49,14 +49,14 @@ class SygusPrinter : public CVC4::Printer
                 size_t dag) const override;
 
   void toStream(std::ostream& out, const CommandStatus* s) const override;
-  void toStream(std::ostream& out, const Model& m) const override {};
+  void toStream(std::ostream& out, const Model& m) const override{};
   void toStreamSygus(std::ostream& out, TNode n) const override;
 
  private:
   std::unique_ptr<Printer> d_termLangPrinter;
   void toStream(std::ostream& out,
                 const Model& m,
-                const Command* c) const override {};
+                const Command* c) const override{};
   void toStream(std::ostream& out, const SExpr& sexpr) const;
 }; /* class SygusPrinter */
 

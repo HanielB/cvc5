@@ -155,7 +155,7 @@ void SygusPrinter::toStream(std::ostream& out,
   out << "ERROR: don't know how to print a Command of class: "
       << typeid(*c).name() << "\n";
 
-} /* SygusPrinter::toStream(Command*) */
+}
 
 void SygusPrinter::toStream(std::ostream& out, const CommandStatus* s) const
 {
