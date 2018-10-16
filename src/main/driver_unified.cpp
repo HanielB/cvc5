@@ -281,11 +281,9 @@ int runCvc4(int argc, char* argv[], Options& opts) {
             "--tear-down-incremental doesn't work in interactive mode");
       }
 #ifndef PORTFOLIO_BUILD
-      if(!opts.wasSetByUserIncrementalSolving()) {
-        cmd = new SetOptionCommand("incremental", SExpr(true));
-        cmd->setMuted(true);
-        pExecutor->doCommand(cmd);
-        delete cmd;
+      if (!opts.wasSetByUserIncrementalSolving())
+      {
+        pExecutor->getSmtEngine()->setOption("incremental", SExpr(true));
       }
 #endif /* PORTFOLIO_BUILD */
       InteractiveShell shell(solver.get());
@@ -323,22 +321,11 @@ int runCvc4(int argc, char* argv[], Options& opts) {
         delete cmd;
       }
     } else if( opts.getTearDownIncremental() > 0) {
-      if(!opts.getIncrementalSolving() && opts.getTearDownIncremental() > 1) {
+      if (!opts.getIncrementalSolving() && opts.getTearDownIncremental() > 1)
+      {
         // For tear-down-incremental values greater than 1, need incremental
         // on too.
-        cmd = new SetOptionCommand("incremental", SExpr(true));
-        cmd->setMuted(true);
-        pExecutor->doCommand(cmd);
-        delete cmd;
-        // if(opts.wasSetByUserIncrementalSolving()) {
-        //   throw OptionException(
-        //     "--tear-down-incremental incompatible with --incremental");
-        // }
-
-        // cmd = new SetOptionCommand("incremental", SExpr(false));
-        // cmd->setMuted(true);
-        // pExecutor->doCommand(cmd);
-        // delete cmd;
+        pExecutor->getSmtEngine()->setOption("incremental", SExpr(true));
       }
 
       ParserBuilder parserBuilder(solver.get(), filename, opts);
@@ -491,11 +478,9 @@ int runCvc4(int argc, char* argv[], Options& opts) {
         delete cmd;
       }
     } else {
-      if(!opts.wasSetByUserIncrementalSolving()) {
-        cmd = new SetOptionCommand("incremental", SExpr(false));
-        cmd->setMuted(true);
-        pExecutor->doCommand(cmd);
-        delete cmd;
+      if (!opts.wasSetByUserIncrementalSolving())
+      {
+        pExecutor->getSmtEngine()->setOption("incremental", SExpr(false));
       }
 
       ParserBuilder parserBuilder(solver.get(), filename, opts);
