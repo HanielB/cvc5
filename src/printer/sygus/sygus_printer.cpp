@@ -287,7 +287,7 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
         out << "\n";
       }
       out << ")\n";
-    } while (!grammarTypes.empty());
+    } while (!typesToPrint.empty());
 
     out << ")";
   }
