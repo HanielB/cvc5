@@ -3733,9 +3733,9 @@ void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
 {
   d_private->d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
-  if (Dump.isOn("raw-benchmark"))
+  if (Dump.isOn("sygus-benchmark"))
   {
-    Dump("raw-benchmark") << DeclareVarCommand(id, var, type);
+    Dump("sygus-benchmark") << DeclareVarCommand(id, var, type);
   }
 }
 
@@ -3745,9 +3745,9 @@ void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
   d_private->d_sygusPrimedVarTypes.push_back(type);
 #endif
   Trace("smt") << "SmtEngine::declareSygusPrimedVar: " << id << "\n";
-  if (Dump.isOn("raw-benchmark"))
+  if (Dump.isOn("sygus-benchmark"))
   {
-    Dump("raw-benchmark") << DeclarePrimedVarCommand(id, type);
+    Dump("sygus-benchmark") << DeclarePrimedVarCommand(id, type);
   }
 }
 
@@ -3757,9 +3757,9 @@ void SmtEngine::declareSygusFunctionVar(const std::string& id,
 {
   d_private->d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
-  if (Dump.isOn("raw-benchmark"))
+  if (Dump.isOn("sygus-benchmark"))
   {
-    Dump("raw-benchmark") << DeclareSygusFunctionCommand(id, var, type);
+    Dump("sygus-benchmark") << DeclareSygusFunctionCommand(id, var, type);
   }
 }
 
@@ -3784,9 +3784,9 @@ void SmtEngine::declareSynthFun(const std::string& id,
     d_private->d_sygusFunSyntax[fn] = TypeNode::fromType(sygusType);
   }
   Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
-  if (Dump.isOn("raw-benchmark"))
+  if (Dump.isOn("sygus-benchmark"))
   {
-    Dump("raw-benchmark") << SynthFunCommand(id, func, sygusType, isInv, vars);
+    Dump("sygus-benchmark") << SynthFunCommand(id, func, sygusType, isInv, vars);
   }
 }
 
@@ -3794,9 +3794,9 @@ void SmtEngine::assertSygusConstraint(Expr constraint)
 {
   d_private->d_sygusConstraints.push_back(constraint);
   Trace("smt") << "SmtEngine::assertSygusConstrant: " << constraint << "\n";
-  if (Dump.isOn("raw-benchmark"))
+  if (Dump.isOn("sygus-benchmark"))
   {
-    Dump("raw-benchmark") << ConstraintCommand(constraint);
+    Dump("sygus-benchmark") << ConstraintCommand(constraint);
   }
 }
 
@@ -3886,9 +3886,9 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
   d_private->d_sygusConstraints.push_back(constraint);
 
   Trace("smt") << "SmtEngine::assertSygusInvConstrant: " << constraint << "\n";
-  if (Dump.isOn("raw-benchmark"))
+  if (Dump.isOn("sygus-benchmark"))
   {
-    Dump("raw-benchmark") << InvConstraintCommand(place_holders);
+    Dump("sygus-benchmark") << InvConstraintCommand(place_holders);
   }
 }
 
@@ -3962,9 +3962,9 @@ Result SmtEngine::checkSynth()
   }
 
   Trace("smt") << "Check synthesis conjecture: " << body << std::endl;
-  if (Dump.isOn("raw-benchmark"))
+  if (Dump.isOn("sygus-benchmark"))
   {
-    Dump("raw-benchmark") << CheckSynthCommand();
+    Dump("sygus-benchmark") << CheckSynthCommand();
   }
   return checkSatisfiability(body.toExpr(), true, false);
 }
