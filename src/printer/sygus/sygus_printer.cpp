@@ -264,6 +264,7 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
       Assert(curr.isDatatype()
              && static_cast<DatatypeType>(curr).getDatatype().isSygus());
       const Datatype& dt = static_cast<DatatypeType>(curr).getDatatype();
+      // TODO make the first guys be "Start"
       out << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
       if (dt.getSygusAllowConst())
       {
@@ -271,32 +272,34 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
       }
       for (const DatatypeConstructor& cons : dt)
       {
-        // TODO use sygusprintcallback
-        out << cons.getName();
         DatatypeConstructor::const_iterator i = cons.begin(),
                                             i_end = cons.end();
         if (i != i_end)
         {
           out << "(";
+          // TODO use sygusprintcallback
+          out << cons.getSygusOp();
           do
           {
-            out << *i;
             Type argType = (*i).getRangeType();
-            // if fresh type
+            // print argument type
+            out << " " << argType;
+            // if fresh type, store it for later processing
             if (grammarTypes.insert(argType).second)
             {
               typesToPrint.push_back(argType);
             }
-            if (++i != i_end)
-            {
-              out << ", ";
-            }
-          } while (i != i_end);
+          } while (++i != i_end);
           out << ")";
+        }
+        else
+        {
+          // TODO use sygusprintcallback
+          out << cons.getSygusOp();
         }
         out << "\n";
       }
-      out << ")\n";
+      out << "))\n";
     } while (!typesToPrint.empty());
 
     out << ")";
