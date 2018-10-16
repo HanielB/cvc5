@@ -164,7 +164,7 @@ void SygusPrinter::toStream(std::ostream& out, const CommandStatus* s) const
 
 static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
 {
-  out << "(set-logic " << c->getLogic() << ")";
+  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const CommandSequence* c)
@@ -328,13 +328,13 @@ static void toStream(std::ostream& out, const CheckSynthCommand* c)
 template <class T>
 static bool tryToStream(std::ostream& out, const Command* c)
 {
-  if(typeid(*c) == typeid(T)) {
+  if (typeid(*c) == typeid(T))
+  {
     toStream(out, dynamic_cast<const T*>(c));
     return true;
   }
   return false;
 }
-
 
 }  // namespace sygus
 }  // namespace printer
