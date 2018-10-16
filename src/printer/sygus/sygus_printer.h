@@ -22,6 +22,7 @@
 #include <iostream>
 
 #include "printer/printer.h"
+#include "printer/smt2/smt2_printer.h"
 
 namespace CVC4 {
 namespace printer {
@@ -30,7 +31,9 @@ namespace sygus {
 class SygusPrinter : public CVC4::Printer
 {
  public:
-  SygusPrinter() {};
+  SygusPrinter()
+      : d_termLangPrinter(new smt2::Smt2Printer(smt2::sygus_variant)){};
+  ~SygusPrinter(){};
   using CVC4::Printer::toStream;
 
   void toStream(std::ostream& out,
@@ -50,6 +53,7 @@ class SygusPrinter : public CVC4::Printer
   void toStreamSygus(std::ostream& out, TNode n) const override;
 
  private:
+  std::unique_ptr<Printer> d_termLangPrinter;
   void toStream(std::ostream& out,
                 const Model& m,
                 const Command* c) const override {};

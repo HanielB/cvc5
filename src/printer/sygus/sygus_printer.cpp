@@ -83,7 +83,6 @@ void SygusPrinter::toStream(
       n = p;
     }
   }
-  OutputLanguage term_lang = language::output::LANG_SMTLIB_V2_5;
   if (dag != 0)
   {
     DagificationVisitor dv(dag);
@@ -97,14 +96,14 @@ void SygusPrinter::toStream(
       for (; i != i_end; ++i)
       {
         out << "(let ((";
-        Printer::getPrinter(term_lang)->toStream(out, (*i).second, toDepth, types, 0);
+        d_termLangPrinter->toStream(out, (*i).second, toDepth, types, 0);
         out << ' ';
-        Printer::getPrinter(term_lang)->toStream(out, (*i).first, toDepth, types, 0);
+        d_termLangPrinter->toStream(out, (*i).first, toDepth, types, 0);
         out << ")) ";
       }
     }
     Node body = dv.getDagifiedBody();
-    Printer::getPrinter(term_lang)->toStream(out, body, toDepth, types, 0);
+    d_termLangPrinter->toStream(out, body, toDepth, types, 0);
     if (!lets.empty())
     {
       theory::SubstitutionMap::const_iterator i = lets.begin();
@@ -117,7 +116,7 @@ void SygusPrinter::toStream(
   }
   else
   {
-    Printer::getPrinter(term_lang)->toStream(out, n, toDepth, types, 0);
+    d_termLangPrinter->toStream(out, n, toDepth, types, 0);
   }
 }
 
