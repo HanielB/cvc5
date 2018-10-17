@@ -3735,7 +3735,7 @@ void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << DeclareVarCommand(id, var, type);
+    d_dumpCommands.push_back(new DeclareVarCommand(id, var, type));
   }
 }
 
@@ -3747,7 +3747,7 @@ void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
   Trace("smt") << "SmtEngine::declareSygusPrimedVar: " << id << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << DeclarePrimedVarCommand(id, type);
+    d_dumpCommands.push_back(new DeclarePrimedVarCommand(id, type));
   }
 }
 
@@ -3759,7 +3759,7 @@ void SmtEngine::declareSygusFunctionVar(const std::string& id,
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << DeclareSygusFunctionCommand(id, var, type);
+    d_dumpCommands.push_back(new DeclareSygusFunctionCommand(id, var, type));
   }
 }
 
@@ -3786,7 +3786,7 @@ void SmtEngine::declareSynthFun(const std::string& id,
   Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << SynthFunCommand(id, func, sygusType, isInv, vars);
+    d_dumpCommands.push_back(new SynthFunCommand(id, func, sygusType, isInv, vars));
   }
 }
 
@@ -3796,7 +3796,7 @@ void SmtEngine::assertSygusConstraint(Expr constraint)
   Trace("smt") << "SmtEngine::assertSygusConstrant: " << constraint << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << ConstraintCommand(constraint);
+    d_dumpCommands.push_back(new ConstraintCommand(constraint));
   }
 }
 
@@ -3888,7 +3888,7 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
   Trace("smt") << "SmtEngine::assertSygusInvConstrant: " << constraint << "\n";
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << InvConstraintCommand(place_holders);
+    d_dumpCommands.push_back(new InvConstraintCommand(place_holders));
   }
 }
 
@@ -3964,7 +3964,7 @@ Result SmtEngine::checkSynth()
   Trace("smt") << "Check synthesis conjecture: " << body << std::endl;
   if (Dump.isOn("raw-benchmark"))
   {
-    Dump("raw-benchmark") << CheckSynthCommand();
+    d_dumpCommands.push_back(new CheckSynthCommand());
   }
   return checkSatisfiability(body.toExpr(), true, false);
 }
@@ -4018,9 +4018,6 @@ Expr SmtEngine::expandDefinitions(const Expr& ex)
   if(options::typeChecking()) {
     // Ensure expr is type-checked at this point.
     e.getType(true);
-  }
-  if(Dump.isOn("benchmark")) {
-    Dump("benchmark") << ExpandDefinitionsCommand(e);
   }
   unordered_map<Node, Node, NodeHashFunction> cache;
   Node n = d_private->expandDefinitions(Node::fromExpr(e), cache, /* expandOnly = */ true);
@@ -5126,10 +5123,6 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
 {
   NodeManagerScope nms(d_nodeManager);
   Trace("smt") << "SMT setOption(" << key << ", " << value << ")" << endl;
-
-  if(Dump.isOn("benchmark")) {
-    Dump("benchmark") << SetOptionCommand(key, value);
-  }
 
   if(key == "command-verbosity") {
     if(!value.isAtom()) {

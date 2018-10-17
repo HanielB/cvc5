@@ -142,7 +142,7 @@ void SygusPrinter::toStream(std::ostream& out,
       || tryToStream<CommandSequence>(out, c)
       || tryToStream<DeclareVarCommand>(out, c)
       || tryToStream<DeclarePrimedVarCommand>(out, c)
-      || tryToStream<DeclareFunctionCommand>(out, c)
+      || tryToStream<DeclareSygusFunctionCommand>(out, c)
       || tryToStream<DefineFunctionCommand>(out, c)
       || tryToStream<SynthFunCommand>(out, c)
       || tryToStream<ConstraintCommand>(out, c)
@@ -151,20 +151,24 @@ void SygusPrinter::toStream(std::ostream& out,
   {
     return;
   }
-
+#ifdef CVC4_ASSERTIONS
   out << "ERROR: don't know how to print a Command of class: "
       << typeid(*c).name() << "\n";
-
+#endif
 }
 
-void SygusPrinter::toStream(std::ostream& out, const CommandStatus* s) const
+void SygusPrinter::toStream(std::ostream& out, const CommandStatus* c) const
 {
-  s->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
 {
-  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out,
+              -1,
+              false,
+              options::defaultDagThresh(),
+              language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const CommandSequence* c)
@@ -187,30 +191,40 @@ static void toStream(std::ostream& out, const CommandSequence* c)
   }
 }
 
-static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
+static void toStream(std::ostream& out, const DeclareSygusFunctionCommand* c)
 {
-  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  DeclareFunctionCommand* cf = new DeclareFunctionCommand(
+      c->getSymbol(), c->getFunction(), c->getType());
+  cf->toStream(out,
+              -1,
+              false,
+              options::defaultDagThresh(),
+              language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 {
-  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out,
+              -1,
+              false,
+              options::defaultDagThresh(),
+              language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const DeclareVarCommand* c)
 {
-  out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol());
   Type type = c->getType();
   Assert(!type.isFunction());
-  out << ") " << type << ")";
+  out << " " << type << ")";
 }
 
 static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
 {
-  out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
+  out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol());
   Type type = c->getType();
   Assert(!type.isFunction());
-  out << ") " << type << ")";
+  out << " " << type << ")";
 }
 
 static void toStream(std::ostream& out, const SynthFunCommand* c)
