@@ -56,6 +56,8 @@ libcvc4_add_sources(
   preprocessing/passes/bv_intro_pow2.h
   preprocessing/passes/bv_to_bool.cpp
   preprocessing/passes/bv_to_bool.h
+  preprocessing/passes/eqrange_to_quant.cpp
+  preprocessing/passes/eqrange_to_quant.h
   preprocessing/passes/extended_rewriter_pass.cpp
   preprocessing/passes/extended_rewriter_pass.h
   preprocessing/passes/global_negate.cpp
@@ -484,6 +486,8 @@ libcvc4_add_sources(
   theory/quantifiers/fmf/model_engine.h
   theory/quantifiers/fun_def_process.cpp
   theory/quantifiers/fun_def_process.h
+  theory/quantifiers/inst_arrays_eqrange.cpp
+  theory/quantifiers/inst_arrays_eqrange.h
   theory/quantifiers/inst_match.cpp
   theory/quantifiers/inst_match.h
   theory/quantifiers/inst_match_trie.cpp

@@ -3156,8 +3156,7 @@ void SmtEnginePrivate::processAssertions() {
 
   if (options::arraysEqrangeAsQuant())
   {
-    d_preprocessingPassRegistry.getPass("eqrange-to-quant")
-        ->apply(&d_assertions);
+    d_passes["eqrange-to-quant"]->apply(&d_assertions);
   }
 
   if (options::bitblastMode() == theory::bv::BITBLAST_MODE_EAGER &&
