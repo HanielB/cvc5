@@ -69,11 +69,10 @@ namespace quantifiers {
   class RewriteEngine;
   class QModelBuilder;
   class ConjectureGenerator;
-  class CegInstantiation;
+  class SynthEngine;
   class LtePartialInst;
   class AlphaEquivalence;
   class InstStrategyEnum;
-  class InstStrategyCbqi;
   class InstStrategyCegqi;
   class QuantDSplit;
   class QuantAntiSkolem;
@@ -151,11 +150,11 @@ public:
   /** rewrite rules utility */
   quantifiers::RewriteEngine* getRewriteEngine() const;
   /** ceg instantiation */
-  quantifiers::CegInstantiation* getCegInstantiation() const;
+  quantifiers::SynthEngine* getSynthEngine() const;
   /** get full saturation */
   quantifiers::InstStrategyEnum* getInstStrategyEnum() const;
   /** get inst strategy cbqi */
-  quantifiers::InstStrategyCbqi* getInstStrategyCbqi() const;
+  quantifiers::InstStrategyCegqi* getInstStrategyCegqi() const;
   //---------------------- end modules
  private:
   /** owner of quantified formulas */
@@ -189,8 +188,6 @@ public:
   void registerPattern( std::vector<Node> & pattern);
   /** assert universal quantifier */
   void assertQuantifier( Node q, bool pol );
-  /** get next decision request */
-  Node getNextDecisionRequest( unsigned& priority );
 private:
  /** (context-indepentent) register quantifier internal
   *
@@ -380,13 +377,13 @@ public:
   /** subgoal generator */
   std::unique_ptr<quantifiers::ConjectureGenerator> d_sg_gen;
   /** ceg instantiation */
-  std::unique_ptr<quantifiers::CegInstantiation> d_ceg_inst;
+  std::unique_ptr<quantifiers::SynthEngine> d_synth_e;
   /** lte partial instantiation */
   std::unique_ptr<quantifiers::LtePartialInst> d_lte_part_inst;
   /** full saturation */
   std::unique_ptr<quantifiers::InstStrategyEnum> d_fs;
   /** counterexample-based quantifier instantiation */
-  std::unique_ptr<quantifiers::InstStrategyCbqi> d_i_cbqi;
+  std::unique_ptr<quantifiers::InstStrategyCegqi> d_i_cbqi;
   /** quantifiers splitting */
   std::unique_ptr<quantifiers::QuantDSplit> d_qsplit;
   /** quantifiers anti-skolemization */
