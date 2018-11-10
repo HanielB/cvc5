@@ -427,6 +427,12 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
       {
         continue;
       }
+      // don't register new return value enums if is predicate synthesis case
+      // when already there are two
+      if (options::sygusUnifBooleanRetTwo() && new_size > 2 && index == 0)
+      {
+        continue;
+      }
       setUpEnumerator(e, ci.second, index);
     }
   }
@@ -438,7 +444,13 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
     {
       Trace("cegis-unif-enum") << "...increasing enum number for hd " << ei
                                << " to new size " << new_size << "\n";
-      registerEvalPtAtSize(c, ei, new_lit, new_size);
+      // if in predicate synthesis case and size bigger then 2, scale it back to
+      // 2 (there are no return values above 2)
+      registerEvalPtAtSize(
+          c,
+          ei,
+          new_lit,
+          options::sygusUnifBooleanRetTwo() && new_size > 2 ? 2 : new_size);
     }
   }
   // enforce fairness between number of enumerators and enumerator size
@@ -597,10 +609,18 @@ void CegisUnifEnumDecisionStrategy::getEnumeratorsForStrategyPt(
   {
     std::map<Node, StrategyPtInfo>::const_iterator itc = d_ce_info.find(e);
     Assert(itc != d_ce_info.end());
-    Assert(num_enums <= itc->second.d_enums[index].size());
-    es.insert(es.end(),
-              itc->second.d_enums[index].begin(),
-              itc->second.d_enums[index].begin() + num_enums);
+    // if we are restricting the number of return value enumerators (e.g. if we
+    // know that the return values domain is finite) then the number of
+    // registered return value enumerators may be smaller than the current
+    // counter of enums
+    if (num_enums > itc->second.d_enums[index].size())
+    {
+      num_enums = itc->second.d_enums[index].size();
+    }
+      es.insert(es.end(),
+                itc->second.d_enums[index].begin(),
+                itc->second.d_enums[index].begin() + num_enums);
+
   }
 }
 
@@ -662,7 +682,11 @@ void CegisUnifEnumDecisionStrategy::registerEvalPts(
     {
       Trace("cegis-unif-enum") << "...for cand " << e << " adding hd " << ei
                                << " at size " << j << "\n";
-      registerEvalPtAtSize(e, ei, d_literals[j], j + 1);
+      registerEvalPtAtSize(
+          e,
+          ei,
+          d_literals[j],
+          options::sygusUnifBooleanRetTwo() && j + 1 > 2 ? 2 : j + 1);
     }
   }
 }
