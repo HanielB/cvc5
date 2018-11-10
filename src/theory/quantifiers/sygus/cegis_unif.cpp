@@ -486,6 +486,40 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
     // keep the size bound equal to the number of conditions. Otherwise we use
     // the fairness criterion below, which is more suited for general function
     // synthesis
+    if (options::sygusUnifBooleanFair3())
+    {
+      Node size_ve = nm->mkNode(DT_SIZE, d_virtual_enum);
+      Node fair_lemma =
+        nm->mkNode(GEQ, size_ve, nm->mkConst(Rational(new_size + 1)));
+      fair_lemma = nm->mkNode(OR, new_lit, fair_lemma);
+      Trace("cegis-unif-enum-lemma")
+          << "CegisUnifEnum::lemma, fairness size:" << fair_lemma << "\n";
+      // this lemma relates the number of conditions we enumerate and the
+      // maximum size of a term that is part of our solution. It is of the
+      // form:
+      //   G_uq_i => size(ve) >= i - 1
+      // In other words, if we use i - 1 conditions, then we allow terms in our
+      // solution whose size is at most i - 1.
+      d_qe->getOutputChannel().lemma(fair_lemma);
+      return new_lit;
+    }
+    if (options::sygusUnifBooleanFair2())
+    {
+      Node size_ve = nm->mkNode(DT_SIZE, d_virtual_enum);
+      Node fair_lemma =
+        nm->mkNode(GEQ, size_ve, nm->mkConst(Rational(new_size)));
+      fair_lemma = nm->mkNode(OR, new_lit, fair_lemma);
+      Trace("cegis-unif-enum-lemma")
+          << "CegisUnifEnum::lemma, fairness size:" << fair_lemma << "\n";
+      // this lemma relates the number of conditions we enumerate and the
+      // maximum size of a term that is part of our solution. It is of the
+      // form:
+      //   G_uq_i => size(ve) >= i - 1
+      // In other words, if we use i - 1 conditions, then we allow terms in our
+      // solution whose size is at most i - 1.
+      d_qe->getOutputChannel().lemma(fair_lemma);
+      return new_lit;
+    }
     if (options::sygusUnifBooleanFair())
     {
       Node size_ve = nm->mkNode(DT_SIZE, d_virtual_enum);
@@ -503,6 +537,7 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
       d_qe->getOutputChannel().lemma(fair_lemma);
       return new_lit;
     }
+
     // if new_size is a power of two, then isPow2 returns log2(new_size)+1
     // otherwise, this returns 0. In the case it returns 0, we don't care
     // since the floor( log2( i ) ) = floor( log2( i - 1 ) ) and we do not
