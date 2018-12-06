@@ -226,13 +226,13 @@ parseCommand returns [CVC4::Command* cmd = NULL]
   | EOF
     {
       CommandSequence* seq = new CommandSequence();
-      // assert that all distinct constants are distinct 
+      // assert that all distinct constants are distinct
       Expr aexpr = PARSER_STATE->getAssertionDistinctConstants();
       if( !aexpr.isNull() )
       {
         seq->addCommand(new AssertCommand(aexpr, false));
       }
-      
+
       std::string filename = PARSER_STATE->getInput()->getInputStreamName();
       size_t i = filename.find_last_of('/');
       if(i != std::string::npos) {
@@ -1062,4 +1062,3 @@ COMMENT
   : '%' (~('\n' | '\r'))*     { SKIP(); }     //comment line
   | '/*'  ( options {greedy=false;} : . )*  '*/' { SKIP(); } //comment block
   ;
-
