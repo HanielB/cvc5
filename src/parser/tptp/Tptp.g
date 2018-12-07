@@ -148,7 +148,6 @@ parseCommand returns [CVC4::Command* cmd = NULL]
   Tptp::FormulaRole fr;
   std::string name, inclSymbol;
 }
-//  : LPAREN_TOK c = command RPAREN_TOK { $cmd = c; }
   : CNF_TOK LPAREN_TOK nameN[name] COMMA_TOK formulaRole[fr] COMMA_TOK
   { PARSER_STATE->setCnf(true);
     PARSER_STATE->setFof(false);
@@ -203,6 +202,20 @@ parseCommand returns [CVC4::Command* cmd = NULL]
         cmd = PARSER_STATE->makeAssertCommand(fr, aexpr, /* cnf == */ false, true);
       }
     ) RPAREN_TOK DOT_TOK
+  | THF_TOK LPAREN_TOK nameN[name] COMMA_TOK formulaRole[fr] COMMA_TOK
+    { PARSER_STATE->setCnf(false); PARSER_STATE->setFof(false); }
+    thfFormula[expr] (COMMA_TOK anything*)? RPAREN_TOK DOT_TOK
+    {
+      Expr aexpr = PARSER_STATE->getAssertionExpr(fr,expr);
+      if( !aexpr.isNull() ){
+        // set the expression name (e.g. used with unsat core printing)
+        Command* csen = new SetExpressionNameCommand(aexpr, name);
+        csen->setMuted(true);
+        PARSER_STATE->preemptCommand(csen);
+      }
+      // make the command to assert the formula
+      cmd = PARSER_STATE->makeAssertCommand(fr, aexpr, /* cnf == */ false, true);
+    }
   | INCLUDE_TOK LPAREN_TOK unquotedFileName[name]
     ( COMMA_TOK LBRACK_TOK nameN[inclSymbol]
       ( COMMA_TOK nameN[inclSymbol] )* RBRACK_TOK )?
@@ -284,7 +297,6 @@ formulaRole[CVC4::parser::Tptp::FormulaRole& role]
 cnfFormula[CVC4::Expr& expr]
   : LPAREN_TOK cnfDisjunction[expr] RPAREN_TOK
   | cnfDisjunction[expr]
-//| FALSE_TOK { expr = MK_CONST(bool(false)); }
 ;
 
 cnfDisjunction[CVC4::Expr& expr]
@@ -302,7 +314,6 @@ cnfDisjunction[CVC4::Expr& expr]
 cnfLiteral[CVC4::Expr& expr]
   : atomicFormula[expr]
   | NOT_TOK atomicFormula[expr] { expr = MK_EXPR(kind::NOT, expr); }
-//| folInfixUnary[expr]
   ;
 
 atomicFormula[CVC4::Expr& expr]
@@ -628,6 +639,87 @@ folQuantifier[CVC4::Kind& kind]
   ;
 
 /*******/
+/* THF */
+// ignoring subtyping
+
+// TODO add type formula
+thfFormula[CVC4::Expr& expr] : thfLogicFormula[expr] ;
+
+thfLogicFormula[CVC4::Expr& expr]
+@declarations {
+  tptp::NonAssoc na;
+  std::vector< Expr > args;
+  Expr expr2;
+}
+  : thfUnitaryFormula[expr]
+    ( // Non-associative: <=> <~> ~& ~|
+      ( fofBinaryNonAssoc[na] fofUnitaryFormula[expr2]
+        { switch(na) {
+           case tptp::NA_IFF:
+             expr = MK_EXPR(kind::EQUAL,expr,expr2);
+             break;
+           case tptp::NA_REVIFF:
+             expr = MK_EXPR(kind::XOR,expr,expr2);
+             break;
+           case tptp::NA_IMPLIES:
+             expr = MK_EXPR(kind::IMPLIES,expr,expr2);
+             break;
+           case tptp::NA_REVIMPLIES:
+             expr = MK_EXPR(kind::IMPLIES,expr2,expr);
+             break;
+           case tptp::NA_REVOR:
+             expr = MK_EXPR(kind::NOT,MK_EXPR(kind::OR,expr,expr2));
+             break;
+           case tptp::NA_REVAND:
+             expr = MK_EXPR(kind::NOT,MK_EXPR(kind::AND,expr,expr2));
+             break;
+          }
+        }
+      )
+    | // N-ary and &
+      ( { args.push_back(expr); }
+        ( AND_TOK fofUnitaryFormula[expr] { args.push_back(expr); } )+
+        { expr = MK_EXPR_ASSOCIATIVE(kind::AND, args); }
+      )
+    | // N-ary or |
+      ( { args.push_back(expr); }
+        ( OR_TOK fofUnitaryFormula[expr] { args.push_back(expr); } )+
+        { expr = MK_EXPR_ASSOCIATIVE(kind::OR, args); }
+      )
+    )?
+  ;
+
+// atom
+// unary op formula
+// quantified formula
+// ite form
+// let form
+// tuple -- ignore
+// formula between parethesis
+
+thfUnitaryFormula[CVC4::Expr& expr]
+@declarations {
+  Kind kind;
+  std::vector< Expr > bv;
+}
+  : atomicFormula[expr]
+  | LPAREN_TOK fofLogicFormula[expr] RPAREN_TOK
+  | NOT_TOK fofUnitaryFormula[expr] { expr = MK_EXPR(kind::NOT,expr); }
+  // TODO add case for th0_quantifier: Lambda.
+  //
+  // Probably throw an error with Choice and Description, or maybe consider the
+  // former at least. The same applies for TH1 quantifiers
+  | // Quantified
+    folQuantifier[kind] LBRACK_TOK {PARSER_STATE->pushScope();}
+    ( bindvariable[expr] { bv.push_back(expr); }
+      ( COMMA_TOK bindvariable[expr] { bv.push_back(expr); } )* ) RBRACK_TOK
+    COLON_TOK fofUnitaryFormula[expr]
+    { PARSER_STATE->popScope();
+      expr = MK_EXPR(kind, MK_EXPR(kind::BOUND_VAR_LIST, bv), expr);
+    }
+  ;
+
+/*******/
 /* TFF */
 tffFormula[CVC4::Expr& expr] : tffLogicFormula[expr];
 
@@ -917,6 +1009,7 @@ REVAND_TOK   : '~&';
 TIMES_TOK    : '*';
 PLUS_TOK     : '+';
 MINUS_TOK    : '-';
+APP_TOK      : '@';
 
 //predicate
 TRUE_TOK     : '$true';
