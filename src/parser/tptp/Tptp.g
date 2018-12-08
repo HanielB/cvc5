@@ -634,15 +634,14 @@ fofBinaryNonAssoc[CVC4::parser::tptp::NonAssoc& na]
   ;
 
 folQuantifier[CVC4::Kind& kind]
-  : BANG_TOK { kind = kind::FORALL; }
-  | MARK_TOK { kind = kind::EXISTS; }
+  : FORALL_TOK { kind = kind::FORALL; }
+  | EXISTS_TOK { kind = kind::EXISTS; }
   ;
 
 /*******/
 /* THF */
 // ignoring subtyping
 
-// TODO add type formula
 thfFormula[CVC4::Expr& expr] : thfLogicFormula[expr] ;
 
 thfLogicFormula[CVC4::Expr& expr]
@@ -670,7 +669,7 @@ thfLogicFormula[CVC4::Expr& expr]
            case tptp::NA_REVOR:
              expr = MK_EXPR(kind::NOT,MK_EXPR(kind::OR,expr,expr2));
              break;
-           case tptp::NA_REVAND:
+           case tptp::NA_RE  VAND:
              expr = MK_EXPR(kind::NOT,MK_EXPR(kind::AND,expr,expr2));
              break;
           }
@@ -686,7 +685,13 @@ thfLogicFormula[CVC4::Expr& expr]
         ( OR_TOK fofUnitaryFormula[expr] { args.push_back(expr); } )+
         { expr = MK_EXPR_ASSOCIATIVE(kind::OR, args); }
       )
+  // TODO type_formula case
+  // | COLON_TOK type
+
+  // TODO throw an error when subtype token
+  // | <<
     )?
+
   ;
 
 // atom
@@ -854,7 +859,7 @@ tffLetTermDefn[CVC4::Expr& lhs, CVC4::Expr& rhs]
 @declarations {
   std::vector<CVC4::Expr> bvlist;
 }
-  : (BANG_TOK LBRACK_TOK tffVariableList[bvlist] RBRACK_TOK COLON_TOK)*
+  : (FORALL_TOK LBRACK_TOK tffVariableList[bvlist] RBRACK_TOK COLON_TOK)*
     tffLetTermBinding[bvlist, lhs, rhs]
   ;
 
@@ -871,7 +876,7 @@ tffLetFormulaDefn[CVC4::Expr& lhs, CVC4::Expr& rhs]
 @declarations {
   std::vector<CVC4::Expr> bvlist;
 }
-  : (BANG_TOK LBRACK_TOK tffVariableList[bvlist] RBRACK_TOK COLON_TOK)*
+  : (FORALL_TOK LBRACK_TOK tffVariableList[bvlist] RBRACK_TOK COLON_TOK)*
     tffLetFormulaBinding[bvlist, lhs, rhs]
   ;
 
@@ -915,7 +920,7 @@ parseType[CVC4::Type& type]
       ( TIMES_TOK simpleType[type] { v.push_back(type); } )+
       RPAREN_TOK
     )
-    GREATER_TOK simpleType[type]
+    ARROW_TOK simpleType[type]
     { v.push_back(type);
       type = EXPR_MANAGER->mkFunctionType(v);
     }
@@ -951,8 +956,8 @@ anything
   | COLON_TOK
   | OR_TOK
   | NOT_TOK
-  | BANG_TOK
-  | MARK_TOK
+  | FORALL_TOK
+  | EXISTS_TOK
   | AND_TOK
   | IFF_TOK
   | IMPLIES_TOK
@@ -992,24 +997,27 @@ LBRACK_TOK : '[';
 RBRACK_TOK : ']';
 COLON_TOK  : ':';
 
-GREATER_TOK  : '>';
+// typing
+ARROW_TOK   : '>';
+SUBTYPE_TOK : '>>';
 
 //operator
-OR_TOK       : '|';
-NOT_TOK      : '~';
-BANG_TOK     : '!';
-MARK_TOK     : '?';
-AND_TOK      : '&';
-IFF_TOK      : '<=>';
+OR_TOK         : '|';
+NOT_TOK        : '~';
+FORALL_TOK     : '!';
+EXISTS_TOK     : '?';
+LAMBDA_TOK     : '^';
+AND_TOK        : '&';
+IFF_TOK        : '<=>';
 IMPLIES_TOK    : '=>';
 REVIMPLIES_TOK : '<=';
-REVIFF_TOK   : '<~>';
-REVOR_TOK    : '~|';
-REVAND_TOK   : '~&';
-TIMES_TOK    : '*';
-PLUS_TOK     : '+';
-MINUS_TOK    : '-';
-APP_TOK      : '@';
+REVIFF_TOK     : '<~>';
+REVOR_TOK      : '~|';
+REVAND_TOK     : '~&';
+TIMES_TOK      : '*';
+PLUS_TOK       : '+';
+MINUS_TOK      : '-';
+APP_TOK        : '@';
 
 //predicate
 TRUE_TOK     : '$true';
