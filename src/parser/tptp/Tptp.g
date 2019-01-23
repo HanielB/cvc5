@@ -669,7 +669,7 @@ thfLogicFormula[CVC4::Expr& expr]
            case tptp::NA_REVOR:
              expr = MK_EXPR(kind::NOT,MK_EXPR(kind::OR,expr,expr2));
              break;
-           case tptp::NA_RE  VAND:
+           case tptp::NA_REVAND:
              expr = MK_EXPR(kind::NOT,MK_EXPR(kind::AND,expr,expr2));
              break;
           }
