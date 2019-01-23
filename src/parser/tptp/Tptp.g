@@ -685,6 +685,22 @@ thfLogicFormula[CVC4::Expr& expr]
         ( OR_TOK fofUnitaryFormula[expr] { args.push_back(expr); } )+
         { expr = MK_EXPR_ASSOCIATIVE(kind::OR, args); }
       )
+    | // N-ary @ |
+      //
+      // @ (denoting apply) is left-associative and lambda is right-associative.
+      // ^ [X] : ^ [Y] : f @ g (where f is a <thf_apply_formula> and g is a
+      // <thf_unitary_formula>) should be parsed as: (^ [X] : (^ [Y] : f)) @ g.
+      // That is, g is not in the scope of either lambda.
+      ( { args.push_back(expr); }
+        ( APP_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
+        {
+          Expr expr = args[0];
+          for (unsigned i = 1; i < args.size(); ++i)
+          {
+            expr = EXPR_MANAGER->mkExpr(HO_APPLY, expr, args[i]);
+          }
+        }
+      )
   // TODO type_formula case
   // | COLON_TOK type
 
