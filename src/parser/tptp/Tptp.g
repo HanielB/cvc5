@@ -642,7 +642,29 @@ folQuantifier[CVC4::Kind& kind]
 /* THF */
 // ignoring subtyping
 
-thfFormula[CVC4::Expr& expr] : thfLogicFormula[expr] ;
+thfFormula[CVC4::Expr& expr]
+  : thfLogicFormula[expr]
+  |   | TFF_TOK LPAREN_TOK nameN[name] COMMA_TOK
+    ( TYPE_TOK COMMA_TOK tffTypedAtom[cmd]
+    | formulaRole[fr] COMMA_TOK
+      { PARSER_STATE->setCnf(false); PARSER_STATE->setFof(false); }
+      tffFormula[expr] (COMMA_TOK anything*)?
+      {
+        Expr aexpr = PARSER_STATE->getAssertionExpr(fr,expr);
+        if( !aexpr.isNull() ){
+          // set the expression name (e.g. used with unsat core printing)
+          Command* csen = new SetExpressionNameCommand(aexpr, name);
+          csen->setMuted(true);
+          PARSER_STATE->preemptCommand(csen);
+        }
+        // make the command to assert the formula
+        cmd = PARSER_STATE->makeAssertCommand(fr, aexpr, /* cnf == */ false, true);
+      }
+    ) RPAREN_TOK DOT_TOK
+
+
+thfAtomTyping
+  ;
 
 thfLogicFormula[CVC4::Expr& expr]
 @declarations {
