@@ -677,12 +677,12 @@ thfLogicFormula[CVC4::Expr& expr]
       )
     | // N-ary and &
       ( { args.push_back(expr); }
-        ( AND_TOK fofUnitaryFormula[expr] { args.push_back(expr); } )+
+        ( AND_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
         { expr = MK_EXPR_ASSOCIATIVE(kind::AND, args); }
       )
     | // N-ary or |
       ( { args.push_back(expr); }
-        ( OR_TOK fofUnitaryFormula[expr] { args.push_back(expr); } )+
+        ( OR_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
         { expr = MK_EXPR_ASSOCIATIVE(kind::OR, args); }
       )
     | // N-ary @ |
