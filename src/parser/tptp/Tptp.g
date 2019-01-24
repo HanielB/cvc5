@@ -202,20 +202,25 @@ parseCommand returns [CVC4::Command* cmd = NULL]
         cmd = PARSER_STATE->makeAssertCommand(fr, aexpr, /* cnf == */ false, true);
       }
     ) RPAREN_TOK DOT_TOK
-  | THF_TOK LPAREN_TOK nameN[name] COMMA_TOK formulaRole[fr] COMMA_TOK
-    { PARSER_STATE->setCnf(false); PARSER_STATE->setFof(false); }
-    thfFormula[expr] (COMMA_TOK anything*)? RPAREN_TOK DOT_TOK
-    {
-      Expr aexpr = PARSER_STATE->getAssertionExpr(fr,expr);
-      if( !aexpr.isNull() ){
-        // set the expression name (e.g. used with unsat core printing)
-        Command* csen = new SetExpressionNameCommand(aexpr, name);
-        csen->setMuted(true);
-        PARSER_STATE->preemptCommand(csen);
+  | THF_TOK LPAREN_TOK nameN[name] COMMA_TOK
+    // Supported THF formulas: either a logic formula or a typing atom (i.e. we
+    // ignore subtyping and logic sequents)
+    ( TYPE_TOK COMMA_TOK thfAtomTyping[cmd]
+    | formulaRole[fr] COMMA_TOK
+      { PARSER_STATE->setCnf(false); PARSER_STATE->setFof(false); }
+      thfLogicFormula[expr] (COMMA_TOK anything*)?
+      {
+        Expr aexpr = PARSER_STATE->getAssertionExpr(fr,expr);
+        if( !aexpr.isNull() ){
+          // set the expression name (e.g. used with unsat core printing)
+          Command* csen = new SetExpressionNameCommand(aexpr, name);
+          csen->setMuted(true);
+          PARSER_STATE->preemptCommand(csen);
+        }
+        // make the command to assert the formula
+        cmd = PARSER_STATE->makeAssertCommand(fr, aexpr, /* cnf == */ false, true);
       }
-      // make the command to assert the formula
-      cmd = PARSER_STATE->makeAssertCommand(fr, aexpr, /* cnf == */ false, true);
-    }
+    ) RPAREN_TOK DOT_TOK
   | INCLUDE_TOK LPAREN_TOK unquotedFileName[name]
     ( COMMA_TOK LBRACK_TOK nameN[inclSymbol]
       ( COMMA_TOK nameN[inclSymbol] )* RBRACK_TOK )?
@@ -640,30 +645,76 @@ folQuantifier[CVC4::Kind& kind]
 
 /*******/
 /* THF */
-// ignoring subtyping
 
-thfFormula[CVC4::Expr& expr]
-  : thfLogicFormula[expr]
-  |   | TFF_TOK LPAREN_TOK nameN[name] COMMA_TOK
-    ( TYPE_TOK COMMA_TOK tffTypedAtom[cmd]
-    | formulaRole[fr] COMMA_TOK
-      { PARSER_STATE->setCnf(false); PARSER_STATE->setFof(false); }
-      tffFormula[expr] (COMMA_TOK anything*)?
+thfAtomTyping[CVC4::Command*& cmd]
+// for now only supports mapping types (i.e. no applied types)
+@declarations {
+  CVC4::Expr expr;
+  CVC4::Type type;
+  std::string name;
+}
+  : LPAREN_TOK thfAtomTyping[cmd] RPAREN_TOK
+  | nameN[name] COLON_TOK
+    ( '$tType'
       {
-        Expr aexpr = PARSER_STATE->getAssertionExpr(fr,expr);
-        if( !aexpr.isNull() ){
-          // set the expression name (e.g. used with unsat core printing)
-          Command* csen = new SetExpressionNameCommand(aexpr, name);
-          csen->setMuted(true);
-          PARSER_STATE->preemptCommand(csen);
+        if (PARSER_STATE->isDeclared(name, SYM_SORT))
+        {
+          // duplicate declaration is fine, they're compatible
+          cmd = new EmptyCommand("compatible redeclaration of sort " + name);
         }
-        // make the command to assert the formula
-        cmd = PARSER_STATE->makeAssertCommand(fr, aexpr, /* cnf == */ false, true);
+        else if (PARSER_STATE->isDeclared(name, SYM_VARIABLE))
+        {
+          // error: cannot be both sort and constant
+          PARSER_STATE->parseError(
+              "Symbol `" + name
+              + "' previously declared as a constant; cannot also be a sort");
+        }
+        else
+        {
+          // as yet, it's undeclared
+          Type type = PARSER_STATE->mkSort(name);
+          cmd = new DeclareTypeCommand(name, 0, type);
+        }
       }
-    ) RPAREN_TOK DOT_TOK
-
-
-thfAtomTyping
+    | parseThfType[type]
+      {
+        if (PARSER_STATE->isDeclared(name, SYM_SORT))
+        {
+          // error: cannot be both sort and constant
+          PARSER_STATE->parseError("Symbol `" + name
+                                   + "' previously declared as a sort");
+          cmd = new EmptyCommand("compatible redeclaration of sort " + name);
+        }
+        else if (PARSER_STATE->isDeclared(name, SYM_VARIABLE))
+        {
+          if (type == PARSER_STATE->getVariable(name).getType())
+          {
+            // duplicate declaration is fine, they're compatible
+            cmd = new EmptyCommand("compatible redeclaration of constant " + name);
+          }
+          else
+          {
+            // error: sorts incompatible
+            PARSER_STATE->parseError("Symbol `" + name
+                                     + "' declared previously with a different sort");
+          }
+        }
+        else
+        {
+          // as yet, it's undeclared
+          CVC4::Expr expr;
+          if (type.isFunction())
+          {
+            expr = PARSER_STATE->mkFunction(name, type);
+          }
+          else
+          {
+            expr = PARSER_STATE->mkVar(name, type);
+          }
+          cmd = new DeclareFunctionCommand(name, expr, type);
+        }
+      }
+    )
   ;
 
 thfLogicFormula[CVC4::Expr& expr]
@@ -947,6 +998,19 @@ tffVariableList[std::vector<CVC4::Expr>& bvlist]
   : tffbindvariable[e] { bvlist.push_back(e); }
     ( COMMA_TOK tffbindvariable[e] { bvlist.push_back(e); } )*
   ;
+
+parseThfType[CVC4::Type& type]
+// assumes only mapping types (arrows), no tuple type
+@declarations {
+  std::vector<CVC4::Type> v;
+}
+  : simpleType[type]
+  | ( simpleType[type] { v.push_back(type); }
+    | LPAREN_TOK parseThfType[type] { v.push_back(type); } RPAREN_TOK
+    )
+    ( ARROW_TOK parseThfType[type] { v.push_back(type); } )+
+    // TODO flatten this type somehow
+    ;
 
 parseType[CVC4::Type& type]
 @declarations {
