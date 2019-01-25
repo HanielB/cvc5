@@ -770,7 +770,7 @@ thfLogicFormula[CVC4::Expr& expr]
           Expr expr = args[0];
           for (unsigned i = 1; i < args.size(); ++i)
           {
-            expr = EXPR_MANAGER->mkExpr(HO_APPLY, expr, args[i]);
+            expr = EXPR_MANAGER->mkExpr(CVC4::kind::HO_APPLY, expr, args[i]);
           }
         }
       )
