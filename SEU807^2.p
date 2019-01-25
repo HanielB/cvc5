@@ -57,16 +57,16 @@ thf(foundationAx_type,type,(
 %%                       ( ( in @ Xx @ B )
 %%                       & ( in @ Xx @ A ) ) ) ) ) ) )).
 
-%% thf(setadjoinIL_type,type,(
-%%     setadjoinIL: $o )).
+thf(setadjoinIL_type,type,(
+    setadjoinIL: $o )).
 
 %% thf(setadjoinIL,definition,
 %%     ( setadjoinIL
 %%     = ( ! [Xx: $i,Xy: $i] :
 %%           ( in @ Xx @ ( setadjoin @ Xx @ Xy ) ) ) )).
 
-%% thf(setadjoinIR_type,type,(
-%%     setadjoinIR: $o )).
+thf(setadjoinIR_type,type,(
+    setadjoinIR: $o )).
 
 %% thf(setadjoinIR,definition,
 %%     ( setadjoinIR
@@ -74,8 +74,8 @@ thf(foundationAx_type,type,(
 %%           ( ( in @ Xy @ A )
 %%          => ( in @ Xy @ ( setadjoin @ Xx @ A ) ) ) ) )).
 
-%% thf(in__Cong_type,type,(
-%%     in__Cong: $o )).
+thf(in__Cong_type,type,(
+    in__Cong: $o )).
 
 %% thf(in__Cong,definition,
 %%     ( in__Cong
@@ -86,8 +86,8 @@ thf(foundationAx_type,type,(
 %%              => ( ( in @ Xx @ A )
 %%               <=> ( in @ Xy @ B ) ) ) ) ) )).
 
-%% thf(upairset2E_type,type,(
-%%     upairset2E: $o )).
+thf(upairset2E_type,type,(
+    upairset2E: $o )).
 
 %% thf(upairset2E,definition,
 %%     ( upairset2E
