@@ -1023,7 +1023,7 @@ parseThfType[CVC4::Type& type]
       {
         Debug("parser") << "parseThfType:    " << t << "\n";
       }
-      // TODO flatten this type?
+      // TODO flatten return type
       type = sorts.size() > 1? EXPR_MANAGER->mkFunctionType(sorts) : sorts[0];
       Debug("parser") << "parseThfType: Built type " << type << "\n";
     }
