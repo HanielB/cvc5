@@ -999,21 +999,45 @@ tffVariableList[std::vector<CVC4::Expr>& bvlist]
     ( COMMA_TOK tffbindvariable[e] { bvlist.push_back(e); } )*
   ;
 
+
+
+
+// typelist -> type (arrow type)*
+// type     -> simple_type | ( typelist )
+
+// emptyset : $i
+// qmltpeq  : mu > mu > $i > $o
+// meq_prop : ( $i > $o ) > ( $i > $o ) > $i > $o )).
+
+
 parseThfType[CVC4::Type& type]
 // assumes only mapping types (arrows), no tuple type
 @declarations {
-  std::vector<CVC4::Type> v;
+  std::vector<CVC4::Type> sorts;
 }
-  : simpleType[type]
-  | ( simpleType[type] { v.push_back(type); }
-    | LPAREN_TOK parseThfType[type] { v.push_back(type); } RPAREN_TOK
-    )
-    ( ARROW_TOK parseThfType[type] { v.push_back(type); } )+
-    // TODO flatten this type somehow
-    ;
+  : thfType[type] { sorts.push_back(type); }
+    ( ARROW_TOK thfType[type] { sorts.push_back(type); } )*
+    {
+      Debug("parser") << "parseThfType: parsed " << sorts.size() << " types:\n";
+      for (Type t : sorts)
+      {
+        Debug("parser") << "parseThfType:    " << t << "\n";
+      }
+      // TODO flatten this type?
+      type = sorts.size() > 1? EXPR_MANAGER->mkFunctionType(sorts) : sorts[0];
+      Debug("parser") << "parseThfType: Built type " << type << "\n";
+    }
+  ;
 
-parseType[CVC4::Type& type]
-@declarations {
+thfType[CVC4::Type& type]
+// assumes only mapping types (arrows), no tuple type
+  : simpleType[type]
+    | LPAREN_TOK parseThfType[type] RPAREN_TOK
+  ;
+
+parseType[CVC4::Type & type]
+@declarations
+{
   std::vector<CVC4::Type> v;
 }
   : simpleType[type]
