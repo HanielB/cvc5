@@ -723,9 +723,17 @@ thfLogicFormula[CVC4::Expr& expr]
   std::vector< Expr > args;
   Expr expr2;
 }
-  : thfUnitaryFormula[expr]
-    ( // Non-associative: <=> <~> ~& ~|
-      ( fofBinaryNonAssoc[na] fofUnitaryFormula[expr2]
+  : { Debug("parser") << "thfLogicFormula: Init\n"; }
+    thfUnitaryFormula[expr]
+    ( // Equality: =
+      EQUAL_TOK
+      { Debug("parser") << "thfLogicFormula: equal case\n"; }
+      thfUnitaryFormula[expr2]
+      {
+        expr = MK_EXPR(kind::EQUAL,expr,expr2);
+      }
+    | // Non-associative: <=> <~> ~& ~|
+      fofBinaryNonAssoc[na] thfUnitaryFormula[expr2]
         { switch(na) {
            case tptp::NA_IFF:
              expr = MK_EXPR(kind::EQUAL,expr,expr2);
@@ -747,7 +755,6 @@ thfLogicFormula[CVC4::Expr& expr]
              break;
           }
         }
-      )
     | // N-ary and &
       ( { args.push_back(expr); }
         ( AND_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
@@ -780,7 +787,6 @@ thfLogicFormula[CVC4::Expr& expr]
   // TODO throw an error when subtype token
   // | <<
     )?
-
   ;
 
 // atom
@@ -797,17 +803,25 @@ thfUnitaryFormula[CVC4::Expr& expr]
   std::vector< Expr > bv;
 }
   : atomicFormula[expr]
-  | LPAREN_TOK fofLogicFormula[expr] RPAREN_TOK
-  | NOT_TOK fofUnitaryFormula[expr] { expr = MK_EXPR(kind::NOT,expr); }
+  | LPAREN_TOK thfLogicFormula[expr] RPAREN_TOK
+  | NOT_TOK thfUnitaryFormula[expr] { expr = MK_EXPR(kind::NOT,expr); }
   // TODO add case for th0_quantifier: Lambda.
   //
   // Probably throw an error with Choice and Description, or maybe consider the
   // former at least. The same applies for TH1 quantifiers
   | // Quantified
-    folQuantifier[kind] LBRACK_TOK {PARSER_STATE->pushScope();}
-    ( bindvariable[expr] { bv.push_back(expr); }
-      ( COMMA_TOK bindvariable[expr] { bv.push_back(expr); } )* ) RBRACK_TOK
-    COLON_TOK fofUnitaryFormula[expr]
+    { Debug("parser") << "thfUnitaryFormula: Quantifier case\n"; }
+    folQuantifier[kind]
+    LBRACK_TOK {PARSER_STATE->pushScope();}
+    bindvariable[expr]
+    {
+      bv.push_back(expr);
+      Debug("parser") << "thfUnitaryFormula:   bound var\n";
+    }
+    ( COMMA_TOK bindvariable[expr] { bv.push_back(expr); } )*
+    RBRACK_TOK
+    { Debug("parser") << "thfUnitaryFormula: Quantifier case (got here)\n"; }
+    COLON_TOK thfUnitaryFormula[expr]
     { PARSER_STATE->popScope();
       expr = MK_EXPR(kind, MK_EXPR(kind::BOUND_VAR_LIST, bv), expr);
     }
@@ -825,7 +839,7 @@ tffTypedAtom[CVC4::Command*& cmd]
 }
   : LPAREN_TOK tffTypedAtom[cmd] RPAREN_TOK
   | nameN[name] COLON_TOK
-    ( '$tType'
+    ( '$tType
       { if(PARSER_STATE->isDeclared(name, SYM_SORT)) {
           // duplicate declaration is fine, they're compatible
           cmd = new EmptyCommand("compatible redeclaration of sort " + name);
