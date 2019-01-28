@@ -810,10 +810,14 @@ thfUnitaryFormula[CVC4::Expr& expr]
   | atomicFormula[expr]
     { Debug("parser") << "thfUnitaryFormula: AtomicFormula: " << expr << "\n"; }
   | LPAREN_TOK
-      { Debug("parser") << "thfUnitaryFormula: got left parent, go for logicformula with : " << expr << "\n"; }
-thfLogicFormula[expr]
+    {
+      Debug("parser")
+          << "thfUnitaryFormula: got left parent, go for logicformula with : "
+          << expr << "\n";
+    }
+    thfLogicFormula[expr]
     { Debug("parser") << "thfUnitaryFormula: got expr: " << expr << "\n"; }
-  RPAREN_TOK
+    RPAREN_TOK
   | NOT_TOK thfUnitaryFormula[expr] { expr = MK_EXPR(kind::NOT,expr); }
   // TODO add case for th0_quantifier: Lambda.
   //
