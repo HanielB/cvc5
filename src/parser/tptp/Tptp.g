@@ -703,16 +703,17 @@ thfAtomTyping[CVC4::Command*& cmd]
         else
         {
           // as yet, it's undeclared
-          CVC4::Expr expr;
+          Debug("parser") << "thfAtomTyping: creating new type variable\n\n";
+          CVC4::Expr freshExpr;
           if (type.isFunction())
           {
-            expr = PARSER_STATE->mkFunction(name, type);
+            freshExpr = PARSER_STATE->mkFunction(name, type);
           }
           else
           {
-            expr = PARSER_STATE->mkVar(name, type);
+            freshExpr = PARSER_STATE->mkVar(name, type);
           }
-          cmd = new DeclareFunctionCommand(name, expr, type);
+          cmd = new DeclareFunctionCommand(name, freshExpr, type);
         }
       }
     )
@@ -822,21 +823,36 @@ thfLogicFormula[expr]
     { Debug("parser") << "thfUnitaryFormula: Quantifier case\n"; }
     folQuantifier[kind]
     LBRACK_TOK {PARSER_STATE->pushScope();}
-    thfBindVariable[expr] { bv.push_back(expr); }
-    ( COMMA_TOK thfBindVariable[expr] { bv.push_back(expr); } )*
-    RBRACK_TOK
-    COLON_TOK
+    thfBindVariable[expr]
     {
-  Debug("parser") << "thfUnitaryFormula:   got colon for qnt body, going to unitary with expr: " << expr << "\n";
+      bv.push_back(expr);
+      Debug("parser") << "thfUnitaryFormula:   parsed variable: " << expr
+                      << "\n";
+    }
+    ( COMMA_TOK thfBindVariable[expr]
+     {
+       bv.push_back(expr);
+       Debug("parser") << "thfUnitaryFormula:   parsed variable: " << expr
+                       << "\n";
+     }
+     )*
+    RBRACK_TOK COLON_TOK
+    {
+      Debug("parser") << "thfUnitaryFormula:   got colon for qnt body, going "
+                         "to unitary with expr: "
+                      << expr << "\n";
     }
     thfUnitaryFormula[expr]
     {
-      Debug("parser") << "thfUnitaryFormula:   body (before scope pop) " << expr << "\n";
+      Debug("parser") << "thfUnitaryFormula:   body (before scope pop) " << expr
+                      << "\n";
       PARSER_STATE->popScope();
-      Debug("parser") << "thfUnitaryFormula:   parsed " << bv.size() << " variables:\n";
+      Debug("parser") << "thfUnitaryFormula:   parsed " << bv.size()
+                      << " variables:\n";
       for (Expr v : bv)
       {
-        Debug("parser") << "thfUnitaryFormula:    " << v << " : " << v.getType() << "\n";
+        Debug("parser") << "thfUnitaryFormula:    " << v << " : " << v.getType()
+                        << "\n";
       }
       Debug("parser") << "thfUnitaryFormula:   body " << expr << "\n";
       expr = MK_EXPR(kind, MK_EXPR(kind::BOUND_VAR_LIST, bv), expr);
@@ -1042,9 +1058,6 @@ tffVariableList[std::vector<CVC4::Expr>& bvlist]
   : tffbindvariable[e] { bvlist.push_back(e); }
     ( COMMA_TOK tffbindvariable[e] { bvlist.push_back(e); } )*
   ;
-
-
-
 
 // typelist -> type (arrow type)*
 // type     -> simple_type | ( typelist )
