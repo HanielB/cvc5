@@ -16,7 +16,8 @@ echo
 #     echo "=====================================";
 # done < $file
 
-for name in ~/benchmarks/tptp/Problems/SEU/*.p; do
+# for name in ~/benchmarks/tptp/Problems/SEU/*.p; do
+for name in $(find ~/benchmarks/tptp/Problems -name '*.p'); do
     # Ignoring lambdas for now
     if grep -q "\^.\[" "$name"; then
         continue
