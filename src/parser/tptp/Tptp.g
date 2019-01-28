@@ -647,6 +647,12 @@ folQuantifier[CVC4::Kind& kind]
 /*******/
 /* THF */
 
+thfQuantifier[CVC4::Kind& kind]
+  : FORALL_TOK { kind = kind::FORALL; }
+  | EXISTS_TOK { kind = kind::EXISTS; }
+  | LAMBDA_TOK { kind = kind::LAMBDA; }
+  ;
+
 thfAtomTyping[CVC4::Command*& cmd]
 // for now only supports mapping types (i.e. no applied types)
 @declarations {
@@ -825,7 +831,7 @@ thfUnitaryFormula[CVC4::Expr& expr]
   // former at least. The same applies for TH1 quantifiers
   | // Quantified
     { Debug("parser") << "thfUnitaryFormula: Quantifier case\n"; }
-    folQuantifier[kind]
+    thfQuantifier[kind]
     LBRACK_TOK {PARSER_STATE->pushScope();}
     thfBindVariable[expr]
     {
