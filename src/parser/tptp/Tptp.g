@@ -651,6 +651,11 @@ thfQuantifier[CVC4::Kind& kind]
   : FORALL_TOK { kind = kind::FORALL; }
   | EXISTS_TOK { kind = kind::EXISTS; }
   | LAMBDA_TOK { kind = kind::LAMBDA; }
+  | CHOICE_TOK { kind = kind::CHOICE; }
+  | DEF_DESC_TOK
+    {
+      PARSER_STATE->parseError("Definite description quantifier unsupported.");
+    }
   ;
 
 thfAtomTyping[CVC4::Command*& cmd]
@@ -709,7 +714,6 @@ thfAtomTyping[CVC4::Command*& cmd]
         else
         {
           // as yet, it's undeclared
-          Debug("parser") << "thfAtomTyping: creating new type variable\n\n";
           CVC4::Expr freshExpr;
           if (type.isFunction())
           {
@@ -854,8 +858,6 @@ thfUnitaryFormula[CVC4::Expr& expr]
     }
     thfUnitaryFormula[expr]
     {
-      Debug("parser") << "thfUnitaryFormula:   body (before scope pop) " << expr
-                      << "\n";
       PARSER_STATE->popScope();
       Debug("parser") << "thfUnitaryFormula:   parsed " << bv.size()
                       << " variables:\n";
@@ -864,7 +866,50 @@ thfUnitaryFormula[CVC4::Expr& expr]
         Debug("parser") << "thfUnitaryFormula:    " << v << " : " << v.getType()
                         << "\n";
       }
-      Debug("parser") << "thfUnitaryFormula:   body " << expr << "\n";
+      Debug("parser") << "thfUnitaryFormula:   body: " << expr << " with type " << expr.getType() << "\n";
+      // handle lambda case, in which return type must be flattened and the
+      // auxiliary variables introduced in the proccess must be added no the
+      // variable list
+      //
+     // The argument flattenVars is needed in the case of defined functions
+     // with function return type. These have implicit arguments, for instance:
+     //    (define-fun Q ((x Int)) (-> Int Int) (lambda y (P x)))
+     // is equivalent to the command:
+     //    (define-fun Q ((x Int) (z Int)) Int (@ (lambda y (P x)) z))
+     // where @ is (higher-order) application. In this example, z is added to
+     // flattenVars.
+
+      // TODO is one leval of flattenning sufficient?
+      // flatten body type
+      Type range = expr.getType();
+      std::vector<Expr> flattenVars;
+      if (range.isFunction())
+      {
+        std::vector<Type> domainTypes =
+            (static_cast<FunctionType>(range)).getArgTypes();
+        for (unsigned i = 0, size = domainTypes.size(); i < size; ++i)
+        {
+          // the introduced variable is internal (not parsable)
+          std::stringstream ss;
+          ss << "__flatten_var_" << i;
+          Expr v = EXPR_MANAGER->mkBoundVar(ss.str(), domainTypes[i]);
+          flattenVars.push_back(v);
+        }
+        // update range type
+        range = static_cast<FunctionType>(range).getRangeType();
+        // apply body of lambda to flatten vars
+        expr = PARSER_STATE->mkHoApply(expr, flattenVars);
+        Debug("parser") << "thfUnitaryFormula:   updated body: " << expr
+                        << " with type " << expr.getType() << "\n";
+        // add variables to BOUND_VAR_LIST
+        bv.insert(bv.end(), flattenVars.begin(), flattenVars.end());
+        Debug("parser") << "thfUnitaryFormula:   updated var list:\n";
+        for (Expr v : bv)
+        {
+          Debug("parser") << "thfUnitaryFormula:    " << v << " : "
+                          << v.getType() << "\n";
+        }
+      }
       expr = MK_EXPR(kind, MK_EXPR(kind::BOUND_VAR_LIST, bv), expr);
     }
   ;
@@ -1090,8 +1135,16 @@ parseThfType[CVC4::Type& type]
       {
         Debug("parser") << "parseThfType:    " << t << "\n";
       }
-      // TODO flatten return type
-      type = sorts.size() > 1? EXPR_MANAGER->mkFunctionType(sorts) : sorts[0];
+      if (sorts.size() < 1)
+      {
+        type = sorts[0];
+      }
+      else
+      {
+        Type range = sorts.back();
+        sorts.pop_back();
+        type = PARSER_STATE->mkFlatFunctionType(sorts, range);
+      }
       Debug("parser") << "parseThfType: Built type " << type << "\n";
     }
   ;
