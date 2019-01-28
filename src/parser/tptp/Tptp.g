@@ -1194,6 +1194,8 @@ NOT_TOK        : '~';
 FORALL_TOK     : '!';
 EXISTS_TOK     : '?';
 LAMBDA_TOK     : '^';
+CHOICE_TOK     : '@+';
+DEF_DESC_TOK   : '@-';
 AND_TOK        : '&';
 IFF_TOK        : '<=>';
 IMPLIES_TOK    : '=>';
