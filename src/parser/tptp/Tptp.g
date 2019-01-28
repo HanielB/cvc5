@@ -1010,11 +1010,13 @@ tffLetFormulaBinding[std::vector<CVC4::Expr>& bvlist, CVC4::Expr& lhs, CVC4::Exp
 
 thfBindVariable[CVC4::Expr& expr]
 @declarations {
+  std::string name;
   CVC4::Type type = PARSER_STATE->d_unsorted;
 }
   : UPPER_WORD
+    { name = AntlrInput::tokenText($UPPER_WORD); }
     ( COLON_TOK parseThfType[type] )?
-    { std::string name = AntlrInput::tokenText($UPPER_WORD);
+    {
       expr = PARSER_STATE->mkBoundVar(name, type);
     }
   ;
