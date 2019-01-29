@@ -1,0 +1,1820 @@
+Options: --uf-ho --full-saturate-quant
+Traces:
+
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU744^2.p
+% SZS status Theorem for SEU744^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU694^2.p
+% SZS status Theorem for SEU694^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU521^2.p
+% SZS status Theorem for SEU521^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU664^2.p
+% SZS status Theorem for SEU664^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU628^2.p
+% SZS status Theorem for SEU628^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU979^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU461^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU734^2.p
+% SZS status Theorem for SEU734^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU739^2.p
+% SZS status Theorem for SEU739^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU989^5.p
+% SZS status GaveUp for SEU989^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU512^2.p
+% SZS status Theorem for SEU512^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU846^5.p
+% SZS status Theorem for SEU846^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU783^2.p
+% SZS status Theorem for SEU783^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU730^2.p
+% SZS status Theorem for SEU730^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU641^2.p
+% SZS status Theorem for SEU641^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU606^2.p
+% SZS status Theorem for SEU606^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU536^2.p
+% SZS status Theorem for SEU536^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU490^1.p
+% SZS status Theorem for SEU490^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU570^2.p
+% SZS status Theorem for SEU570^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU891^5.p
+% SZS status Theorem for SEU891^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU905^5.p
+% SZS status Theorem for SEU905^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU573^2.p
+% SZS status Theorem for SEU573^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU850^5.p
+% SZS status Theorem for SEU850^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU642^2.p
+% SZS status Theorem for SEU642^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU923^5.p
+% SZS status Theorem for SEU923^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU608^2.p
+% SZS status Theorem for SEU608^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU647^2.p
+% SZS status Theorem for SEU647^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU756^2.p
+% SZS status Theorem for SEU756^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU660^2.p
+% SZS status Theorem for SEU660^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU491^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU618^2.p
+% SZS status Theorem for SEU618^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU999^5.p
+% SZS status Theorem for SEU999^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU576^2.p
+% SZS status Theorem for SEU576^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU755^2.p
+% SZS status Theorem for SEU755^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU495^1.p
+% SZS status Theorem for SEU495^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU496^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU729^2.p
+% SZS status Theorem for SEU729^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU514^2.p
+% SZS status Theorem for SEU514^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU488^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU994^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU533^2.p
+% SZS status Theorem for SEU533^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU761^2.p
+% SZS status Theorem for SEU761^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU649^2.p
+% SZS status Theorem for SEU649^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU928^5.p
+% SZS status Theorem for SEU928^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU538^2.p
+% SZS status Theorem for SEU538^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU738^2.p
+% SZS status Theorem for SEU738^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU568^2.p
+% SZS status Theorem for SEU568^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU579^2.p
+% SZS status Theorem for SEU579^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU806^2.p
+% SZS status Theorem for SEU806^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU513^2.p
+% SZS status Theorem for SEU513^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU470^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU737^2.p
+% SZS status Theorem for SEU737^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU980^6.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU982^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU740^2.p
+% SZS status Theorem for SEU740^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU574^2.p
+% SZS status Theorem for SEU574^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU983^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU890^5.p
+% SZS status Theorem for SEU890^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU941^5.p
+% SZS status Theorem for SEU941^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU566^2.p
+% SZS status Theorem for SEU566^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU530^2.p
+% SZS status Theorem for SEU530^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU903^5.p
+% SZS status Theorem for SEU903^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU825^3.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU489^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU741^2.p
+% SZS status Theorem for SEU741^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU462^1.p
+% SZS status Theorem for SEU462^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU457^1.p
+% SZS status Theorem for SEU457^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU886^5.p
+% SZS status Theorem for SEU886^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU480^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU746^2.p
+% SZS status Theorem for SEU746^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU762^2.p
+% SZS status Theorem for SEU762^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU575^2.p
+% SZS status Theorem for SEU575^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU599^2.p
+% SZS status Theorem for SEU599^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU636^2.p
+% SZS status Theorem for SEU636^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU692^2.p
+% SZS status Theorem for SEU692^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU609^2.p
+% SZS status Theorem for SEU609^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU754^2.p
+% SZS status Theorem for SEU754^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU790^2.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU614^2.p
+% SZS status Theorem for SEU614^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU759^2.p
+% SZS status Theorem for SEU759^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU727^2.p
+% SZS status Theorem for SEU727^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU945^5.p
+% SZS status GaveUp for SEU945^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU610^2.p
+% SZS status Theorem for SEU610^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU723^2.p
+% SZS status Theorem for SEU723^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU460^1.p
+% SZS status Theorem for SEU460^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU887^5.p
+% SZS status Theorem for SEU887^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU586^2.p
+% SZS status Theorem for SEU586^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU537^2.p
+% SZS status Theorem for SEU537^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU487^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU720^2.p
+% SZS status Theorem for SEU720^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU626^2.p
+% SZS status Theorem for SEU626^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU600^2.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU577^2.p
+% SZS status Theorem for SEU577^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU503^2.p
+% SZS status Theorem for SEU503^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU735^2.p
+% SZS status Theorem for SEU735^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU732^2.p
+% SZS status Theorem for SEU732^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU598^2.p
+% SZS status Theorem for SEU598^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU990^5.p
+% SZS status GaveUp for SEU990^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU571^2.p
+% SZS status Theorem for SEU571^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU662^2.p
+% SZS status Theorem for SEU662^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU455^1.p
+% SZS status Theorem for SEU455^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU897^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU722^2.p
+% SZS status Theorem for SEU722^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU479^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU497^1.p
+% SZS status Theorem for SEU497^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU950^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU871^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU784^2.p
+% SZS status Theorem for SEU784^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU742^2.p
+% SZS status Theorem for SEU742^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU551^3.p
+% SZS status Theorem for SEU551^3
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU471^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU861^5.p
+% SZS status Theorem for SEU861^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU518^2.p
+% SZS status Theorem for SEU518^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU604^2.p
+% SZS status Theorem for SEU604^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU906^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU760^2.p
+% SZS status Theorem for SEU760^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU757^2.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU483^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU481^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU515^2.p
+% SZS status Theorem for SEU515^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU528^2.p
+% SZS status Theorem for SEU528^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU522^2.p
+% SZS status Theorem for SEU522^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU724^2.p
+% SZS status Theorem for SEU724^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU715^2.p
+% SZS status Theorem for SEU715^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU972^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU548^2.p
+% SZS status Theorem for SEU548^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU841^5.p
+% SZS status Theorem for SEU841^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU733^2.p
+% SZS status Theorem for SEU733^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU552^2.p
+% SZS status Theorem for SEU552^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU792^2.p
+% SZS status Theorem for SEU792^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU493^1.p
+% SZS status Theorem for SEU493^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU524^2.p
+% SZS status Theorem for SEU524^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU472^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU625^2.p
+% SZS status Theorem for SEU625^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU622^2.p
+% SZS status Theorem for SEU622^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU752^2.p
+% SZS status Theorem for SEU752^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU904^5.p
+% SZS status Theorem for SEU904^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU615^2.p
+% SZS status Theorem for SEU615^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU758^2.p
+% SZS status Theorem for SEU758^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU551^2.p
+% SZS status Theorem for SEU551^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU578^2.p
+% SZS status Theorem for SEU578^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU711^2.p
+% SZS status Theorem for SEU711^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU743^2.p
+% SZS status Theorem for SEU743^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU937^5.p
+% SZS status Theorem for SEU937^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU996^5.p
+% SZS status Theorem for SEU996^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU474^1.p
+% SZS status Theorem for SEU474^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU788^2.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU714^2.p
+% SZS status Theorem for SEU714^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU456^1.p
+% SZS status Theorem for SEU456^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU659^2.p
+% SZS status Theorem for SEU659^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU899^5.p
+% SZS status Theorem for SEU899^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU712^2.p
+% SZS status Theorem for SEU712^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU459^1.p
+% SZS status Theorem for SEU459^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU605^2.p
+% SZS status Theorem for SEU605^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU787^2.p
+% SZS status Theorem for SEU787^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU884^5.p
+% SZS status Theorem for SEU884^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU535^2.p
+% SZS status Theorem for SEU535^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU992^5.p
+% SZS status GaveUp for SEU992^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU713^2.p
+% SZS status Theorem for SEU713^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU728^2.p
+% SZS status Theorem for SEU728^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU853^5.p
+% SZS status Theorem for SEU853^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU750^2.p
+% SZS status Theorem for SEU750^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU661^2.p
+% SZS status Theorem for SEU661^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU486^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU539^2.p
+% SZS status Theorem for SEU539^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU976^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU501^2.p
+% SZS status Theorem for SEU501^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU531^2.p
+% SZS status Theorem for SEU531^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU467^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU553^2.p
+% SZS status Theorem for SEU553^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU893^5.p
+% SZS status Theorem for SEU893^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU898^5.p
+% SZS status Theorem for SEU898^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU901^5.p
+% SZS status Theorem for SEU901^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU469^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU465^1.p
+% SZS status Theorem for SEU465^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU588^2.p
+% SZS status Theorem for SEU588^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU995^5.p
+% SZS status GaveUp for SEU995^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU745^2.p
+% SZS status Theorem for SEU745^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU658^2.p
+% SZS status Theorem for SEU658^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU621^2.p
+% SZS status Theorem for SEU621^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU731^2.p
+% SZS status Theorem for SEU731^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU523^2.p
+% SZS status Theorem for SEU523^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU458^1.p
+% SZS status Theorem for SEU458^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU978^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU527^2.p
+% SZS status Theorem for SEU527^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU736^2.p
+% SZS status Theorem for SEU736^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU987^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU807^2.p
+% SZS status Theorem for SEU807^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU718^2.p
+% SZS status Theorem for SEU718^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU623^2.p
+% SZS status Theorem for SEU623^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU789^2.p
+% SZS status Theorem for SEU789^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU882^5.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU607^2.p
+% SZS status Theorem for SEU607^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU958^5.p
+% SZS status GaveUp for SEU958^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU725^2.p
+% SZS status Theorem for SEU725^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU473^1.p
+% SZS status Theorem for SEU473^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU633^2.p
+% SZS status Theorem for SEU633^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU693^2.p
+% SZS status Theorem for SEU693^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU993^5.p
+% SZS status GaveUp for SEU993^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU998^5.p
+% SZS status Theorem for SEU998^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU468^1.p
+% SZS status Theorem for SEU468^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU567^2.p
+% SZS status Theorem for SEU567^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU836^5.p
+% SZS status Theorem for SEU836^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU597^2.p
+% SZS status Theorem for SEU597^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU973^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU764^2.p
+% SZS status Theorem for SEU764^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU917^5.p
+% SZS status GaveUp for SEU917^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU889^5.p
+% SZS status Theorem for SEU889^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU977^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU717^2.p
+% SZS status Theorem for SEU717^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU485^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU650^2.p
+% SZS status Theorem for SEU650^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU476^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU453^1.p
+% SZS status Theorem for SEU453^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU464^1.p
+% SZS status Theorem for SEU464^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU532^2.p
+% SZS status Theorem for SEU532^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU596^2.p
+% SZS status Theorem for SEU596^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU885^5.p
+% SZS status Theorem for SEU885^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU547^2.p
+% SZS status Theorem for SEU547^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU844^5.p
+% SZS status Theorem for SEU844^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU569^2.p
+% SZS status Theorem for SEU569^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU888^5.p
+% SZS status Theorem for SEU888^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU454^1.p
+% SZS status Theorem for SEU454^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU951^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU809^2.p
+% SZS status Theorem for SEU809^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU852^5.p
+% SZS status Theorem for SEU852^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU652^2.p
+% SZS status Theorem for SEU652^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU936^5.p
+% SZS status Theorem for SEU936^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU463^1.p
+% SZS status Theorem for SEU463^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU506^2.p
+% SZS status Theorem for SEU506^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU634^2.p
+% SZS status Theorem for SEU634^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU516^2.p
+% SZS status Theorem for SEU516^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU502^2.p
+% SZS status Theorem for SEU502^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU957^5.p
+% SZS status GaveUp for SEU957^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU834^5.p
+% SZS status Theorem for SEU834^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU997^5.p
+% SZS status Theorem for SEU997^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU721^2.p
+% SZS status Theorem for SEU721^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU719^2.p
+% SZS status Theorem for SEU719^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU747^2.p
+% SZS status Theorem for SEU747^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU482^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU466^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU627^2.p
+% SZS status Theorem for SEU627^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU791^2.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU494^1.p
+% SZS status Theorem for SEU494^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU478^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU452^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU974^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU572^2.p
+% SZS status Theorem for SEU572^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU519^2.p
+% SZS status Theorem for SEU519^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU529^2.p
+% SZS status Theorem for SEU529^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU651^2.p
+% SZS status Theorem for SEU651^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU565^2.p
+% SZS status Theorem for SEU565^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU617^2.p
+% SZS status Theorem for SEU617^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU709^2.p
+% SZS status Theorem for SEU709^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU920^5.p
+% SZS status Theorem for SEU920^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU663^2.p
+% SZS status Theorem for SEU663^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU475^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU726^2.p
+% SZS status Theorem for SEU726^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU716^2.p
+% SZS status Theorem for SEU716^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU587^2.p
+% SZS status Theorem for SEU587^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU908^5.p
+% SZS status Theorem for SEU908^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU635^2.p
+% SZS status Theorem for SEU635^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU505^2.p
+% SZS status Theorem for SEU505^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU484^1.p
+% SZS status GaveUp for SEU484^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU975^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU955^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU786^2.p
+% SZS status Theorem for SEU786^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU753^2.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU935^5.p
+% SZS status Theorem for SEU935^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU991^5.p
+% SZS status GaveUp for SEU991^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU785^2.p
+% SZS status Theorem for SEU785^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU749^2.p
+% SZS status Theorem for SEU749^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU653^2.p
+% SZS status Theorem for SEU653^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SEU/SEU751^2.p
+% SZS status Theorem for SEU751^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/DAT/DAT056^1.p
+% SZS status Theorem for DAT056^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/DAT/DAT056^2.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/DAT/DAT002^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/DAT/DAT002^1.p:53.19: Unexpected token: '@'.
+
+        ( ( $less @ X @ Y )
+                  ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA002^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA003^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA016^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA014^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA010^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA017^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA019^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA009^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA005^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA011^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA004^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA015^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA006^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA012^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA020^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA013^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA008^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA007^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA018^1.p
+(error "Assertion failure.
+void CVC4::TheoryEngine::preRegister(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/theory/theory_engine.cpp:398:
+
+  !expr::hasFreeVar(preprocessed)
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/QUA/QUA001^1.p
+(error "Assertion failure.
+bool CVC4::expr::hasFreeVar(CVC4::TNode)
+/home/hbarbosa/cvc/wt-thf/src/expr/node_algorithm.cpp:195:
+
+  bound_var.find(cn) == bound_var.end()
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM759^1.p
+% SZS status Theorem for NUM759^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM782^1.p
+% SZS status Theorem for NUM782^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM738^1.p
+% SZS status Theorem for NUM738^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM925^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM925^1.p:166.25: Unexpected token: '!='.
+
+           != zero_zero_nat )
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM680^1.p
+% SZS status Theorem for NUM680^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM727^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM729^1.p
+% SZS status Theorem for NUM729^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM796^1.p
+% SZS status Theorem for NUM796^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM795^1.p
+% SZS status Theorem for NUM795^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM804^5.p
+% SZS status CounterSatisfiable for NUM804^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM833^5.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM833^5.p:61.14: Unexpected token: '!='.
+
+           != c0 ) )
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM743^1.p
+% SZS status Theorem for NUM743^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM750^1.p
+% SZS status Theorem for NUM750^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM754^1.p
+% SZS status Theorem for NUM754^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM802^5.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM802^5.p:54.15: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM771^1.p
+% SZS status Theorem for NUM771^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM807^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM671^1.p
+% SZS status Theorem for NUM671^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM645^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM645^1.p:81.11: Unexpected token: '!='.
+
+       != n_1 ) )).
+       ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM828^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM649^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM649^1.p:93.17: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM767^1.p
+% SZS status Theorem for NUM767^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM758^1.p
+% SZS status Theorem for NUM758^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM636^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM636^1.p:75.11: Unexpected token: '!='.
+
+       != n_1 ) )).
+       ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM746^1.p
+% SZS status Theorem for NUM746^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM639^1.p
+% SZS status Theorem for NUM639^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM695^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM695^1.p:57.17: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM730^1.p
+% SZS status Theorem for NUM730^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM677^1.p
+% SZS status Theorem for NUM677^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM674^1.p
+% SZS status Theorem for NUM674^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM781^3.p
+% SZS status Theorem for NUM781^3
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM747^1.p
+% SZS status Theorem for NUM747^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM785^1.p
+% SZS status Theorem for NUM785^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM691^1.p
+% SZS status Theorem for NUM691^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM740^1.p
+% SZS status Theorem for NUM740^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM656^1.p
+% SZS status Theorem for NUM656^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM673^1.p
+% SZS status Theorem for NUM673^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM711^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM703^1.p
+% SZS status Theorem for NUM703^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM786^1.p
+% SZS status Theorem for NUM786^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM713^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM713^1.p:50.13: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM415^1.p
+% SZS status Theorem for NUM415^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM739^1.p
+% SZS status Theorem for NUM739^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM822^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM652^1.p
+% SZS status Theorem for NUM652^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM784^1.p
+% SZS status Theorem for NUM784^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM832^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM021^1.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM651^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM651^1.p:50.9: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM710^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM769^1.p
+% SZS status Theorem for NUM769^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM813^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM765^1.p
+% SZS status Theorem for NUM765^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM749^1.p
+% SZS status Theorem for NUM749^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM926^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM926^1.p:224.13: Unexpected token: '!='.
+
+           != ( times_times_int @ ( plus_plus_int @ ( times_times_int @ ...
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM683^1.p
+% SZS status Theorem for NUM683^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM781^1.p
+% SZS status Theorem for NUM781^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM662^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM662^1.p:50.13: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM756^1.p
+% SZS status Theorem for NUM756^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM417^1.p
+% SZS status Theorem for NUM417^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM808^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM760^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM830^5.p
+% SZS status Theorem for NUM830^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM821^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM924^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM924^1.p:200.13: Unexpected token: '!='.
+
+           != ( times_times_int @ ( plus_plus_int @ ( times_times_int @ ...
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM770^1.p
+% SZS status Theorem for NUM770^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM635^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM635^1.p:55.5: Unexpected token: '!='.
+
+   != ( suc @ y ) )).
+   ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM660^1.p
+% SZS status Theorem for NUM660^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM694^1.p
+% SZS status Theorem for NUM694^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM701^1.p
+% SZS status Theorem for NUM701^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM637^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM637^1.p:83.13: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM728^1.p
+% SZS status Theorem for NUM728^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM827^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM684^1.p
+% SZS status Theorem for NUM684^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM819^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM637^2.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM637^2.p:40.11: Unexpected token: '!='.
+
+       != one ) )).
+       ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM648^1.p
+% SZS status Theorem for NUM648^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM783^1.p
+% SZS status Theorem for NUM783^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM020^1.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM798^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM658^1.p
+% SZS status Theorem for NUM658^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM826^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM818^5.p
+% SZS status GaveUp for NUM818^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM707^1.p
+% SZS status Theorem for NUM707^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM810^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM672^1.p
+% SZS status Theorem for NUM672^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM751^1.p
+% SZS status Theorem for NUM751^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM712^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM736^1.p
+% SZS status Theorem for NUM736^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM924^2.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM924^2.p:310.13: Unexpected token: '!='.
+
+           != ( times_times_int @ ( plus_plus_int @ ( times_times_int @ ...
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM667^1.p
+% SZS status Theorem for NUM667^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM693^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM693^1.p:57.17: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM741^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM790^1.p
+% SZS status Theorem for NUM790^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM789^1.p
+% SZS status Theorem for NUM789^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM664^1.p
+% SZS status Theorem for NUM664^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM926^2.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM926^2.p:342.13: Unexpected token: '!='.
+
+           != ( times_times_int @ ( plus_plus_int @ ( times_times_int @ ...
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM418^1.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM799^1.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM681^1.p
+% SZS status Theorem for NUM681^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM806^5.p
+% SZS status CounterSatisfiable for NUM806^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM761^1.p
+% SZS status Theorem for NUM761^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM704^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM823^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM699^1.p
+% SZS status Theorem for NUM699^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM792^1.p
+% SZS status Theorem for NUM792^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM670^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM670^1.p:50.13: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM696^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM696^1.p:47.13: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM811^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM800^1.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM791^1.p
+% SZS status Theorem for NUM791^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM923^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM923^1.p:259.11: Unexpected token: '!='.
+
+         != ( plus_plus_int @ ( times_times_int @ A_26 @ D_7 ) @ ( times...
+         ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM925^2.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM925^2.p:256.25: Unexpected token: '!='.
+
+           != zero_zero_nat )
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM635^2.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM635^2.p:40.11: Unexpected token: '!='.
+
+       != one ) )).
+       ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM663^1.p
+% SZS status Theorem for NUM663^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM809^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM787^1.p
+% SZS status Theorem for NUM787^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM755^1.p
+% SZS status Theorem for NUM755^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM647^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM647^1.p:60.11: Unexpected token: '!='.
+
+         != ( pl @ Xx @ Xz ) ) ) )).
+         ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM655^1.p
+% SZS status Theorem for NUM655^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM737^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM416^1.p
+% SZS status Theorem for NUM416^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM668^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM668^1.p:47.13: Unexpected token: '!='.
+
+           != ( pl @ x @ Xx_0 ) ) ) )).
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM925^3.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM925^3.p:325.25: Unexpected token: '!='.
+
+           != zero_zero_nat )
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM650^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM650^1.p:89.17: Unexpected token: '('.
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM643^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM646^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM646^1.p:88.11: Unexpected token: '!='.
+
+         != ( suc @ Xy ) ) ) )).
+         ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM831^5.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM831^5.p:61.14: Unexpected token: '!='.
+
+           != c0 ) )
+           ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM687^1.p
+% SZS status Theorem for NUM687^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM752^1.p
+% SZS status Theorem for NUM752^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM742^1.p
+% SZS status Theorem for NUM742^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM642^1.p
+% SZS status Theorem for NUM642^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM669^1.p
+% SZS status Theorem for NUM669^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM697^1.p
+% SZS status Theorem for NUM697^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM692^1.p
+% SZS status Theorem for NUM692^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM700^1.p
+% SZS status Theorem for NUM700^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM812^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM659^1.p
+% SZS status Theorem for NUM659^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM706^1.p
+% SZS status Theorem for NUM706^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM824^5.p
+% SZS status Theorem for NUM824^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM753^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM688^1.p
+% SZS status Theorem for NUM688^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM016^5.p
+% SZS status Theorem for NUM016^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM797^1.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM797^1.p:40.11: Unexpected token: '!='.
+
+       != one ) )).
+       ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM709^1.p
+% SZS status Theorem for NUM709^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM419^1.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM682^1.p
+% SZS status Theorem for NUM682^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM788^1.p
+% SZS status Theorem for NUM788^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM825^5.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM829^5.p
+(error "Assertion failure.
+bool CVC4::theory::quantifiers::Instantiate::addInstantiation(CVC4::Node, std::vector<CVC4::NodeTemplate<true> >&, bool, bool, bool)
+/home/hbarbosa/cvc/wt-thf/src/theory/quantifiers/instantiate.cpp:184:
+
+  false
+")
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM640^1.p
+% SZS status Theorem for NUM640^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM636^2.p
+CVC4 Error:
+Parse Error: /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM636^2.p:40.11: Unexpected token: '!='.
+
+       != one ) )).
+       ^
+
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM757^1.p
+% SZS status Theorem for NUM757^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM803^5.p
+% SZS status CounterSatisfiable for NUM803^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM726^1.p
+% SZS status Theorem for NUM726^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM654^1.p
+% SZS status Theorem for NUM654^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM805^5.p
+% SZS status CounterSatisfiable for NUM805^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM644^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM641^1.p
+% SZS status Theorem for NUM641^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM657^1.p
+% SZS status Theorem for NUM657^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM781^2.p
+% SZS status Theorem for NUM781^2
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM708^1.p
+% SZS status Theorem for NUM708^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM676^1.p
+% SZS status Theorem for NUM676^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM793^1.p
+% SZS status Theorem for NUM793^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM748^1.p
+% SZS status Theorem for NUM748^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM834^5.p
+% SZS status GaveUp for NUM834^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM762^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM801^1.p
+CVC4 interrupted by timeout.
+Aborted
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/NUM/NUM653^1.p
+% SZS status Theorem for NUM653^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET588^5.p
+% SZS status Theorem for SET588^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET096^1.p
+% SZS status Theorem for SET096^1
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET196^5.p
+% SZS status Theorem for SET196^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET014^4.p
+% SZS status Theorem for SET014^4
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET753^4.p
+% SZS status Theorem for SET753^4
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET625^5.p
+% SZS status Theorem for SET625^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET590^5.p
+% SZS status Theorem for SET590^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET626^5.p
+% SZS status Theorem for SET626^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET612^3.p
+% SZS status Theorem for SET612^3
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET747^4.p
+% SZS status Theorem for SET747^4
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET633^5.p
+% SZS status Theorem for SET633^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET680^3.p
+% SZS status Theorem for SET680^3
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET194^5.p
+% SZS status Theorem for SET194^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET171^3.p
+% SZS status Theorem for SET171^3
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET185^5.p
+% SZS status Theorem for SET185^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET044^5.p
+% SZS status Theorem for SET044^5
+=====================================
+/home/hbarbosa/cvc/wt-thf/debug/bin/cvc4 on /home/hbarbosa/benchmarks/tptp/Problems/SET/SET599^5.p
+% SZS status Theorem for SET599^5
+=====================================
