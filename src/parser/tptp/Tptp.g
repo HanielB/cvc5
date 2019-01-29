@@ -339,20 +339,28 @@ atomicFormula[CVC4::Expr& expr]
         PARSER_STATE->makeApplication(expr, name, args, false);
       }
     )
-  | definedFun[expr] LPAREN_TOK arguments[args] RPAREN_TOK
-    equalOp[equal] term[expr2]
-    { expr = EXPR_MANAGER->mkExpr(expr, args);
-      expr = MK_EXPR(kind::EQUAL, expr, expr2);
-      if(!equal) expr = MK_EXPR(kind::NOT, expr);
-    }
+  | definedFun[expr]
+    (
+     LPAREN_TOK arguments[args] RPAREN_TOK
+     equalOp[equal] term[expr2]
+     { expr = EXPR_MANAGER->mkExpr(expr, args);
+       expr = MK_EXPR(kind::EQUAL, expr, expr2);
+       if(!equal) expr = MK_EXPR(kind::NOT, expr);
+     }
+    )?
   | (simpleTerm[expr] | letTerm[expr] | conditionalTerm[expr])
-    equalOp[equal] term[expr2]
+    (equalOp[equal] term[expr2]
     { // equality/disequality between terms
       expr = MK_EXPR(kind::EQUAL, expr, expr2);
       if(!equal) expr = MK_EXPR(kind::NOT, expr);
+    })?
+  | definedPred[expr] (LPAREN_TOK arguments[args] RPAREN_TOK)?
+    {
+      if (!args.empty())
+      {
+        expr = EXPR_MANAGER->mkExpr(expr, args);
+      }
     }
-  | definedPred[expr] LPAREN_TOK arguments[args] RPAREN_TOK
-    { expr = EXPR_MANAGER->mkExpr(expr, args); }
   | definedProp[expr]
   ;
 //%----Using <plain_term> removes a reduce/reduce ambiguity in lex/yacc.
@@ -783,22 +791,25 @@ thfLogicFormula[CVC4::Expr& expr]
       // ^ [X] : ^ [Y] : f @ g (where f is a <thf_apply_formula> and g is a
       // <thf_unitary_formula>) should be parsed as: (^ [X] : (^ [Y] : f)) @ g.
       // That is, g is not in the scope of either lambda.
-       { args.push_back(expr); }
-        ( APP_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
+      { args.push_back(expr); }
+      ( APP_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
+      {
+        expr = args[0];
+        // also add case for total applications
+        if (expr.getKind() == kind::BUILTIN)
         {
-          expr = args[0];
+          args.erase(args.begin());
+          expr = EXPR_MANAGER->mkExpr(expr, args);
+        }
+        else
+        {
           for (unsigned i = 1; i < args.size(); ++i)
           {
             expr = EXPR_MANAGER->mkExpr(CVC4::kind::HO_APPLY, expr, args[i]);
           }
-          Debug("parser") << "thfLogicFormula: built expression " << expr << "\n";
         }
-
-  // TODO type_formula case
-  // | COLON_TOK type
-
-  // TODO throw an error when subtype token
-  // | <<
+        Debug("parser") << "thfLogicFormula: built expression " << expr << "\n";
+      }
     )?
   ;
 
