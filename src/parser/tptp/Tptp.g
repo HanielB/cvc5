@@ -348,6 +348,9 @@ atomicFormula[CVC4::Expr& expr]
        if(!equal) expr = MK_EXPR(kind::NOT, expr);
      }
     )?
+  // TODO simpleTerm can also be a variable, which is ambiguous with
+  // thfUnitaryFormula that have a production for only variable, which if that's
+  // not the case goes to atomicFormula.
   | (simpleTerm[expr] | letTerm[expr] | conditionalTerm[expr])
     (equalOp[equal] term[expr2]
     { // equality/disequality between terms
@@ -737,20 +740,27 @@ thfAtomTyping[CVC4::Command*& cmd]
     )
   ;
 
+// unary formula case
+// <unitary_term> != <unitary_term>
+
+// unitary_term -> atomicformula | variable | (logic_formula)
+
 thfLogicFormula[CVC4::Expr& expr]
 @declarations {
   tptp::NonAssoc na;
   std::vector< Expr > args;
   Expr expr2;
+  bool equal;
 }
-  : { Debug("parser") << "thfLogicFormula: Init\n"; }
-    thfUnitaryFormula[expr]
+  //prefix unary formula case
+  // ~
+  : thfUnitaryFormula[expr]
     ( // Equality: =
-      EQUAL_TOK
-      { Debug("parser") << "thfLogicFormula: equal case\n"; }
+      equalOp[equal]
       thfUnitaryFormula[expr2]
-      {
-        expr = MK_EXPR(kind::EQUAL,expr,expr2);
+      { Debug("parser") << "thfLogicFormula: equal/disequal case\n";
+        expr = MK_EXPR(kind::EQUAL, expr, expr2);
+        if(!equal) expr = MK_EXPR(kind::NOT, expr);
       }
     | // Non-associative: <=> <~> ~& ~|
       fofBinaryNonAssoc[na] thfUnitaryFormula[expr2]
@@ -821,10 +831,18 @@ thfLogicFormula[CVC4::Expr& expr]
 // tuple -- ignore
 // formula between parethesis
 
+// <thf_unitary_formula> -> <thf_atomic_formula> | ...
+// <thf_atomic_formula>  -> <thf_defined_atomic> | ...
+// <thf_defined_atomic>  -> <defined_constant> | <thf_conditional> | <thf_let> |
+//                          (<thf_conn_term>) | <defined_term>
+// <thf_conn_term>       -> <nonassoc_connective> | <assoc_connective> |
+//                          <infix_equality> | <thf_unary_connective>
+
 thfUnitaryFormula[CVC4::Expr& expr]
 @declarations {
   Kind kind;
   std::vector< Expr > bv;
+  Expr expr2;
 }
   : variable[expr]
     { Debug("parser") << "thfUnitaryFormula: Variable: " << expr << "\n"; }
@@ -839,7 +857,9 @@ thfUnitaryFormula[CVC4::Expr& expr]
     thfLogicFormula[expr]
     { Debug("parser") << "thfUnitaryFormula: got expr: " << expr << "\n"; }
     RPAREN_TOK
-  | NOT_TOK thfUnitaryFormula[expr] { expr = MK_EXPR(kind::NOT,expr); }
+  | NOT_TOK
+    { expr = EXPR_MANAGER->operatorOf(CVC4::kind::NOT); }
+    (thfUnitaryFormula[expr2] { expr = MK_EXPR(expr,expr2); })?
   // TODO add case for th0_quantifier: Lambda.
   //
   // Probably throw an error with Choice and Description, or maybe consider the
