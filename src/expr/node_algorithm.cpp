@@ -184,6 +184,7 @@ bool hasFreeVar(TNode n)
       {
         if (bound_var.find(cur) == bound_var.end())
         {
+          Debug("fva") << n << " has free var : " << cur << "\n";
           return true;
         }
       }
