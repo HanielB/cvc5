@@ -107,6 +107,7 @@ using namespace CVC4::parser;
 #include "parser/antlr_input.h"
 #include "parser/parser.h"
 #include "parser/tptp/tptp.h"
+#include "options/options.h"
 #include "util/integer.h"
 #include "util/rational.h"
 
@@ -810,6 +811,15 @@ thfLogicFormula[CVC4::Expr& expr]
         {
           args.erase(args.begin());
           expr = EXPR_MANAGER->mkExpr(expr, args);
+        }
+        // total application
+        else if (EXPR_MANAGER->getOptions().getHoFlattenTotal()
+                 && expr.getType().isFunction()
+                 && static_cast<FunctionType>(expr.getType()).getArity()
+                        == args.size() - 1)
+        {
+          args.erase(args.begin());
+          expr = EXPR_MANAGER->mkExpr(kind::APPLY_UF, expr, args);
         }
         else
         {
