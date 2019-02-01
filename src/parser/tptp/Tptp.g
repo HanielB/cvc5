@@ -825,6 +825,12 @@ thfLogicFormula[CVC4::Expr& expr]
         {
           for (unsigned i = 1; i < args.size(); ++i)
           {
+            // create a lambda
+            // if (args[i].getKind() == kind::BUILTIN)
+            // {
+            //   args.erase(args.begin());
+            //   expr = EXPR_MANAGER->mkExpr(expr, args);
+            // }
             expr = EXPR_MANAGER->mkExpr(CVC4::kind::HO_APPLY, expr, args[i]);
           }
         }
