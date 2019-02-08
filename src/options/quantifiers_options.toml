@@ -1775,6 +1775,15 @@ header = "options/quantifiers_options.h"
   read_only  = true
   help       = "eagerly eliminate higher-order constraints"
 
+[[option]]
+  name       = "hoElimPartial"
+  category   = "regular"
+  long       = "ho-elim-partial"
+  type       = "bool"
+  default    = "true"
+  read_only  = true
+  help       = "eliminate higher-order constraints in a partial way that preserves first-order portions"
+
 ### Proof options
 
 [[option]]

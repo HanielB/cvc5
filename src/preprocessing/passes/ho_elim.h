@@ -36,6 +36,20 @@ class HoElim : public PreprocessingPass
       AssertionPipeline* assertionsToPreprocess) override;
   /** eliminate all higher-order constraints in n, return the result */
   Node eliminateHo(Node n);
+  /** map to ho_apply for each sort */
+  std::map< TypeNode, Node > d_hoApplyUf;
+  /** map to uninterpreted sort for each function sort */
+  std::map< TypeNode, TypeNode > d_ftypeMap;
+  /** visited */
+  std::unordered_map<TNode, Node, TNodeHashFunction> d_visited;
+  std::unordered_map<TNode, Node, TNodeHashFunction> d_visited_op;
+  /** map from functions that are used in a first-order context */
+  std::unordered_set<TNode, TNodeHashFunction> d_foFun;
+  
+  /** get ho apply app for sort */
+  Node getHoApplyUf(TypeNode tn, TypeNode tna, TypeNode tnr);
+  /** get uninterpreted sort for function sort */
+  TypeNode getUSort(TypeNode tn);
 };
 
 }  // namespace passes
