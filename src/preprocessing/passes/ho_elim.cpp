@@ -175,28 +175,6 @@ PreprocessingPassResult HoElim::applyInternal(
   }
   std::vector<Node> axioms;
   NodeManager* nm = NodeManager::currentNM();
-  // extensionality
-  for (const std::pair<TypeNode, Node>& hoa : d_hoApplyUf)
-  {
-    Node h = hoa.second;
-    Trace("ho-elim-ax") << "Make extensionality for " << h << std::endl;
-    TypeNode ft = h.getType();
-    TypeNode uf = getUSort(ft[0]);
-    TypeNode ut = getUSort(ft[1]);
-    // extensionality
-    Node x = nm->mkBoundVar("x", uf);
-    Node y = nm->mkBoundVar("y", uf);
-    Node z = nm->mkBoundVar("z", ut);
-    Node eq =
-        nm->mkNode(APPLY_UF, h, x, z).eqNode(nm->mkNode(APPLY_UF, h, y, z));
-    Node antec = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST, z), eq);
-    Node conc = x.eqNode(y);
-    Node ax = nm->mkNode(FORALL,
-                         nm->mkNode(BOUND_VAR_LIST, x, y),
-                         nm->mkNode(OR, antec.negate(), conc));
-    axioms.push_back(ax);
-    Trace("ho-elim-ax") << "...ext axiom : " << ax << std::endl;
-  }
   // for all functions that are in both higher order and first-order
   // contexts, we axiomatize the correspondence
   std::unordered_map<TNode, Node, TNodeHashFunction>::iterator ith;
@@ -246,6 +224,36 @@ PreprocessingPassResult HoElim::applyInternal(
       
     }
   }
+  // extensionality: this must come after the above step since the above
+  // may introduce ho apply
+  for (const std::pair<TypeNode, Node>& hoa : d_hoApplyUf)
+  {
+    Node h = hoa.second;
+    Trace("ho-elim-ax") << "Make extensionality for " << h << std::endl;
+    TypeNode ft = h.getType();
+    TypeNode uf = getUSort(ft[0]);
+    TypeNode ut = getUSort(ft[1]);
+    // extensionality
+    Node x = nm->mkBoundVar("x", uf);
+    Node y = nm->mkBoundVar("y", uf);
+    Node z = nm->mkBoundVar("z", ut);
+    Node eq =
+        nm->mkNode(APPLY_UF, h, x, z).eqNode(nm->mkNode(APPLY_UF, h, y, z));
+    Node antec = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST, z), eq);
+    Node conc = x.eqNode(y);
+    Node ax = nm->mkNode(FORALL,
+                         nm->mkNode(BOUND_VAR_LIST, x, y),
+                         nm->mkNode(OR, antec.negate(), conc));
+    axioms.push_back(ax);
+    Trace("ho-elim-ax") << "...ext axiom : " << ax << std::endl;
+  }
+  if( !axioms.empty() )
+  {
+    Node orig = (*assertionsToPreprocess)[0];
+    axioms.push_back(orig);
+    Node conj = nm->mkNode(AND,axioms);
+    assertionsToPreprocess->replace(0, conj);
+  }
 
   return PreprocessingPassResult::NO_CONFLICT;
 }
@@ -293,7 +301,9 @@ TypeNode HoElim::getUSort(TypeNode tn)
       TypeNode ntn = NodeManager::currentNM()->mkFunctionType(argTypes,rangeType);
       s = getUSort(ntn);
     }else{
-      s = NodeManager::currentNM()->mkSort("u");
+      std::stringstream ss;
+      ss << "u_" << tn;
+      s = NodeManager::currentNM()->mkSort(ss.str());
     }
     d_ftypeMap[tn] = s;
     return s;
