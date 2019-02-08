@@ -38,6 +38,7 @@
 #include "preprocessing/passes/ite_removal.h"
 #include "preprocessing/passes/ite_simp.h"
 #include "preprocessing/passes/miplib_trick.h"
+#include "preprocessing/passes/ho_elim.h"
 #include "preprocessing/passes/nl_ext_purify.h"
 #include "preprocessing/passes/non_clausal_simp.h"
 #include "preprocessing/passes/pseudo_boolean_processor.h"
@@ -148,6 +149,7 @@ PreprocessingPassRegistry::PreprocessingPassRegistry()
   registerPassInfo("quantifier-macros", callCtor<QuantifierMacros>);
   registerPassInfo("nl-ext-purify", callCtor<NlExtPurify>);
   registerPassInfo("bool-to-bv", callCtor<BoolToBV>);
+  registerPassInfo("ho-elim", callCtor<HoElim>);
 }
 
 }  // namespace preprocessing

@@ -3256,6 +3256,9 @@ void SmtEnginePrivate::processAssertions() {
   if(options::sepPreSkolemEmp()) {
     d_passes["sep-skolem-emp"]->apply(&d_assertions);
   }
+  if(options::hoElim()) {
+    d_passes["ho-elim"]->apply(&d_assertions);
+  }
 
   if( d_smt.d_logic.isQuantified() ){
     //remove rewrite rules, apply pre-skolemization to existential quantifiers
