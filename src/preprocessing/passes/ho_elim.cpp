@@ -23,11 +23,8 @@ namespace passes {
 HoElim::HoElim(PreprocessingPassContext* preprocContext)
     : PreprocessingPass(preprocContext, "ho-elim"){};
 
-Node HoElim::eliminateHo(Node n)
-{
-  return n;
-}
-  
+Node HoElim::eliminateHo(Node n) { return n; }
+
 PreprocessingPassResult HoElim::applyInternal(
     AssertionPipeline* assertionsToPreprocess)
 {
@@ -35,13 +32,13 @@ PreprocessingPassResult HoElim::applyInternal(
   {
     Node prev = (*assertionsToPreprocess)[i];
     Node res = eliminateHo(prev);
-    if( res!=prev ){
+    if (res != prev)
+    {
       assertionsToPreprocess->replace(i, res);
     }
   }
   return PreprocessingPassResult::NO_CONFLICT;
 }
-
 
 }  // namespace passes
 }  // namespace preprocessing

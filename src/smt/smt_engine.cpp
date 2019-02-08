@@ -3256,7 +3256,8 @@ void SmtEnginePrivate::processAssertions() {
   if(options::sepPreSkolemEmp()) {
     d_passes["sep-skolem-emp"]->apply(&d_assertions);
   }
-  if(options::hoElim()) {
+  if (options::hoElim())
+  {
     d_passes["ho-elim"]->apply(&d_assertions);
   }
 
