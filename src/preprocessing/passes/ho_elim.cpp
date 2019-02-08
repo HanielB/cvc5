@@ -194,7 +194,7 @@ PreprocessingPassResult HoElim::applyInternal(
       }
       TypeNode rangeType = rf.getType().getRangeType();
       std::vector<TypeNode> argTypes = rf.getType().getArgTypes();
-      std::vector< Node > childrenf;
+      std::vector<Node> childrenf;
       childrenf.push_back(rf);
       std::vector<Node> vars;
       Node curr = rf;
@@ -204,24 +204,27 @@ PreprocessingPassResult HoElim::applyInternal(
         Node v = nm->mkBoundVar(argTypes[i]);
         vars.push_back(v);
         childrenf.push_back(v);
-        std::vector< TypeNode > currArgTypes;
-        currArgTypes.insert( currArgTypes.end(), argTypes.begin()+i, argTypes.end() );
-        Assert( !currArgTypes.empty() );
+        std::vector<TypeNode> currArgTypes;
+        currArgTypes.insert(
+            currArgTypes.end(), argTypes.begin() + i, argTypes.end());
+        Assert(!currArgTypes.empty());
         // get the proper HO apply
-        TypeNode tf = nm->mkFunctionType(currArgTypes,rangeType);
-        Node newCurr = nm->mkNode( HO_APPLY, curr, v );
-        
-        Node hoa = getHoApplyUf(getUSort(curr.getType()),argTypes[i],getUSort(newCurr.getType()));
-        
+        TypeNode tf = nm->mkFunctionType(currArgTypes, rangeType);
+        Node newCurr = nm->mkNode(HO_APPLY, curr, v);
+
+        Node hoa = getHoApplyUf(
+            getUSort(curr.getType()), argTypes[i], getUSort(newCurr.getType()));
+
         curr = newCurr;
-        hcurr = nm->mkNode( APPLY_UF, hoa, hcurr, v );
+        hcurr = nm->mkNode(APPLY_UF, hoa, hcurr, v);
       }
-      Node fapp = nm->mkNode(APPLY_UF,childrenf);
-      Assert( fapp.getType()==hcurr.getType() );
-      
-      Node ax = nm->mkNode(FORALL,nm->mkNode( BOUND_VAR_LIST, vars ),fapp.eqNode(hcurr));
-      Trace("ho-elim-assert") << "...correspondence axiom : " << ax << std::endl;
-      
+      Node fapp = nm->mkNode(APPLY_UF, childrenf);
+      Assert(fapp.getType() == hcurr.getType());
+
+      Node ax = nm->mkNode(
+          FORALL, nm->mkNode(BOUND_VAR_LIST, vars), fapp.eqNode(hcurr));
+      Trace("ho-elim-assert")
+          << "...correspondence axiom : " << ax << std::endl;
     }
   }
   // extensionality: this must come after the above step since the above
@@ -247,11 +250,11 @@ PreprocessingPassResult HoElim::applyInternal(
     axioms.push_back(ax);
     Trace("ho-elim-ax") << "...ext axiom : " << ax << std::endl;
   }
-  if( !axioms.empty() )
+  if (!axioms.empty())
   {
     Node orig = (*assertionsToPreprocess)[0];
     axioms.push_back(orig);
-    Node conj = nm->mkNode(AND,axioms);
+    Node conj = nm->mkNode(AND, axioms);
     assertionsToPreprocess->replace(0, conj);
   }
 
@@ -286,21 +289,26 @@ TypeNode HoElim::getUSort(TypeNode tn)
   if (it == d_ftypeMap.end())
   {
     // flatten function arguments
-    std::vector< TypeNode > argTypes = tn.getArgTypes();
+    std::vector<TypeNode> argTypes = tn.getArgTypes();
     TypeNode rangeType = tn.getRangeType();
     bool typeChanged = false;
-    for( unsigned i=0; i<argTypes.size(); i++ )
+    for (unsigned i = 0; i < argTypes.size(); i++)
     {
-      if( argTypes[i].isFunction() ){
+      if (argTypes[i].isFunction())
+      {
         argTypes[i] = getUSort(argTypes[i]);
         typeChanged = true;
       }
     }
     TypeNode s;
-    if( typeChanged ){
-      TypeNode ntn = NodeManager::currentNM()->mkFunctionType(argTypes,rangeType);
+    if (typeChanged)
+    {
+      TypeNode ntn =
+          NodeManager::currentNM()->mkFunctionType(argTypes, rangeType);
       s = getUSort(ntn);
-    }else{
+    }
+    else
+    {
       std::stringstream ss;
       ss << "u_" << tn;
       s = NodeManager::currentNM()->mkSort(ss.str());
