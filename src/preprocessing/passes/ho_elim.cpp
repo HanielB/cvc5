@@ -137,8 +137,10 @@ Node HoElim::eliminateHo(Node n)
         // process ho apply
         if (ret.getKind() == HO_APPLY)
         {
+          TypeNode tnr = ret.getType();
+          tnr = getUSort(tnr);
           Node hoa =
-              getHoApplyUf(ret[0].getType(), ret[1].getType(), ret.getType());
+              getHoApplyUf(children[0].getType(), children[1].getType(), tnr);
           std::vector<Node> hchildren;
           hchildren.push_back(hoa);
           hchildren.push_back(children[0]);
@@ -176,10 +178,11 @@ PreprocessingPassResult HoElim::applyInternal(
   // extensionality
   for (const std::pair<TypeNode, Node>& hoa : d_hoApplyUf)
   {
-    TypeNode ft = hoa.first;
-    TypeNode uf = getUSort(ft);
-    TypeNode ut = getUSort(ft[0]);
     Node h = hoa.second;
+    Trace("ho-elim-ax") << "Make extensionality for " << h << std::endl;
+    TypeNode ft = h.getType();
+    TypeNode uf = getUSort(ft[0]);
+    TypeNode ut = getUSort(ft[1]);
     // extensionality
     Node x = nm->mkBoundVar("x", uf);
     Node y = nm->mkBoundVar("y", uf);
@@ -192,7 +195,7 @@ PreprocessingPassResult HoElim::applyInternal(
                          nm->mkNode(BOUND_VAR_LIST, x, y),
                          nm->mkNode(OR, antec.negate(), conc));
     axioms.push_back(ax);
-    Trace("ho-elim-assert") << "...ext axiom : " << ax << std::endl;
+    Trace("ho-elim-ax") << "...ext axiom : " << ax << std::endl;
   }
   // for all functions that are in both higher order and first-order
   // contexts, we axiomatize the correspondence
@@ -202,6 +205,7 @@ PreprocessingPassResult HoElim::applyInternal(
     ith = d_visited.find(f);
     if (ith != d_visited.end())
     {
+      Trace("ho-elim-ax") << "Make correspondence axiom for " << f << std::endl;
       // it may have changed types (if it has a function type as an argument)
       Node rf = f;
       std::unordered_map<TNode, Node, TNodeHashFunction>::iterator ito =
@@ -210,13 +214,36 @@ PreprocessingPassResult HoElim::applyInternal(
       {
         rf = ito->second;
       }
+      TypeNode rangeType = rf.getType().getRangeType();
       std::vector<TypeNode> argTypes = rf.getType().getArgTypes();
+      std::vector< Node > childrenf;
+      childrenf.push_back(rf);
       std::vector<Node> vars;
+      Node curr = rf;
+      Node hcurr = ith->second;
       for (unsigned i = 0, size = argTypes.size(); i < size; i++)
       {
         Node v = nm->mkBoundVar(argTypes[i]);
         vars.push_back(v);
+        childrenf.push_back(v);
+        std::vector< TypeNode > currArgTypes;
+        currArgTypes.insert( currArgTypes.end(), argTypes.begin()+i, argTypes.end() );
+        Assert( !currArgTypes.empty() );
+        // get the proper HO apply
+        TypeNode tf = nm->mkFunctionType(currArgTypes,rangeType);
+        Node newCurr = nm->mkNode( HO_APPLY, curr, v );
+        
+        Node hoa = getHoApplyUf(getUSort(curr.getType()),argTypes[i],getUSort(newCurr.getType()));
+        
+        curr = newCurr;
+        hcurr = nm->mkNode( APPLY_UF, hoa, hcurr, v );
       }
+      Node fapp = nm->mkNode(APPLY_UF,childrenf);
+      Assert( fapp.getType()==hcurr.getType() );
+      
+      Node ax = nm->mkNode(FORALL,nm->mkNode( BOUND_VAR_LIST, vars ),fapp.eqNode(hcurr));
+      Trace("ho-elim-assert") << "...correspondence axiom : " << ax << std::endl;
+      
     }
   }
 
@@ -225,19 +252,15 @@ PreprocessingPassResult HoElim::applyInternal(
 
 Node HoElim::getHoApplyUf(TypeNode tnf, TypeNode tna, TypeNode tnr)
 {
-  Assert(tnf.isFunction());
   std::map<TypeNode, Node>::iterator it = d_hoApplyUf.find(tnf);
   if (it == d_hoApplyUf.end())
   {
     NodeManager* nm = NodeManager::currentNM();
-    TypeNode tf = getUSort(tnf);
-    TypeNode ta = getUSort(tna);
-    TypeNode tr = getUSort(tnr);
 
     std::vector<TypeNode> hoTypeArgs;
-    hoTypeArgs.push_back(tf);
-    hoTypeArgs.push_back(ta);
-    TypeNode tnh = nm->mkFunctionType(hoTypeArgs, tr);
+    hoTypeArgs.push_back(tnf);
+    hoTypeArgs.push_back(tna);
+    TypeNode tnh = nm->mkFunctionType(hoTypeArgs, tnr);
     Node k = NodeManager::currentNM()->mkSkolem("ho", tnh);
     d_hoApplyUf[tnf] = k;
     return k;
@@ -254,7 +277,24 @@ TypeNode HoElim::getUSort(TypeNode tn)
   std::map<TypeNode, TypeNode>::iterator it = d_ftypeMap.find(tn);
   if (it == d_ftypeMap.end())
   {
-    TypeNode s = NodeManager::currentNM()->mkSort("u");
+    // flatten function arguments
+    std::vector< TypeNode > argTypes = tn.getArgTypes();
+    TypeNode rangeType = tn.getRangeType();
+    bool typeChanged = false;
+    for( unsigned i=0; i<argTypes.size(); i++ )
+    {
+      if( argTypes[i].isFunction() ){
+        argTypes[i] = getUSort(argTypes[i]);
+        typeChanged = true;
+      }
+    }
+    TypeNode s;
+    if( typeChanged ){
+      TypeNode ntn = NodeManager::currentNM()->mkFunctionType(argTypes,rangeType);
+      s = getUSort(ntn);
+    }else{
+      s = NodeManager::currentNM()->mkSort("u");
+    }
     d_ftypeMap[tn] = s;
     return s;
   }

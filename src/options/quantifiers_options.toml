@@ -1771,7 +1771,7 @@ header = "options/quantifiers_options.h"
   category   = "regular"
   long       = "ho-elim"
   type       = "bool"
-  default    = "true"
+  default    = "false"
   read_only  = true
   help       = "eagerly eliminate higher-order constraints"
 
