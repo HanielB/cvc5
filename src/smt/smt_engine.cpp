@@ -3423,11 +3423,11 @@ void SmtEnginePrivate::processAssertions() {
   {
     d_passes["apply-to-const"]->apply(&d_assertions);
   }
-  
+
   if (options::hoElim())
   {
     d_passes["ho-elim"]->apply(&d_assertions);
-  }  
+  }
 
   // begin: INVARIANT to maintain: no reordering of assertions or
   // introducing new ones
