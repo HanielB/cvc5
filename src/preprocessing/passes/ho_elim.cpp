@@ -43,6 +43,7 @@ Node HoElim::eliminateHo(Node n)
     cur = visit.back();
     visit.pop_back();
     it = d_visited.find(cur);
+    Trace("ho-elim-visit") << "Process: " << cur << std::endl;
 
     if (it == d_visited.end())
     {
@@ -93,6 +94,7 @@ Node HoElim::eliminateHo(Node n)
       itr = preReplace.find(cur);
       if (itr != preReplace.end())
       {
+        Trace("ho-elim-visit") << "return (pre-repl): " << d_visited[itr->second] << std::endl;
         d_visited[cur] = d_visited[itr->second];
       }
       else
@@ -117,12 +119,14 @@ Node HoElim::eliminateHo(Node n)
           // child of an argument changed type, must change type
           Node op = ret.getOperator();
           Node retOp = op;
+          Trace("ho-elim-visit") << "Process op " << op << ", typeChanged = " << typeChanged << std::endl;
           if (typeChanged)
           {
             std::unordered_map<TNode, Node, TNodeHashFunction>::iterator ito =
                 d_visited_op.find(op);
             if (ito == d_visited_op.end())
             {
+              Assert( !childrent.empty() );
               TypeNode newFType = nm->mkFunctionType(childrent, cur.getType());
               retOp = nm->mkSkolem("rf", newFType);
               d_visited_op[op] = retOp;
@@ -132,7 +136,7 @@ Node HoElim::eliminateHo(Node n)
               retOp = ito->second;
             }
           }
-          children.push_back(retOp);
+          children.insert(children.begin(),retOp);
         }
         // process ho apply
         if (ret.getKind() == HO_APPLY)
@@ -151,6 +155,7 @@ Node HoElim::eliminateHo(Node n)
         {
           ret = nm->mkNode(ret.getKind(), children);
         }
+        Trace("ho-elim-visit") << "return (pre-repl): " << ret << std::endl;
         d_visited[cur] = ret;
       }
     }
