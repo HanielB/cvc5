@@ -60,6 +60,8 @@ libcvc4_add_sources(
   preprocessing/passes/extended_rewriter_pass.h
   preprocessing/passes/global_negate.cpp
   preprocessing/passes/global_negate.h
+  preprocessing/passes/ho_elim.cpp
+  preprocessing/passes/ho_elim.h
   preprocessing/passes/int_to_bv.cpp
   preprocessing/passes/int_to_bv.h
   preprocessing/passes/ite_removal.cpp
@@ -124,17 +126,27 @@ libcvc4_add_sources(
   printer/tptp/tptp_printer.h
   proof/arith_proof.cpp
   proof/arith_proof.h
+  proof/arith_proof_recorder.cpp
+  proof/arith_proof_recorder.h
   proof/array_proof.cpp
   proof/array_proof.h
   proof/bitvector_proof.cpp
   proof/bitvector_proof.h
+  proof/clausal_bitvector_proof.cpp
+  proof/clausal_bitvector_proof.h
   proof/clause_id.h
   proof/cnf_proof.cpp
   proof/cnf_proof.h
+  proof/dimacs_printer.cpp
+  proof/dimacs_printer.h
+  proof/drat/drat_proof.cpp
+  proof/drat/drat_proof.h
   proof/lemma_proof.cpp
   proof/lemma_proof.h
   proof/lfsc_proof_printer.cpp
   proof/lfsc_proof_printer.h
+  proof/lrat/lrat_proof.cpp
+  proof/lrat/lrat_proof.h
   proof/proof.h
   proof/proof_manager.cpp
   proof/proof_manager.h
@@ -475,8 +487,6 @@ libcvc4_add_sources(
   theory/quantifiers/extended_rewrite.h
   theory/quantifiers/first_order_model.cpp
   theory/quantifiers/first_order_model.h
-  theory/quantifiers/fmf/ambqi_builder.cpp
-  theory/quantifiers/fmf/ambqi_builder.h
   theory/quantifiers/fmf/bounded_integers.cpp
   theory/quantifiers/fmf/bounded_integers.h
   theory/quantifiers/fmf/full_model_check.cpp
@@ -738,6 +748,10 @@ endif()
 if(USE_CRYPTOMINISAT)
   target_link_libraries(cvc4 ${CryptoMiniSat_LIBRARIES})
   target_include_directories(cvc4 PUBLIC ${CryptoMiniSat_INCLUDE_DIR})
+endif()
+if(USE_DRAT2ER)
+  target_link_libraries(cvc4 ${Drat2Er_LIBRARIES})
+  target_include_directories(cvc4 PUBLIC ${Drat2Er_INCLUDE_DIR})
 endif()
 if(USE_GLPK)
   target_link_libraries(cvc4 ${GLPK_LIBRARIES})
