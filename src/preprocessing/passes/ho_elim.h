@@ -47,6 +47,7 @@ class HoElim : public PreprocessingPass
   std::unordered_set<TNode, TNodeHashFunction> d_foFun;
 
   /** get ho apply app for sort */
+  Node getHoApplyUf(TypeNode tn);
   Node getHoApplyUf(TypeNode tn, TypeNode tna, TypeNode tnr);
   /** get uninterpreted sort for function sort */
   TypeNode getUSort(TypeNode tn);

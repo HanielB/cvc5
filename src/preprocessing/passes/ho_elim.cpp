@@ -54,7 +54,14 @@ Node HoElim::eliminateHo(Node n)
         if (tn.isFunction())
         {
           TypeNode ut = getUSort(tn);
-          ret = nm->mkSkolem("k", ut);
+          if( cur.getKind()==BOUND_VARIABLE ){
+            ret = nm->mkBoundVar(ut);
+          }else{
+            ret = nm->mkSkolem("k", ut);
+          }
+          // must get the ho apply to ensure extensionality is applied
+          Node hoa = getHoApplyUf(tn);
+          Trace("ho-elim-visit") << "Hoa is " << hoa << std::endl;
         }
         d_visited[cur] = ret;
       }
@@ -267,6 +274,25 @@ PreprocessingPassResult HoElim::applyInternal(
   }
 
   return PreprocessingPassResult::NO_CONFLICT;
+}
+
+Node HoElim::getHoApplyUf(TypeNode tn)
+{
+  TypeNode tnu = getUSort(tn);
+  TypeNode rangeType = tn.getRangeType();
+  std::vector< TypeNode > argTypes = tn.getArgTypes();
+  TypeNode tna = getUSort(argTypes[0]);
+  
+  TypeNode tr = rangeType;
+  if( argTypes.size()>1 )
+  {
+    std::vector< TypeNode > remArgTypes;
+    remArgTypes.insert(remArgTypes.end(),argTypes.begin()+1, argTypes.end());
+    tr = NodeManager::currentNM()->mkFunctionType(remArgTypes,tr);
+  }
+  TypeNode tnr = getUSort(tr);
+  
+  return getHoApplyUf(tnu,tna,tnr);
 }
 
 Node HoElim::getHoApplyUf(TypeNode tnf, TypeNode tna, TypeNode tnr)
