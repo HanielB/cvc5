@@ -1790,7 +1790,7 @@ header = "options/quantifiers_options.h"
   long       = "ho-elim-store-ax"
   type       = "bool"
   default    = "true"
-  read_only  = true
+  read_only  = false
   help       = "use store axiom during ho-elim"
 
 ### Proof options

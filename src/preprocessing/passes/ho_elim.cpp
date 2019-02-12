@@ -47,33 +47,45 @@ Node HoElim::eliminateHo(Node n)
 
     if (it == d_visited.end())
     {
+      if( !options::hoElim() )
+      {
+        TypeNode tn = cur.getType();
+        if( tn.isFunction() )
+        {
+          d_funTypes.insert(tn);
+        }
+      }
       if (cur.isVar())
       {
         TypeNode tn = cur.getType();
         Node ret = cur;
-        if (tn.isFunction())
+        if( options::hoElim() )
         {
-          TypeNode ut = getUSort(tn);
-          if( cur.getKind()==BOUND_VARIABLE ){
-            ret = nm->mkBoundVar(ut);
-          }else{
-            ret = nm->mkSkolem("k", ut);
+          if (tn.isFunction())
+          {
+            TypeNode ut = getUSort(tn);
+            if( cur.getKind()==BOUND_VARIABLE ){
+              ret = nm->mkBoundVar(ut);
+            }else{
+              ret = nm->mkSkolem("k", ut);
+            }
+            // must get the ho apply to ensure extensionality is applied
+            Node hoa = getHoApplyUf(tn);
+            Trace("ho-elim-visit") << "Hoa is " << hoa << std::endl;
           }
-          // must get the ho apply to ensure extensionality is applied
-          Node hoa = getHoApplyUf(tn);
-          Trace("ho-elim-visit") << "Hoa is " << hoa << std::endl;
         }
         d_visited[cur] = ret;
       }
       else
       {
         d_visited[cur] = Node::null();
-        if (cur.getKind() == APPLY_UF)
+        if (cur.getKind() == APPLY_UF && options::hoElim())
         {
+          Node op = cur.getOperator();
           // convert apply uf with variable arguments eagerly to ho apply
           // chains, so they are processed uniformly. if we are not using
           // hoElimPartial, we uniformly eliminate all
-          if (cur.getOperator().getKind() == BOUND_VARIABLE
+          if (op.getKind() == BOUND_VARIABLE
               || !options::hoElimPartial())
           {
             visit.push_back(cur);
@@ -85,7 +97,7 @@ Node HoElim::eliminateHo(Node n)
           }
           else
           {
-            d_foFun.insert(cur.getOperator());
+            d_foFun.insert(op);
           }
         }
         visit.push_back(cur);
@@ -149,7 +161,7 @@ Node HoElim::eliminateHo(Node n)
           children.insert(children.begin(), retOp);
         }
         // process ho apply
-        if (ret.getKind() == HO_APPLY)
+        if (ret.getKind() == HO_APPLY && options::hoElim())
         {
           TypeNode tnr = ret.getType();
           tnr = getUSort(tnr);
@@ -282,6 +294,24 @@ PreprocessingPassResult HoElim::applyInternal(
       axioms.push_back(store);
       Trace("ho-elim-ax") << "...store axiom : " << store << std::endl;
     }
+  }
+  // process all function types
+  for( const TypeNode& ftn : d_funTypes )
+  {
+    Node u = nm->mkBoundVar("u",ftn);
+    Node v = nm->mkBoundVar("v",ftn);
+    std::vector< TypeNode > argTypes = ftn.getArgTypes();
+    Node i = nm->mkBoundVar("i",argTypes[0]);
+    Node ii = nm->mkBoundVar("ii",argTypes[0]);
+    Node huii = nm->mkNode(HO_APPLY,u,ii);
+    Node e = nm->mkBoundVar("e",huii.getType());
+    Node store = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST,u,e,i),
+                  nm->mkNode(EXISTS,nm->mkNode(BOUND_VAR_LIST,v),
+                    nm->mkNode(FORALL,nm->mkNode(BOUND_VAR_LIST,ii),
+                      nm->mkNode(HO_APPLY,v,ii).eqNode(
+                        nm->mkNode(ITE,ii.eqNode(i),e,huii)))));
+    axioms.push_back(store);
+    Trace("ho-elim-ax") << "...store (ho_apply) axiom : " << store << std::endl;
   }
   if (!axioms.empty())
   {
