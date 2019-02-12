@@ -1815,6 +1815,11 @@ void SmtEngine::setDefaults() {
     if( options::mbqiMode()!=quantifiers::MBQI_NONE ){
       options::mbqiMode.set( quantifiers::MBQI_NONE );
     }
+    if( !options::hoElimStoreAx.wasSetByUser() )
+    {
+      // by default, use store axioms only if --ho-elim is set
+      options::hoElimStoreAx.set(options::hoElim());
+    }
   }
   if( options::fmfFunWellDefinedRelevant() ){
     if( !options::fmfFunWellDefined.wasSetByUser() ){
@@ -3424,7 +3429,7 @@ void SmtEnginePrivate::processAssertions() {
     d_passes["apply-to-const"]->apply(&d_assertions);
   }
 
-  if (options::hoElim())
+  if (options::ufHo())
   {
     d_passes["ho-elim"]->apply(&d_assertions);
   }

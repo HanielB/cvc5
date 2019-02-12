@@ -1784,6 +1784,15 @@ header = "options/quantifiers_options.h"
   read_only  = true
   help       = "eliminate higher-order constraints in a partial way that preserves first-order portions"
 
+[[option]]
+  name       = "hoElimStoreAx"
+  category   = "regular"
+  long       = "ho-elim-store-ax"
+  type       = "bool"
+  default    = "true"
+  read_only  = false
+  help       = "use store axiom during ho-elim"
+
 ### Proof options
 
 [[option]]

@@ -45,6 +45,8 @@ class HoElim : public PreprocessingPass
   std::unordered_map<TNode, Node, TNodeHashFunction> d_visited_op;
   /** map from functions that are used in a first-order context */
   std::unordered_set<TNode, TNodeHashFunction> d_foFun;
+  /** all function types */
+  std::unordered_set< TypeNode, TypeNodeHashFunction > d_funTypes;
 
   /** get ho apply app for sort */
   Node getHoApplyUf(TypeNode tn);
