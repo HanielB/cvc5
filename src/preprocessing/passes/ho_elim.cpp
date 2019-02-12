@@ -298,20 +298,23 @@ PreprocessingPassResult HoElim::applyInternal(
   // process all function types
   for( const TypeNode& ftn : d_funTypes )
   {
-    Node u = nm->mkBoundVar("u",ftn);
-    Node v = nm->mkBoundVar("v",ftn);
-    std::vector< TypeNode > argTypes = ftn.getArgTypes();
-    Node i = nm->mkBoundVar("i",argTypes[0]);
-    Node ii = nm->mkBoundVar("ii",argTypes[0]);
-    Node huii = nm->mkNode(HO_APPLY,u,ii);
-    Node e = nm->mkBoundVar("e",huii.getType());
-    Node store = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST,u,e,i),
-                  nm->mkNode(EXISTS,nm->mkNode(BOUND_VAR_LIST,v),
-                    nm->mkNode(FORALL,nm->mkNode(BOUND_VAR_LIST,ii),
-                      nm->mkNode(HO_APPLY,v,ii).eqNode(
-                        nm->mkNode(ITE,ii.eqNode(i),e,huii)))));
-    axioms.push_back(store);
-    Trace("ho-elim-ax") << "...store (ho_apply) axiom : " << store << std::endl;
+    if( options::hoElimStoreAx() )
+    {
+      Node u = nm->mkBoundVar("u",ftn);
+      Node v = nm->mkBoundVar("v",ftn);
+      std::vector< TypeNode > argTypes = ftn.getArgTypes();
+      Node i = nm->mkBoundVar("i",argTypes[0]);
+      Node ii = nm->mkBoundVar("ii",argTypes[0]);
+      Node huii = nm->mkNode(HO_APPLY,u,ii);
+      Node e = nm->mkBoundVar("e",huii.getType());
+      Node store = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST,u,e,i),
+                    nm->mkNode(EXISTS,nm->mkNode(BOUND_VAR_LIST,v),
+                      nm->mkNode(FORALL,nm->mkNode(BOUND_VAR_LIST,ii),
+                        nm->mkNode(HO_APPLY,v,ii).eqNode(
+                          nm->mkNode(ITE,ii.eqNode(i),e,huii)))));
+      axioms.push_back(store);
+      Trace("ho-elim-ax") << "...store (ho_apply) axiom : " << store << std::endl;
+    }
   }
   if (!axioms.empty())
   {
