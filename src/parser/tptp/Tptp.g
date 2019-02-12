@@ -812,26 +812,59 @@ thfLogicFormula[CVC4::Expr& expr]
           args.erase(args.begin());
           expr = EXPR_MANAGER->mkExpr(expr, args);
         }
-        // total application
-        else if (EXPR_MANAGER->getOptions().getHoFlattenTotal()
-                 && expr.getType().isFunction()
-                 && static_cast<FunctionType>(expr.getType()).getArity()
-                        == args.size() - 1)
-        {
-          args.erase(args.begin());
-          expr = EXPR_MANAGER->mkExpr(kind::APPLY_UF, expr, args);
-        }
         else
         {
+          // check if any argument is a bultin node, e.g. "~", and create a
+          // lambda wrapper then, e.g. (\lambda x. ~ x)
           for (unsigned i = 1; i < args.size(); ++i)
           {
-            // create a lambda
-            // if (args[i].getKind() == kind::BUILTIN)
-            // {
-            //   args.erase(args.begin());
-            //   expr = EXPR_MANAGER->mkExpr(expr, args);
-            // }
-            expr = EXPR_MANAGER->mkExpr(CVC4::kind::HO_APPLY, expr, args[i]);
+            // create a lambda wrapper, e.g. (\lambda x. ~ x)
+            if (args[i].getKind() != kind::BUILTIN)
+            {
+              continue;
+            }
+            Type argType = (static_cast<FunctionType>(args[0].getType()))
+                               .getArgTypes()[i - 1];
+            std::vector<Expr> lvars;
+            std::vector<Type> domainTypes =
+                (static_cast<FunctionType>(argType)).getArgTypes();
+            for (unsigned j = 0, size = domainTypes.size(); j < size; ++j)
+            {
+              // the introduced variable is internal (not parsable)
+              std::stringstream ss;
+              ss << "_lvar_" << j;
+              Expr v = EXPR_MANAGER->mkBoundVar(ss.str(), domainTypes[j]);
+              lvars.push_back(v);
+            }
+            // apply body of lambda to variables
+            Expr wrapper = MK_EXPR(kind::LAMBDA,
+                                   MK_EXPR(kind::BOUND_VAR_LIST, lvars),
+                                   MK_EXPR(args[i], lvars));
+
+            unsigned arity =
+                EXPR_MANAGER->minArity(EXPR_MANAGER->operatorToKind(args[i]));
+            Debug("parser")
+                << "thfLogicFormula: from builtin arg " << args[i]
+                << " with op " << EXPR_MANAGER->operatorToKind(args[i])
+                << " and (min) arity " << arity << " and type " << argType
+                << " built wrapper " << wrapper << "\n";
+            args[i] = wrapper;
+          }
+          // total application
+          if (EXPR_MANAGER->getOptions().getHoFlattenTotal()
+                   && expr.getType().isFunction()
+                   && static_cast<FunctionType>(expr.getType()).getArity()
+                          == args.size() - 1)
+          {
+            args.erase(args.begin());
+            expr = EXPR_MANAGER->mkExpr(kind::APPLY_UF, expr, args);
+          }
+          else
+          {
+            for (unsigned i = 1; i < args.size(); ++i)
+            {
+              expr = MK_EXPR(kind::HO_APPLY, expr, args[i]);
+            }
           }
         }
         Debug("parser") << "thfLogicFormula: built expression " << expr << "\n";
