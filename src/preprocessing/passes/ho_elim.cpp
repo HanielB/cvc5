@@ -264,6 +264,20 @@ PreprocessingPassResult HoElim::applyInternal(
                          nm->mkNode(OR, antec.negate(), conc));
     axioms.push_back(ax);
     Trace("ho-elim-ax") << "...ext axiom : " << ax << std::endl;
+    // make the "store" axiom
+    Node u = nm->mkBoundVar("u",uf);
+    Node v = nm->mkBoundVar("v",uf);
+    Node i = nm->mkBoundVar("i",ut);
+    Node ii = nm->mkBoundVar("ii",ut);
+    Node huii = nm->mkNode(APPLY_UF,h,u,ii);
+    Node e = nm->mkBoundVar("e",huii.getType());
+    Node store = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST,u,e,i),
+                   nm->mkNode(EXISTS,nm->mkNode(BOUND_VAR_LIST,v),
+                     nm->mkNode(FORALL,nm->mkNode(BOUND_VAR_LIST,ii),
+                       nm->mkNode(APPLY_UF,h,v,ii).eqNode(
+                         nm->mkNode(ITE,ii.eqNode(i),e,huii)))));
+    axioms.push_back(store);
+    Trace("ho-elim-ax") << "...store axiom : " << store << std::endl;
   }
   if (!axioms.empty())
   {
