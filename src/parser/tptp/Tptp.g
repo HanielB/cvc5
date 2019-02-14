@@ -810,7 +810,12 @@ thfLogicFormula[CVC4::Expr& expr]
       // <thf_unitary_formula>) should be parsed as: (^ [X] : (^ [Y] : f)) @ g.
       // That is, g is not in the scope of either lambda.
       { args.push_back(expr); }
-      ( (APP_TOK | COMMA_TOK) thfUnitaryFormula[expr] { args.push_back(expr); } )+
+      ( APP_TOK
+        (
+         thfUnitaryFormula[expr] { args.push_back(expr); }
+         | LBRACK_TOK { UNSUPPORTED("Tuple terms"); } thfTupleForm[args] RBRACK_TOK
+        )
+      )+
       {
         expr = args[0];
         // also add case for total applications
@@ -899,6 +904,15 @@ thfLogicFormula[CVC4::Expr& expr]
 // <thf_conn_term>       -> <nonassoc_connective> | <assoc_connective> |
 //                          <infix_equality> | <thf_unary_connective>
 
+thfTupleForm[std::vector<CVC4::Expr>& args]
+@declarations {
+  Expr expr;
+}
+  : thfUnitaryFormula[expr]
+   { args.push_back(expr); }
+   ( COMMA_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
+;
+
 thfUnitaryFormula[CVC4::Expr& expr]
 @declarations {
   Kind kind;
@@ -909,7 +923,6 @@ thfUnitaryFormula[CVC4::Expr& expr]
     { Debug("parser") << "thfUnitaryFormula: Variable: " << expr << "\n"; }
   | atomicFormula[expr]
     { Debug("parser") << "thfUnitaryFormula: AtomicFormula: " << expr << "\n"; }
-  | LBRACK_TOK thfUnitaryFormula[expr] RBRACK_TOK
   | LPAREN_TOK
     {
       Debug("parser")
@@ -1222,7 +1235,7 @@ parseThfType[CVC4::Type& type]
 }
   : thfType[type] { sorts.push_back(type); }
     (
-     (ARROW_TOK | TIMES_TOK | COMMA_TOK) thfType[type] { sorts.push_back(type); }
+     (ARROW_TOK | TIMES_TOK) thfType[type] { sorts.push_back(type); }
     )*
     {
       Debug("parser") << "parseThfType: parsed " << sorts.size() << " types:\n";
@@ -1248,7 +1261,7 @@ thfType[CVC4::Type& type]
 // assumes only mapping types (arrows), no tuple type
   : simpleType[type]
     | LPAREN_TOK parseThfType[type] RPAREN_TOK
-    | LBRACK_TOK parseThfType[type] RBRACK_TOK
+    | LBRACK_TOK { UNSUPPORTED("Tuple types"); } parseThfType[type] RBRACK_TOK
   ;
 
 parseType[CVC4::Type & type]
