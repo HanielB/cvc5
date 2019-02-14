@@ -387,6 +387,9 @@ definedPred[CVC4::Expr& expr]
     }
   | '$is_int' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::IS_INTEGER); }
   | '$distinct' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::DISTINCT); }
+  | AND_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::AND); }
+  | IMPLIES_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::IMPLIES); }
+  | OR_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::OR); }
   ;
 
 definedFun[CVC4::Expr& expr]
@@ -861,10 +864,15 @@ thfLogicFormula[CVC4::Expr& expr]
           }
           else
           {
+            Debug("parser")
+                << "thfLogicFormula: builing HO_APP chain with funct " << expr
+                << " : " << expr.getType() << " and args ";
             for (unsigned i = 1; i < args.size(); ++i)
             {
+              Debug("parser") << args[i] << " : " << args[i].getType() << " | ";
               expr = MK_EXPR(kind::HO_APPLY, expr, args[i]);
             }
+            Debug("parser") << "\n";
           }
         }
         Debug("parser") << "thfLogicFormula: built expression " << expr << "\n";
