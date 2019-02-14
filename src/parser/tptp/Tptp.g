@@ -1208,7 +1208,9 @@ parseThfType[CVC4::Type& type]
   std::vector<CVC4::Type> sorts;
 }
   : thfType[type] { sorts.push_back(type); }
-    ( ARROW_TOK thfType[type] { sorts.push_back(type); } )*
+    (
+     (ARROW_TOK | TIMES_TOK) thfType[type] { sorts.push_back(type); }
+    )*
     {
       Debug("parser") << "parseThfType: parsed " << sorts.size() << " types:\n";
       for (Type t : sorts)
