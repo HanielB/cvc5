@@ -669,7 +669,11 @@ thfQuantifier[CVC4::Kind& kind]
   | CHOICE_TOK { kind = kind::CHOICE; }
   | DEF_DESC_TOK
     {
-      PARSER_STATE->parseError("Definite description quantifier unsupported.");
+      UNSUPPORTED("Description quantifier");
+    }
+  | (TH1_UN_A | TH1_UN_E)
+    {
+      UNSUPPORTED("TH1 operator");
     }
   ;
 
@@ -1358,6 +1362,9 @@ TIMES_TOK      : '*';
 PLUS_TOK       : '+';
 MINUS_TOK      : '-';
 APP_TOK        : '@';
+
+TH1_UN_A       : '!!';
+TH1_UN_E       : '??';
 
 //predicate
 TRUE_TOK     : '$true';
