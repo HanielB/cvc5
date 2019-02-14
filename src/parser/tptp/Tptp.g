@@ -767,12 +767,29 @@ thfLogicFormula[CVC4::Expr& expr]
       equalOp[equal]
       thfUnitaryFormula[expr2]
       { Debug("parser") << "thfLogicFormula: equal/disequal case\n";
+
+        if (expr.getKind() == kind::BUILTIN && expr2.getKind() != kind::BUILTIN)
+        {
+          // make expr with a lambda of the same type as expr
+          PARSER_STATE->mkLambdaWrapper(expr, expr2.getType());
+        }
+        else if (expr2.getKind() == kind::BUILTIN && expr.getKind() != kind::BUILTIN)
+        {
+          // make expr2 with a lambda of the same type as expr
+          PARSER_STATE->mkLambdaWrapper(expr2, expr.getType());
+        }
+        else if (expr.getKind() == kind::BUILTIN && expr2.getKind() == kind::BUILTIN)
+        {
+          // TODO create whatever lambda
+        }
         expr = MK_EXPR(kind::EQUAL, expr, expr2);
-        if(!equal) expr = MK_EXPR(kind::NOT, expr);
+        if (!equal) expr = MK_EXPR(kind::NOT, expr);
       }
     | // Non-associative: <=> <~> ~& ~|
       fofBinaryNonAssoc[na] thfUnitaryFormula[expr2]
-        { switch(na) {
+        {
+          // TODO lambda wrappers for expressions
+          switch(na) {
            case tptp::NA_IFF:
              expr = MK_EXPR(kind::EQUAL,expr,expr2);
              break;
@@ -796,12 +813,18 @@ thfLogicFormula[CVC4::Expr& expr]
     | // N-ary and &
       ( { args.push_back(expr); }
         ( AND_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
-        { expr = MK_EXPR_ASSOCIATIVE(kind::AND, args); }
+        {
+          // TODO lambda wrappers for expressions
+          expr = MK_EXPR_ASSOCIATIVE(kind::AND, args);
+        }
       )
     | // N-ary or |
       ( { args.push_back(expr); }
         ( OR_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
-        { expr = MK_EXPR_ASSOCIATIVE(kind::OR, args); }
+        {
+          // TODO lambda wrappers for expressions
+          expr = MK_EXPR_ASSOCIATIVE(kind::OR, args);
+        }
       )
     | // N-ary @ |
       //
@@ -835,32 +858,10 @@ thfLogicFormula[CVC4::Expr& expr]
             {
               continue;
             }
-            Type argType = (static_cast<FunctionType>(args[0].getType()))
-                               .getArgTypes()[i - 1];
-            std::vector<Expr> lvars;
-            std::vector<Type> domainTypes =
-                (static_cast<FunctionType>(argType)).getArgTypes();
-            for (unsigned j = 0, size = domainTypes.size(); j < size; ++j)
-            {
-              // the introduced variable is internal (not parsable)
-              std::stringstream ss;
-              ss << "_lvar_" << j;
-              Expr v = EXPR_MANAGER->mkBoundVar(ss.str(), domainTypes[j]);
-              lvars.push_back(v);
-            }
-            // apply body of lambda to variables
-            Expr wrapper = MK_EXPR(kind::LAMBDA,
-                                   MK_EXPR(kind::BOUND_VAR_LIST, lvars),
-                                   MK_EXPR(args[i], lvars));
-
-            unsigned arity =
-                EXPR_MANAGER->minArity(EXPR_MANAGER->operatorToKind(args[i]));
-            Debug("parser")
-                << "thfLogicFormula: from builtin arg " << args[i]
-                << " with op " << EXPR_MANAGER->operatorToKind(args[i])
-                << " and (min) arity " << arity << " and type " << argType
-                << " built wrapper " << wrapper << "\n";
-            args[i] = wrapper;
+            PARSER_STATE->mkLambdaWrapper(
+                args[i],
+                (static_cast<FunctionType>(args[0].getType()))
+                    .getArgTypes()[i - 1]);
           }
           // total application
           if (EXPR_MANAGER->getOptions().getHoFlattenTotal()
