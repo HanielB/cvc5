@@ -47,17 +47,13 @@ Node HoElim::eliminateHo(Node n)
 
     if (it == d_visited.end())
     {
-      if( !options::hoElim() )
+      TypeNode tn = cur.getType();
+      if( tn.isFunction() )
       {
-        TypeNode tn = cur.getType();
-        if( tn.isFunction() )
-        {
-          d_funTypes.insert(tn);
-        }
+        d_funTypes.insert(tn);
       }
       if (cur.isVar())
       {
-        TypeNode tn = cur.getType();
         Node ret = cur;
         if( options::hoElim() )
         {
@@ -256,49 +252,49 @@ PreprocessingPassResult HoElim::applyInternal(
   }
   // extensionality: this must come after the above step since the above
   // may introduce ho apply
-  for (const std::pair<TypeNode, Node>& hoa : d_hoApplyUf)
-  {
-    Node h = hoa.second;
-    Trace("ho-elim-ax") << "Make extensionality for " << h << std::endl;
-    TypeNode ft = h.getType();
-    TypeNode uf = getUSort(ft[0]);
-    TypeNode ut = getUSort(ft[1]);
-    // extensionality
-    Node x = nm->mkBoundVar("x", uf);
-    Node y = nm->mkBoundVar("y", uf);
-    Node z = nm->mkBoundVar("z", ut);
-    Node eq =
-        nm->mkNode(APPLY_UF, h, x, z).eqNode(nm->mkNode(APPLY_UF, h, y, z));
-    Node antec = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST, z), eq);
-    Node conc = x.eqNode(y);
-    Node ax = nm->mkNode(FORALL,
-                         nm->mkNode(BOUND_VAR_LIST, x, y),
-                         nm->mkNode(OR, antec.negate(), conc));
-    axioms.push_back(ax);
-    Trace("ho-elim-ax") << "...ext axiom : " << ax << std::endl;
-    // make the "store" axiom
-    // without this axiom, the translation is model unsound
-    if( options::hoElimStoreAx() )
-    {
-      Node u = nm->mkBoundVar("u",uf);
-      Node v = nm->mkBoundVar("v",uf);
-      Node i = nm->mkBoundVar("i",ut);
-      Node ii = nm->mkBoundVar("ii",ut);
-      Node huii = nm->mkNode(APPLY_UF,h,u,ii);
-      Node e = nm->mkBoundVar("e",huii.getType());
-      Node store = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST,u,e,i),
-                    nm->mkNode(EXISTS,nm->mkNode(BOUND_VAR_LIST,v),
-                      nm->mkNode(FORALL,nm->mkNode(BOUND_VAR_LIST,ii),
-                        nm->mkNode(APPLY_UF,h,v,ii).eqNode(
-                          nm->mkNode(ITE,ii.eqNode(i),e,huii)))));
-      axioms.push_back(store);
-      Trace("ho-elim-ax") << "...store axiom : " << store << std::endl;
-    }
-  }
   // process all function types
   for( const TypeNode& ftn : d_funTypes )
   {
-    if( options::hoElimStoreAx() )
+    if( options::hoElim() )
+    {
+      Node h = getHoApplyUf(ftn);
+      Trace("ho-elim-ax") << "Make extensionality for " << h << std::endl;
+      TypeNode ft = h.getType();
+      TypeNode uf = getUSort(ft[0]);
+      TypeNode ut = getUSort(ft[1]);
+      // extensionality
+      Node x = nm->mkBoundVar("x", uf);
+      Node y = nm->mkBoundVar("y", uf);
+      Node z = nm->mkBoundVar("z", ut);
+      Node eq =
+          nm->mkNode(APPLY_UF, h, x, z).eqNode(nm->mkNode(APPLY_UF, h, y, z));
+      Node antec = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST, z), eq);
+      Node conc = x.eqNode(y);
+      Node ax = nm->mkNode(FORALL,
+                          nm->mkNode(BOUND_VAR_LIST, x, y),
+                          nm->mkNode(OR, antec.negate(), conc));
+      axioms.push_back(ax);
+      Trace("ho-elim-ax") << "...ext axiom : " << ax << std::endl;
+      // make the "store" axiom
+      // without this axiom, the translation is model unsound
+      if( options::hoElimStoreAx() )
+      {
+        Node u = nm->mkBoundVar("u",uf);
+        Node v = nm->mkBoundVar("v",uf);
+        Node i = nm->mkBoundVar("i",ut);
+        Node ii = nm->mkBoundVar("ii",ut);
+        Node huii = nm->mkNode(APPLY_UF,h,u,ii);
+        Node e = nm->mkBoundVar("e",huii.getType());
+        Node store = nm->mkNode(FORALL, nm->mkNode(BOUND_VAR_LIST,u,e,i),
+                      nm->mkNode(EXISTS,nm->mkNode(BOUND_VAR_LIST,v),
+                        nm->mkNode(FORALL,nm->mkNode(BOUND_VAR_LIST,ii),
+                          nm->mkNode(APPLY_UF,h,v,ii).eqNode(
+                            nm->mkNode(ITE,ii.eqNode(i),e,huii)))));
+        axioms.push_back(store);
+        Trace("ho-elim-ax") << "...store axiom : " << store << std::endl;
+      }
+    }
+    else if( options::hoElimStoreAx() )
     {
       Node u = nm->mkBoundVar("u",ftn);
       Node v = nm->mkBoundVar("v",ftn);
