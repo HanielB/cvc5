@@ -1,7 +1,7 @@
 #!/bin/bash
 
-solver=~/cvc/wt-thf/debug/bin/cvc4
-options="--uf-ho --full-saturate-quant"
+solver=~/cvc/wt-thf/prod/bin/cvc4
+options="--uf-ho --full-saturate-quant --preprocess-only"
 traces=""
 time=""
 ulimit="ulimit -S -t 1"
@@ -25,14 +25,14 @@ for name in $(find ~/benchmarks/tptp/Problems -name '*.p'); do
         continue
     fi
     # Ignoring lambdas for now
-    if grep -q "\^.\[" "$name"; then
-        continue
-    fi
-    if grep -q "\^\[" "$name"; then
-        continue
-    fi
+    # if grep -q "\^.\[" "$name"; then
+    #     continue
+    # fi
+    # if grep -q "\^\[" "$name"; then
+    #     continue
+    # fi
     # Only run on problems with thf constructs
-    if grep -q thf "$name"; then
+    if grep -q TH0 "$name"; then
         # echo "$name";
         echo "$solver on $name";
         ($ulimit; $time $solver $options $traces "$name")
