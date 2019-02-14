@@ -803,7 +803,7 @@ thfLogicFormula[CVC4::Expr& expr]
       // <thf_unitary_formula>) should be parsed as: (^ [X] : (^ [Y] : f)) @ g.
       // That is, g is not in the scope of either lambda.
       { args.push_back(expr); }
-      ( APP_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
+      ( (APP_TOK | COMMA_TOK) thfUnitaryFormula[expr] { args.push_back(expr); } )+
       {
         expr = args[0];
         // also add case for total applications
@@ -897,6 +897,7 @@ thfUnitaryFormula[CVC4::Expr& expr]
     { Debug("parser") << "thfUnitaryFormula: Variable: " << expr << "\n"; }
   | atomicFormula[expr]
     { Debug("parser") << "thfUnitaryFormula: AtomicFormula: " << expr << "\n"; }
+  | LBRACK_TOK thfUnitaryFormula[expr] RBRACK_TOK
   | LPAREN_TOK
     {
       Debug("parser")
@@ -1209,7 +1210,7 @@ parseThfType[CVC4::Type& type]
 }
   : thfType[type] { sorts.push_back(type); }
     (
-     (ARROW_TOK | TIMES_TOK) thfType[type] { sorts.push_back(type); }
+     (ARROW_TOK | TIMES_TOK | COMMA_TOK) thfType[type] { sorts.push_back(type); }
     )*
     {
       Debug("parser") << "parseThfType: parsed " << sorts.size() << " types:\n";
@@ -1235,6 +1236,7 @@ thfType[CVC4::Type& type]
 // assumes only mapping types (arrows), no tuple type
   : simpleType[type]
     | LPAREN_TOK parseThfType[type] RPAREN_TOK
+    | LBRACK_TOK parseThfType[type] RBRACK_TOK
   ;
 
 parseType[CVC4::Type & type]
