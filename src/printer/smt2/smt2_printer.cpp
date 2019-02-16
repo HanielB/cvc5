@@ -378,8 +378,8 @@ void Smt2Printer::toStream(std::ostream& out,
     }
     if(n.getNumChildren() != 0) {
       for(unsigned i = 0; i < n.getNumChildren(); ++i) {
-	      out << ' ';
-	      toStream(out, n[i], toDepth, types, TypeNode::null());
+        out << ' ';
+        toStream(out, n[i], toDepth, types, TypeNode::null());
       }
       out << ')';
     }
@@ -506,7 +506,31 @@ void Smt2Printer::toStream(std::ostream& out,
   // uf theory
   case kind::APPLY_UF: typeChildren = true; break;
   // higher-order
-  case kind::HO_APPLY: break;
+  case kind::HO_APPLY:
+    // collapse "@" chains, i.e.
+    //
+    // @(@(a, b), c) --> (@ a b c)
+    //
+    // @(@(@(a, b), @(@(c, d), e)), f) --> (@ a b (@ c d e) f)
+    {
+      Node head = n;
+      std::vector<Node> args;
+      while (head.getKind() == kind::HO_APPLY)
+      {
+        args.insert(args.begin(), head[1]);
+        head = head[0];
+      }
+      // Trace("test-printer") << "\ngot head " << head << " and args " << args << "\n";
+      toStream(out, head, toDepth, types, TypeNode::null());
+      for (unsigned i = 0, size = args.size(); i < size; ++i)
+      {
+        out << " ";
+        toStream(out, args[i], toDepth, types, TypeNode::null());
+      }
+      out << ")";
+    }
+    return;
+
   case kind::LAMBDA:
     out << smtKindString(k, d_variant) << " ";
     break;
@@ -546,7 +570,7 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::IS_INTEGER:
   case kind::TO_INTEGER:
   case kind::TO_REAL:
-  case kind::POW: 
+  case kind::POW:
     parametricTypeChildren = true;
     out << smtKindString(k, d_variant) << " ";
     break;
@@ -872,7 +896,7 @@ void Smt2Printer::toStream(std::ostream& out,
     }
   }
   stringstream parens;
-  
+
   // calculate the child type casts
   std::map< unsigned, TypeNode > force_child_type;
   if( parametricTypeChildren ){
@@ -931,7 +955,7 @@ void Smt2Printer::toStream(std::ostream& out,
       }
     }
   }
-  
+
   for(size_t i = 0, c = 1; i < n.getNumChildren(); ) {
     if(toDepth != 0) {
       Node cn = n[i];
@@ -1012,9 +1036,9 @@ static string smtKindString(Kind k, Variant v)
   case kind::GEQ: return ">=";
   case kind::DIVISION:
   case kind::DIVISION_TOTAL: return "/";
-  case kind::INTS_DIVISION_TOTAL: 
+  case kind::INTS_DIVISION_TOTAL:
   case kind::INTS_DIVISION: return "div";
-  case kind::INTS_MODULUS_TOTAL: 
+  case kind::INTS_MODULUS_TOTAL:
   case kind::INTS_MODULUS: return "mod";
   case kind::ABS: return "abs";
   case kind::IS_INTEGER: return "is_int";
