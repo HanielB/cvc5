@@ -53,6 +53,9 @@ class HoElim : public PreprocessingPass
   Node getHoApplyUf(TypeNode tn, TypeNode tna, TypeNode tnr);
   /** get uninterpreted sort for function sort */
   TypeNode getUSort(TypeNode tn);
+  
+  /** lambdas to process */
+  std::map< Node, Node > d_lambda_to_process;
 };
 
 }  // namespace passes
