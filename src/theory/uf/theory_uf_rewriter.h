@@ -46,6 +46,8 @@ public:
     }
     if(node.getKind() == kind::APPLY_UF) {
       if( node.getOperator().getKind() == kind::LAMBDA ){
+        Trace("uf-ho-beta")
+          << "uf-ho-beta : beta-reducing all args of : " << node << "\n";
         TNode lambda = node.getOperator();
         std::vector<TNode> vars;
         std::vector<TNode> subs;
@@ -57,8 +59,20 @@ public:
         {
           subs.push_back(s);
         }
+        if (Trace.isOn("uf-ho-beta"))
+        {
+          Trace("uf-ho-beta") << "uf-ho-beta: ..sub of " << subs.size()
+                              << " vars into " << subs.size() << " terms :\n";
+          for (unsigned i = 0, size = subs.size(); i < size; ++i)
+          {
+            Trace("uf-ho-beta")
+                << "uf-ho-beta: .... " << vars[i] << " |-> " << subs[i] << "\n";
+          }
+        }
         Node ret = lambda[1].substitute(
             vars.begin(), vars.end(), subs.begin(), subs.end());
+        Trace("uf-ho-beta")
+            << "uf-ho-beta : ..result : " << ret << "\n";
         return RewriteResponse(REWRITE_AGAIN_FULL, ret);
       }else if( !canUseAsApplyUfOperator( node.getOperator() ) ){
         return RewriteResponse(REWRITE_AGAIN_FULL, getHoApplyForApplyUf(node));
@@ -66,9 +80,15 @@ public:
     }else if( node.getKind() == kind::HO_APPLY ){
       if( node[0].getKind() == kind::LAMBDA ){
         // resolve one argument of the lambda
+        Trace("uf-ho-beta")
+            << "uf-ho-beta : beta-reducing one argument of : " << node
+            << " with " << node[1] << "\n";
         TNode arg = Rewriter::rewrite( node[1] );
         TNode var = node[0][0][0];
         Node new_body = node[0][1].substitute( var, arg );
+        Trace("uf-ho-beta")
+            << "uf-ho-beta : ..new body : " << new_body << "\n";
+
         if( node[0][0].getNumChildren()>1 ){
           std::vector< Node > new_vars;
           for( unsigned i=1; i<node[0][0].getNumChildren(); i++ ){
@@ -78,6 +98,8 @@ public:
           largs.push_back( NodeManager::currentNM()->mkNode( kind::BOUND_VAR_LIST, new_vars ) );
           largs.push_back( new_body );
           new_body = NodeManager::currentNM()->mkNode( kind::LAMBDA, largs );
+          Trace("uf-ho-beta")
+            << "uf-ho-beta : ....new lambda : " << new_body << "\n";
         }
         return RewriteResponse( REWRITE_AGAIN_FULL, new_body );
       }
@@ -106,7 +128,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     Assert( n.getKind()==kind::APPLY_UF );
     Node curr = n.getOperator();
     for( unsigned i=0; i<n.getNumChildren(); i++ ){
-      curr = NodeManager::currentNM()->mkNode( kind::HO_APPLY, curr, n[i] );     
+      curr = NodeManager::currentNM()->mkNode( kind::HO_APPLY, curr, n[i] );
     }
     return curr;
   }
@@ -119,7 +141,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     if( canUseAsApplyUfOperator( curr ) ){
       return NodeManager::currentNM()->mkNode( kind::APPLY_UF, children );
     }
-    // cannot construct APPLY_UF if operator is partially applied or is not standard       
+    // cannot construct APPLY_UF if operator is partially applied or is not standard
     return Node::null();
   }
   /**
@@ -131,7 +153,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     TNode curr = n;
     while( curr.getKind() == kind::HO_APPLY ){
       args.push_back( curr[1] );
-      curr = curr[0];        
+      curr = curr[0];
     }
     if( opInArgs ){
       args.push_back( curr );
@@ -140,7 +162,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     return curr;
   }
   /** returns true if this node can be used as an operator of an APPLY_UF node.  In higher-order logic,
-   * terms can have function types and not just variables. 
+   * terms can have function types and not just variables.
    * Currently, we want only free variables to be used as operators of APPLY_UF nodes. This is motivated by
    * E-matching, ite-lifting among other things.  For example:
    * f: Int -> Int, g : Int -> Int
