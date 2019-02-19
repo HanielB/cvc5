@@ -239,6 +239,24 @@ class NodeTemplate {
 
 public:
 
+  Node substituteCaptureAvoiding(Node node, Node replacement,
+                  std::unordered_map<Node, Node, NodeHashFunction>& cache) const;
+
+
+  template <class Iterator1, class Iterator2>
+  Node substituteCaptureAvoiding(Iterator1 nodesBegin, Iterator1 nodesEnd,
+                  Iterator2 replacementsBegin, Iterator2 replacementsEnd,
+                  std::unordered_map<Node, Node, NodeHashFunction>& cache) const;
+
+  /**
+   * Cache-aware, recursive version of substitute() used by the public
+   * member function with a similar signature.
+   */
+  template <class Iterator>
+  Node substituteCaptureAvoiding(Iterator substitutionsBegin, Iterator substitutionsEnd,
+                  std::unordered_map<Node, Node, NodeHashFunction>& cache) const;
+
+
   /**
    * Cache-aware, recursive version of substitute() used by the public
    * member function with a similar signature.
@@ -523,6 +541,18 @@ public:
    * (default: false)
    */
   TypeNode getType(bool check = false) const;
+
+  Node substituteCaptureAvoiding(Node node, Node replacement) const;
+
+  template <class Iterator1, class Iterator2>
+  Node substituteCaptureAvoiding(Iterator1 nodesBegin,
+                  Iterator1 nodesEnd,
+                  Iterator2 replacementsBegin,
+                  Iterator2 replacementsEnd) const;
+
+  template <class Iterator>
+  Node substituteCaptureAvoiding(Iterator substitutionsBegin,
+                  Iterator substitutionsEnd) const;
 
   /**
    * Substitution of Nodes.
@@ -1330,6 +1360,153 @@ TypeNode NodeTemplate<ref_count>::getType(bool check) const
 
   return NodeManager::currentNM()->getType(*this, check);
 }
+
+template <bool ref_count>
+inline Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
+    Node node, Node replacement) const
+{
+  if (node == *this)
+  {
+    return replacement;
+  }
+  std::vector<Node> source;
+  std::vector<Node> dest;
+  source.push_back(node);
+  dest.push_back(replacement);
+  std::unordered_map<Node, Node, NodeHashFunction> cache;
+  return substituteCaptureAvoiding(
+      source.begin(), source.end(), dest.begin(), dest.end(), cache);
+}
+
+template <bool ref_count>
+Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
+    Node node,
+    Node replacement,
+    std::unordered_map<Node, Node, NodeHashFunction>& cache) const
+{
+  std::vector<Node> source;
+  std::vector<Node> dest;
+  source.push_back(node);
+  dest.push_back(replacement);
+  return substituteCaptureAvoiding(
+      source.begin(), source.end(), dest.begin(), dest.end(), cache);
+}
+
+template <bool ref_count>
+template <class Iterator1, class Iterator2>
+inline Node NodeTemplate<ref_count>::substituteCaptureAvoiding(Iterator1 nodesBegin,
+                                                Iterator1 nodesEnd,
+                                                Iterator2 replacementsBegin,
+                                                Iterator2 replacementsEnd) const
+{
+  std::unordered_map<Node, Node, NodeHashFunction> cache;
+  return substituteCaptureAvoiding(
+      nodesBegin, nodesEnd, replacementsBegin, replacementsEnd, cache);
+}
+
+template <bool ref_count>
+template <class Iterator1, class Iterator2>
+Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
+    Iterator1 nodesBegin,
+    Iterator1 nodesEnd,
+    Iterator2 replacementsBegin,
+    Iterator2 replacementsEnd,
+    std::unordered_map<Node, Node, NodeHashFunction>& cache) const
+{
+  // in cache?
+  typename std::unordered_map<Node, Node, NodeHashFunction>::const_iterator
+      i = cache.find(*this);
+  if (i != cache.end())
+  {
+    return (*i).second;
+  }
+
+  // otherwise compute
+  Assert(std::distance(nodesBegin, nodesEnd)
+             == std::distance(replacementsBegin, replacementsEnd),
+         "Substitution iterator ranges must be equal size");
+  Iterator1 j = find(nodesBegin, nodesEnd, TNode(*this));
+  if (j != nodesEnd)
+  {
+    Iterator2 b = replacementsBegin;
+    std::advance(b, std::distance(nodesBegin, j));
+    Node n = *b;
+    cache[*this] = n;
+    return n;
+  }
+  else if (getNumChildren() == 0)
+  {
+    cache[*this] = *this;
+    return *this;
+  }
+  else
+  {
+    // if binder, rename variables to avoid capture
+    Kind k = getKind();
+    bool binder = false;
+
+    Iterator1 nodesBeginBkp;
+    Iterator1 nodesEndBkp;
+    Iterator2 replacementsBeginBkp;
+    Iterator2 replacementsEndBkp;
+
+    if (k == kind::FORALL || k == kind::EXISTS || k == kind::LAMBDA
+        || k == kind::CHOICE)
+    {
+      binder = true;
+
+      nodesBeginBkp = nodesBegin;
+      nodesEndBkp = nodesEnd;
+      replacementsBeginBkp = replacementsBegin;
+      replacementsEndBkp = replacementsEnd;
+
+      std::vector<Node> source;
+      std::vector<Node> dest;
+
+      NodeManager* nm = NodeManager::currentNM();
+      for (const Node& v : (*this)[0])
+      {
+        source.push_back(v);
+        Node newvar = nm->mkBoundVar(v.getType());
+        dest.push_back(newvar);
+      }
+      // have new vars -> renames subs in the beginning of current sub
+      source.insert(source.end(), nodesBegin, nodesEnd);
+      dest.insert(dest.end(), replacementsBegin, replacementsEnd);
+
+      nodesBegin = source.begin();
+      nodesEnd = source.end();
+      replacementsBegin = dest.begin();
+      replacementsEnd = dest.end();
+    }
+    NodeBuilder<> nb(getKind());
+    if (getMetaKind() == kind::metakind::PARAMETERIZED)
+    {
+      // push the operator
+      nb << getOperator().substituteCaptureAvoiding(
+          nodesBegin, nodesEnd, replacementsBegin, replacementsEnd, cache);
+    }
+    for (const_iterator i = begin(), iend = end(); i != iend; ++i)
+    {
+      nb << (*i).substituteCaptureAvoiding(
+          nodesBegin, nodesEnd, replacementsBegin, replacementsEnd, cache);
+    }
+    Node n = nb;
+    cache[*this] = n;
+
+    // remove renaming
+    if (binder)
+    {
+      nodesBegin = nodesBeginBkp;
+      nodesEnd = nodesEndBkp;
+      replacementsBegin = replacementsBeginBkp;
+      replacementsEnd = replacementsEndBkp;
+    }
+    return n;
+  }
+}
+
+
 
 template <bool ref_count>
 inline Node

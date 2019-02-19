@@ -22,6 +22,7 @@
 
 #include "theory/rewriter.h"
 #include "theory/substitutions.h"
+#include "options/uf_options.h"
 
 namespace CVC4 {
 namespace theory {
@@ -49,30 +50,60 @@ public:
         Trace("uf-ho-beta")
           << "uf-ho-beta : beta-reducing all args of : " << node << "\n";
         TNode lambda = node.getOperator();
-        std::vector<TNode> vars;
-        std::vector<TNode> subs;
-        for (const TNode& v : lambda[0])
+        // for now build separate subs
+        Node ret;
+        if (options::ufHo())
         {
-          vars.push_back(v);
-        }
-        for (const TNode& s : node)
-        {
-          subs.push_back(s);
-        }
-        if (Trace.isOn("uf-ho-beta"))
-        {
-          Trace("uf-ho-beta") << "uf-ho-beta: ..sub of " << subs.size()
-                              << " vars into " << subs.size() << " terms :\n";
-          for (unsigned i = 0, size = subs.size(); i < size; ++i)
+          std::vector<Node> vars;
+          std::vector<Node> subs;
+          for (const Node& v : lambda[0])
           {
-            Trace("uf-ho-beta")
-                << "uf-ho-beta: .... " << vars[i] << " |-> " << subs[i] << "\n";
+            vars.push_back(v);
+          }
+          for (const Node& s : node)
+          {
+            subs.push_back(s);
+          }
+          ret = lambda[1].substituteCaptureAvoiding(
+              vars.begin(), vars.end(), subs.begin(), subs.end());
+          if (Trace.isOn("uf-ho-beta"))
+          {
+            Trace("uf-ho-beta") << "uf-ho-beta: ..sub of " << subs.size()
+                                << " vars into " << subs.size() << " terms :\n";
+            for (unsigned i = 0, size = subs.size(); i < size; ++i)
+            {
+              Trace("uf-ho-beta") << "uf-ho-beta: .... " << vars[i] << " |-> "
+                                  << subs[i] << "\n";
+            }
+            Trace("uf-ho-beta") << "uf-ho-beta : ..result : " << ret << "\n";
           }
         }
-        Node ret = lambda[1].substitute(
-            vars.begin(), vars.end(), subs.begin(), subs.end());
-        Trace("uf-ho-beta")
-            << "uf-ho-beta : ..result : " << ret << "\n";
+        else
+        {
+          std::vector<TNode> vars;
+          std::vector<TNode> subs;
+          for (const TNode& v : lambda[0])
+          {
+            vars.push_back(v);
+          }
+          for (const TNode& s : node)
+          {
+            subs.push_back(s);
+          }
+          ret = lambda[1].substitute(
+              vars.begin(), vars.end(), subs.begin(), subs.end());
+          if (Trace.isOn("uf-ho-beta"))
+          {
+            Trace("uf-ho-beta") << "uf-ho-beta: ..sub of " << subs.size()
+                                << " vars into " << subs.size() << " terms :\n";
+            for (unsigned i = 0, size = subs.size(); i < size; ++i)
+            {
+              Trace("uf-ho-beta") << "uf-ho-beta: .... " << vars[i] << " |-> "
+                                  << subs[i] << "\n";
+            }
+            Trace("uf-ho-beta") << "uf-ho-beta : ..result : " << ret << "\n";
+          }
+        }
         return RewriteResponse(REWRITE_AGAIN_FULL, ret);
       }else if( !canUseAsApplyUfOperator( node.getOperator() ) ){
         return RewriteResponse(REWRITE_AGAIN_FULL, getHoApplyForApplyUf(node));
@@ -83,12 +114,22 @@ public:
         Trace("uf-ho-beta")
             << "uf-ho-beta : beta-reducing one argument of : " << node
             << " with " << node[1] << "\n";
-        TNode arg = Rewriter::rewrite( node[1] );
-        TNode var = node[0][0][0];
-        Node new_body = node[0][1].substitute( var, arg );
+        // for now build separate subs
+        Node new_body;
+        if (options::ufHo())
+        {
+          Node arg = Rewriter::rewrite(node[1]);
+          Node var = node[0][0][0];
+          new_body = node[0][1].substituteCaptureAvoiding(var, arg);
+        }
+        else
+        {
+          TNode arg = Rewriter::rewrite(node[1]);
+          TNode var = node[0][0][0];
+          new_body = node[0][1].substitute(var, arg);
+        }
         Trace("uf-ho-beta")
             << "uf-ho-beta : ..new body : " << new_body << "\n";
-
         if( node[0][0].getNumChildren()>1 ){
           std::vector< Node > new_vars;
           for( unsigned i=1; i<node[0][0].getNumChildren(); i++ ){
