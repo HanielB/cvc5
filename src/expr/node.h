@@ -1418,37 +1418,32 @@ Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
   {
     // if binder, rename variables to avoid capture
     Kind k = getKind();
+    bool binder = false;
 
-    // if (k == kind::FORALL || k == kind::EXISTS || k == kind::LAMBDA
-    //     || k == kind::CHOICE)
-    // {
-    //   std::vector<Node> vars;
-    //   std::vector<Node> renames;
+    if (k == kind::FORALL || k == kind::EXISTS || k == kind::LAMBDA
+        || k == kind::CHOICE)
+    {
+      binder = true;
+      std::vector<Node> vars;
+      std::vector<Node> renames;
 
-    //   NodeManager* nm = NodeManager::currentNM();
-    //   for (const Node& v : (*this)[0])
-    //   {
-    //     vars.push_back(v);
-    //     renames.push_back(nm->mkBoundVar(v.getType()));
-    //   }
-    //   // rename variables of this node, then proceed to apply current sub on it afterwards
-    //   // have new vars -> renames subs in the beginning of current sub
-    //   source.insert(source.end(), nodesBegin, nodesEnd);
-    //   dest.insert(dest.end(), replacementsBegin, replacementsEnd);
+      NodeManager* nm = NodeManager::currentNM();
+      for (const Node& v : (*this)[0])
+      {
+        vars.push_back(v);
+        renames.push_back(nm->mkBoundVar(v.getType()));
+      }
+      // have new vars -> renames subs in the beginning of current sub
+      source.insert(source.begin(), vars.begin(), vars.end());
+      dest.insert(dest.begin(), renames.begin(), renames.end());
 
-    //   nodesBegin = source.begin();
-    //   nodesEnd = source.end();
-    //   replacementsBegin = dest.begin();
-    //   replacementsEnd = dest.end();
-
-    //   Debug("sub-capavoid") << "Substitution after:\n";
-    //   Iterator1 i1 = nodesBegin, iend1 = nodesEnd;
-    //   Iterator2 j2 = replacementsBegin;
-    //   for (; i1 != iend1; ++i1, ++j2)
-    //   {
-    //     Debug("sub-capavoid") << ".. " << (*i1) << " --> " << (*j2) << "\n";
-    //   }
-    // }
+      Debug("sub-capavoid") << "Substitution after:\n";
+      for (unsigned i = 0, size = source.size(); i < size; ++i)
+      {
+        Debug("sub-capavoid")
+            << ".. " << source[i] << " --> " << dest[i] << "\n";
+      }
+    }
     NodeBuilder<> nb(getKind());
     if (getMetaKind() == kind::metakind::PARAMETERIZED)
     {
@@ -1463,22 +1458,22 @@ Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
     cache[*this] = n;
 
     // remove renaming
-    // if (binder)
-    // {
-    //   nodesBegin = nodesBeginBkp;
-    //   nodesEnd = nodesEndBkp;
-    //   replacementsBegin = replacementsBeginBkp;
-    //   replacementsEnd = replacementsEndBkp;
+    if (binder)
+    {
+      // remove beginning of sub which correspond to renaming of variables in
+      // this binder
+      unsigned nchildren = (*this)[0].getNumChildren();
+      source.erase(source.begin(), source.begin() + nchildren);
+      dest.erase(dest.begin(), dest.begin() + nchildren);
 
-    //   Debug("sub-capavoid") << "Recoving sub after going out of " << (*this) << " with result " << n << ":\n";
-    //   Iterator1 i = nodesBegin, iend = nodesEnd;
-    //   Iterator2 j = replacementsBegin;
-
-    //   for (; i != iend; ++i, ++j)
-    //   {
-    //     Debug("sub-capavoid") << ".. " << (*i) << " --> " << (*j) << "\n";
-    //   }
-    // }
+      Debug("sub-capavoid") << "Recovering sub after going out of " << (*this)
+                            << " with result " << n << ":\n";
+      for (unsigned i = 0, size = source.size(); i < size; ++i)
+      {
+        Debug("sub-capavoid")
+            << ".. " << source[i] << " --> " << dest[i] << "\n";
+      }
+    }
     return n;
   }
 }
