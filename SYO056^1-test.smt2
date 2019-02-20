@@ -36,19 +36,44 @@
 
 ;;;; up to here: unsat
 
-; (assert (not (forall ((R (-> $$unsorted $$unsorted Bool)))
-;                (mvalid
-;                  (mforall_prop
-;                    (lambda ((A (-> $$unsorted Bool)) (W $$unsorted))
-;                      (mforall_prop
-;                        (lambda ((B (-> $$unsorted Bool)) (W $$unsorted))
-;                          (or (not (forall ((V $$unsorted)) (or (not (R W V)) (or (A V) (B V))) ))
-;                              (or
-;                                (forall ((V $$unsorted)) (or (not (R W V)) (A V)) )
-;                                (forall ((V $$unsorted)) (or (not (R W V)) (B V)) ))
-;                              )
-;                          )
-;                        W)))) )))
+(assert (not (forall ((R (-> $$unsorted $$unsorted Bool)))
+               (mvalid
+                 (mforall_prop
+                   (lambda ((A (-> $$unsorted Bool)) (W $$unsorted))
+                     (mforall_prop
+                       (lambda ((B (-> $$unsorted Bool)) (W $$unsorted))
+                         (or (not (forall ((V $$unsorted)) (or (not (R W V)) (or (A V) (B V))) ))
+                             (or
+                               (forall ((V $$unsorted)) (or (not (R W V)) (A V)) )
+                               (forall ((V $$unsorted)) (or (not (R W V)) (B V)) ))
+                             )
+                         )
+                       W)))
+
+                 ) )))
+
+; wrong sub:
+
+; (
+;   (lambda ((A (-> $$unsorted Bool)) (W $$unsorted))
+;     (or
+;       (forall ((V $$unsorted)) (or (not (R W V)) (A V)) )
+;       (forall ((P (-> $$unsorted Bool)) (BOUND_VARIABLE_468 $$unsorted))
+;         (or
+;           (not (forall ((V $$unsorted)) (or (not (R W V)) (A V) (P V)) ))
+;           (not (R W BOUND_VARIABLE_468)) (P BOUND_VARIABLE_468)) )))
+;   P W)
+
+; into
+
+; (or
+;   (forall ((V $$unsorted)) (or (not (R W V)) (P V)) )
+;   (forall ((P (-> $$unsorted Bool)) (BOUND_VARIABLE_468 $$unsorted))
+;     (or
+;       (not (forall ((V $$unsorted)) (or (not (R W V)) (P V) (P V)) ))
+;       (not (R W BOUND_VARIABLE_468)) (P BOUND_VARIABLE_468)) ))
+
+
 
 ; (assert (not (forall ((R (-> $$unsorted $$unsorted Bool)))
 ;                (mvalid
