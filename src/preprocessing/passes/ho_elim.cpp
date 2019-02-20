@@ -19,6 +19,7 @@
 #include "options/quantifiers_options.h"
 #include "theory/uf/theory_uf_rewriter.h"
 #include "expr/node_algorithm.h"
+#include "theory/rewriter.h"
 
 using namespace CVC4::kind;
 
@@ -29,6 +30,108 @@ namespace passes {
 HoElim::HoElim(PreprocessingPassContext* preprocContext)
     : PreprocessingPass(preprocContext, "ho-elim"){};
 
+Node HoElim::eliminateLambdaComplete(Node n, std::map< Node, Node >& newLambda)
+{
+  NodeManager * nm = NodeManager::currentNM();
+  std::unordered_map<TNode, Node, TNodeHashFunction>::iterator it;
+  std::vector<TNode> visit;
+  TNode cur;
+  visit.push_back(n);
+  do {
+    cur = visit.back();
+    visit.pop_back();
+    it = d_visited.find(cur);
+
+    if (it == d_visited.end()) {
+      if( cur.getKind()==LAMBDA )
+      {
+        Trace("ho-elim-ll") << "Lambda lift: " << cur << std::endl;
+        // must also get free variables in lambda
+        std::vector< Node > lvars;
+        std::vector< TypeNode > ftypes;
+        std::unordered_set<Node, NodeHashFunction> fvs;
+        expr::getFreeVariables(cur,fvs);
+        std::vector< Node > nvars;
+        Node sbd = cur[1];
+        if( !fvs.empty() )
+        {
+          Trace("ho-elim-ll") << "Has " << fvs.size() << " free variables" << std::endl;
+          std::vector< Node > vars;
+          for( const Node& v : fvs )
+          {
+            TypeNode vt = v.getType();
+            ftypes.push_back(vt);
+            Node vs = nm->mkBoundVar(vt);
+            vars.push_back(v);
+            nvars.push_back(vs);
+            lvars.push_back(vs);
+          }
+          sbd = sbd.substitute(vars.begin(),vars.end(),nvars.begin(),nvars.end());
+        }
+        for( const Node& bv : cur[0] )
+        {
+          TypeNode bvt = bv.getType();
+          ftypes.push_back(bvt);
+          lvars.push_back(bv);
+        }
+        Node nlambda = cur;
+        if( !fvs.empty() )
+        {
+          nlambda = nm->mkNode(LAMBDA,nm->mkNode(BOUND_VAR_LIST,lvars),sbd);
+          Trace("ho-elim-ll") << "...new lambda definition: " << nlambda << std::endl;
+        }
+        TypeNode rangeType = cur.getType().getRangeType();
+        TypeNode nft = nm->mkFunctionType(ftypes,rangeType);
+        Node nf = nm->mkSkolem("ll",nft);
+        Trace("ho-elim-ll") << "...introduce: " << nf << " of type " << nft << std::endl;
+        newLambda[nf] = nlambda;
+        AlwaysAssert( nf.getType()==nlambda.getType() );
+        if( !nvars.empty() )
+        {
+          nvars.insert(nvars.begin(),nf);
+          for( const Node& nv : nvars )
+          {
+            nf = nm->mkNode( HO_APPLY, nf, nv );
+          }
+          Trace("ho-elim-ll") << "...partial application: " << nf << std::endl;
+        }
+        d_visited[cur] = nf;
+        Trace("ho-elim-ll") << "...return types : " << nf.getType() << " " << cur.getType() << std::endl;
+        AlwaysAssert( nf.getType()==cur.getType() );
+      }
+      else
+      {
+        d_visited[cur] = Node::null();
+        visit.push_back(cur);
+        for (const Node& cn : cur) {
+          visit.push_back(cn);
+        }
+      }
+    } else if (it->second.isNull()) {
+      Node ret = cur;
+      bool childChanged = false;
+      std::vector<Node> children;
+      if (cur.getMetaKind() == kind::metakind::PARAMETERIZED) {
+        children.push_back(cur.getOperator());
+      }
+      for (const Node& cn : cur) {
+        it = d_visited.find(cn);
+        Assert(it != d_visited.end());
+        Assert(!it->second.isNull());
+        childChanged = childChanged || cn != it->second;
+        children.push_back(it->second);
+      }
+      if (childChanged) {
+        ret = nm->mkNode(cur.getKind(), children);
+      }
+      d_visited[cur] = ret;
+    }
+  } while (!visit.empty());
+  Assert(d_visited.find(n) != d_visited.end());
+  Assert(!d_visited.find(n)->second.isNull());
+  return d_visited[n];
+}
+  
 Node HoElim::eliminateHo(Node n)
 {
   Trace("ho-elim-assert") << "Ho-elim assertion: " << n << std::endl;
@@ -49,70 +152,59 @@ Node HoElim::eliminateHo(Node n)
     if (it == d_visited.end())
     {
       TypeNode tn = cur.getType();
-      if( cur.getKind()==LAMBDA ){
-        // must do lambda-lifting, remember this
-        Node llf = nm->mkSkolem("llf",tn);
-        d_lambda_to_process[cur] = llf;
-        preReplace[cur] = llf;
-        visit.push_back(cur);
-        d_visited[cur] = Node::null();
-        visit.push_back(llf);
+      AlwaysAssert( cur.getKind()!=LAMBDA );
+      if( tn.isFunction() )
+      {
+        d_funTypes.insert(tn);
+      }
+      if (cur.isVar())
+      {
+        Node ret = cur;
+        if( options::hoElim() )
+        {
+          if (tn.isFunction())
+          {
+            TypeNode ut = getUSort(tn);
+            if( cur.getKind()==BOUND_VARIABLE ){
+              ret = nm->mkBoundVar(ut);
+            }else{
+              ret = nm->mkSkolem("k", ut);
+            }
+            // must get the ho apply to ensure extensionality is applied
+            Node hoa = getHoApplyUf(tn);
+            Trace("ho-elim-visit") << "Hoa is " << hoa << std::endl;
+          }
+        }
+        d_visited[cur] = ret;
       }
       else
       {
-        if( tn.isFunction() )
+        d_visited[cur] = Node::null();
+        if (cur.getKind() == APPLY_UF && options::hoElim())
         {
-          d_funTypes.insert(tn);
+          Node op = cur.getOperator();
+          // convert apply uf with variable arguments eagerly to ho apply
+          // chains, so they are processed uniformly. if we are not using
+          // hoElimPartial, we uniformly eliminate all
+          if (op.getKind() == BOUND_VARIABLE
+              || !options::hoElimPartial())
+          {
+            visit.push_back(cur);
+            Node newCur =
+                theory::uf::TheoryUfRewriter::getHoApplyForApplyUf(cur);
+            preReplace[cur] = newCur;
+            cur = newCur;
+            d_visited[cur] = Node::null();
+          }
+          else
+          {
+            d_foFun.insert(op);
+          }
         }
-        if (cur.isVar())
+        visit.push_back(cur);
+        for (const Node& cn : cur)
         {
-          Node ret = cur;
-          if( options::hoElim() )
-          {
-            if (tn.isFunction())
-            {
-              TypeNode ut = getUSort(tn);
-              if( cur.getKind()==BOUND_VARIABLE ){
-                ret = nm->mkBoundVar(ut);
-              }else{
-                ret = nm->mkSkolem("k", ut);
-              }
-              // must get the ho apply to ensure extensionality is applied
-              Node hoa = getHoApplyUf(tn);
-              Trace("ho-elim-visit") << "Hoa is " << hoa << std::endl;
-            }
-          }
-          d_visited[cur] = ret;
-        }
-        else
-        {
-          d_visited[cur] = Node::null();
-          if (cur.getKind() == APPLY_UF && options::hoElim())
-          {
-            Node op = cur.getOperator();
-            // convert apply uf with variable arguments eagerly to ho apply
-            // chains, so they are processed uniformly. if we are not using
-            // hoElimPartial, we uniformly eliminate all
-            if (op.getKind() == BOUND_VARIABLE
-                || !options::hoElimPartial())
-            {
-              visit.push_back(cur);
-              Node newCur =
-                  theory::uf::TheoryUfRewriter::getHoApplyForApplyUf(cur);
-              preReplace[cur] = newCur;
-              cur = newCur;
-              d_visited[cur] = Node::null();
-            }
-            else
-            {
-              d_foFun.insert(op);
-            }
-          }
-          visit.push_back(cur);
-          for (const Node& cn : cur)
-          {
-            visit.push_back(cn);
-          }
+          visit.push_back(cn);
         }
       }
     }
@@ -200,6 +292,60 @@ Node HoElim::eliminateHo(Node n)
 PreprocessingPassResult HoElim::applyInternal(
     AssertionPipeline* assertionsToPreprocess)
 {
+  // first apply lambda lifting
+  NodeManager* nm = NodeManager::currentNM();
+  std::vector<Node> axioms;
+  std::map< Node, Node > newLambda;
+  for (unsigned i = 0, size = assertionsToPreprocess->size(); i < size; ++i)
+  {
+    Node prev = (*assertionsToPreprocess)[i];
+    Node res = eliminateLambdaComplete(prev, newLambda);
+    if (res != prev)
+    {
+      assertionsToPreprocess->replace(i, res);
+    }
+  }
+  while( !newLambda.empty() )
+  {
+    std::map< Node, Node > lproc = newLambda;
+    newLambda.clear();
+    // process lambdas
+    for( const std::pair< Node, Node >& l : lproc )
+    {
+      Node lambda = l.second;
+      std::vector< Node > vars;
+      std::vector< Node > nvars;
+      for( const Node& v : lambda[0] ){
+        Node bv = nm->mkBoundVar(v.getType());
+        vars.push_back(v);
+        nvars.push_back(bv);
+      }
+      
+      // must also get free variables in lambda
+      Node bd = lambda[1].substitute(vars.begin(),vars.end(),nvars.begin(),nvars.end());
+      
+      nvars.insert(nvars.begin(),l.first);
+      Node curr = nm->mkNode( APPLY_UF, nvars );
+      
+      Node bvl = nm->mkNode(BOUND_VAR_LIST,nvars);
+      Node llfax = nm->mkNode(FORALL,bvl,curr.eqNode(bd));
+      Trace("ho-elim-ax") << "Lambda lifting axiom (pre-elim) " << llfax << " for " << lambda << std::endl;
+      Node llfaxe = eliminateLambdaComplete(llfax, newLambda);
+      Trace("ho-elim-ax") << "Lambda lifting axiom " << llfaxe << " for " << lambda << std::endl;
+      axioms.push_back(llfaxe);
+    }
+  }
+  
+  d_visited.clear();  
+  if (!axioms.empty())
+  {
+    Node orig = (*assertionsToPreprocess)[0];
+    axioms.push_back(orig);
+    Node conj = nm->mkNode(AND, axioms);
+    assertionsToPreprocess->replace(0, conj);
+  }
+  axioms.clear();
+  
   for (unsigned i = 0, size = assertionsToPreprocess->size(); i < size; ++i)
   {
     Node prev = (*assertionsToPreprocess)[i];
@@ -207,46 +353,6 @@ PreprocessingPassResult HoElim::applyInternal(
     if (res != prev)
     {
       assertionsToPreprocess->replace(i, res);
-    }
-  }
-  NodeManager* nm = NodeManager::currentNM();
-  std::vector<Node> axioms;
-  while( !d_lambda_to_process.empty() )
-  {
-    std::map< Node, Node > lproc = d_lambda_to_process;
-    d_lambda_to_process.clear();
-    // process lambdas
-    for( const std::pair< Node, Node >& l : lproc )
-    {
-      Node lambda = l.first;
-      Node curr = l.second;
-      std::vector< Node > vars;
-      std::vector< Node > nvars;
-      for( const Node& v : lambda[0] ){
-        Node bv = nm->mkBoundVar(v.getType());
-        curr = nm->mkNode( HO_APPLY, curr, bv );
-        vars.push_back(v);
-        nvars.push_back(bv);
-      }
-      
-      // must also get free variables in lambda
-      std::unordered_set<Node, NodeHashFunction> fvs;
-      expr::getFreeVariables(lambda,fvs);
-      for( const Node& v : fvs )
-      {
-        Trace("ho-elim-ax") << "Free var : " << v << std::endl;
-        Node vs = nm->mkBoundVar(v.getType());
-        Trace("ho-elim-ax") << "Map to : " << vs << std::endl;
-        vars.push_back(v);
-        nvars.push_back(vs);
-      }
-      Node bd = lambda[1].substitute(vars.begin(),vars.end(),nvars.begin(),nvars.end());
-      
-      Node bvl = nm->mkNode(BOUND_VAR_LIST,nvars);
-      Node llfax = nm->mkNode(FORALL,bvl,curr.eqNode(bd));
-      Node llfaxe = eliminateHo(llfax);
-      Trace("ho-elim-ax") << "Lambda lifting axiom " << llfaxe << " for " << lambda << ", #free vars " << fvs.size() << std::endl;
-      axioms.push_back(llfaxe);
     }
   }
   // for all functions that are in both higher order and first-order

@@ -34,6 +34,9 @@ class HoElim : public PreprocessingPass
  protected:
   PreprocessingPassResult applyInternal(
       AssertionPipeline* assertionsToPreprocess) override;
+  /** do complete lambda lifting */
+  Node eliminateLambdaComplete(Node n, std::map< Node, Node >& newLambda);
+  
   /** eliminate all higher-order constraints in n, return the result */
   Node eliminateHo(Node n);
   /** map to ho_apply for each sort */
@@ -53,9 +56,6 @@ class HoElim : public PreprocessingPass
   Node getHoApplyUf(TypeNode tn, TypeNode tna, TypeNode tnr);
   /** get uninterpreted sort for function sort */
   TypeNode getUSort(TypeNode tn);
-  
-  /** lambdas to process */
-  std::map< Node, Node > d_lambda_to_process;
 };
 
 }  // namespace passes
