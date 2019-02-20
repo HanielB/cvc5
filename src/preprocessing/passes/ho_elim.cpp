@@ -88,7 +88,6 @@ Node HoElim::eliminateLambdaComplete(Node n, std::map< Node, Node >& newLambda)
         AlwaysAssert( nf.getType()==nlambda.getType() );
         if( !nvars.empty() )
         {
-          nvars.insert(nvars.begin(),nf);
           for( const Node& nv : nvars )
           {
             nf = nm->mkNode( HO_APPLY, nf, nv );
