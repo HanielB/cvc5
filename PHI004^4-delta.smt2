@@ -3,11 +3,10 @@
 (declare-sort $$unsorted 0)
 (declare-sort qML_mu 0)
 (declare-sort qML_i 0)
-
 (declare-fun scott_G (qML_mu qML_i) Bool)
-
 (declare-fun scott_P ((-> qML_mu qML_i Bool) qML_i) Bool)
 
+; (assert (= scott_G (lambda ((X qML_mu) (__flatten_var_0 qML_i)) ((lambda ((W qML_i)) (forall ((Y (-> qML_mu qML_i Bool))) (Y X W) )) __flatten_var_0))))
 
 (assert
   (=
@@ -31,6 +30,8 @@
             (BOUND_VARIABLE_292 X __flatten_var_0)) ))
       X_1
       )
-  ))
+    ))
+
+
 
 (check-sat)
