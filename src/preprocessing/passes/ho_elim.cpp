@@ -18,6 +18,7 @@
 
 #include "options/quantifiers_options.h"
 #include "theory/uf/theory_uf_rewriter.h"
+#include "expr/node_algorithm.h"
 
 using namespace CVC4::kind;
 
@@ -227,11 +228,24 @@ PreprocessingPassResult HoElim::applyInternal(
         vars.push_back(v);
         nvars.push_back(bv);
       }
-      Node bvl = nm->mkNode(BOUND_VAR_LIST,nvars);
+      
+      // must also get free variables in lambda
+      std::unordered_set<Node, NodeHashFunction> fvs;
+      expr::getFreeVariables(lambda,fvs);
+      for( const Node& v : fvs )
+      {
+        Trace("ho-elim-ax") << "Free var : " << v << std::endl;
+        Node vs = nm->mkBoundVar(v.getType());
+        Trace("ho-elim-ax") << "Map to : " << vs << std::endl;
+        vars.push_back(v);
+        nvars.push_back(vs);
+      }
       Node bd = lambda[1].substitute(vars.begin(),vars.end(),nvars.begin(),nvars.end());
+      
+      Node bvl = nm->mkNode(BOUND_VAR_LIST,nvars);
       Node llfax = nm->mkNode(FORALL,bvl,curr.eqNode(bd));
       Node llfaxe = eliminateHo(llfax);
-      Trace("ho-elim-ax") << "Lambda lifting axiom " << llfaxe << " for " << lambda << std::endl;
+      Trace("ho-elim-ax") << "Lambda lifting axiom " << llfaxe << " for " << lambda << ", #free vars " << fvs.size() << std::endl;
       axioms.push_back(llfaxe);
     }
   }
