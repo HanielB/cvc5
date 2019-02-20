@@ -242,20 +242,10 @@ public:
   Node substituteCaptureAvoiding(Node node, Node replacement,
                   std::unordered_map<Node, Node, NodeHashFunction>& cache) const;
 
-
-  template <class Iterator1, class Iterator2>
-  Node substituteCaptureAvoiding(Iterator1 nodesBegin, Iterator1 nodesEnd,
-                  Iterator2 replacementsBegin, Iterator2 replacementsEnd,
-                  std::unordered_map<Node, Node, NodeHashFunction>& cache) const;
-
-  /**
-   * Cache-aware, recursive version of substitute() used by the public
-   * member function with a similar signature.
-   */
-  template <class Iterator>
-  Node substituteCaptureAvoiding(Iterator substitutionsBegin, Iterator substitutionsEnd,
-                  std::unordered_map<Node, Node, NodeHashFunction>& cache) const;
-
+  Node substituteCaptureAvoiding(
+      std::vector<Node> source,
+      std::vector<Node> dest,
+      std::unordered_map<Node, Node, NodeHashFunction>& cache) const;
 
   /**
    * Cache-aware, recursive version of substitute() used by the public
@@ -477,7 +467,7 @@ public:
     assertTNodeNotExpired();
     return getMetaKind() == kind::metakind::VARIABLE;
   }
-  
+
   /**
    * Returns true if this node represents a nullary operator
    */
@@ -485,7 +475,7 @@ public:
     assertTNodeNotExpired();
     return getMetaKind() == kind::metakind::NULLARY_OPERATOR;
   }
-  
+
   inline bool isClosure() const {
     assertTNodeNotExpired();
     return getKind() == kind::LAMBDA ||
@@ -544,15 +534,8 @@ public:
 
   Node substituteCaptureAvoiding(Node node, Node replacement) const;
 
-  template <class Iterator1, class Iterator2>
-  Node substituteCaptureAvoiding(Iterator1 nodesBegin,
-                  Iterator1 nodesEnd,
-                  Iterator2 replacementsBegin,
-                  Iterator2 replacementsEnd) const;
-
-  template <class Iterator>
-  Node substituteCaptureAvoiding(Iterator substitutionsBegin,
-                  Iterator substitutionsEnd) const;
+  Node substituteCaptureAvoiding(std::vector<Node> source,
+                                 std::vector<Node> dest) const;
 
   /**
    * Substitution of Nodes.
@@ -1374,8 +1357,7 @@ inline Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
   source.push_back(node);
   dest.push_back(replacement);
   std::unordered_map<Node, Node, NodeHashFunction> cache;
-  return substituteCaptureAvoiding(
-      source.begin(), source.end(), dest.begin(), dest.end(), cache);
+  return substituteCaptureAvoiding(source, dest, cache);
 }
 
 template <bool ref_count>
@@ -1388,29 +1370,21 @@ Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
   std::vector<Node> dest;
   source.push_back(node);
   dest.push_back(replacement);
-  return substituteCaptureAvoiding(
-      source.begin(), source.end(), dest.begin(), dest.end(), cache);
+  return substituteCaptureAvoiding(source, dest, cache);
 }
 
 template <bool ref_count>
-template <class Iterator1, class Iterator2>
-inline Node NodeTemplate<ref_count>::substituteCaptureAvoiding(Iterator1 nodesBegin,
-                                                Iterator1 nodesEnd,
-                                                Iterator2 replacementsBegin,
-                                                Iterator2 replacementsEnd) const
+inline Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
+    std::vector<Node> source, std::vector<Node> dest) const
 {
   std::unordered_map<Node, Node, NodeHashFunction> cache;
-  return substituteCaptureAvoiding(
-      nodesBegin, nodesEnd, replacementsBegin, replacementsEnd, cache);
+  return substituteCaptureAvoiding(source, dest, cache);
 }
 
 template <bool ref_count>
-template <class Iterator1, class Iterator2>
 Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
-    Iterator1 nodesBegin,
-    Iterator1 nodesEnd,
-    Iterator2 replacementsBegin,
-    Iterator2 replacementsEnd,
+    std::vector<Node> source,
+    std::vector<Node> dest,
     std::unordered_map<Node, Node, NodeHashFunction>& cache) const
 {
   // in cache?
@@ -1422,15 +1396,16 @@ Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
   }
 
   // otherwise compute
-  Assert(std::distance(nodesBegin, nodesEnd)
-             == std::distance(replacementsBegin, replacementsEnd),
-         "Substitution iterator ranges must be equal size");
-  Iterator1 j = find(nodesBegin, nodesEnd, TNode(*this));
-  if (j != nodesEnd)
+  Assert(source.size() == dest.size(),
+         "Substitution domain and range must be equal size");
+
+  auto it = std::find(source.begin(), source.end(), (*this));
+  if (it != source.end())
   {
-    Iterator2 b = replacementsBegin;
-    std::advance(b, std::distance(nodesBegin, j));
-    Node n = *b;
+    // Debug("sub-capavoid") << ".. found " << (*this) << " in pos " << (*j2) << "\n";
+    Assert(std::distance(source.begin(), it) >= 0
+           && std::distance(source.begin(), it) < dest.size());
+    Node n = dest[std::distance(source.begin(), it)];
     cache[*this] = n;
     return n;
   }
@@ -1443,65 +1418,67 @@ Node NodeTemplate<ref_count>::substituteCaptureAvoiding(
   {
     // if binder, rename variables to avoid capture
     Kind k = getKind();
-    bool binder = false;
 
-    Iterator1 nodesBeginBkp;
-    Iterator1 nodesEndBkp;
-    Iterator2 replacementsBeginBkp;
-    Iterator2 replacementsEndBkp;
+    // if (k == kind::FORALL || k == kind::EXISTS || k == kind::LAMBDA
+    //     || k == kind::CHOICE)
+    // {
+    //   std::vector<Node> vars;
+    //   std::vector<Node> renames;
 
-    if (k == kind::FORALL || k == kind::EXISTS || k == kind::LAMBDA
-        || k == kind::CHOICE)
-    {
-      binder = true;
+    //   NodeManager* nm = NodeManager::currentNM();
+    //   for (const Node& v : (*this)[0])
+    //   {
+    //     vars.push_back(v);
+    //     renames.push_back(nm->mkBoundVar(v.getType()));
+    //   }
+    //   // rename variables of this node, then proceed to apply current sub on it afterwards
+    //   // have new vars -> renames subs in the beginning of current sub
+    //   source.insert(source.end(), nodesBegin, nodesEnd);
+    //   dest.insert(dest.end(), replacementsBegin, replacementsEnd);
 
-      nodesBeginBkp = nodesBegin;
-      nodesEndBkp = nodesEnd;
-      replacementsBeginBkp = replacementsBegin;
-      replacementsEndBkp = replacementsEnd;
+    //   nodesBegin = source.begin();
+    //   nodesEnd = source.end();
+    //   replacementsBegin = dest.begin();
+    //   replacementsEnd = dest.end();
 
-      std::vector<Node> source;
-      std::vector<Node> dest;
-
-      NodeManager* nm = NodeManager::currentNM();
-      for (const Node& v : (*this)[0])
-      {
-        source.push_back(v);
-        Node newvar = nm->mkBoundVar(v.getType());
-        dest.push_back(newvar);
-      }
-      // have new vars -> renames subs in the beginning of current sub
-      source.insert(source.end(), nodesBegin, nodesEnd);
-      dest.insert(dest.end(), replacementsBegin, replacementsEnd);
-
-      nodesBegin = source.begin();
-      nodesEnd = source.end();
-      replacementsBegin = dest.begin();
-      replacementsEnd = dest.end();
-    }
+    //   Debug("sub-capavoid") << "Substitution after:\n";
+    //   Iterator1 i1 = nodesBegin, iend1 = nodesEnd;
+    //   Iterator2 j2 = replacementsBegin;
+    //   for (; i1 != iend1; ++i1, ++j2)
+    //   {
+    //     Debug("sub-capavoid") << ".. " << (*i1) << " --> " << (*j2) << "\n";
+    //   }
+    // }
     NodeBuilder<> nb(getKind());
     if (getMetaKind() == kind::metakind::PARAMETERIZED)
     {
       // push the operator
-      nb << getOperator().substituteCaptureAvoiding(
-          nodesBegin, nodesEnd, replacementsBegin, replacementsEnd, cache);
+      nb << getOperator().substituteCaptureAvoiding(source, dest, cache);
     }
     for (const_iterator i = begin(), iend = end(); i != iend; ++i)
     {
-      nb << (*i).substituteCaptureAvoiding(
-          nodesBegin, nodesEnd, replacementsBegin, replacementsEnd, cache);
+      nb << (*i).substituteCaptureAvoiding(source, dest, cache);
     }
     Node n = nb;
     cache[*this] = n;
 
     // remove renaming
-    if (binder)
-    {
-      nodesBegin = nodesBeginBkp;
-      nodesEnd = nodesEndBkp;
-      replacementsBegin = replacementsBeginBkp;
-      replacementsEnd = replacementsEndBkp;
-    }
+    // if (binder)
+    // {
+    //   nodesBegin = nodesBeginBkp;
+    //   nodesEnd = nodesEndBkp;
+    //   replacementsBegin = replacementsBeginBkp;
+    //   replacementsEnd = replacementsEndBkp;
+
+    //   Debug("sub-capavoid") << "Recoving sub after going out of " << (*this) << " with result " << n << ":\n";
+    //   Iterator1 i = nodesBegin, iend = nodesEnd;
+    //   Iterator2 j = replacementsBegin;
+
+    //   for (; i != iend; ++i, ++j)
+    //   {
+    //     Debug("sub-capavoid") << ".. " << (*i) << " --> " << (*j) << "\n";
+    //   }
+    // }
     return n;
   }
 }

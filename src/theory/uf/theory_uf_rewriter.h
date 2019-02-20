@@ -64,8 +64,6 @@ public:
           {
             subs.push_back(s);
           }
-          ret = lambda[1].substituteCaptureAvoiding(
-              vars.begin(), vars.end(), subs.begin(), subs.end());
           if (Trace.isOn("uf-ho-beta"))
           {
             Trace("uf-ho-beta") << "uf-ho-beta: ..sub of " << subs.size()
@@ -75,8 +73,10 @@ public:
               Trace("uf-ho-beta") << "uf-ho-beta: .... " << vars[i] << " |-> "
                                   << subs[i] << "\n";
             }
-            Trace("uf-ho-beta") << "uf-ho-beta : ..result : " << ret << "\n";
+
           }
+          ret = lambda[1].substituteCaptureAvoiding(vars, subs);
+          Trace("uf-ho-beta") << "uf-ho-beta : ..result : " << ret << "\n";
         }
         else
         {
@@ -90,8 +90,6 @@ public:
           {
             subs.push_back(s);
           }
-          ret = lambda[1].substitute(
-              vars.begin(), vars.end(), subs.begin(), subs.end());
           if (Trace.isOn("uf-ho-beta"))
           {
             Trace("uf-ho-beta") << "uf-ho-beta: ..sub of " << subs.size()
@@ -101,8 +99,10 @@ public:
               Trace("uf-ho-beta") << "uf-ho-beta: .... " << vars[i] << " |-> "
                                   << subs[i] << "\n";
             }
-            Trace("uf-ho-beta") << "uf-ho-beta : ..result : " << ret << "\n";
           }
+          ret = lambda[1].substitute(
+              vars.begin(), vars.end(), subs.begin(), subs.end());
+          Trace("uf-ho-beta") << "uf-ho-beta : ..result : " << ret << "\n";
         }
         return RewriteResponse(REWRITE_AGAIN_FULL, ret);
       }else if( !canUseAsApplyUfOperator( node.getOperator() ) ){
@@ -112,7 +112,7 @@ public:
       if( node[0].getKind() == kind::LAMBDA ){
         // resolve one argument of the lambda
         Trace("uf-ho-beta")
-            << "uf-ho-beta : beta-reducing one argument of : " << node
+            << "uf-ho-beta : beta-reducing one argument of : " << node[0]
             << " with " << node[1] << "\n";
         // for now build separate subs
         Node new_body;
