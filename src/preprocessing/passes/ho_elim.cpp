@@ -52,11 +52,11 @@ Node HoElim::eliminateLambdaComplete(Node n, std::map< Node, Node >& newLambda)
         std::unordered_set<Node, NodeHashFunction> fvs;
         expr::getFreeVariables(cur,fvs);
         std::vector< Node > nvars;
+        std::vector< Node > vars;
         Node sbd = cur[1];
         if( !fvs.empty() )
         {
           Trace("ho-elim-ll") << "Has " << fvs.size() << " free variables" << std::endl;
-          std::vector< Node > vars;
           for( const Node& v : fvs )
           {
             TypeNode vt = v.getType();
@@ -86,11 +86,11 @@ Node HoElim::eliminateLambdaComplete(Node n, std::map< Node, Node >& newLambda)
         Trace("ho-elim-ll") << "...introduce: " << nf << " of type " << nft << std::endl;
         newLambda[nf] = nlambda;
         //AlwaysAssert( nf.getType()==nlambda.getType() );
-        if( !nvars.empty() )
+        if( !vars.empty() )
         {
-          for( const Node& nv : nvars )
+          for( const Node& v : vars )
           {
-            nf = nm->mkNode( HO_APPLY, nf, nv );
+            nf = nm->mkNode( HO_APPLY, nf, v );
           }
           Trace("ho-elim-ll") << "...partial application: " << nf << std::endl;
         }
@@ -301,7 +301,6 @@ PreprocessingPassResult HoElim::applyInternal(
     Node res = eliminateLambdaComplete(prev, newLambda);
     if (res != prev)
     {
-      Trace("ho-elim-assertions") << "Return : " << res << std::endl;
       res = theory::Rewriter::rewrite(res);
       //AlwaysAssert( !expr::hasFreeVar(res) );
       assertionsToPreprocess->replace(i, res);
