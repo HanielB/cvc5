@@ -218,9 +218,9 @@ Node TheoryUF::getApplyUfForHoApply( Node node ) {
         {
           new_f = nm->mkNode( kind::HO_APPLY, new_f, v );
         }
+        Assert( new_f.getType()==f.getType() );
         Node eq = new_f.eqNode(f);
         Node seq = eq.substitute(vs.begin(),vs.end(),nvs.begin(),nvs.end());
-        Assert( new_f.getType()==sf.getType() );
         lem = nm->mkNode(kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST,nvs),seq);
       }
       else
