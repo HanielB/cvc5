@@ -24,6 +24,8 @@
 #include "theory/quantifiers/term_enumeration.h"
 #include "theory/quantifiers/term_util.h"
 
+#include "expr/node_algorithm.h"
+
 using namespace CVC4::kind;
 using namespace CVC4::context;
 
@@ -114,6 +116,7 @@ bool Instantiate::addInstantiation(
   {
     Trace("inst-add-debug") << "  " << q[0][i];
     Trace("inst-add-debug2") << " -> " << terms[i];
+    Assert( !expr::hasFreeVar(terms[i]));
     TypeNode tn = q[0][i].getType();
     if (terms[i].isNull())
     {

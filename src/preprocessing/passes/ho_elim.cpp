@@ -85,7 +85,7 @@ Node HoElim::eliminateLambdaComplete(Node n, std::map< Node, Node >& newLambda)
         Node nf = nm->mkSkolem("ll",nft);
         Trace("ho-elim-ll") << "...introduce: " << nf << " of type " << nft << std::endl;
         newLambda[nf] = nlambda;
-        //AlwaysAssert( nf.getType()==nlambda.getType() );
+        //Assert( nf.getType()==nlambda.getType() );
         if( !vars.empty() )
         {
           for( const Node& v : vars )
@@ -96,7 +96,7 @@ Node HoElim::eliminateLambdaComplete(Node n, std::map< Node, Node >& newLambda)
         }
         d_visited[cur] = nf;
         Trace("ho-elim-ll") << "...return types : " << nf.getType() << " " << cur.getType() << std::endl;
-        //AlwaysAssert( nf.getType()==cur.getType() );
+        //Assert( nf.getType()==cur.getType() );
       }
       else
       {
@@ -151,7 +151,7 @@ Node HoElim::eliminateHo(Node n)
     if (it == d_visited.end())
     {
       TypeNode tn = cur.getType();
-      //AlwaysAssert( cur.getKind()!=LAMBDA );
+      //Assert( cur.getKind()!=LAMBDA );
       if( tn.isFunction() )
       {
         d_funTypes.insert(tn);
@@ -302,7 +302,7 @@ PreprocessingPassResult HoElim::applyInternal(
     if (res != prev)
     {
       res = theory::Rewriter::rewrite(res);
-      //AlwaysAssert( !expr::hasFreeVar(res) );
+      Assert( !expr::hasFreeVar(res) );
       assertionsToPreprocess->replace(i, res);
     }
   }
@@ -330,7 +330,7 @@ PreprocessingPassResult HoElim::applyInternal(
       
       Node llfax = nm->mkNode(FORALL,bvl,curr.eqNode(bd));
       Trace("ho-elim-ax") << "Lambda lifting axiom (pre-elim) " << llfax << " for " << lambda << std::endl;
-      //AlwaysAssert( !expr::hasFreeVar(llfax) );
+      Assert( !expr::hasFreeVar(llfax) );
       Node llfaxe = eliminateLambdaComplete(llfax, newLambda);
       Trace("ho-elim-ax") << "Lambda lifting axiom " << llfaxe << " for " << lambda << std::endl;
       axioms.push_back(llfaxe);
@@ -344,7 +344,7 @@ PreprocessingPassResult HoElim::applyInternal(
     axioms.push_back(orig);
     Node conj = nm->mkNode(AND, axioms);
     conj = theory::Rewriter::rewrite(conj);
-    //AlwaysAssert( !expr::hasFreeVar(conj) );
+    Assert( !expr::hasFreeVar(conj) );
     assertionsToPreprocess->replace(0, conj);
   }
   axioms.clear();
@@ -356,7 +356,7 @@ PreprocessingPassResult HoElim::applyInternal(
     if (res != prev)
     {
       res = theory::Rewriter::rewrite(res);
-      //AlwaysAssert( !expr::hasFreeVar(res) );
+      Assert( !expr::hasFreeVar(res) );
       assertionsToPreprocess->replace(i, res);
     }
   }
@@ -480,7 +480,7 @@ PreprocessingPassResult HoElim::applyInternal(
     axioms.push_back(orig);
     Node conj = nm->mkNode(AND, axioms);
     conj = theory::Rewriter::rewrite(conj);
-    //AlwaysAssert( !expr::hasFreeVar(conj) );
+    Assert( !expr::hasFreeVar(conj) );
     assertionsToPreprocess->replace(0, conj);
   }
 
