@@ -114,22 +114,9 @@ public:
         Trace("uf-ho-beta")
             << "uf-ho-beta : beta-reducing one argument of : " << node[0]
             << " with " << node[1] << "\n";
-        // for now build separate subs
-        Node new_body;
-        if (options::ufHo())
-        {
-          Node arg = Rewriter::rewrite(node[1]);
-          Node var = node[0][0][0];
-          new_body = node[0][1].substituteCaptureAvoiding(var, arg);
-        }
-        else
-        {
-          TNode arg = Rewriter::rewrite(node[1]);
-          TNode var = node[0][0][0];
-          new_body = node[0][1].substitute(var, arg);
-        }
-        Trace("uf-ho-beta")
-            << "uf-ho-beta : ..new body : " << new_body << "\n";
+            
+        // reconstruct the lambda first to avoid variable shadowing
+        Node new_body = node[0][1];
         if( node[0][0].getNumChildren()>1 ){
           std::vector< Node > new_vars;
           for( unsigned i=1; i<node[0][0].getNumChildren(); i++ ){
@@ -142,6 +129,22 @@ public:
           Trace("uf-ho-beta")
             << "uf-ho-beta : ....new lambda : " << new_body << "\n";
         }
+        
+        // for now build separate subs
+        if (options::ufHo())
+        {
+          Node arg = Rewriter::rewrite(node[1]);
+          Node var = node[0][0][0];
+          new_body = new_body.substituteCaptureAvoiding(var, arg);
+        }
+        else
+        {
+          TNode arg = Rewriter::rewrite(node[1]);
+          TNode var = node[0][0][0];
+          new_body = new_body.substitute(var, arg);
+        }
+        Trace("uf-ho-beta")
+            << "uf-ho-beta : ..new body : " << new_body << "\n";
         return RewriteResponse( REWRITE_AGAIN_FULL, new_body );
       }
     }
