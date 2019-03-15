@@ -19,18 +19,18 @@
 
 #include <memory>
 
+#include "expr/node_algorithm.h"
 #include "options/quantifiers_options.h"
 #include "options/smt_options.h"
+#include "options/theory_options.h"
 #include "options/uf_options.h"
 #include "proof/proof_manager.h"
 #include "proof/theory_proof.h"
 #include "proof/uf_proof.h"
 #include "theory/theory_model.h"
 #include "theory/type_enumerator.h"
-#include "theory/uf/theory_uf_strong_solver.h"
-#include "options/theory_options.h"
-#include "expr/node_algorithm.h"
 #include "theory/uf/theory_uf_rewriter.h"
+#include "theory/uf/theory_uf_strong_solver.h"
 
 using namespace std;
 
@@ -156,7 +156,7 @@ void TheoryUF::check(Effort level) {
         }else{
           // support for cardinality constraints is not enabled, set incomplete
           d_out->setIncomplete();
-        } 
+        }
       }
       //needed for models
       if( options::produceModels() ){
@@ -187,19 +187,19 @@ Node TheoryUF::getApplyUfForHoApply( Node node ) {
   std::vector< TNode > args;
   Node f = TheoryUfRewriter::decomposeHoApply( node, args, true );
   Node new_f = f;
-  NodeManager * nm = NodeManager::currentNM();
+  NodeManager* nm = NodeManager::currentNM();
   if( !TheoryUfRewriter::canUseAsApplyUfOperator( f ) ){
     NodeNodeMap::const_iterator itus = d_uf_std_skolem.find( f );
     if( itus==d_uf_std_skolem.end() ){
       std::unordered_set<Node, NodeHashFunction> fvs;
-      expr::getFreeVariables(f,fvs);
+      expr::getFreeVariables(f, fvs);
       Node lem;
-      if( !fvs.empty() )
+      if (!fvs.empty())
       {
-        std::vector< TypeNode > newTypes;
-        std::vector< Node > vs;
-        std::vector< Node > nvs;
-        for( const Node& v : fvs )
+        std::vector<TypeNode> newTypes;
+        std::vector<Node> vs;
+        std::vector<Node> nvs;
+        for (const Node& v : fvs)
         {
           TypeNode vt = v.getType();
           newTypes.push_back(vt);
@@ -208,26 +208,27 @@ Node TheoryUF::getApplyUfForHoApply( Node node ) {
           nvs.push_back(nv);
         }
         TypeNode ft = f.getType();
-        std::vector< TypeNode > argTypes = ft.getArgTypes();
+        std::vector<TypeNode> argTypes = ft.getArgTypes();
         TypeNode rangeType = ft.getRangeType();
-        
-        newTypes.insert(newTypes.end(),argTypes.begin(),argTypes.end());
-        TypeNode nft = nm->mkFunctionType(newTypes,rangeType);
-        new_f = nm->mkSkolem( "app_uf", nft );
-        for( const Node& v : vs )
+
+        newTypes.insert(newTypes.end(), argTypes.begin(), argTypes.end());
+        TypeNode nft = nm->mkFunctionType(newTypes, rangeType);
+        new_f = nm->mkSkolem("app_uf", nft);
+        for (const Node& v : vs)
         {
-          new_f = nm->mkNode( kind::HO_APPLY, new_f, v );
+          new_f = nm->mkNode(kind::HO_APPLY, new_f, v);
         }
-        Assert( new_f.getType()==f.getType() );
+        Assert(new_f.getType() == f.getType());
         Node eq = new_f.eqNode(f);
-        Node seq = eq.substitute(vs.begin(),vs.end(),nvs.begin(),nvs.end());
-        lem = nm->mkNode(kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST,nvs),seq);
+        Node seq = eq.substitute(vs.begin(), vs.end(), nvs.begin(), nvs.end());
+        lem = nm->mkNode(
+            kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST, nvs), seq);
       }
       else
       {
         // introduce skolem to make a standard APPLY_UF
-        new_f = nm->mkSkolem( "app_uf", f.getType() );
-        lem = new_f.eqNode( f );
+        new_f = nm->mkSkolem("app_uf", f.getType());
+        lem = new_f.eqNode(f);
       }
       Trace("uf-ho-lemma") << "uf-ho-lemma : Skolem definition for apply-conversion : " << lem << std::endl;
       d_out->lemma( lem );
@@ -237,16 +238,16 @@ Node TheoryUF::getApplyUfForHoApply( Node node ) {
     }
     // unroll the HO_APPLY, adding to the first argument position
     // Note arguments in the vector args begin at position 1.
-    while( new_f.getKind()==kind::HO_APPLY )
+    while (new_f.getKind() == kind::HO_APPLY)
     {
-      args.insert(args.begin()+1, new_f[1]);
+      args.insert(args.begin() + 1, new_f[1]);
       new_f = new_f[0];
     }
   }
   Assert( TheoryUfRewriter::canUseAsApplyUfOperator( new_f ) );
   args[0] = new_f;
-  Node ret = nm->mkNode( kind::APPLY_UF, args );
-  Assert( ret.getType()==node.getType());
+  Node ret = nm->mkNode(kind::APPLY_UF, args);
+  Assert(ret.getType() == node.getType());
   return ret;
 }
 
@@ -825,11 +826,11 @@ unsigned TheoryUF::checkExtensionality(TheoryModel* m)
     }
     ++eqcs_i;
   }
-  
-  for( std::map< TypeNode, std::vector< Node > >::iterator itf = func_eqcs.begin(); 
+
+  for( std::map< TypeNode, std::vector< Node > >::iterator itf = func_eqcs.begin();
        itf != func_eqcs.end(); ++itf ){
     for( unsigned j=0; j<itf->second.size(); j++ ){
-      for( unsigned k=(j+1); k<itf->second.size(); k++ ){ 
+      for( unsigned k=(j+1); k<itf->second.size(); k++ ){
         // if these equivalence classes are not explicitly disequal, do extensionality to ensure distinctness
         if (!d_equalityEngine.areDisequal(
                 itf->second[j], itf->second[k], false))
@@ -864,7 +865,7 @@ unsigned TheoryUF::checkExtensionality(TheoryModel* m)
             num_lemmas += applyExtensionality(deq);
           }
         }
-      }   
+      }
     }
   }
   return num_lemmas;
@@ -952,13 +953,13 @@ unsigned TheoryUF::checkAppCompletion() {
 unsigned TheoryUF::checkHigherOrder() {
   Trace("uf-ho") << "TheoryUF::checkHigherOrder..." << std::endl;
 
-  // infer new facts based on apply completion until fixed point 
+  // infer new facts based on apply completion until fixed point
   unsigned num_facts;
   do{
     num_facts = checkAppCompletion();
     if( d_conflict ){
       Trace("uf-ho") << "...conflict during app-completion." << std::endl;
-      return 1;  
+      return 1;
     }
   }while( num_facts>0 );
 
