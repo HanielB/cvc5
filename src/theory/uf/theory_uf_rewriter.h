@@ -20,6 +20,7 @@
 #ifndef __CVC4__THEORY__UF__THEORY_UF_REWRITER_H
 #define __CVC4__THEORY__UF__THEORY_UF_REWRITER_H
 
+#include "expr/node_algorithm.h"
 #include "theory/rewriter.h"
 #include "theory/substitutions.h"
 #include "options/uf_options.h"
@@ -73,9 +74,8 @@ public:
               Trace("uf-ho-beta") << "uf-ho-beta: .... " << vars[i] << " |-> "
                                   << subs[i] << "\n";
             }
-
           }
-          ret = lambda[1].substituteCaptureAvoiding(vars, subs);
+          ret = expr::substituteCaptureAvoiding(lambda[1], vars, subs);
           Trace("uf-ho-beta") << "uf-ho-beta : ..result : " << ret << "\n";
         }
         else
@@ -114,7 +114,7 @@ public:
         Trace("uf-ho-beta")
             << "uf-ho-beta : beta-reducing one argument of : " << node[0]
             << " with " << node[1] << "\n";
-            
+
         // reconstruct the lambda first to avoid variable shadowing
         Node new_body = node[0][1];
         if( node[0][0].getNumChildren()>1 ){
@@ -129,13 +129,13 @@ public:
           Trace("uf-ho-beta")
             << "uf-ho-beta : ....new lambda : " << new_body << "\n";
         }
-        
+
         // for now build separate subs
         if (options::ufHo())
         {
           Node arg = Rewriter::rewrite(node[1]);
           Node var = node[0][0][0];
-          new_body = new_body.substituteCaptureAvoiding(var, arg);
+          new_body = expr::substituteCaptureAvoiding(new_body, var, arg);
         }
         else
         {
