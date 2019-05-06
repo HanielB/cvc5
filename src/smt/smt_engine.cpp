@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Morgan Deters, Andrew Reynolds, Tim King
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -68,6 +68,7 @@
 #include "options/set_language.h"
 #include "options/smt_options.h"
 #include "options/strings_options.h"
+#include "options/strings_process_loop_mode.h"
 #include "options/theory_options.h"
 #include "options/uf_options.h"
 #include "preprocessing/preprocessing_pass.h"
@@ -110,6 +111,10 @@
 #include "util/random.h"
 #include "util/resource_manager.h"
 
+#if (IS_LFSC_BUILD && IS_PROOFS_BUILD)
+#include "lfscc.h"
+#endif
+
 using namespace std;
 using namespace CVC4;
 using namespace CVC4::smt;
@@ -119,6 +124,11 @@ using namespace CVC4::context;
 using namespace CVC4::theory;
 
 namespace CVC4 {
+
+namespace proof {
+extern const char* const plf_signatures;
+}  // namespace proof
+
 namespace smt {
 
 struct DeleteCommandFunction : public std::unary_function<const Command*, void>
@@ -177,10 +187,12 @@ struct SmtEngineStatistics {
   IntStat d_numAssertionsPre;
   /** Num of assertions after ite removal */
   IntStat d_numAssertionsPost;
+  /** Size of all proofs generated */
+  IntStat d_proofsSize;
   /** time spent in checkModel() */
   TimerStat d_checkModelTime;
-  /** time spent in checkProof() */
-  TimerStat d_checkProofTime;
+  /** time spent checking the proof with LFSC */
+  TimerStat d_lfscCheckProofTime;
   /** time spent in checkUnsatCore() */
   TimerStat d_checkUnsatCoreTime;
   /** time spent in PropEngine::checkSat() */
@@ -195,28 +207,30 @@ struct SmtEngineStatistics {
   /** Number of resource units spent. */
   ReferenceStat<uint64_t> d_resourceUnitsUsed;
 
-  SmtEngineStatistics() :
-    d_definitionExpansionTime("smt::SmtEngine::definitionExpansionTime"),
-    d_numConstantProps("smt::SmtEngine::numConstantProps", 0),
-    d_cnfConversionTime("smt::SmtEngine::cnfConversionTime"),
-    d_numAssertionsPre("smt::SmtEngine::numAssertionsPreITERemoval", 0),
-    d_numAssertionsPost("smt::SmtEngine::numAssertionsPostITERemoval", 0),
-    d_checkModelTime("smt::SmtEngine::checkModelTime"),
-    d_checkProofTime("smt::SmtEngine::checkProofTime"),
-    d_checkUnsatCoreTime("smt::SmtEngine::checkUnsatCoreTime"),
-    d_solveTime("smt::SmtEngine::solveTime"),
-    d_pushPopTime("smt::SmtEngine::pushPopTime"),
-    d_processAssertionsTime("smt::SmtEngine::processAssertionsTime"),
-    d_simplifiedToFalse("smt::SmtEngine::simplifiedToFalse", 0),
-    d_resourceUnitsUsed("smt::SmtEngine::resourceUnitsUsed")
- {
+  SmtEngineStatistics()
+      : d_definitionExpansionTime("smt::SmtEngine::definitionExpansionTime"),
+        d_numConstantProps("smt::SmtEngine::numConstantProps", 0),
+        d_cnfConversionTime("smt::SmtEngine::cnfConversionTime"),
+        d_numAssertionsPre("smt::SmtEngine::numAssertionsPreITERemoval", 0),
+        d_numAssertionsPost("smt::SmtEngine::numAssertionsPostITERemoval", 0),
+        d_proofsSize("smt::SmtEngine::proofsSize", 0),
+        d_checkModelTime("smt::SmtEngine::checkModelTime"),
+        d_lfscCheckProofTime("smt::SmtEngine::lfscCheckProofTime"),
+        d_checkUnsatCoreTime("smt::SmtEngine::checkUnsatCoreTime"),
+        d_solveTime("smt::SmtEngine::solveTime"),
+        d_pushPopTime("smt::SmtEngine::pushPopTime"),
+        d_processAssertionsTime("smt::SmtEngine::processAssertionsTime"),
+        d_simplifiedToFalse("smt::SmtEngine::simplifiedToFalse", 0),
+        d_resourceUnitsUsed("smt::SmtEngine::resourceUnitsUsed")
+  {
     smtStatisticsRegistry()->registerStat(&d_definitionExpansionTime);
     smtStatisticsRegistry()->registerStat(&d_numConstantProps);
     smtStatisticsRegistry()->registerStat(&d_cnfConversionTime);
     smtStatisticsRegistry()->registerStat(&d_numAssertionsPre);
     smtStatisticsRegistry()->registerStat(&d_numAssertionsPost);
+    smtStatisticsRegistry()->registerStat(&d_proofsSize);
     smtStatisticsRegistry()->registerStat(&d_checkModelTime);
-    smtStatisticsRegistry()->registerStat(&d_checkProofTime);
+    smtStatisticsRegistry()->registerStat(&d_lfscCheckProofTime);
     smtStatisticsRegistry()->registerStat(&d_checkUnsatCoreTime);
     smtStatisticsRegistry()->registerStat(&d_solveTime);
     smtStatisticsRegistry()->registerStat(&d_pushPopTime);
@@ -231,8 +245,9 @@ struct SmtEngineStatistics {
     smtStatisticsRegistry()->unregisterStat(&d_cnfConversionTime);
     smtStatisticsRegistry()->unregisterStat(&d_numAssertionsPre);
     smtStatisticsRegistry()->unregisterStat(&d_numAssertionsPost);
+    smtStatisticsRegistry()->unregisterStat(&d_proofsSize);
     smtStatisticsRegistry()->unregisterStat(&d_checkModelTime);
-    smtStatisticsRegistry()->unregisterStat(&d_checkProofTime);
+    smtStatisticsRegistry()->unregisterStat(&d_lfscCheckProofTime);
     smtStatisticsRegistry()->unregisterStat(&d_checkUnsatCoreTime);
     smtStatisticsRegistry()->unregisterStat(&d_solveTime);
     smtStatisticsRegistry()->unregisterStat(&d_pushPopTime);
@@ -515,7 +530,7 @@ class SmtEnginePrivate : public NodeManagerListener {
   std::map<Node, std::vector<Node>> d_sygusFunVars;
   /** maps functions-to-synthesize to their respective syntactic restrictions
    *
-   * If function has syntactic restrictinos, these are encoded as a SyGuS
+   * If function has syntactic restrictions, these are encoded as a SyGuS
    * datatype type
    */
   std::map<Node, TypeNode> d_sygusFunSyntax;
@@ -581,49 +596,67 @@ class SmtEnginePrivate : public NodeManagerListener {
     d_listenerRegistrations->add(d_resourceManager->registerHardListener(
         new HardResourceOutListener(d_smt)));
 
-    Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerForceLogicListener(
-            new SetLogicListener(d_smt), true));
+    try
+    {
+      Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerForceLogicListener(
+              new SetLogicListener(d_smt), true));
 
-    // Multiple options reuse BeforeSearchListener so registration requires an
-    // extra bit of care.
-    // We can safely not call notify on this before search listener at
-    // registration time. This d_smt cannot be beforeSearch at construction
-    // time. Therefore the BeforeSearchListener is a no-op. Therefore it does
-    // not have to be called.
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerBeforeSearchListener(
-            new BeforeSearchListener(d_smt)));
+      // Multiple options reuse BeforeSearchListener so registration requires an
+      // extra bit of care.
+      // We can safely not call notify on this before search listener at
+      // registration time. This d_smt cannot be beforeSearch at construction
+      // time. Therefore the BeforeSearchListener is a no-op. Therefore it does
+      // not have to be called.
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerBeforeSearchListener(
+              new BeforeSearchListener(d_smt)));
 
-    // These do need registration calls.
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetDefaultExprDepthListener(
-            new SetDefaultExprDepthListener(), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetDefaultExprDagListener(
-            new SetDefaultExprDagListener(), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetPrintExprTypesListener(
-            new SetPrintExprTypesListener(), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetDumpModeListener(
-            new DumpModeListener(), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetPrintSuccessListener(
-            new PrintSuccessListener(), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetRegularOutputChannelListener(
-            new SetToDefaultSourceListener(&d_managedRegularChannel), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetDiagnosticOutputChannelListener(
-            new SetToDefaultSourceListener(&d_managedDiagnosticChannel), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerDumpToFileNameListener(
-            new SetToDefaultSourceListener(&d_managedDumpChannel), true));
-    d_listenerRegistrations->add(
-        nodeManagerOptions.registerSetReplayLogFilename(
-            new SetToDefaultSourceListener(&d_managedReplayLog), true));
+      // These do need registration calls.
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetDefaultExprDepthListener(
+              new SetDefaultExprDepthListener(), true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetDefaultExprDagListener(
+              new SetDefaultExprDagListener(), true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetPrintExprTypesListener(
+              new SetPrintExprTypesListener(), true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetDumpModeListener(new DumpModeListener(),
+                                                         true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetPrintSuccessListener(
+              new PrintSuccessListener(), true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetRegularOutputChannelListener(
+              new SetToDefaultSourceListener(&d_managedRegularChannel), true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetDiagnosticOutputChannelListener(
+              new SetToDefaultSourceListener(&d_managedDiagnosticChannel),
+              true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerDumpToFileNameListener(
+              new SetToDefaultSourceListener(&d_managedDumpChannel), true));
+      d_listenerRegistrations->add(
+          nodeManagerOptions.registerSetReplayLogFilename(
+              new SetToDefaultSourceListener(&d_managedReplayLog), true));
+    }
+    catch (OptionException& e)
+    {
+      // Registering the option listeners can lead to OptionExceptions, e.g.
+      // when the user chooses a dump tag that does not exist. In that case, we
+      // have to make sure that we delete existing listener registrations and
+      // that we unsubscribe from NodeManager events. Otherwise we will have
+      // errors in the deconstructors of the NodeManager (because the
+      // NodeManager tries to notify an SmtEnginePrivate that does not exist)
+      // and the ListenerCollection (because not all registrations have been
+      // removed before calling the deconstructor).
+      delete d_listenerRegistrations;
+      d_smt.d_nodeManager->unsubscribeEvents(this);
+      throw OptionException(e.getRawMessage());
+    }
   }
 
   ~SmtEnginePrivate()
@@ -738,8 +771,14 @@ class SmtEnginePrivate : public NodeManagerListener {
    * immediately, or it might be simplified and kept, or it might not
    * even be simplified.
    * the 2nd and 3rd arguments added for bookkeeping for proofs
+   *
+   * @param isAssumption If true, the formula is considered to be an assumption
+   * (this is used to distinguish assertions and assumptions)
    */
-  void addFormula(TNode n, bool inUnsatCore, bool inInput = true);
+  void addFormula(TNode n,
+                  bool inUnsatCore,
+                  bool inInput = true,
+                  bool isAssumption = false);
 
   /** Expand definitions in n. */
   Node expandDefinitions(TNode n,
@@ -840,6 +879,7 @@ SmtEngine::SmtEngine(ExprManager* em)
       d_defineCommands(),
       d_logic(),
       d_originalOptions(),
+      d_isInternalSubsolver(false),
       d_pendingPops(0),
       d_fullyInited(false),
       d_problemExtended(false),
@@ -874,6 +914,14 @@ SmtEngine::SmtEngine(ExprManager* em)
   d_proofManager = new ProofManager(d_userContext);
 #endif
 
+  d_definedFunctions = new (true) DefinedFunctionMap(d_userContext);
+  d_fmfRecFunctionsDefined = new (true) NodeList(d_userContext);
+  d_modelCommands = new (true) smt::CommandList(d_userContext);
+}
+
+void SmtEngine::finishInit()
+{
+  Trace("smt-debug") << "SmtEngine::finishInit" << std::endl;
   // We have mutual dependency here, so we add the prop engine to the theory
   // engine later (it is non-essential there)
   d_theoryEngine = new TheoryEngine(d_context,
@@ -898,13 +946,6 @@ SmtEngine::SmtEngine(ExprManager* em)
   d_userContext->push();
   d_context->push();
 
-  d_definedFunctions = new(true) DefinedFunctionMap(d_userContext);
-  d_fmfRecFunctionsDefined = new(true) NodeList(d_userContext);
-  d_modelCommands = new(true) smt::CommandList(d_userContext);
-}
-
-void SmtEngine::finishInit() {
-  Trace("smt-debug") << "SmtEngine::finishInit" << std::endl;
   // ensure that our heuristics are properly set up
   setDefaults();
 
@@ -997,12 +1038,6 @@ void SmtEngine::shutdown() {
     internalPop(true);
   }
 
-  // check to see if a postsolve() is pending
-  if(d_needPostsolve) {
-    d_theoryEngine->postsolve();
-    d_needPostsolve = false;
-  }
-
   if(d_propEngine != NULL) {
     d_propEngine->shutdown();
   }
@@ -1052,21 +1087,24 @@ SmtEngine::~SmtEngine()
     //destroy all passes before destroying things that they refer to
     d_private->cleanupPreprocessingPasses();
 
+    // d_proofManager is always created when proofs are enabled at configure
+    // time.  Because of this, this code should not be wrapped in PROOF() which
+    // additionally checks flags such as options::proof().
+    //
+    // Note: the proof manager must be destroyed before the theory engine.
+    // Because the destruction of the proofs depends on contexts owned be the
+    // theory solvers.
+#ifdef CVC4_PROOF
+    delete d_proofManager;
+    d_proofManager = NULL;
+#endif
+
     delete d_theoryEngine;
     d_theoryEngine = NULL;
     delete d_propEngine;
     d_propEngine = NULL;
     delete d_decisionEngine;
     d_decisionEngine = NULL;
-
-
-// d_proofManager is always created when proofs are enabled at configure time.
-// Becuase of this, this code should not be wrapped in PROOF() which
-// additionally checks flags such as options::proof().
-#ifdef CVC4_PROOF
-    delete d_proofManager;
-    d_proofManager = NULL;
-#endif
 
     delete d_stats;
     d_stats = NULL;
@@ -1172,6 +1210,12 @@ void SmtEngine::setDefaults() {
   if(options::forceLogicString.wasSetByUser()) {
     d_logic = LogicInfo(options::forceLogicString());
   }else if (options::solveIntAsBV() > 0) {
+    if (!(d_logic <= LogicInfo("QF_NIA")))
+    {
+      throw OptionException(
+          "--solve-int-as-bv=X only supported for pure integer logics (QF_NIA, "
+          "QF_LIA, QF_IDL)");
+    }
     d_logic = LogicInfo("QF_BV");
   }else if (d_logic.getLogicString() == "QF_NRA" && options::solveRealAsInt()) {
     d_logic = LogicInfo("QF_NIA");
@@ -1221,20 +1265,24 @@ void SmtEngine::setDefaults() {
   }
 
   // sygus inference may require datatypes
-  if (options::sygusInference() || options::sygusRewSynthInput())
+  if (!d_isInternalSubsolver)
   {
-    d_logic = d_logic.getUnlockedCopy();
-    // sygus requires arithmetic, datatypes and quantifiers
-    d_logic.enableTheory(THEORY_ARITH);
-    d_logic.enableTheory(THEORY_DATATYPES);
-    d_logic.enableTheory(THEORY_QUANTIFIERS);
-    d_logic.lock();
-    // since we are trying to recast as sygus, we assume the input is sygus
-    is_sygus = true;
+    if (options::sygusInference() || options::sygusRewSynthInput()
+        || options::sygusAbduct())
+    {
+      d_logic = d_logic.getUnlockedCopy();
+      // sygus requires arithmetic, datatypes and quantifiers
+      d_logic.enableTheory(THEORY_ARITH);
+      d_logic.enableTheory(THEORY_DATATYPES);
+      d_logic.enableTheory(THEORY_QUANTIFIERS);
+      d_logic.lock();
+      // since we are trying to recast as sygus, we assume the input is sygus
+      is_sygus = true;
+    }
   }
 
   if ((options::checkModels() || options::checkSynthSol()
-       || options::produceModelCores())
+       || options::modelCoresMode() != MODEL_CORES_NONE)
       && !options::produceAssertions())
   {
     Notice() << "SmtEngine: turning on produce-assertions to support "
@@ -1277,6 +1325,14 @@ void SmtEngine::setDefaults() {
       Trace("smt") << "setting unconstrained simplification to " << uncSimp
                    << endl;
       options::unconstrainedSimp.set(uncSimp);
+    }
+  }
+  if (!options::proof())
+  {
+    // minimizing solutions from single invocation requires proofs
+    if (options::cegqiSolMinCore() && options::cegqiSolMinCore.wasSetByUser())
+    {
+      throw OptionException("cegqi-si-sol-min-core requires --proof");
     }
   }
 
@@ -1349,17 +1405,17 @@ void SmtEngine::setDefaults() {
       options::bitvectorToBool.set(false);
     }
 
-    if (options::boolToBitvector())
+    if (options::boolToBitvector() != preprocessing::passes::BOOL_TO_BV_OFF)
     {
       if (options::boolToBitvector.wasSetByUser())
       {
         throw OptionException(
-            "bool-to-bv not supported with unsat cores/proofs");
+            "bool-to-bv != off not supported with unsat cores/proofs");
       }
-      Notice() << "SmtEngine: turning off bool-to-bitvector to support unsat "
+      Notice() << "SmtEngine: turning off bool-to-bv to support unsat "
                   "cores/proofs"
                << endl;
-      options::boolToBitvector.set(false);
+      setOption("boolToBitvector", SExpr("off"));
     }
 
     if (options::bvIntroducePow2())
@@ -1400,6 +1456,12 @@ void SmtEngine::setDefaults() {
                << endl;
       setOption("global-negate", false);
     }
+
+    if (options::bitvectorAig())
+    {
+      throw OptionException(
+          "bitblast-aig not supported with unsat cores/proofs");
+    }
   }
   else
   {
@@ -1419,19 +1481,24 @@ void SmtEngine::setDefaults() {
 
   if (options::cbqiBv() && d_logic.isQuantified())
   {
-    if(options::boolToBitvector.wasSetByUser()) {
-      throw OptionException(
-          "bool-to-bv not supported with CBQI BV for quantified logics");
+    if (options::boolToBitvector() != preprocessing::passes::BOOL_TO_BV_OFF)
+    {
+      if (options::boolToBitvector.wasSetByUser())
+      {
+        throw OptionException(
+            "bool-to-bv != off not supported with CBQI BV for quantified "
+            "logics");
+      }
+      Notice() << "SmtEngine: turning off bool-to-bitvector to support CBQI BV"
+               << endl;
+      setOption("boolToBitvector", SExpr("off"));
     }
-    Notice() << "SmtEngine: turning off bool-to-bitvector to support CBQI BV"
-             << endl;
-    options::boolToBitvector.set(false);
   }
 
   // cases where we need produce models
   if (!options::produceModels()
       && (options::produceAssignments() || options::sygusRewSynthCheck()
-          || options::produceModelCores() || is_sygus))
+          || is_sygus))
   {
     Notice() << "SmtEngine: turning on produce-models" << endl;
     setOption("produce-models", SExpr("true"));
@@ -1585,6 +1652,19 @@ void SmtEngine::setDefaults() {
       Notice() << "SmtEngine: turning off check-models to support unconstrainedSimp" << endl;
       setOption("check-models", SExpr("false"));
     }
+  }
+
+  if (options::boolToBitvector() == preprocessing::passes::BOOL_TO_BV_ALL
+      && !d_logic.isTheoryEnabled(THEORY_BV))
+  {
+    if (options::boolToBitvector.wasSetByUser())
+    {
+      throw OptionException(
+          "bool-to-bv=all not supported for non-bitvector logics.");
+    }
+    Notice() << "SmtEngine: turning off bool-to-bv for non-bv logic: "
+             << d_logic.getLogicString() << std::endl;
+    setOption("boolToBitvector", SExpr("off"));
   }
 
   if (! options::bvEagerExplanations.wasSetByUser() &&
@@ -1761,12 +1841,6 @@ void SmtEngine::setDefaults() {
       options::mbqiMode.set( quantifiers::MBQI_NONE );
     }
   }
-  if( options::mbqiMode()==quantifiers::MBQI_ABS ){
-    if( !d_logic.isPure(THEORY_UF) ){
-      //MBQI_ABS is only supported in pure quantified UF
-      options::mbqiMode.set( quantifiers::MBQI_FMC );
-    }
-  }
   if( options::fmfFunWellDefinedRelevant() ){
     if( !options::fmfFunWellDefined.wasSetByUser() ){
       options::fmfFunWellDefined.set( true );
@@ -1802,17 +1876,6 @@ void SmtEngine::setDefaults() {
       //instantiate only on last call
       if( options::eMatching() ){
         options::instWhenMode.set( quantifiers::INST_WHEN_LAST_CALL );
-      }
-    }
-    if( options::mbqiMode()==quantifiers::MBQI_ABS ){
-      if( !options::preSkolemQuant.wasSetByUser() ){
-        options::preSkolemQuant.set( true );
-      }
-      if( !options::preSkolemQuantNested.wasSetByUser() ){
-        options::preSkolemQuantNested.set( true );
-      }
-      if( !options::fmfOneInstPerRound.wasSetByUser() ){
-        options::fmfOneInstPerRound.set( true );
       }
     }
   }
@@ -1900,21 +1963,42 @@ void SmtEngine::setDefaults() {
         options::sygusExtRew.set(false);
       }
     }
-    if (options::sygusRewSynth() || options::sygusRewVerify())
+    if (options::sygusAbduct())
+    {
+      // if doing abduction, we should filter strong solutions
+      if (!options::sygusFilterSolMode.wasSetByUser())
+      {
+        options::sygusFilterSolMode.set(quantifiers::SYGUS_FILTER_SOL_STRONG);
+      }
+    }
+    if (options::sygusRewSynth() || options::sygusRewVerify()
+        || options::sygusQueryGen() || options::sygusAbduct())
     {
       // rewrite rule synthesis implies that sygus stream must be true
       options::sygusStream.set(true);
     }
     if (options::sygusStream())
     {
-      // PBE and streaming modes are incompatible
-      if (!options::sygusSymBreakPbe.wasSetByUser())
-      {
-        options::sygusSymBreakPbe.set(false);
-      }
+      // Streaming is incompatible with techniques that focus the search towards
+      // finding a single solution. This currently includes the PBE solver,
+      // static template inference for invariant synthesis, and single
+      // invocation techniques.
       if (!options::sygusUnifPbe.wasSetByUser())
       {
         options::sygusUnifPbe.set(false);
+        // also disable PBE-specific symmetry breaking unless PBE was enabled
+        if (!options::sygusSymBreakPbe.wasSetByUser())
+        {
+          options::sygusSymBreakPbe.set(false);
+        }
+      }
+      if (!options::sygusInvTemplMode.wasSetByUser())
+      {
+        options::sygusInvTemplMode.set(quantifiers::SYGUS_INV_TEMPL_MODE_NONE);
+      }
+      if (!options::cegqiSingleInvMode.wasSetByUser())
+      {
+        options::cegqiSingleInvMode.set(quantifiers::CEGQI_SI_MODE_NONE);
       }
     }
     //do not allow partial functions
@@ -2207,6 +2291,33 @@ void SmtEngine::setDefaults() {
         << endl;
     options::bvLazyRewriteExtf.set(false);
   }
+
+  if (!options::sygusExprMinerCheckUseExport())
+  {
+    if (options::sygusExprMinerCheckTimeout.wasSetByUser())
+    {
+      throw OptionException(
+          "--sygus-expr-miner-check-timeout=N requires "
+          "--sygus-expr-miner-check-use-export");
+    }
+    if (options::sygusRewSynthInput() || options::sygusAbduct())
+    {
+      std::stringstream ss;
+      ss << (options::sygusRewSynthInput() ? "--sygus-rr-synth-input"
+                                           : "--sygus-abduct");
+      ss << "requires --sygus-expr-miner-check-use-export";
+      throw OptionException(ss.str());
+    }
+  }
+
+  if (options::stringFMF() && !options::stringProcessLoopMode.wasSetByUser())
+  {
+    Trace("smt") << "settting stringProcessLoopMode to 'simple' since "
+                    "--strings-fmf enabled"
+                 << endl;
+    options::stringProcessLoopMode.set(
+        theory::strings::ProcessLoopMode::SIMPLE);
+  }
 }
 
 void SmtEngine::setProblemExtended(bool value)
@@ -2370,8 +2481,9 @@ CVC4::SExpr SmtEngine::getInfo(const std::string& key) const {
       transform(s.begin(), s.end(), s.begin(), ::tolower);
       return SExpr(SExpr::Keyword(s));
     } else {
-      throw ModalException("Can't get-info :reason-unknown when the "
-                           "last result wasn't unknown!");
+      throw RecoverableModalException(
+          "Can't get-info :reason-unknown when the "
+          "last result wasn't unknown!");
     }
   } else if(key == "assertion-stack-levels") {
     AlwaysAssert(d_userLevels.size() <=
@@ -2622,13 +2734,20 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, unordered_map<Node, Node, Node
       if(n.isVar()) {
         SmtEngine::DefinedFunctionMap::const_iterator i = d_smt.d_definedFunctions->find(n);
         if(i != d_smt.d_definedFunctions->end()) {
+          Node f = (*i).second.getFormula();
+          // must expand its definition
+          Node fe = expandDefinitions(f, cache, expandOnly);
           // replacement must be closed
           if((*i).second.getFormals().size() > 0) {
-            result.push(d_smt.d_nodeManager->mkNode(kind::LAMBDA, d_smt.d_nodeManager->mkNode(kind::BOUND_VAR_LIST, (*i).second.getFormals()), (*i).second.getFormula()));
+            result.push(d_smt.d_nodeManager->mkNode(
+                kind::LAMBDA,
+                d_smt.d_nodeManager->mkNode(kind::BOUND_VAR_LIST,
+                                            (*i).second.getFormals()),
+                fe));
             continue;
           }
           // don't bother putting in the cache
-          result.push((*i).second.getFormula());
+          result.push(fe);
           continue;
         }
         // don't bother putting in the cache
@@ -2646,11 +2765,7 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, unordered_map<Node, Node, Node
 
       // otherwise expand it
       bool doExpand = false;
-      if (k == kind::APPLY)
-      {
-        doExpand = true;
-      }
-      else if (k == kind::APPLY_UF)
+      if (k == kind::APPLY_UF)
       {
         // Always do beta-reduction here. The reason is that there may be
         // operators such as INTS_MODULUS in the body of the lambda that would
@@ -2663,10 +2778,9 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, unordered_map<Node, Node, Node
         {
           doExpand = true;
         }
-        else if (options::macrosQuant() || options::sygusInference())
+        else
         {
-          // The above options assign substitutions to APPLY_UF, thus we check
-          // here and expand if this operator corresponds to a defined function.
+          // We always check if this operator corresponds to a defined function.
           doExpand = d_smt.isDefinedFunction(n.getOperator().toExpr());
         }
       }
@@ -3028,7 +3142,8 @@ void SmtEnginePrivate::processAssertions() {
   Trace("smt-proc") << "SmtEnginePrivate::processAssertions() begin" << endl;
   Trace("smt") << "SmtEnginePrivate::processAssertions()" << endl;
 
-  Debug("smt") << " d_assertions     : " << d_assertions.size() << endl;
+  Debug("smt") << "#Assertions : " << d_assertions.size() << endl;
+  Debug("smt") << "#Assumptions: " << d_assertions.getNumAssumptions() << endl;
 
   if (d_assertions.size() == 0) {
     // nothing to do
@@ -3221,10 +3336,6 @@ void SmtEnginePrivate::processAssertions() {
         d_smt.d_fmfRecFunctionsDefined->push_back( f );
       }
     }
-    if (options::sygusInference())
-    {
-      d_passes["sygus-infer"]->apply(&d_assertions);
-    }
   }
 
   if( options::sortInference() || options::ufssFairnessMonotone() ){
@@ -3235,10 +3346,22 @@ void SmtEnginePrivate::processAssertions() {
     d_passes["pseudo-boolean-processor"]->apply(&d_assertions);
   }
 
-  if (options::sygusRewSynthInput())
+  // rephrasing normal inputs as sygus problems
+  if (!d_smt.d_isInternalSubsolver)
   {
-    // do candidate rewrite rule synthesis
-    d_passes["synth-rr"]->apply(&d_assertions);
+    if (options::sygusInference())
+    {
+      d_passes["sygus-infer"]->apply(&d_assertions);
+    }
+    else if (options::sygusAbduct())
+    {
+      d_passes["sygus-abduct"]->apply(&d_assertions);
+    }
+    else if (options::sygusRewSynthInput())
+    {
+      // do candidate rewrite rule synthesis
+      d_passes["synth-rr"]->apply(&d_assertions);
+    }
   }
 
   Trace("smt-proc") << "SmtEnginePrivate::processAssertions() : pre-simplify" << endl;
@@ -3407,14 +3530,20 @@ void SmtEnginePrivate::processAssertions() {
   getIteSkolemMap().clear();
 }
 
-void SmtEnginePrivate::addFormula(TNode n, bool inUnsatCore, bool inInput)
+void SmtEnginePrivate::addFormula(TNode n,
+                                  bool inUnsatCore,
+                                  bool inInput,
+                                  bool isAssumption)
 {
   if (n == d_true) {
     // nothing to do
     return;
   }
 
-  Trace("smt") << "SmtEnginePrivate::addFormula(" << n << "), inUnsatCore = " << inUnsatCore << ", inInput = " << inInput << endl;
+  Trace("smt") << "SmtEnginePrivate::addFormula(" << n
+               << "), inUnsatCore = " << inUnsatCore
+               << ", inInput = " << inInput
+               << ", isAssumption = " << isAssumption << endl;
 
   // Give it to proof manager
   PROOF(
@@ -3437,7 +3566,7 @@ void SmtEnginePrivate::addFormula(TNode n, bool inUnsatCore, bool inInput)
   );
 
   // Add the normalized formula to the queue
-  d_assertions.push_back(n);
+  d_assertions.push_back(n, isAssumption);
   //d_assertions.push_back(Rewriter::rewrite(n));
 }
 
@@ -3466,8 +3595,10 @@ Result SmtEngine::checkSat(const vector<Expr>& assumptions, bool inUnsatCore)
 
 Result SmtEngine::query(const Expr& assumption, bool inUnsatCore)
 {
-  Assert(!assumption.isNull());
-  return checkSatisfiability(assumption, inUnsatCore, true);
+  return checkSatisfiability(
+      assumption.isNull() ? std::vector<Expr>() : std::vector<Expr>{assumption},
+      inUnsatCore,
+      true);
 }
 
 Result SmtEngine::query(const vector<Expr>& assumptions, bool inUnsatCore)
@@ -3480,7 +3611,7 @@ Result SmtEngine::checkSatisfiability(const Expr& expr,
                                       bool isQuery)
 {
   return checkSatisfiability(
-      expr.isNull() ? vector<Expr>() : vector<Expr>{expr},
+      expr.isNull() ? std::vector<Expr>() : std::vector<Expr>{expr},
       inUnsatCore,
       isQuery);
 }
@@ -3504,11 +3635,6 @@ Result SmtEngine::checkSatisfiability(const vector<Expr>& assumptions,
                            "(try --incremental)");
     }
 
-    // check to see if a postsolve() is pending
-    if(d_needPostsolve) {
-      d_theoryEngine->postsolve();
-      d_needPostsolve = false;
-    }
     // Note that a query has been made
     d_queryMade = true;
     // reset global negation
@@ -3559,7 +3685,7 @@ Result SmtEngine::checkSatisfiability(const vector<Expr>& assumptions,
       {
         d_assertionList->push_back(e);
       }
-      d_private->addFormula(e.getNode(), inUnsatCore);
+      d_private->addFormula(e.getNode(), inUnsatCore, true, true);
     }
 
     r = isQuery ? check().asValidityResult() : check().asSatisfiabilityResult();
@@ -3613,8 +3739,6 @@ Result SmtEngine::checkSatisfiability(const vector<Expr>& assumptions,
       }
     }
 
-    d_propEngine->resetTrail();
-
     // Pop the context
     if (didInternalPush)
     {
@@ -3640,7 +3764,6 @@ Result SmtEngine::checkSatisfiability(const vector<Expr>& assumptions,
     // Check that UNSAT results generate a proof correctly.
     if(options::checkProofs()) {
       if(r.asSatisfiabilityResult().isSat() == Result::UNSAT) {
-        TimerStat::CodeTimer checkProofTimer(d_stats->d_checkProofTime);
         checkProof();
       }
     }
@@ -3733,10 +3856,6 @@ void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
 {
   d_private->d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Dump("sygus-benchmark") << DeclareVarCommand(id, var, type);
-  }
 }
 
 void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
@@ -3745,10 +3864,6 @@ void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
   d_private->d_sygusPrimedVarTypes.push_back(type);
 #endif
   Trace("smt") << "SmtEngine::declareSygusPrimedVar: " << id << "\n";
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Dump("sygus-benchmark") << DeclarePrimedVarCommand(id, type);
-  }
 }
 
 void SmtEngine::declareSygusFunctionVar(const std::string& id,
@@ -3756,11 +3871,7 @@ void SmtEngine::declareSygusFunctionVar(const std::string& id,
                                         Type type)
 {
   d_private->d_sygusVars.push_back(Node::fromExpr(var));
-  Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Dump("sygus-benchmark") << DeclareSygusFunctionCommand(id, var, type);
-  }
+  Trace("smt") << "SmtEngine::declareSygusFunctionVar: " << var << "\n";
 }
 
 void SmtEngine::declareSynthFun(const std::string& id,
@@ -3783,36 +3894,32 @@ void SmtEngine::declareSynthFun(const std::string& id,
   {
     d_private->d_sygusFunSyntax[fn] = TypeNode::fromType(sygusType);
   }
-  Trace("smt") << "SmtEngine::declareSythFun: " << func << "\n";
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Dump("sygus-benchmark") << SynthFunCommand(id, func, sygusType, isInv, vars);
-  }
+  Trace("smt") << "SmtEngine::declareSynthFun: " << func << "\n";
 }
 
 void SmtEngine::assertSygusConstraint(Expr constraint)
 {
   d_private->d_sygusConstraints.push_back(constraint);
+
   Trace("smt") << "SmtEngine::assertSygusConstrant: " << constraint << "\n";
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Dump("sygus-benchmark") << ConstraintCommand(constraint);
-  }
 }
 
-void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
+void SmtEngine::assertSygusInvConstraint(const Expr& inv,
+                                         const Expr& pre,
+                                         const Expr& trans,
+                                         const Expr& post)
 {
   SmtScope smts(this);
   // build invariant constraint
 
   // get variables (regular and their respective primed versions)
   std::vector<Node> terms, vars, primed_vars;
-  for (const Expr& e : place_holders)
-  {
-    terms.push_back(Node::fromExpr(e));
-  }
+  terms.push_back(Node::fromExpr(inv));
+  terms.push_back(Node::fromExpr(pre));
+  terms.push_back(Node::fromExpr(trans));
+  terms.push_back(Node::fromExpr(post));
   // variables are built based on the invariant type
-  FunctionType t = static_cast<FunctionType>(place_holders[0].getType());
+  FunctionType t = static_cast<FunctionType>(inv.getType());
   std::vector<Type> argTypes = t.getArgTypes();
   for (const Type& ti : argTypes)
   {
@@ -3864,8 +3971,7 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
     {
       children.insert(children.end(), vars.begin(), vars.end());
     }
-    terms[i] =
-        d_nodeManager->mkNode(i == 0 ? kind::APPLY_UF : kind::APPLY, children);
+    terms[i] = d_nodeManager->mkNode(kind::APPLY_UF, children);
     // make application of Inv on primed variables
     if (i == 0)
     {
@@ -3886,10 +3992,6 @@ void SmtEngine::assertSygusInvConstraint(const std::vector<Expr>& place_holders)
   d_private->d_sygusConstraints.push_back(constraint);
 
   Trace("smt") << "SmtEngine::assertSygusInvConstrant: " << constraint << "\n";
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Dump("sygus-benchmark") << InvConstraintCommand(place_holders);
-  }
 }
 
 Result SmtEngine::checkSynth()
@@ -3962,10 +4064,7 @@ Result SmtEngine::checkSynth()
   }
 
   Trace("smt") << "Check synthesis conjecture: " << body << std::endl;
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Dump("sygus-benchmark") << CheckSynthCommand();
-  }
+
   return checkSatisfiability(body.toExpr(), true, false);
 }
 
@@ -4081,7 +4180,7 @@ Expr SmtEngine::getValue(const Expr& ex) const
   }
 
   Trace("smt") << "--- getting value of " << n << endl;
-  TheoryModel* m = d_theoryEngine->getModel();
+  TheoryModel* m = d_theoryEngine->getBuiltModel();
   Node resultNode;
   if(m != NULL) {
     resultNode = m->getValue(n);
@@ -4120,15 +4219,15 @@ bool SmtEngine::addToAssignment(const Expr& ex) {
       "expected Boolean-typed variable or function application "
       "in addToAssignment()" );
   Node n = e.getNode();
-  // must be an APPLY of a zero-ary defined function, or a variable
+  // must be a defined constant, or a variable
   PrettyCheckArgument(
-      ( ( n.getKind() == kind::APPLY &&
-          ( d_definedFunctions->find(n.getOperator()) !=
-            d_definedFunctions->end() ) &&
-          n.getNumChildren() == 0 ) ||
-        n.isVar() ), e,
+      (((d_definedFunctions->find(n) != d_definedFunctions->end())
+        && n.getNumChildren() == 0)
+       || n.isVar()),
+      e,
       "expected variable or defined-function application "
-      "in addToAssignment(),\ngot %s", e.toString().c_str() );
+      "in addToAssignment(),\ngot %s",
+      e.toString().c_str());
   if(!options::produceAssignments()) {
     return false;
   }
@@ -4168,7 +4267,7 @@ vector<pair<Expr, Expr>> SmtEngine::getAssignment()
   if (d_assignments != nullptr)
   {
     TypeNode boolType = d_nodeManager->booleanType();
-    TheoryModel* m = d_theoryEngine->getModel();
+    TheoryModel* m = d_theoryEngine->getBuiltModel();
     for (AssignmentSet::key_iterator i = d_assignments->key_begin(),
                                      iend = d_assignments->key_end();
          i != iend;
@@ -4197,8 +4296,7 @@ vector<pair<Expr, Expr>> SmtEngine::getAssignment()
       // ensure it's a constant
       Assert(resultNode.isConst());
 
-      Assert(as.getKind() == kind::APPLY || as.isVar());
-      Assert(as.getKind() != kind::APPLY || as.getNumChildren() == 0);
+      Assert(as.isVar());
       res.emplace_back(as.toExpr(), resultNode.toExpr());
     }
   }
@@ -4219,7 +4317,6 @@ void SmtEngine::addToModelCommandAndDump(const Command& c, uint32_t flags, bool 
   if(/* userVisible && */
      (!d_fullyInited || options::produceModels()) &&
      (flags & ExprManager::VAR_FLAG_DEFINED) == 0) {
-    doPendingPops();
     if(flags & ExprManager::VAR_FLAG_GLOBAL) {
       d_modelGlobalCommands.push_back(c.clone());
     } else {
@@ -4266,14 +4363,28 @@ Model* SmtEngine::getModel() {
       "Cannot get model when produce-models options is off.";
     throw ModalException(msg);
   }
-  TheoryModel* m = d_theoryEngine->getModel();
+  TheoryModel* m = d_theoryEngine->getBuiltModel();
 
-  if (options::produceModelCores())
+  // Since model m is being returned to the user, we must ensure that this
+  // model object remains valid with future check-sat calls. Hence, we set
+  // the theory engine into "eager model building" mode. TODO #2648: revisit.
+  d_theoryEngine->setEagerModelBuilding();
+
+  if (options::modelCoresMode() != MODEL_CORES_NONE)
   {
     // If we enabled model cores, we compute a model core for m based on our
     // assertions using the model core builder utility
     std::vector<Expr> easserts = getAssertions();
-    ModelCoreBuilder::setModelCore(easserts, m);
+    // must expand definitions
+    std::vector<Expr> eassertsProc;
+    std::unordered_map<Node, Node, NodeHashFunction> cache;
+    for (unsigned i = 0, nasserts = easserts.size(); i < nasserts; i++)
+    {
+      Node ea = Node::fromExpr(easserts[i]);
+      Node eae = d_private->expandDefinitions(ea, cache);
+      eassertsProc.push_back(eae.toExpr());
+    }
+    ModelCoreBuilder::setModelCore(eassertsProc, m, options::modelCoresMode());
   }
   m->d_inputName = d_filename;
   return m;
@@ -4291,7 +4402,7 @@ std::pair<Expr, Expr> SmtEngine::getSepHeapAndNilExpr(void)
   NodeManagerScope nms(d_nodeManager);
   Expr heap;
   Expr nil;
-  Model* m = getModel();
+  Model* m = d_theoryEngine->getBuiltModel();
   if (m->getHeapModel(heap, nil))
   {
     return std::make_pair(heap, nil);
@@ -4304,6 +4415,57 @@ std::pair<Expr, Expr> SmtEngine::getSepHeapAndNilExpr(void)
 Expr SmtEngine::getSepHeapExpr() { return getSepHeapAndNilExpr().first; }
 
 Expr SmtEngine::getSepNilExpr() { return getSepHeapAndNilExpr().second; }
+
+void SmtEngine::checkProof()
+{
+#if (IS_LFSC_BUILD && IS_PROOFS_BUILD)
+
+  Chat() << "generating proof..." << endl;
+
+  const Proof& pf = getProof();
+
+  Chat() << "checking proof..." << endl;
+
+  std::string logicString = d_logic.getLogicString();
+
+  if (!(
+          // Pure logics
+          logicString == "QF_UF" || logicString == "QF_AX"
+          || logicString == "QF_BV" ||
+          // Non-pure logics
+          logicString == "QF_AUF" || logicString == "QF_UFBV"
+          || logicString == "QF_ABV" || logicString == "QF_AUFBV"))
+  {
+    // This logic is not yet supported
+    Notice() << "Notice: no proof-checking for " << logicString << " proofs yet"
+             << endl;
+    return;
+  }
+
+  std::stringstream pfStream;
+
+  pfStream << proof::plf_signatures << endl;
+  int64_t sizeBeforeProof = static_cast<int64_t>(pfStream.tellp());
+
+  pf.toStream(pfStream);
+  d_stats->d_proofsSize +=
+      static_cast<int64_t>(pfStream.tellp()) - sizeBeforeProof;
+
+  {
+    TimerStat::CodeTimer checkProofTimer(d_stats->d_lfscCheckProofTime);
+    lfscc_init();
+    lfscc_check_file(pfStream, false, false, false, false, false, false, false);
+  }
+  // FIXME: we should actually call lfscc_cleanup here, but lfscc_cleanup
+  // segfaults on regress0/bv/core/bitvec7.smt
+  // lfscc_cleanup();
+
+#else  /* (IS_LFSC_BUILD && IS_PROOFS_BUILD) */
+  Unreachable(
+      "This version of CVC4 was built without proof support; cannot check "
+      "proofs.");
+#endif /* (IS_LFSC_BUILD && IS_PROOFS_BUILD) */
+}
 
 UnsatCore SmtEngine::getUnsatCoreInternal()
 {
@@ -4384,7 +4546,7 @@ void SmtEngine::checkModel(bool hardFailure) {
   // and if Notice() is on, the user gave --verbose (or equivalent).
 
   Notice() << "SmtEngine::checkModel(): generating model" << endl;
-  TheoryModel* m = d_theoryEngine->getModel();
+  TheoryModel* m = d_theoryEngine->getBuiltModel();
 
   // check-model is not guaranteed to succeed if approximate values were used
   if (m->hasApproximations())
@@ -4720,6 +4882,7 @@ const Proof& SmtEngine::getProof()
 
 void SmtEngine::printInstantiations( std::ostream& out ) {
   SmtScope smts(this);
+  finalOptionsAreSet();
   if( options::instFormatMode()==INST_FORMAT_MODE_SZS ){
     out << "% SZS output start Proof for " << d_filename.c_str() << std::endl;
   }
@@ -4735,6 +4898,7 @@ void SmtEngine::printInstantiations( std::ostream& out ) {
 
 void SmtEngine::printSynthSolution( std::ostream& out ) {
   SmtScope smts(this);
+  finalOptionsAreSet();
   if( d_theoryEngine ){
     d_theoryEngine->printSynthSolution( out );
   }else{
@@ -4745,6 +4909,7 @@ void SmtEngine::printSynthSolution( std::ostream& out ) {
 void SmtEngine::getSynthSolutions(std::map<Expr, Expr>& sol_map)
 {
   SmtScope smts(this);
+  finalOptionsAreSet();
   map<Node, Node> sol_mapn;
   Assert(d_theoryEngine != nullptr);
   d_theoryEngine->getSynthSolutions(sol_mapn);
@@ -4757,6 +4922,7 @@ void SmtEngine::getSynthSolutions(std::map<Expr, Expr>& sol_map)
 Expr SmtEngine::doQuantifierElimination(const Expr& e, bool doFull, bool strict)
 {
   SmtScope smts(this);
+  finalOptionsAreSet();
   if(!d_logic.isPure(THEORY_ARITH) && strict){
     Warning() << "Unexpected logic for quantifier elimination " << d_logic << endl;
   }
@@ -4896,11 +5062,6 @@ void SmtEngine::push()
     throw ModalException("Cannot push when not solving incrementally (use --incremental)");
   }
 
-  // check to see if a postsolve() is pending
-  if(d_needPostsolve) {
-    d_theoryEngine->postsolve();
-    d_needPostsolve = false;
-  }
 
   // The problem isn't really "extended" yet, but this disallows
   // get-model after a push, simplifying our lives somewhat and
@@ -4925,12 +5086,6 @@ void SmtEngine::pop() {
   }
   if(d_userLevels.size() == 0) {
     throw ModalException("Cannot pop beyond the first user frame");
-  }
-
-  // check to see if a postsolve() is pending
-  if(d_needPostsolve) {
-    d_theoryEngine->postsolve();
-    d_needPostsolve = false;
   }
 
   // The problem isn't really "extended" yet, but this disallows
@@ -4982,13 +5137,24 @@ void SmtEngine::internalPop(bool immediate) {
 }
 
 void SmtEngine::doPendingPops() {
+  Trace("smt") << "SmtEngine::doPendingPops()" << endl;
   Assert(d_pendingPops == 0 || options::incrementalSolving());
+  // check to see if a postsolve() is pending
+  if (d_needPostsolve)
+  {
+    d_propEngine->resetTrail();
+  }
   while(d_pendingPops > 0) {
     TimerStat::CodeTimer pushPopTimer(d_stats->d_pushPopTime);
     d_propEngine->pop();
     // the d_context pop is done inside of the SAT solver
     d_userContext->pop();
     --d_pendingPops;
+  }
+  if (d_needPostsolve)
+  {
+    d_theoryEngine->postsolve();
+    d_needPostsolve = false;
   }
 }
 
@@ -5084,6 +5250,7 @@ void SmtEngine::setUserAttribute(const std::string& attr,
                                  const std::string& str_value)
 {
   SmtScope smts(this);
+  finalOptionsAreSet();
   std::vector<Node> node_values;
   for( unsigned i=0; i<expr_values.size(); i++ ){
     node_values.push_back( expr_values[i].getNode() );
@@ -5158,6 +5325,7 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
   nodeManagerOptions.setOption(key, optionarg);
 }
 
+void SmtEngine::setIsInternalSubsolver() { d_isInternalSubsolver = true; }
 CVC4::SExpr SmtEngine::getOption(const std::string& key) const
 {
   NodeManagerScope nms(d_nodeManager);

@@ -2,9 +2,9 @@
 /*! \file term_util.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Reynolds, Paul Meng, Yoni Zohar
+ **   Andrew Reynolds, Morgan Deters, Andres Noetzli
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -654,7 +654,15 @@ bool TermUtil::isNegate(Kind k)
   return k == NOT || k == BITVECTOR_NOT || k == BITVECTOR_NEG || k == UMINUS;
 }
 
-bool TermUtil::isAssoc( Kind k ) {
+bool TermUtil::isAssoc(Kind k, bool reqNAry)
+{
+  if (reqNAry)
+  {
+    if (k == UNION || k == INTERSECTION)
+    {
+      return false;
+    }
+  }
   return k == PLUS || k == MULT || k == NONLINEAR_MULT || k == AND || k == OR
          || k == XOR || k == BITVECTOR_PLUS || k == BITVECTOR_MULT
          || k == BITVECTOR_AND || k == BITVECTOR_OR || k == BITVECTOR_XOR
@@ -663,7 +671,15 @@ bool TermUtil::isAssoc( Kind k ) {
          || k == SEP_STAR;
 }
 
-bool TermUtil::isComm( Kind k ) {
+bool TermUtil::isComm(Kind k, bool reqNAry)
+{
+  if (reqNAry)
+  {
+    if (k == UNION || k == INTERSECTION)
+    {
+      return false;
+    }
+  }
   return k == EQUAL || k == PLUS || k == MULT || k == NONLINEAR_MULT || k == AND
          || k == OR || k == XOR || k == BITVECTOR_PLUS || k == BITVECTOR_MULT
          || k == BITVECTOR_AND || k == BITVECTOR_OR || k == BITVECTOR_XOR

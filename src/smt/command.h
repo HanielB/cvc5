@@ -2,9 +2,9 @@
 /*! \file command.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Tim King, Morgan Deters, Andrew Reynolds
+ **   Tim King, Morgan Deters, Haniel Barbosa
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -19,8 +19,8 @@
 
 #include "cvc4_public.h"
 
-#ifndef __CVC4__COMMAND_H
-#define __CVC4__COMMAND_H
+#ifndef CVC4__COMMAND_H
+#define CVC4__COMMAND_H
 
 #include <iosfwd>
 #include <map>
@@ -615,73 +615,109 @@ class CVC4_PUBLIC QueryCommand : public Command
 
 /* ------------------- sygus commands  ------------------ */
 
-class CVC4_PUBLIC DeclareVarCommand : public DeclarationDefinitionCommand
+/** Declares a sygus universal variable */
+class CVC4_PUBLIC DeclareSygusVarCommand : public DeclarationDefinitionCommand
 {
- protected:
-  Expr d_var;
-  Type d_type;
-
  public:
-  DeclareVarCommand(const std::string& id, Expr var, Type type);
+  DeclareSygusVarCommand(const std::string& id, Expr var, Type type);
+  /** returns the declared variable */
   Expr getVar() const;
+  /** returns the declared variable's type */
   Type getType() const;
-
-  /** default interface */
+  /** invokes this command
+   *
+   * The declared sygus variable is communicated to the SMT engine in case a
+   * synthesis conjecture is built later on.
+   */
   void invoke(SmtEngine* smtEngine) override;
+  /** exports command to given expression manager */
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override;
+  /** creates a copy of this command */
   Command* clone() const override;
+  /** returns this command's name */
   std::string getCommandName() const override;
+
+ protected:
+  /** the declared variable */
+  Expr d_var;
+  /** the declared variable's type */
+  Type d_type;
 };
 
-class CVC4_PUBLIC DeclarePrimedVarCommand : public DeclarationDefinitionCommand
+/** Declares a sygus primed variable, for invariant problems
+ *
+ * We do not actually build expressions for the declared variables because they
+ * are unnecessary for building SyGuS problems.
+ */
+class CVC4_PUBLIC DeclareSygusPrimedVarCommand
+    : public DeclarationDefinitionCommand
 {
- protected:
-  Type d_type;
-
  public:
-  DeclarePrimedVarCommand(const std::string& id, Type type);
+  DeclareSygusPrimedVarCommand(const std::string& id, Type type);
+  /** returns the declared primed variable's type */
   Type getType() const;
 
-  /** default interface */
+  /** invokes this command
+   *
+   * The type of the primed variable is communicated to the SMT engine for
+   * debugging purposes when a synthesis conjecture is built later on.
+   */
   void invoke(SmtEngine* smtEngine) override;
+  /** exports command to given expression manager */
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override;
+  /** creates a copy of this command */
   Command* clone() const override;
+  /** returns this command's name */
   std::string getCommandName() const override;
+
+ protected:
+  /** the type of the declared primed variable */
+  Type d_type;
 };
 
-class CVC4_PUBLIC DeclareSygusFunctionCommand : public DeclarationDefinitionCommand
+/** Declares a sygus universal function variable */
+class CVC4_PUBLIC DeclareSygusFunctionCommand
+    : public DeclarationDefinitionCommand
 {
- protected:
-  Expr d_func;
-  Type d_type;
-
  public:
   DeclareSygusFunctionCommand(const std::string& id, Expr func, Type type);
+  /** returns the declared function variable */
   Expr getFunction() const;
+  /** returns the declared function variable's type */
   Type getType() const;
-
-  /** default interface */
+  /** invokes this command
+   *
+   * The declared sygus function variable is communicated to the SMT engine in
+   * case a synthesis conjecture is built later on.
+   */
   void invoke(SmtEngine* smtEngine) override;
+  /** exports command to given expression manager */
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override;
+  /** creates a copy of this command */
   Command* clone() const override;
+  /** returns this command's name */
   std::string getCommandName() const override;
-}; /* class DeclareFunctionCommand */
 
+ protected:
+  /** the declared function variable */
+  Expr d_func;
+  /** the declared function variable's type */
+  Type d_type;
+};
 
+/** Declares a sygus function-to-synthesize
+ *
+ * This command is also used for the special case in which we are declaring an
+ * invariant-to-synthesize
+ */
 class CVC4_PUBLIC SynthFunCommand : public DeclarationDefinitionCommand
 {
  protected:
-  Expr d_func;
-  /** sygus type of the function-to-synthesize
-   *
-   * Note that
-   */
-  Type d_sygusType;
-  bool d_isInv;
-  std::vector<Expr> d_vars;
+  Type d_type;
+
  public:
   SynthFunCommand(const std::string& id,
                   Expr func,
@@ -689,68 +725,136 @@ class CVC4_PUBLIC SynthFunCommand : public DeclarationDefinitionCommand
                   bool isInv,
                   const std::vector<Expr>& vars);
   SynthFunCommand(const std::string& id, Expr func, Type sygusType, bool isInv);
+  /** returns the function-to-synthesize */
   Expr getFunction() const;
+  /** returns the input variables of the function-to-synthesize */
   const std::vector<Expr>& getVars() const;
+  /** returns the sygus type of the function-to-synthesize */
   Type getSygusType() const;
+  /** returns whether the function-to-synthesize should be an invariant */
   bool isInv() const;
 
-  /** default interface */
+  /** invokes this command
+   *
+   * The declared function-to-synthesize is communicated to the SMT engine in
+   * case a synthesis conjecture is built later on.
+   */
   void invoke(SmtEngine* smtEngine) override;
+  /** exports command to given expression manager */
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override;
+  /** creates a copy of this command */
   Command* clone() const override;
+  /** returns this command's name */
   std::string getCommandName() const override;
-}; /* class DeclareFunctionCommand */
 
-class CVC4_PUBLIC ConstraintCommand : public Command
-{
  protected:
-  Expr d_expr;
+  /** the function-to-synthesize */
+  Expr d_func;
+  /** sygus type of the function-to-synthesize
+   *
+   * If this type is a "sygus datatype" then it encodes a grammar for the
+   * possible varlues of the function-to-sytnhesize
+   */
+  Type d_sygusType;
+  /** whether the function-to-synthesize should be an invariant */
+  bool d_isInv;
+  /** the input variables of the function-to-synthesize */
+  std::vector<Expr> d_vars;
+};
 
+/** Declares a sygus constraint */
+class CVC4_PUBLIC SygusConstraintCommand : public Command
+{
  public:
-  ConstraintCommand(const Expr& e);
-
+  SygusConstraintCommand(const Expr& e);
+  /** returns the declared constraint */
   Expr getExpr() const;
-
-  /** default interface */
+  /** invokes this command
+   *
+   * The declared constraint is communicated to the SMT engine in case a
+   * synthesis conjecture is built later on.
+   */
   void invoke(SmtEngine* smtEngine) override;
+  /** exports command to given expression manager */
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override;
+  /** creates a copy of this command */
   Command* clone() const override;
+  /** returns this command's name */
   std::string getCommandName() const override;
-};
 
-class CVC4_PUBLIC InvConstraintCommand : public Command
-{
  protected:
-  std::vector<Expr> d_place_holders;
-
- public:
-  InvConstraintCommand(const std::vector<Expr>& place_holders);
-
-  const std::vector<Expr>& getPlaceHolders() const;
-
-  /** default interface */
-  void invoke(SmtEngine* smtEngine) override;
-  Command* exportTo(ExprManager* exprManager,
-                    ExprManagerMapCollection& variableMap) override;
-  Command* clone() const override;
-  std::string getCommandName() const override;
+  /** the declared constraint */
+  Expr d_expr;
 };
 
+/** Declares a sygus invariant constraint
+ *
+ * Invarint constraints are declared in a somewhat implicit manner in the SyGuS
+ * language: they are declared in terms of the previously declared
+ * invariant-to-synthesize, precondition, transition relation and condition.
+ *
+ * The actual constraint must be built such that the invariant is not stronger
+ * than the precondition, not weaker than the postcondition and inductive
+ * w.r.t. the transition relation.
+ */
+class CVC4_PUBLIC SygusInvConstraintCommand : public Command
+{
+ public:
+  SygusInvConstraintCommand(const std::vector<Expr>& predicates);
+  SygusInvConstraintCommand(const Expr& inv,
+                            const Expr& pre,
+                            const Expr& trans,
+                            const Expr& post);
+  /** returns the place holder predicates */
+  const std::vector<Expr>& getPredicates() const;
+  /** invokes this command
+   *
+   * The place holders are communicated to the SMT engine and the actual
+   * invariant constraint is built, in case an actual synthesis conjecture is
+   * built later on.
+   */
+  void invoke(SmtEngine* smtEngine) override;
+  /** exports command to given expression manager */
+  Command* exportTo(ExprManager* exprManager,
+                    ExprManagerMapCollection& variableMap) override;
+  /** creates a copy of this command */
+  Command* clone() const override;
+  /** returns this command's name */
+  std::string getCommandName() const override;
+
+ protected:
+  /** the place holder predicates with which to build the actual constraint
+   * (i.e. the invariant, precondition, transition relation and postcondition)
+   */
+  std::vector<Expr> d_predicates;
+};
+
+/** Declares a synthesis conjecture */
 class CVC4_PUBLIC CheckSynthCommand : public Command
 {
  public:
-  CheckSynthCommand() {};
-
+  CheckSynthCommand(){};
+  /** returns the result of the check-synth call */
   Result getResult() const;
-
-  /** default interface */
-  void invoke(SmtEngine* smtEngine) override;
+  /** prints the result of the check-synth-call */
   void printResult(std::ostream& out, uint32_t verbosity = 2) const override;
+  /** invokes this command
+   *
+   * This invocation makes the SMT engine build a synthesis conjecture based on
+   * previously declared information (such as universal variables,
+   * functions-to-synthesize and so on), set up attributes to guide the solving,
+   * and then perform a satisfiability check, whose result is stored in
+   * d_result.
+   */
+  void invoke(SmtEngine* smtEngine) override;
+  /** exports command to given expression manager */
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override;
+  /** creates a copy of this command */
   Command* clone() const override;
+  /** returns this command's name */
   std::string getCommandName() const override;
 
  protected:
@@ -758,7 +862,9 @@ class CVC4_PUBLIC CheckSynthCommand : public Command
   Result d_result;
   /** string stream that stores the output of the solution */
   std::stringstream d_solution;
-}; /* class CheckSynthCommand */
+};
+
+/* ------------------- sygus commands  ------------------ */
 
 /* ------------------- sygus commands  ------------------ */
 
@@ -1295,4 +1401,4 @@ class CVC4_PUBLIC DeclarationSequence : public CommandSequence
 
 } /* CVC4 namespace */
 
-#endif /* __CVC4__COMMAND_H */
+#endif /* CVC4__COMMAND_H */

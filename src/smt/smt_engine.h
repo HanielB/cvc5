@@ -2,9 +2,9 @@
 /*! \file smt_engine.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Morgan Deters, Andrew Reynolds, Tim King
+ **   Morgan Deters, Andrew Reynolds, Haniel Barbosa
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -16,8 +16,8 @@
 
 #include "cvc4_public.h"
 
-#ifndef __CVC4__SMT_ENGINE_H
-#define __CVC4__SMT_ENGINE_H
+#ifndef CVC4__SMT_ENGINE_H
+#define CVC4__SMT_ENGINE_H
 
 #include <string>
 #include <vector>
@@ -209,6 +209,9 @@ class CVC4_PUBLIC SmtEngine {
    */
   Options d_originalOptions;
 
+  /** whether this is an internal subsolver */
+  bool d_isInternalSubsolver;
+
   /**
    * Number of internal pops that have been deferred.
    */
@@ -217,8 +220,8 @@ class CVC4_PUBLIC SmtEngine {
   /**
    * Whether or not this SmtEngine is fully initialized (post-construction).
    * This post-construction initialization is automatically triggered by the
-   * use of the SmtEngine; e.g. when setLogic() is called, or the first
-   * assertion is made, etc.
+   * use of the SmtEngine; e.g. when the first formula is asserted, a call
+   * to simplify() is issued, a scope is pushed, etc.
    */
   bool d_fullyInited;
 
@@ -483,6 +486,14 @@ class CVC4_PUBLIC SmtEngine {
   ~SmtEngine();
 
   /**
+   * Return true if this SmtEngine is fully initialized (post-construction).
+   * This post-construction initialization is automatically triggered by the
+   * use of the SmtEngine; e.g. when the first formula is asserted, a call
+   * to simplify() is issued, a scope is pushed, etc.
+   */
+  bool isFullyInited() { return d_fullyInited; }
+
+  /**
    * Set the logic of the script.
    */
   void setLogic(
@@ -519,6 +530,15 @@ class CVC4_PUBLIC SmtEngine {
    */
   void setOption(const std::string& key, const CVC4::SExpr& value)
       /* throw(OptionException, ModalException) */;
+
+  /** Set is internal subsolver.
+   *
+   * This function is called on SmtEngine objects that are created internally.
+   * It is used to mark that this SmtEngine should not perform preprocessing
+   * passes that rephrase the input, such as --sygus-rr-synth-input or
+   * --sygus-abduct.
+   */
+  void setIsInternalSubsolver();
 
   /** sets the input name */
   void setFilename(std::string filename);
@@ -636,7 +656,11 @@ class CVC4_PUBLIC SmtEngine {
 
   /*------------------- sygus commands  ------------------*/
 
-  /** adds a variable declaration */
+  /** adds a variable declaration
+   *
+   * Declared SyGuS variables may be used in SyGuS constraints, in which they
+   * are assumed to be universally quantified.
+   */
   void declareSygusVar(const std::string& id, Expr var, Type type);
   /** stores information for debugging sygus invariants setup
    *
@@ -646,23 +670,41 @@ class CVC4_PUBLIC SmtEngine {
    * invariant-to-synthesize.
    */
   void declareSygusPrimedVar(const std::string& id, Type type);
-  /** adds a function variable declaration */
+  /** adds a function variable declaration
+   *
+   * Is SyGuS semantics declared functions are treated in the same manner as
+   * declared variables, i.e. as universally quantified (function) variables
+   * which can occur in the SyGuS constraints that compose the conjecture to
+   * which a function is being synthesized.
+   */
   void declareSygusFunctionVar(const std::string& id, Expr var, Type type);
-  /** adds a function-to-synthesize declaration */
-
+  /** adds a function-to-synthesize declaration
+   *
+   * The given type may not correspond to the actual function type but to a
+   * datatype encoding the syntax restrictions for the
+   * function-to-synthesize. In this case this information is stored to be used
+   * during solving.
+   *
+   * vars contains the arguments of the function-to-synthesize. These variables
+   * are also stored to be used during solving.
+   *
+   * isInv determines whether the function-to-synthesize is actually an
+   * invariant. This information is necessary if we are dumping a command
+   * corresponding to this declaration, so that it can be properly printed.
+   */
   void declareSynthFun(const std::string& id,
                        Expr func,
                        Type type,
                        bool isInv,
                        const std::vector<Expr>& vars);
-  /** adds a regular sygus constraint **/
+  /** adds a regular sygus constraint */
   void assertSygusConstraint(Expr constraint);
   /** adds an invariant constraint
    *
    * Invariant constraints are not explicitly declared: they are given in terms
    * of the invariant-to-synthesize, the pre condition, transition relation and
    * post condition. The actual constraint is built based on the inputs of these
-   * place holders :
+   * place holder predicates :
    *
    * PRE(x) -> INV(x)
    * INV() ^ TRANS(x, x') -> INV(x')
@@ -671,10 +713,23 @@ class CVC4_PUBLIC SmtEngine {
    * The regular and primed variables are retrieved from the declaration of the
    * invariant-to-synthesize.
    */
-  void assertSygusInvConstraint(const std::vector<Expr>& place_holders);
+  void assertSygusInvConstraint(const Expr& inv,
+                                const Expr& pre,
+                                const Expr& trans,
+                                const Expr& post);
   /**
    * Assert a synthesis conjecture to the current context and call
    * check().  Returns sat, unsat, or unknown result.
+   *
+   * The actual synthesis conjecture is built based on the previously
+   * communicated information to this module (universal variables, defined
+   * functions, functions-to-synthesize, and which constraints compose it). The
+   * built conjecture is a higher-order formula of the form
+   *
+   * exists f1...fn . forall v1...vm . F
+   *
+   * in which f1...fn are the functions-to-synthesize, v1...vm are the declared
+   * universal variables and F is the set of declared constraints.
    */
   Result checkSynth() /* throw(Exception) */;
 
@@ -1035,4 +1090,4 @@ class CVC4_PUBLIC SmtEngine {
 
 }/* CVC4 namespace */
 
-#endif /* __CVC4__SMT_ENGINE_H */
+#endif /* CVC4__SMT_ENGINE_H */

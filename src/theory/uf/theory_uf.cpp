@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds, Morgan Deters, Dejan Jovanovic
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -19,18 +19,18 @@
 
 #include <memory>
 
+#include "expr/node_algorithm.h"
 #include "options/quantifiers_options.h"
 #include "options/smt_options.h"
+#include "options/theory_options.h"
 #include "options/uf_options.h"
 #include "proof/proof_manager.h"
 #include "proof/theory_proof.h"
 #include "proof/uf_proof.h"
 #include "theory/theory_model.h"
 #include "theory/type_enumerator.h"
-#include "theory/uf/theory_uf_strong_solver.h"
-#include "theory/quantifiers/term_database.h"
-#include "options/theory_options.h"
 #include "theory/uf/theory_uf_rewriter.h"
+#include "theory/uf/theory_uf_strong_solver.h"
 
 using namespace std;
 
@@ -187,22 +187,67 @@ Node TheoryUF::getApplyUfForHoApply( Node node ) {
   std::vector< TNode > args;
   Node f = TheoryUfRewriter::decomposeHoApply( node, args, true );
   Node new_f = f;
+  NodeManager* nm = NodeManager::currentNM();
   if( !TheoryUfRewriter::canUseAsApplyUfOperator( f ) ){
     NodeNodeMap::const_iterator itus = d_uf_std_skolem.find( f );
     if( itus==d_uf_std_skolem.end() ){
-      // introduce skolem to make a standard APPLY_UF
-      new_f = NodeManager::currentNM()->mkSkolem( "app_uf", f.getType() );
-      Node lem = new_f.eqNode( f );
+      std::unordered_set<Node, NodeHashFunction> fvs;
+      expr::getFreeVariables(f, fvs);
+      Node lem;
+      if (!fvs.empty())
+      {
+        std::vector<TypeNode> newTypes;
+        std::vector<Node> vs;
+        std::vector<Node> nvs;
+        for (const Node& v : fvs)
+        {
+          TypeNode vt = v.getType();
+          newTypes.push_back(vt);
+          Node nv = nm->mkBoundVar(vt);
+          vs.push_back(v);
+          nvs.push_back(nv);
+        }
+        TypeNode ft = f.getType();
+        std::vector<TypeNode> argTypes = ft.getArgTypes();
+        TypeNode rangeType = ft.getRangeType();
+
+        newTypes.insert(newTypes.end(), argTypes.begin(), argTypes.end());
+        TypeNode nft = nm->mkFunctionType(newTypes, rangeType);
+        new_f = nm->mkSkolem("app_uf", nft);
+        for (const Node& v : vs)
+        {
+          new_f = nm->mkNode(kind::HO_APPLY, new_f, v);
+        }
+        Assert(new_f.getType() == f.getType());
+        Node eq = new_f.eqNode(f);
+        Node seq = eq.substitute(vs.begin(), vs.end(), nvs.begin(), nvs.end());
+        lem = nm->mkNode(
+            kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST, nvs), seq);
+      }
+      else
+      {
+        // introduce skolem to make a standard APPLY_UF
+        new_f = nm->mkSkolem("app_uf", f.getType());
+        lem = new_f.eqNode(f);
+      }
       Trace("uf-ho-lemma") << "uf-ho-lemma : Skolem definition for apply-conversion : " << lem << std::endl;
       d_out->lemma( lem );
       d_uf_std_skolem[f] = new_f;
     }else{
       new_f = (*itus).second;
     }
+    // unroll the HO_APPLY, adding to the first argument position
+    // Note arguments in the vector args begin at position 1.
+    while (new_f.getKind() == kind::HO_APPLY)
+    {
+      args.insert(args.begin() + 1, new_f[1]);
+      new_f = new_f[0];
+    }
   }
   Assert( TheoryUfRewriter::canUseAsApplyUfOperator( new_f ) );
   args[0] = new_f;
-  Node ret = NodeManager::currentNM()->mkNode( kind::APPLY_UF, args );
+  Node ret = nm->mkNode(kind::APPLY_UF, args);
+  Assert(ret.getType() == node.getType());
   return ret;
 }
 
@@ -410,7 +455,8 @@ void TheoryUF::ppStaticLearn(TNode n, NodeBuilder<>& learned) {
   while(!workList.empty()) {
     n = workList.back();
 
-    if(n.getKind() == kind::FORALL || n.getKind() == kind::EXISTS) {
+    if (n.isClosure())
+    {
       // unsafe to go under quantifiers; we might pull bound vars out of scope!
       processed.insert(n);
       workList.pop_back();
@@ -557,12 +603,15 @@ bool TheoryUF::areCareDisequal(TNode x, TNode y){
   return false;
 }
 
-//TODO: move quantifiers::TermArgTrie to src/theory/
-void TheoryUF::addCarePairs( quantifiers::TermArgTrie * t1, quantifiers::TermArgTrie * t2, unsigned arity, unsigned depth ){
+void TheoryUF::addCarePairs(TNodeTrie* t1,
+                            TNodeTrie* t2,
+                            unsigned arity,
+                            unsigned depth)
+{
   if( depth==arity ){
     if( t2!=NULL ){
-      Node f1 = t1->getNodeData();
-      Node f2 = t2->getNodeData();
+      Node f1 = t1->getData();
+      Node f2 = t2->getData();
       if( !d_equalityEngine.areEqual( f1, f2 ) ){
         Debug("uf::sharing") << "TheoryUf::computeCareGraph(): checking function " << f1 << " and " << f2 << std::endl;
         vector< pair<TNode, TNode> > currentPairs;
@@ -592,13 +641,17 @@ void TheoryUF::addCarePairs( quantifiers::TermArgTrie * t1, quantifiers::TermArg
     if( t2==NULL ){
       if( depth<(arity-1) ){
         //add care pairs internal to each child
-        for( std::map< TNode, quantifiers::TermArgTrie >::iterator it = t1->d_data.begin(); it != t1->d_data.end(); ++it ){
-          addCarePairs( &it->second, NULL, arity, depth+1 );
+        for (std::pair<const TNode, TNodeTrie>& tt : t1->d_data)
+        {
+          addCarePairs(&tt.second, NULL, arity, depth + 1);
         }
       }
       //add care pairs based on each pair of non-disequal arguments
-      for( std::map< TNode, quantifiers::TermArgTrie >::iterator it = t1->d_data.begin(); it != t1->d_data.end(); ++it ){
-        std::map< TNode, quantifiers::TermArgTrie >::iterator it2 = it;
+      for (std::map<TNode, TNodeTrie>::iterator it = t1->d_data.begin();
+           it != t1->d_data.end();
+           ++it)
+      {
+        std::map<TNode, TNodeTrie>::iterator it2 = it;
         ++it2;
         for( ; it2 != t1->d_data.end(); ++it2 ){
           if( !d_equalityEngine.areDisequal(it->first, it2->first, false) ){
@@ -610,11 +663,15 @@ void TheoryUF::addCarePairs( quantifiers::TermArgTrie * t1, quantifiers::TermArg
       }
     }else{
       //add care pairs based on product of indices, non-disequal arguments
-      for( std::map< TNode, quantifiers::TermArgTrie >::iterator it = t1->d_data.begin(); it != t1->d_data.end(); ++it ){
-        for( std::map< TNode, quantifiers::TermArgTrie >::iterator it2 = t2->d_data.begin(); it2 != t2->d_data.end(); ++it2 ){
-          if( !d_equalityEngine.areDisequal(it->first, it2->first, false) ){
-            if( !areCareDisequal(it->first, it2->first) ){
-              addCarePairs( &it->second, &it2->second, arity, depth+1 );
+      for (std::pair<const TNode, TNodeTrie>& tt1 : t1->d_data)
+      {
+        for (std::pair<const TNode, TNodeTrie>& tt2 : t2->d_data)
+        {
+          if (!d_equalityEngine.areDisequal(tt1.first, tt2.first, false))
+          {
+            if (!areCareDisequal(tt1.first, tt2.first))
+            {
+              addCarePairs(&tt1.second, &tt2.second, arity, depth + 1);
             }
           }
         }
@@ -628,7 +685,7 @@ void TheoryUF::computeCareGraph() {
   if (d_sharedTerms.size() > 0) {
     //use term indexing
     Debug("uf::sharing") << "TheoryUf::computeCareGraph(): Build term indices..." << std::endl;
-    std::map< Node, quantifiers::TermArgTrie > index;
+    std::map<Node, TNodeTrie> index;
     std::map< Node, unsigned > arity;
     unsigned functionTerms = d_functionsTerms.size();
     for (unsigned i = 0; i < functionTerms; ++ i) {
@@ -644,14 +701,16 @@ void TheoryUF::computeCareGraph() {
         }
       }
       if( has_trigger_arg ){
-        index[op].addTerm( f1, reps, arg_start_index );
+        index[op].addTerm(f1, reps);
         arity[op] = reps.size();
       }
     }
     //for each index
-    for( std::map< Node, quantifiers::TermArgTrie >::iterator itii = index.begin(); itii != index.end(); ++itii ){
-      Debug("uf::sharing") << "TheoryUf::computeCareGraph(): Process index " << itii->first << "..." << std::endl;
-      addCarePairs( &itii->second, NULL, arity[ itii->first ], 0 );
+    for (std::pair<const Node, TNodeTrie>& tt : index)
+    {
+      Debug("uf::sharing") << "TheoryUf::computeCareGraph(): Process index "
+                           << tt.first << "..." << std::endl;
+      addCarePairs(&tt.second, nullptr, arity[tt.first], 0);
     }
     Debug("uf::sharing") << "TheoryUf::computeCareGraph(): finished." << std::endl;
   }
