@@ -140,13 +140,13 @@ void SygusPrinter::toStream(std::ostream& out,
 
   if (tryToStream<SetBenchmarkLogicCommand>(out, c)
       || tryToStream<CommandSequence>(out, c)
-      || tryToStream<DeclareVarCommand>(out, c)
-      || tryToStream<DeclarePrimedVarCommand>(out, c)
+      || tryToStream<DeclareSygusVarCommand>(out, c)
+      || tryToStream<DeclareSygusPrimedVarCommand>(out, c)
       || tryToStream<DeclareFunctionCommand>(out, c)
       || tryToStream<DefineFunctionCommand>(out, c)
       || tryToStream<SynthFunCommand>(out, c)
-      || tryToStream<ConstraintCommand>(out, c)
-      || tryToStream<InvConstraintCommand>(out, c)
+      || tryToStream<SygusConstraintCommand>(out, c)
+      || tryToStream<SygusInvConstraintCommand>(out, c)
       || tryToStream<CheckSynthCommand>(out, c))
   {
     return;
@@ -197,7 +197,7 @@ static void toStream(std::ostream& out, const DefineFunctionCommand* c)
   c->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }
 
-static void toStream(std::ostream& out, const DeclareVarCommand* c)
+static void toStream(std::ostream& out, const DeclareSygusVarCommand* c)
 {
   out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
   Type type = c->getType();
@@ -205,7 +205,7 @@ static void toStream(std::ostream& out, const DeclareVarCommand* c)
   out << ") " << type << ")";
 }
 
-static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
+static void toStream(std::ostream& out, const DeclareSygusPrimedVarCommand* c)
 {
   out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol()) << " (";
   Type type = c->getType();
@@ -307,16 +307,16 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
   out << ")";
 }
 
-static void toStream(std::ostream& out, const ConstraintCommand* c)
+static void toStream(std::ostream& out, const SygusConstraintCommand* c)
 {
   out << "(constraint " << c->getExpr() << ")";
 }
 
-static void toStream(std::ostream& out, const InvConstraintCommand* c)
+static void toStream(std::ostream& out, const SygusInvConstraintCommand* c)
 {
   out << "(inv-constraint";
-  const std::vector<Expr>& place_holders = c->getPlaceHolders();
-  for (const Expr& e : place_holders)
+  const std::vector<Expr>& predicates = c->getPredicates();
+  for (const Expr& e : predicates)
   {
     out << " " << e;
   }
