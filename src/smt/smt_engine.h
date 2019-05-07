@@ -471,6 +471,13 @@ class CVC4_PUBLIC SmtEngine {
    */
   std::map<Node, TypeNode> d_sygusFunSyntax;
 
+  /**
+   * A vector of SyGuS commands waiting to be dumped out.  Once the SmtEngine is
+   * fully initialized, we'll dump them.  This ensures for example having the
+   * correct language set up when dumping.
+   */
+  std::vector<Command*> d_dumpSyGuS;
+
   /*------------------- end of sygus utils ------------------*/
 
  public:
@@ -732,6 +739,9 @@ class CVC4_PUBLIC SmtEngine {
    * universal variables and F is the set of declared constraints.
    */
   Result checkSynth() /* throw(Exception) */;
+
+  /** saves SyGuS command to be dumped after options have finished */
+  void saveToDump(Command& c);
 
   /*------------------- end of sygus commands-------------*/
 

@@ -997,6 +997,14 @@ void SmtEngine::finishInit()
   }
   d_dumpCommands.clear();
 
+  // dump out any pending SyGuS commands
+  for (unsigned i = 0, size = d_dumpSyGuS.size(); i < size; ++i)
+  {
+    Dump("sygus-benchmark") << *d_dumpSyGuS[i];
+    delete d_dumpSyGuS[i];
+  }
+  d_dumpSyGuS.clear();
+
   PROOF( ProofManager::currentPM()->setLogic(d_logic); );
   PROOF({
       for(TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id) {
@@ -4070,6 +4078,13 @@ Result SmtEngine::checkSynth()
   return checkSatisfiability(body.toExpr(), true, false);
 }
 
+void SmtEngine::saveToDump(Command& c)
+{
+  Assert(Dump.isOn("sygus-benchmark"));
+  d_dumpSyGuS.push_back(c.clone());
+}
+
+
 /*
    --------------------------------------------------------------------------
     End of Handling SyGuS commands
@@ -4306,7 +4321,7 @@ vector<pair<Expr, Expr>> SmtEngine::getAssignment()
 }
 
 void SmtEngine::addToModelCommandAndDump(const Command& c, uint32_t flags, bool userVisible, const char* dumpTag) {
-  Trace("smt") << "SMT addToModelCommandAndDump(" << c << ")" << endl;
+  Trace("smt") << "SMT addToModelCommandAndDump(" << c << ") on tag " << dumpTag << endl;
   SmtScope smts(this);
   // If we aren't yet fully inited, the user might still turn on
   // produce-models.  So let's keep any commands around just in

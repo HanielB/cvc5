@@ -197,12 +197,12 @@ static void toStream(std::ostream& out, const CommandSequence* c)
 
 static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
 {
-  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 {
-  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const DeclareSygusVarCommand* c)

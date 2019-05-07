@@ -579,6 +579,10 @@ void DeclareSygusVarCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSygusVar(d_symbol, d_var, d_type);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -622,6 +626,10 @@ void DeclareSygusPrimedVarCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSygusPrimedVar(d_symbol, d_type);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -666,6 +674,10 @@ void DeclareSygusFunctionCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSygusFunctionVar(d_symbol, d_func, d_type);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -728,6 +740,10 @@ void SynthFunCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSynthFun(d_symbol, d_func, d_sygusType, d_isInv, d_vars);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -766,6 +782,10 @@ void SygusConstraintCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->assertSygusConstraint(d_expr);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -815,6 +835,10 @@ void SygusInvConstraintCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->assertSygusInvConstraint(
         d_predicates[0], d_predicates[1], d_predicates[2], d_predicates[3]);
     d_commandStatus = CommandSuccess::instance();
@@ -852,14 +876,12 @@ std::string SygusInvConstraintCommand::getCommandName() const
 
 void CheckSynthCommand::invoke(SmtEngine* smtEngine)
 {
-  if (Dump.isOn("sygus-benchmark"))
-  {
-    Trace("test-sygus-dump")
-        << "CheckSynthCommand::invoke gonna print check-synth\n";
-    Dump("sygus-benchmark") << CheckSynthCommand();
-  }
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     d_result = smtEngine->checkSynth();
     d_commandStatus = CommandSuccess::instance();
     smt::SmtScope scope(smtEngine);
@@ -1310,6 +1332,10 @@ void DefineFunctionCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     if (!d_func.isNull())
     {
       smtEngine->defineFunction(d_func, d_formals, d_formula);
@@ -2343,6 +2369,11 @@ void SetBenchmarkLogicCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    // re-using muted flag for whether to dump, not only to print success
+    if (!d_muted && Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->setLogic(d_logic);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -2491,11 +2522,10 @@ void SetOptionCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
-    if (Dump.isOn("sygus-benchmark") && !d_muted)
+    // re-using muted flag for whether to dump, not only to print success
+    if (!d_muted && Dump.isOn("sygus-benchmark"))
     {
-      Trace("test-sygus-dump")
-          << "SetOptionCmd: gonna print with " << d_flag << " : " << d_sexpr << "\n";
-      Dump("sygus-benchmark") << SetOptionCommand(d_flag, d_sexpr);
+      smtEngine->saveToDump(*this);
     }
     smtEngine->setOption(d_flag, d_sexpr);
     d_commandStatus = CommandSuccess::instance();

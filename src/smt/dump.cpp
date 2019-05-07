@@ -120,19 +120,20 @@ void DumpC::setDumpFromString(const std::string& optarg) {
       Dump.on("bv-algebraic");
     } else if(!strcmp(optargPtr, "sygus-benchmark")) {
       Dump.on("sygus-benchmark");
+      return;
     } else {
       throw OptionException(std::string("unknown option for --dump: `") +
                             optargPtr + "'.  Try --dump help.");
     }
 
     Dump.on(optargPtr);
-    if (strcmp(optargPtr, "sygus-benchmark"))
+    Dump.on("benchmark");
+    if (strcmp(optargPtr, "benchmark"))
     {
-      Dump.on("benchmark");
-    }
-    if(strcmp(optargPtr, "benchmark")) {
       Dump.on("declarations");
-      if(strcmp(optargPtr, "declarations") && strcmp(optargPtr, "raw-benchmark")) {
+      if (strcmp(optargPtr, "declarations")
+          && strcmp(optargPtr, "raw-benchmark"))
+      {
         Dump.on("skolems");
       }
     }
