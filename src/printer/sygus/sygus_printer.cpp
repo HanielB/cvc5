@@ -147,7 +147,8 @@ void SygusPrinter::toStream(std::ostream& out,
       || tryToStream<SynthFunCommand>(out, c)
       || tryToStream<SygusConstraintCommand>(out, c)
       || tryToStream<SygusInvConstraintCommand>(out, c)
-      || tryToStream<CheckSynthCommand>(out, c))
+      || tryToStream<CheckSynthCommand>(out, c)
+      || tryToStream<SetOptionCommand>(out, c))
   {
     return;
   }
@@ -159,12 +160,19 @@ void SygusPrinter::toStream(std::ostream& out,
 
 void SygusPrinter::toStream(std::ostream& out, const CommandStatus* s) const
 {
-  s->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  s->toStream(out, language::output::LANG_SYGUS_V2);
 }
 
 static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
 {
-  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  out << "(set-logic " << c->getLogic() << ")";
+}
+
+static void toStream(std::ostream& out, const SetOptionCommand* c)
+{
+  out << "(set-option :" << c->getFlag() << " ";
+  SExpr::toStream(out, c->getSExpr(), language::output::LANG_SYGUS_V2);
+  out << ")";
 }
 
 static void toStream(std::ostream& out, const CommandSequence* c)

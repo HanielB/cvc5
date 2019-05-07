@@ -852,6 +852,12 @@ std::string SygusInvConstraintCommand::getCommandName() const
 
 void CheckSynthCommand::invoke(SmtEngine* smtEngine)
 {
+  if (Dump.isOn("sygus-benchmark"))
+  {
+    Trace("test-sygus-dump")
+        << "CheckSynthCommand::invoke gonna print check-synth\n";
+    Dump("sygus-benchmark") << CheckSynthCommand();
+  }
   try
   {
     d_result = smtEngine->checkSynth();
@@ -2485,6 +2491,12 @@ void SetOptionCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark") && !d_muted)
+    {
+      Trace("test-sygus-dump")
+          << "SetOptionCmd: gonna print with " << d_flag << " : " << d_sexpr << "\n";
+      Dump("sygus-benchmark") << SetOptionCommand(d_flag, d_sexpr);
+    }
     smtEngine->setOption(d_flag, d_sexpr);
     d_commandStatus = CommandSuccess::instance();
   }

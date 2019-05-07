@@ -126,7 +126,10 @@ void DumpC::setDumpFromString(const std::string& optarg) {
     }
 
     Dump.on(optargPtr);
-    Dump.on("benchmark");
+    if (strcmp(optargPtr, "sygus-benchmark"))
+    {
+      Dump.on("benchmark");
+    }
     if(strcmp(optargPtr, "benchmark")) {
       Dump.on("declarations");
       if(strcmp(optargPtr, "declarations") && strcmp(optargPtr, "raw-benchmark")) {
