@@ -276,7 +276,8 @@ command [std::unique_ptr<CVC4::Command>* cmd]
       PARSER_STATE->setLogic(name);
       if( PARSER_STATE->sygus() ){
         // we may have modified the logic, get it from the parser state
-        cmd->reset(new SetBenchmarkLogicCommand(PARSER_STATE->getLogic().getLogicString()));
+        cmd->reset(new SetBenchmarkLogicCommand(
+            PARSER_STATE->getLogic().getLogicString(), name));
       }else{
         cmd->reset(new SetBenchmarkLogicCommand(name));
       }

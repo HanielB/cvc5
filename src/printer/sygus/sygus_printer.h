@@ -32,7 +32,7 @@ class SygusPrinter : public CVC4::Printer
 {
  public:
   SygusPrinter()
-      : d_termLangPrinter(new smt2::Smt2Printer(smt2::sygus_variant)){};
+      : d_termLangPrinter(new smt2::Smt2Printer(printer::smt2::smt2_6_1_variant)){};
   ~SygusPrinter(){};
   using CVC4::Printer::toStream;
 

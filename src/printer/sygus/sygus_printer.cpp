@@ -160,18 +160,18 @@ void SygusPrinter::toStream(std::ostream& out,
 
 void SygusPrinter::toStream(std::ostream& out, const CommandStatus* s) const
 {
-  s->toStream(out, language::output::LANG_SYGUS_V2);
+  s->toStream(out, language::output::LANG_SMTLIB_V2_5);
 }
 
 static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
 {
-  out << "(set-logic " << c->getLogic() << ")";
+  out << "(set-logic " << c->getSygusLogic() << ")";
 }
 
 static void toStream(std::ostream& out, const SetOptionCommand* c)
 {
   out << "(set-option :" << c->getFlag() << " ";
-  SExpr::toStream(out, c->getSExpr(), language::output::LANG_SYGUS_V2);
+  SExpr::toStream(out, c->getSExpr(), language::output::LANG_SMTLIB_V2_5);
   out << ")";
 }
 

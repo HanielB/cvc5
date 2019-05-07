@@ -1110,10 +1110,22 @@ class CVC4_PUBLIC SetBenchmarkLogicCommand : public Command
  protected:
   std::string d_logic;
 
- public:
-  SetBenchmarkLogicCommand(std::string logic);
+  /**
+   * The internal logic in SyGuS problems is possibly different than the one set
+   * (e.g. it always includes UF, datatypes, integer arithmetic and
+   * higher-order) */
+  std::string d_sygus_logic;
 
+ public:
+  SetBenchmarkLogicCommand(std::string logic, std::string sygus_logic = "");
+
+  /** retrieves the set logic */
   std::string getLogic() const;
+
+  /** retrieves the set SyGuS logic. If no SyGuS logic has been set, returns the
+   * regular logic. */
+  std::string getSygusLogic() const;
+
   void invoke(SmtEngine* smtEngine) override;
   Command* exportTo(ExprManager* exprManager,
                     ExprManagerMapCollection& variableMap) override;

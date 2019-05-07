@@ -2359,12 +2359,19 @@ std::string SetBenchmarkStatusCommand::getCommandName() const
 /* class SetBenchmarkLogicCommand                                             */
 /* -------------------------------------------------------------------------- */
 
-SetBenchmarkLogicCommand::SetBenchmarkLogicCommand(std::string logic)
-    : d_logic(logic)
+SetBenchmarkLogicCommand::SetBenchmarkLogicCommand(std::string logic,
+                                                   std::string sygus_logic)
+  : d_logic(logic), d_sygus_logic(sygus_logic)
 {
 }
 
 std::string SetBenchmarkLogicCommand::getLogic() const { return d_logic; }
+
+std::string SetBenchmarkLogicCommand::getSygusLogic() const
+{
+  return !d_sygus_logic.empty() ? d_sygus_logic : d_logic;
+}
+
 void SetBenchmarkLogicCommand::invoke(SmtEngine* smtEngine)
 {
   try
