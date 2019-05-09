@@ -448,6 +448,7 @@ Languages currently supported as arguments to the -L / --lang option:\n\
   smt2.6.1 | smtlib2.6.1         SMT-LIB format 2.6 with support for the strings standard\n\
   tptp                           TPTP format (cnf, fof and tff)\n\
   sygus                          SyGuS format\n\
+  sygus2                         SyGuS format 2.0\n\
 \n\
 Languages currently supported as arguments to the --output-lang option:\n\
   auto                           match output language to input language\n\
@@ -461,6 +462,7 @@ Languages currently supported as arguments to the --output-lang option:\n\
   tptp                           TPTP format\n\
   z3str                          SMT-LIB 2.0 with Z3-str string constraints\n\
   ast                            internal format (simple syntax trees)\n\
+  sygus | sygus2                 SyGuS format 2.0\n\
 ";
 
 std::string Options::getDescription() const {
@@ -640,7 +642,7 @@ void Options::parseOptionsRecursive(Options* options,
   optreset = 1; // on BSD getopt() (e.g. Mac OS), might need this
 #endif /* HAVE_DECL_OPTRESET */
 
-  
+
   int main_optind = 0;
   int old_optind;
 
