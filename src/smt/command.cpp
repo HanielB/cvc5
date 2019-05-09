@@ -2673,6 +2673,10 @@ const std::vector<DatatypeType>& DatatypeDeclarationCommand::getDatatypes()
 
 void DatatypeDeclarationCommand::invoke(SmtEngine* smtEngine)
 {
+  if (Dump.isOn("sygus-benchmark"))
+  {
+    smtEngine->saveToDump(*this);
+  }
   d_commandStatus = CommandSuccess::instance();
 }
 

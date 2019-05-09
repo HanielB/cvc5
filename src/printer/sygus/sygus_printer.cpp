@@ -148,7 +148,10 @@ void SygusPrinter::toStream(std::ostream& out,
       || tryToStream<SygusConstraintCommand>(out, c)
       || tryToStream<SygusInvConstraintCommand>(out, c)
       || tryToStream<CheckSynthCommand>(out, c)
-      || tryToStream<SetOptionCommand>(out, c))
+      || tryToStream<SetOptionCommand>(out, c)
+      || tryToStream<DeclareTypeCommand>(out, c)
+      || tryToStream<DefineTypeCommand>(out, c)
+      || tryToStream<DatatypeDeclarationCommand>(out, c))
   {
     return;
   }
@@ -160,7 +163,7 @@ void SygusPrinter::toStream(std::ostream& out,
 
 void SygusPrinter::toStream(std::ostream& out, const CommandStatus* s) const
 {
-  s->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  s->toStream(out, language::output::LANG_SMTLIB_V2_6_1);
 }
 
 static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
@@ -170,9 +173,17 @@ static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
 
 static void toStream(std::ostream& out, const SetOptionCommand* c)
 {
-  out << "(set-option :" << c->getFlag() << " ";
-  SExpr::toStream(out, c->getSExpr(), language::output::LANG_SMTLIB_V2_5);
-  out << ")";
+  c->toStream(out, language::output::LANG_SMTLIB_V2_6_1);
+}
+
+static void toStream(std::ostream& out, const DeclareTypeCommand* c)
+{
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
+}
+
+static void toStream(std::ostream& out, const DefineTypeCommand* c)
+{
+  c->toStream(out, language::output::LANG_SMTLIB_V2_6_1);
 }
 
 static void toStream(std::ostream& out, const CommandSequence* c)
@@ -195,14 +206,19 @@ static void toStream(std::ostream& out, const CommandSequence* c)
   }
 }
 
+static void toStream(std::ostream& out, const DatatypeDeclarationCommand* c)
+{
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
+}
+
 static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
 {
-  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
 }
 
 static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 {
-  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
 }
 
 static void toStream(std::ostream& out, const DeclareSygusVarCommand* c)
