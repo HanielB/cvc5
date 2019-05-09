@@ -3230,6 +3230,7 @@ DECLARE_CODATATYPES_TOK : { PARSER_STATE->v2_6() || PARSER_STATE->sygus() }?'dec
 PAR_TOK : { PARSER_STATE->v2_6() }?'par';
 TESTER_TOK : { ( PARSER_STATE->v2_6() || PARSER_STATE->sygus() ) && PARSER_STATE->isTheoryEnabled(Smt2::THEORY_DATATYPES) }?'is';
 MATCH_TOK : { ( PARSER_STATE->v2_6() || PARSER_STATE->sygus() ) && PARSER_STATE->isTheoryEnabled(Smt2::THEORY_DATATYPES) }?'match';
+SET_FEATURE_TOK : { PARSER_STATE->sygus() }? 'set-feature';
 GET_MODEL_TOK : 'get-model';
 ECHO_TOK : 'echo';
 REWRITE_RULE_TOK : 'assert-rewrite';
