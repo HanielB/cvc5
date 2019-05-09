@@ -272,7 +272,7 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
   if (sygusType.isDatatype()
       && static_cast<DatatypeType>(sygusType).getDatatype().isSygus())
   {
-    out << "\n(";
+    std::stringstream types_predecl, types_list;
     std::set<Type> grammarTypes;
     std::list<Type> typesToPrint;
     grammarTypes.insert(sygusType);
@@ -288,11 +288,11 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
       Assert(curr.isDatatype()
              && static_cast<DatatypeType>(curr).getDatatype().isSygus());
       const Datatype& dt = static_cast<DatatypeType>(curr).getDatatype();
-      // TODO make the first guys be "Start"
-      out << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
+      types_list << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
+      types_predecl << "(" << dt.getName() << " " << dt.getSygusType() << ")";
       if (dt.getSygusAllowConst())
       {
-        out << "(Constant " << dt.getSygusType() << ") ";
+        types_list << "(Constant " << dt.getSygusType() << ") ";
       }
       for (const DatatypeConstructor& cons : dt)
       {
@@ -300,33 +300,33 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
                                             i_end = cons.end();
         if (i != i_end)
         {
-          out << "(";
+          types_list << "(";
           // TODO use sygusprintcallback
-          out << cons.getSygusOp();
+          types_list << cons.getSygusOp();
           do
           {
             Type argType = (*i).getRangeType();
             // print argument type
-            out << " " << argType;
+            types_list << " " << argType;
             // if fresh type, store it for later processing
             if (grammarTypes.insert(argType).second)
             {
               typesToPrint.push_back(argType);
             }
           } while (++i != i_end);
-          out << ")";
+          types_list << ")";
         }
         else
         {
           // TODO use sygusprintcallback
-          out << cons.getSygusOp();
+          types_list << cons.getSygusOp();
         }
-        out << "\n";
+        types_list << "\n";
       }
-      out << "))\n";
+      types_list << "))\n";
     } while (!typesToPrint.empty());
 
-    out << ")";
+    out << "\n(" << types_predecl.str() << ")\n(" << types_list.str() << ")";
   }
   out << ")";
 }
