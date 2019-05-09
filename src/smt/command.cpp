@@ -2361,7 +2361,7 @@ std::string SetBenchmarkStatusCommand::getCommandName() const
 
 SetBenchmarkLogicCommand::SetBenchmarkLogicCommand(std::string logic,
                                                    std::string sygus_logic)
-  : d_logic(logic), d_sygus_logic(sygus_logic)
+  : d_logic(logic), d_sygus_logic(sygus_logic.empty()? logic : sygus_logic)
 {
 }
 
@@ -2369,7 +2369,7 @@ std::string SetBenchmarkLogicCommand::getLogic() const { return d_logic; }
 
 std::string SetBenchmarkLogicCommand::getSygusLogic() const
 {
-  return !d_sygus_logic.empty() ? d_sygus_logic : d_logic;
+  return d_sygus_logic;
 }
 
 void SetBenchmarkLogicCommand::invoke(SmtEngine* smtEngine)
@@ -2398,7 +2398,7 @@ Command* SetBenchmarkLogicCommand::exportTo(
 
 Command* SetBenchmarkLogicCommand::clone() const
 {
-  return new SetBenchmarkLogicCommand(d_logic);
+  return new SetBenchmarkLogicCommand(d_logic, d_sygus_logic);
 }
 
 std::string SetBenchmarkLogicCommand::getCommandName() const

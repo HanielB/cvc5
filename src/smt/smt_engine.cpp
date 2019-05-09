@@ -5312,9 +5312,6 @@ void SmtEngine::setOption(const std::string& key, const CVC4::SExpr& value)
   Trace("smt") << "SMT setOption(" << key << ", " << value << ")" << endl;
 
   if(Dump.isOn("benchmark")) {
-      Trace("test-sygus-dump")
-          << "SmtEngine::setOption: gonna print with " << key << " : " << value << "\n";
-
     Dump("benchmark") << SetOptionCommand(key, value);
   }
 
