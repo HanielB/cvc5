@@ -281,6 +281,7 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
     //   name
     //   sygus type
     //   constructors in order
+    Printer* sygus_printer = Printer::getPrinter(language::output::LANG_SYGUS_V2);
     do
     {
       Type curr = typesToPrint.front();
@@ -301,8 +302,15 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
         if (i != i_end)
         {
           types_list << "(";
-          // TODO use sygusprintcallback
-          types_list << cons.getSygusOp();
+          SygusPrintCallback* spc = cons.getSygusPrintCallback().get();
+          if (spc != nullptr && options::sygusPrintCallbacks())
+          {
+            spc->toStreamSygus(sygus_printer, types_list, cons.getSygusOp());
+          }
+          else
+          {
+            types_list << cons.getSygusOp();
+          }
           do
           {
             Type argType = (*i).getRangeType();
@@ -318,8 +326,15 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
         }
         else
         {
-          // TODO use sygusprintcallback
-          types_list << cons.getSygusOp();
+          SygusPrintCallback* spc = cons.getSygusPrintCallback().get();
+          if (spc != nullptr && options::sygusPrintCallbacks())
+          {
+            spc->toStreamSygus(sygus_printer, types_list, cons.getSygusOp());
+          }
+          else
+          {
+            types_list << cons.getSygusOp();
+          }
         }
         types_list << "\n";
       }
