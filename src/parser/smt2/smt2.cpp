@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds, Kshitij Bansal, Morgan Deters
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -122,6 +122,11 @@ void Smt2::addBitvectorOperators() {
 }
 
 void Smt2::addStringOperators() {
+  defineVar("re.all",
+            getSolver()
+                ->mkTerm(api::REGEXP_STAR, getSolver()->mkRegexpSigma())
+                .getExpr());
+
   addOperator(kind::STRING_CONCAT, "str.++");
   addOperator(kind::STRING_LENGTH, "str.len");
   addOperator(kind::STRING_SUBSTR, "str.substr" );
@@ -129,6 +134,7 @@ void Smt2::addStringOperators() {
   addOperator(kind::STRING_CHARAT, "str.at" );
   addOperator(kind::STRING_STRIDOF, "str.indexof" );
   addOperator(kind::STRING_STRREPL, "str.replace" );
+  addOperator(kind::STRING_STRREPLALL, "str.replaceall");
   addOperator(kind::STRING_PREFIX, "str.prefixof" );
   addOperator(kind::STRING_SUFFIX, "str.suffixof" );
   // at the moment, we only use this syntax for smt2.6.1
@@ -378,9 +384,10 @@ bool Smt2::logicIsSet() {
 }
 
 Expr Smt2::getExpressionForNameAndType(const std::string& name, Type t) {
-  if(sygus() && name[0]=='-' &&
-    name.find_first_not_of("0123456789", 1) == std::string::npos) {
-    //allow unary minus in sygus
+  if (sygus_v1() && name[0] == '-'
+      && name.find_first_not_of("0123456789", 1) == std::string::npos)
+  {
+    // allow unary minus in sygus version 1
     return getExprManager()->mkConst(Rational(name));
   }else if(isAbstractValue(name)) {
     return mkAbstractValue(name);
@@ -449,8 +456,8 @@ void Smt2::resetAssertions() {
 }
 
 void Smt2::setLogic(std::string name) {
-
-  if(sygus()) {
+  if (sygus_v1())
+  {
     // non-smt2-standard sygus logic names go here (http://sygus.seas.upenn.edu/files/sygus.pdf Section 3.2)
     if(name == "Arrays") {
       name = "A";
@@ -542,6 +549,17 @@ void Smt2::setLogic(std::string name) {
   }
 
 }/* Smt2::setLogic() */
+
+bool Smt2::sygus() const
+{
+  InputLanguage ilang = getLanguage();
+  return ilang == language::input::LANG_SYGUS
+         || ilang == language::input::LANG_SYGUS_V2;
+}
+bool Smt2::sygus_v1() const
+{
+  return getLanguage() == language::input::LANG_SYGUS;
+}
 
 void Smt2::setInfo(const std::string& flag, const SExpr& sexpr) {
   // TODO: ???
@@ -858,7 +876,9 @@ Type Smt2::processSygusNestedGTerm( int sub_dt_index, std::string& sub_dname, st
           children.push_back( it->second );
         }
       }
-      Kind sk = sop.getKind() != kind::BUILTIN ? kind::APPLY : getExprManager()->operatorToKind(sop);
+      Kind sk = sop.getKind() != kind::BUILTIN
+                    ? kind::APPLY_UF
+                    : getExprManager()->operatorToKind(sop);
       Debug("parser-sygus") << ": operator " << sop << " with " << sop.getKind() << " " << sk << std::endl;
       Expr e = getExprManager()->mkExpr( sk, children );
       Debug("parser-sygus") << ": constructed " << e << ", which has type " << e.getType() << std::endl;
@@ -1071,7 +1091,7 @@ void Smt2::mkSygusDatatype( CVC4::Datatype& dt, std::vector<CVC4::Expr>& ops,
         }
         children.insert(children.end(), largs.begin(), largs.end());
         Kind sk = ops[i].getKind() != kind::BUILTIN
-                      ? kind::APPLY
+                      ? kind::APPLY_UF
                       : getExprManager()->operatorToKind(ops[i]);
         Expr body = getExprManager()->mkExpr(sk, children);
         // replace by lambda
@@ -1130,14 +1150,13 @@ void Smt2::mkSygusDatatype( CVC4::Datatype& dt, std::vector<CVC4::Expr>& ops,
             std::vector<Expr> largs;
             Expr lbvl = makeSygusBoundVarList(dt, i, ftypes, largs);
             largs.insert(largs.begin(), ops[i]);
-            Expr body = getExprManager()->mkExpr(kind::APPLY, largs);
+            Expr body = getExprManager()->mkExpr(kind::APPLY_UF, largs);
             ops[i] = getExprManager()->mkExpr(kind::LAMBDA, lbvl, body);
             Debug("parser-sygus") << "  ...replace op : " << ops[i]
                                   << std::endl;
           }
           else
           {
-            ops[i] = getExprManager()->mkExpr(kind::APPLY, ops[i]);
             Debug("parser-sygus") << "  ...replace op : " << ops[i]
                                   << std::endl;
           }
@@ -1218,6 +1237,87 @@ Expr Smt2::makeSygusBoundVarList(Datatype& dt,
     lvars.push_back(v);
   }
   return getExprManager()->mkExpr(kind::BOUND_VAR_LIST, lvars);
+}
+
+void Smt2::addSygusConstructorTerm(Datatype& dt,
+                                   Expr term,
+                                   std::map<Expr, Type>& ntsToUnres) const
+{
+  Trace("parser-sygus2") << "Add sygus cons term " << term << std::endl;
+  // purify each occurrence of a non-terminal symbol in term, replace by
+  // free variables. These become arguments to constructors. Notice we must do
+  // a tree traversal in this function, since unique paths to the same term
+  // should be treated as distinct terms.
+  // Notice that let expressions are forbidden in the input syntax of term, so
+  // this does not lead to exponential behavior with respect to input size.
+  std::vector<Expr> args;
+  std::vector<Type> cargs;
+  Expr op = purifySygusGTerm(term, ntsToUnres, args, cargs);
+
+  std::shared_ptr<SygusPrintCallback> spc;
+  if (!args.empty())
+  {
+    Expr lbvl = getExprManager()->mkExpr(kind::BOUND_VAR_LIST, args);
+    // callback prints as the expression
+    spc = std::make_shared<printer::SygusExprPrintCallback>(op, args);
+    // its operator is a lambda
+    op = getExprManager()->mkExpr(kind::LAMBDA, lbvl, op);
+  }
+  Trace("parser-sygus2") << "Generated operator " << op << std::endl;
+  std::stringstream ss;
+  ss << op.getKind();
+  dt.addSygusConstructor(op, ss.str(), cargs, spc);
+}
+
+Expr Smt2::purifySygusGTerm(Expr term,
+                            std::map<Expr, Type>& ntsToUnres,
+                            std::vector<Expr>& args,
+                            std::vector<Type>& cargs) const
+{
+  std::map<Expr, Type>::iterator itn = ntsToUnres.find(term);
+  if (itn != ntsToUnres.end())
+  {
+    Expr ret = getExprManager()->mkBoundVar(term.getType());
+    args.push_back(ret);
+    cargs.push_back(itn->second);
+    return ret;
+  }
+  std::vector<Expr> pchildren;
+  // FIXME: this is probably wrong
+  if( term.hasOperator() && !term.getOperator().isConst() )
+  {
+    pchildren.push_back(term.getOperator());
+  }
+  bool childChanged = false;
+  for (unsigned i, size = term.getNumChildren(); i < size; i++)
+  {
+    Expr ptermc = purifySygusGTerm(term[i], ntsToUnres, args, cargs);
+    pchildren.push_back(ptermc);
+    childChanged = childChanged || ptermc != term[i];
+  }
+  if (!childChanged)
+  {
+    return term;
+  }
+  return getExprManager()->mkExpr(term.getKind(), pchildren);
+}
+
+void Smt2::addSygusConstructorVariables(Datatype& dt,
+                                        std::vector<Expr>& sygusVars,
+                                        Type type) const
+{
+  // each variable of appropriate type becomes a sygus constructor in dt.
+  for (unsigned i = 0, size = sygusVars.size(); i < size; i++)
+  {
+    Expr v = sygusVars[i];
+    if (v.getType() == type)
+    {
+      std::stringstream ss;
+      ss << v;
+      std::vector<CVC4::Type> cargs;
+      dt.addSygusConstructor(v, ss.str(), cargs);
+    }
+  }
 }
 
 InputLanguage Smt2::getLanguage() const

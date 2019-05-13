@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Tim King, Morgan Deters, Andrew Reynolds
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -562,21 +562,27 @@ Command* QueryCommand::clone() const
 std::string QueryCommand::getCommandName() const { return "query"; }
 
 /* -------------------------------------------------------------------------- */
-/* class DeclareVarCommand                                                    */
+/* class DeclareSygusVarCommand */
 /* -------------------------------------------------------------------------- */
 
-DeclareVarCommand::DeclareVarCommand(const std::string& id, Expr var, Type t)
+DeclareSygusVarCommand::DeclareSygusVarCommand(const std::string& id,
+                                               Expr var,
+                                               Type t)
     : DeclarationDefinitionCommand(id), d_var(var), d_type(t)
 {
 }
 
-Expr DeclareVarCommand::getVar() const { return d_var; }
-Type DeclareVarCommand::getType() const { return d_type; }
+Expr DeclareSygusVarCommand::getVar() const { return d_var; }
+Type DeclareSygusVarCommand::getType() const { return d_type; }
 
-void DeclareVarCommand::invoke(SmtEngine* smtEngine)
+void DeclareSygusVarCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSygusVar(d_symbol, d_var, d_type);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -586,36 +592,44 @@ void DeclareVarCommand::invoke(SmtEngine* smtEngine)
   }
 }
 
-Command* DeclareVarCommand::exportTo(ExprManager* exprManager,
-                                     ExprManagerMapCollection& variableMap)
+Command* DeclareSygusVarCommand::exportTo(ExprManager* exprManager,
+                                          ExprManagerMapCollection& variableMap)
 {
-  return new DeclareVarCommand(d_symbol,
-                               d_var.exportTo(exprManager, variableMap),
-                               d_type.exportTo(exprManager, variableMap));
+  return new DeclareSygusVarCommand(d_symbol,
+                                    d_var.exportTo(exprManager, variableMap),
+                                    d_type.exportTo(exprManager, variableMap));
 }
 
-Command* DeclareVarCommand::clone() const
+Command* DeclareSygusVarCommand::clone() const
 {
-  return new DeclareVarCommand(d_symbol, d_var, d_type);
+  return new DeclareSygusVarCommand(d_symbol, d_var, d_type);
 }
 
-std::string DeclareVarCommand::getCommandName() const { return "declare-var"; }
+std::string DeclareSygusVarCommand::getCommandName() const
+{
+  return "declare-var";
+}
 
 /* -------------------------------------------------------------------------- */
-/* class DeclarePrimedVarCommand                                              */
+/* class DeclareSygusPrimedVarCommand */
 /* -------------------------------------------------------------------------- */
 
-DeclarePrimedVarCommand::DeclarePrimedVarCommand(const std::string& id, Type t)
+DeclareSygusPrimedVarCommand::DeclareSygusPrimedVarCommand(
+    const std::string& id, Type t)
     : DeclarationDefinitionCommand(id), d_type(t)
 {
 }
 
-Type DeclarePrimedVarCommand::getType() const { return d_type; }
+Type DeclareSygusPrimedVarCommand::getType() const { return d_type; }
 
-void DeclarePrimedVarCommand::invoke(SmtEngine* smtEngine)
+void DeclareSygusPrimedVarCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSygusPrimedVar(d_symbol, d_type);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -625,19 +639,19 @@ void DeclarePrimedVarCommand::invoke(SmtEngine* smtEngine)
   }
 }
 
-Command* DeclarePrimedVarCommand::exportTo(
+Command* DeclareSygusPrimedVarCommand::exportTo(
     ExprManager* exprManager, ExprManagerMapCollection& variableMap)
 {
-  return new DeclarePrimedVarCommand(d_symbol,
-                                     d_type.exportTo(exprManager, variableMap));
+  return new DeclareSygusPrimedVarCommand(
+      d_symbol, d_type.exportTo(exprManager, variableMap));
 }
 
-Command* DeclarePrimedVarCommand::clone() const
+Command* DeclareSygusPrimedVarCommand::clone() const
 {
-  return new DeclarePrimedVarCommand(d_symbol, d_type);
+  return new DeclareSygusPrimedVarCommand(d_symbol, d_type);
 }
 
-std::string DeclarePrimedVarCommand::getCommandName() const
+std::string DeclareSygusPrimedVarCommand::getCommandName() const
 {
   return "declare-primed-var";
 }
@@ -660,6 +674,10 @@ void DeclareSygusFunctionCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSygusFunctionVar(d_symbol, d_func, d_type);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -709,7 +727,7 @@ SynthFunCommand::SynthFunCommand(const std::string& id,
                                  Expr func,
                                  Type sygusType,
                                  bool isInv)
-  : SynthFunCommand(id, func, sygusType, isInv, {})
+    : SynthFunCommand(id, func, sygusType, isInv, {})
 {
 }
 
@@ -722,6 +740,10 @@ void SynthFunCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->declareSynthFun(d_symbol, d_func, d_sygusType, d_isInv, d_vars);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -751,15 +773,19 @@ std::string SynthFunCommand::getCommandName() const
 }
 
 /* -------------------------------------------------------------------------- */
-/* class ConstraintCommand                                                    */
+/* class SygusConstraintCommand */
 /* -------------------------------------------------------------------------- */
 
-ConstraintCommand::ConstraintCommand(const Expr& e) : d_expr(e) {}
+SygusConstraintCommand::SygusConstraintCommand(const Expr& e) : d_expr(e) {}
 
-void ConstraintCommand::invoke(SmtEngine* smtEngine)
+void SygusConstraintCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->assertSygusConstraint(d_expr);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -769,36 +795,52 @@ void ConstraintCommand::invoke(SmtEngine* smtEngine)
   }
 }
 
-Expr ConstraintCommand::getExpr() const { return d_expr; }
+Expr SygusConstraintCommand::getExpr() const { return d_expr; }
 
-Command* ConstraintCommand::exportTo(ExprManager* exprManager,
-                                     ExprManagerMapCollection& variableMap)
+Command* SygusConstraintCommand::exportTo(ExprManager* exprManager,
+                                          ExprManagerMapCollection& variableMap)
 {
-  return new ConstraintCommand(d_expr.exportTo(exprManager, variableMap));
+  return new SygusConstraintCommand(d_expr.exportTo(exprManager, variableMap));
 }
 
-Command* ConstraintCommand::clone() const
+Command* SygusConstraintCommand::clone() const
 {
-  return new ConstraintCommand(d_expr);
+  return new SygusConstraintCommand(d_expr);
 }
 
-std::string ConstraintCommand::getCommandName() const { return "constraint"; }
+std::string SygusConstraintCommand::getCommandName() const
+{
+  return "constraint";
+}
 
 /* -------------------------------------------------------------------------- */
-/* class InvConstraintCommand                                                    */
+/* class SygusInvConstraintCommand */
 /* -------------------------------------------------------------------------- */
 
-InvConstraintCommand::InvConstraintCommand(
-    const std::vector<Expr>& place_holders)
-    : d_place_holders(place_holders)
+SygusInvConstraintCommand::SygusInvConstraintCommand(
+    const std::vector<Expr>& predicates)
+    : d_predicates(predicates)
 {
 }
 
-void InvConstraintCommand::invoke(SmtEngine* smtEngine)
+SygusInvConstraintCommand::SygusInvConstraintCommand(const Expr& inv,
+                                                     const Expr& pre,
+                                                     const Expr& trans,
+                                                     const Expr& post)
+    : SygusInvConstraintCommand(std::vector<Expr>{inv, pre, trans, post})
+{
+}
+
+void SygusInvConstraintCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
-    smtEngine->assertSygusInvConstraint(d_place_holders);
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
+    smtEngine->assertSygusInvConstraint(
+        d_predicates[0], d_predicates[1], d_predicates[2], d_predicates[3]);
     d_commandStatus = CommandSuccess::instance();
   }
   catch (exception& e)
@@ -807,23 +849,26 @@ void InvConstraintCommand::invoke(SmtEngine* smtEngine)
   }
 }
 
-const std::vector<Expr>& InvConstraintCommand::getPlaceHolders() const
+const std::vector<Expr>& SygusInvConstraintCommand::getPredicates() const
 {
-  return d_place_holders;
+  return d_predicates;
 }
 
-Command* InvConstraintCommand::exportTo(ExprManager* exprManager,
-                                     ExprManagerMapCollection& variableMap)
+Command* SygusInvConstraintCommand::exportTo(
+    ExprManager* exprManager, ExprManagerMapCollection& variableMap)
 {
-  return new InvConstraintCommand(d_place_holders);
+  return new SygusInvConstraintCommand(d_predicates);
 }
 
-Command* InvConstraintCommand::clone() const
+Command* SygusInvConstraintCommand::clone() const
 {
-  return new InvConstraintCommand(d_place_holders);
+  return new SygusInvConstraintCommand(d_predicates);
 }
 
-std::string InvConstraintCommand::getCommandName() const { return "inv-constraint"; }
+std::string SygusInvConstraintCommand::getCommandName() const
+{
+  return "inv-constraint";
+}
 
 /* -------------------------------------------------------------------------- */
 /* class CheckSynthCommand                                                    */
@@ -833,6 +878,10 @@ void CheckSynthCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     d_result = smtEngine->checkSynth();
     d_commandStatus = CommandSuccess::instance();
     smt::SmtScope scope(smtEngine);
@@ -888,10 +937,7 @@ Command* CheckSynthCommand::exportTo(ExprManager* exprManager,
   return new CheckSynthCommand();
 }
 
-Command* CheckSynthCommand::clone() const
-{
-  return new CheckSynthCommand();
-}
+Command* CheckSynthCommand::clone() const { return new CheckSynthCommand(); }
 
 std::string CheckSynthCommand::getCommandName() const { return "check-synth"; }
 
@@ -1286,6 +1332,10 @@ void DefineFunctionCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    if (Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     if (!d_func.isNull())
     {
       smtEngine->defineFunction(d_func, d_formals, d_formula);
@@ -1340,8 +1390,7 @@ void DefineNamedFunctionCommand::invoke(SmtEngine* smtEngine)
   this->DefineFunctionCommand::invoke(smtEngine);
   if (!d_func.isNull() && d_func.getType().isBoolean())
   {
-    smtEngine->addToAssignment(
-        d_func.getExprManager()->mkExpr(kind::APPLY, d_func));
+    smtEngine->addToAssignment(d_func);
   }
   d_commandStatus = CommandSuccess::instance();
 }
@@ -1733,14 +1782,7 @@ void GetAssignmentCommand::invoke(SmtEngine* smtEngine)
     for (const auto& p : assignments)
     {
       vector<SExpr> v;
-      if (p.first.getKind() == kind::APPLY)
-      {
-        v.emplace_back(SExpr::Keyword(p.first.getOperator().toString()));
-      }
-      else
-      {
-        v.emplace_back(SExpr::Keyword(p.first.toString()));
-      }
+      v.emplace_back(SExpr::Keyword(p.first.toString()));
       v.emplace_back(SExpr::Keyword(p.second.toString()));
       sexprs.emplace_back(v);
     }
@@ -2317,16 +2359,28 @@ std::string SetBenchmarkStatusCommand::getCommandName() const
 /* class SetBenchmarkLogicCommand                                             */
 /* -------------------------------------------------------------------------- */
 
-SetBenchmarkLogicCommand::SetBenchmarkLogicCommand(std::string logic)
-    : d_logic(logic)
+SetBenchmarkLogicCommand::SetBenchmarkLogicCommand(std::string logic,
+                                                   std::string sygus_logic)
+  : d_logic(logic), d_sygus_logic(sygus_logic.empty()? logic : sygus_logic)
 {
 }
 
 std::string SetBenchmarkLogicCommand::getLogic() const { return d_logic; }
+
+std::string SetBenchmarkLogicCommand::getSygusLogic() const
+{
+  return d_sygus_logic;
+}
+
 void SetBenchmarkLogicCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    // re-using muted flag for whether to dump, not only to print success
+    if (!d_muted && Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->setLogic(d_logic);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -2344,7 +2398,7 @@ Command* SetBenchmarkLogicCommand::exportTo(
 
 Command* SetBenchmarkLogicCommand::clone() const
 {
-  return new SetBenchmarkLogicCommand(d_logic);
+  return new SetBenchmarkLogicCommand(d_logic, d_sygus_logic);
 }
 
 std::string SetBenchmarkLogicCommand::getCommandName() const
@@ -2420,6 +2474,10 @@ void GetInfoCommand::invoke(SmtEngine* smtEngine)
   {
     d_commandStatus = new CommandUnsupported();
   }
+  catch (RecoverableModalException& e)
+  {
+    d_commandStatus = new CommandRecoverableFailure(e.what());
+  }
   catch (exception& e)
   {
     d_commandStatus = new CommandFailure(e.what());
@@ -2471,6 +2529,11 @@ void SetOptionCommand::invoke(SmtEngine* smtEngine)
 {
   try
   {
+    // re-using muted flag for whether to dump, not only to print success
+    if (!d_muted && Dump.isOn("sygus-benchmark"))
+    {
+      smtEngine->saveToDump(*this);
+    }
     smtEngine->setOption(d_flag, d_sexpr);
     d_commandStatus = CommandSuccess::instance();
   }
@@ -2610,6 +2673,10 @@ const std::vector<DatatypeType>& DatatypeDeclarationCommand::getDatatypes()
 
 void DatatypeDeclarationCommand::invoke(SmtEngine* smtEngine)
 {
+  if (Dump.isOn("sygus-benchmark"))
+  {
+    smtEngine->saveToDump(*this);
+  }
   d_commandStatus = CommandSuccess::instance();
 }
 

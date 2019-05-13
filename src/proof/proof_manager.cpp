@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Guy Katz, Liana Hadarean, Andres Noetzli
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -21,15 +21,16 @@
 #include "context/context.h"
 #include "options/bv_options.h"
 #include "options/proof_options.h"
-#include "proof/bitvector_proof.h"
 #include "proof/clause_id.h"
 #include "proof/cnf_proof.h"
 #include "proof/lfsc_proof_printer.h"
 #include "proof/proof_utils.h"
+#include "proof/resolution_bitvector_proof.h"
 #include "proof/sat_proof_implementation.h"
 #include "proof/theory_proof.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
+#include "smt/smt_statistics_registry.h"
 #include "smt_util/node_visitor.h"
 #include "theory/arrays/theory_arrays.h"
 #include "theory/output_channel.h"
@@ -116,10 +117,11 @@ UFProof* ProofManager::getUfProof() {
   return (UFProof*)pf;
 }
 
-BitVectorProof* ProofManager::getBitVectorProof() {
+proof::ResolutionBitVectorProof* ProofManager::getBitVectorProof()
+{
   Assert (options::proof());
   TheoryProof* pf = getTheoryProofEngine()->getTheoryProof(theory::THEORY_BV);
-  return (BitVectorProof*)pf;
+  return static_cast<proof::ResolutionBitVectorProof*>(pf);
 }
 
 ArrayProof* ProofManager::getArrayProof() {
@@ -558,7 +560,8 @@ void LFSCProof::toStream(std::ostream& out, const ProofLetMap& map) const
 
 void LFSCProof::toStream(std::ostream& out) const
 {
-  Assert(options::bitblastMode() != theory::bv::BITBLAST_MODE_EAGER);
+  TimerStat::CodeTimer proofProductionTimer(
+      *ProofManager::currentPM()->getProofProductionTime());
 
   Assert(!d_satProof->proofConstructed());
   d_satProof->constructProof();
@@ -729,9 +732,9 @@ void LFSCProof::toStream(std::ostream& out) const
   d_theoryProof->printTheoryLemmas(used_lemmas, out, paren, globalLetMap);
   Debug("pf::pm") << "Proof manager: printing theory lemmas DONE!" << std::endl;
 
+  out << ";; Printing final unsat proof \n";
   if (options::bitblastMode() == theory::bv::BITBLAST_MODE_EAGER && ProofManager::getBitVectorProof()) {
-    proof::LFSCProofPrinter::printResolutionEmptyClause(
-        ProofManager::getBitVectorProof()->getSatProof(), out, paren);
+    ProofManager::getBitVectorProof()->printEmptyClauseProof(out, paren);
   } else {
     // print actual resolution proof
     proof::LFSCProofPrinter::printResolutions(d_satProof, out, paren);
@@ -1069,4 +1072,16 @@ void ProofManager::printTrustedTerm(Node term,
   tpe->printTheoryTerm(term.toExpr(), os, globalLetMap);
   if (tpe->printsAsBool(term)) os << ")";
 }
+
+ProofManager::ProofManagerStatistics::ProofManagerStatistics()
+    : d_proofProductionTime("proof::ProofManager::proofProductionTime")
+{
+  smtStatisticsRegistry()->registerStat(&d_proofProductionTime);
+}
+
+ProofManager::ProofManagerStatistics::~ProofManagerStatistics()
+{
+  smtStatisticsRegistry()->unregisterStat(&d_proofProductionTime);
+}
+
 } /* CVC4  namespace */

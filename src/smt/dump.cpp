@@ -2,9 +2,9 @@
 /*! \file dump.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Tim King, Clark Barrett, Morgan Deters
+ **   Morgan Deters, Clark Barrett, Tim King
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -118,6 +118,9 @@ void DumpC::setDumpFromString(const std::string& optarg) {
       Dump.on("bv-abstraction");
     } else if(!strcmp(optargPtr, "bv-algebraic")) {
       Dump.on("bv-algebraic");
+    } else if(!strcmp(optargPtr, "sygus-benchmark")) {
+      Dump.on("sygus-benchmark");
+      return;
     } else {
       throw OptionException(std::string("unknown option for --dump: `") +
                             optargPtr + "'.  Try --dump help.");
@@ -125,9 +128,12 @@ void DumpC::setDumpFromString(const std::string& optarg) {
 
     Dump.on(optargPtr);
     Dump.on("benchmark");
-    if(strcmp(optargPtr, "benchmark")) {
+    if (strcmp(optargPtr, "benchmark"))
+    {
       Dump.on("declarations");
-      if(strcmp(optargPtr, "declarations") && strcmp(optargPtr, "raw-benchmark")) {
+      if (strcmp(optargPtr, "declarations")
+          && strcmp(optargPtr, "raw-benchmark"))
+      {
         Dump.on("skolems");
       }
     }

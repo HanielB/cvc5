@@ -456,6 +456,15 @@ header = "options/quantifiers_options.h"
   help       = "interleave full saturate instantiation with other techniques"
 
 [[option]]
+  name       = "fullSaturateStratify"
+  category   = "regular"
+  long       = "fs-stratify"
+  type       = "bool"
+  default    = "false"
+  read_only  = true
+  help       = "stratify effort levels in enumerative instantiation, which favors speed over fairness"
+
+[[option]]
   name       = "literalMatchMode"
   category   = "regular"
   long       = "literal-matching=MODE"
@@ -877,6 +886,15 @@ header = "options/quantifiers_options.h"
   help       = "attempt to preprocess arbitrary inputs to sygus conjectures"
 
 [[option]]
+  name       = "sygusAbduct"
+  category   = "regular"
+  long       = "sygus-abduct"
+  type       = "bool"
+  default    = "false"
+  read_only  = false
+  help       = "compute abductions using sygus"
+
+[[option]]
   name       = "ceGuidedInst"
   category   = "regular"
   long       = "cegqi"
@@ -984,6 +1002,14 @@ header = "options/quantifiers_options.h"
   help       = "Synthesize conditions indepedently from return values (may generate bigger solutions)"
 
 [[option]]
+  name       = "sygusUnifShuffleCond"
+  category   = "regular"
+  long       = "sygus-unif-shuffle-cond"
+  type       = "bool"
+  default    = "false"
+  help       = "Shuffle condition pool when building solutions (may change solutions sizes)"
+
+[[option]]
   name       = "sygusUnifBooleanHeuristicDt"
   category   = "regular"
   long       = "sygus-unif-boolean-heuristic-dt"
@@ -1036,11 +1062,19 @@ header = "options/quantifiers_options.h"
   category   = "regular"
   long       = "sygus-active-gen=MODE"
   type       = "CVC4::theory::quantifiers::SygusActiveGenMode"
-  default    = "CVC4::theory::quantifiers::SYGUS_ACTIVE_GEN_NONE"
+  default    = "CVC4::theory::quantifiers::SYGUS_ACTIVE_GEN_AUTO"
   handler    = "stringToSygusActiveGenMode"
   includes   = ["options/quantifiers_modes.h"]
   read_only  = true
   help       = "mode for actively-generated sygus enumerators"
+
+[[option]]
+  name       = "sygusActiveGenEnumConsts"
+  category   = "regular"
+  long       = "sygus-active-gen-cfactor=N"
+  type       = "unsigned long"
+  default    = "5"
+  help       = "the branching factor for the number of interpreted constants to consider for each size when using --sygus-active-gen=enum"
 
 [[option]]
   name       = "sygusMinGrammar"
@@ -1086,7 +1120,6 @@ header = "options/quantifiers_options.h"
   default    = "CVC4::theory::quantifiers::SYGUS_INV_TEMPL_MODE_POST"
   handler    = "stringToSygusInvTemplMode"
   includes   = ["options/quantifiers_modes.h"]
-  read_only  = true
   help       = "template mode for sygus invariant synthesis (weaken pre-condition, strengthen post-condition, or none)"
 
 [[option]]
@@ -1120,7 +1153,7 @@ header = "options/quantifiers_options.h"
   category   = "regular"
   long       = "sygus-pbe-multi-fair"
   type       = "bool"
-  default    = "true"
+  default    = "false"
   help       = "when using multiple enumerators, ensure that we only register value of minimial term size"
 
 [[option]]
@@ -1225,7 +1258,7 @@ header = "options/quantifiers_options.h"
   type       = "bool"
   default    = "false"
   read_only  = true
-  help       = "use sygus to enumerate and verify correctness of rewrite rules via sampling"
+  help       = "use sygus to enumerate and verify correctness of rewrite rules"
 
 [[option]]
   name       = "sygusRewSynth"
@@ -1233,7 +1266,7 @@ header = "options/quantifiers_options.h"
   long       = "sygus-rr-synth"
   type       = "bool"
   default    = "false"
-  help       = "use sygus to enumerate candidate rewrite rules via sampling"
+  help       = "use sygus to enumerate candidate rewrite rules"
 
 [[option]]
   name       = "sygusRewSynthFilterOrder"
@@ -1258,6 +1291,14 @@ header = "options/quantifiers_options.h"
   type       = "bool"
   default    = "true"
   help       = "filter candidate rewrites based on congruence"
+
+[[option]]
+  name       = "sygusRewSynthFilterNonLinear"
+  category   = "regular"
+  long       = "sygus-rr-synth-filter-nl"
+  type       = "bool"
+  default    = "false"
+  help       = "filter non-linear candidate rewrites"
 
 [[option]]
   name       = "sygusRewVerify"
@@ -1346,6 +1387,73 @@ header = "options/quantifiers_options.h"
   long       = "sygus-expr-miner-check-timeout=N"
   type       = "unsigned long"
   help       = "timeout (in milliseconds) for satisfiability checks in expression miners"
+  
+[[option]]
+  name       = "sygusRewSynthRec"
+  category   = "regular"
+  long       = "sygus-rr-synth-rec"
+  type       = "bool"
+  default    = "false"
+  help       = "synthesize rewrite rules over all sygus grammar types recursively"
+
+[[option]]
+  name       = "sygusQueryGen"
+  category   = "regular"
+  long       = "sygus-query-gen"
+  type       = "bool"
+  default    = "false"
+  help       = "use sygus to enumerate interesting satisfiability queries"
+
+[[option]]
+  name       = "sygusQueryGenThresh"
+  category   = "regular"
+  long       = "sygus-query-gen-thresh=N"
+  type       = "unsigned"
+  default    = "5"
+  help       = "number of points that we allow to be equal for enumerating satisfiable queries with sygus-query-gen"
+
+[[option]]
+  name       = "sygusQueryGenCheck"
+  category   = "regular"
+  long       = "sygus-query-gen-check"
+  type       = "bool"
+  default    = "true"
+  help       = "use interesting satisfiability queries to check soundness of CVC4"
+
+[[option]]
+  name       = "sygusQueryGenDumpFiles"
+  category   = "regular"
+  long       = "sygus-query-gen-dump-files"
+  type       = "bool"
+  default    = "false"
+  help       = "dump external files corresponding to interesting satisfiability queries with sygus-query-gen"
+
+[[option]]
+  name       = "sygusFilterSolMode"
+  category   = "regular"
+  long       = "sygus-filter-sol=MODE"
+  type       = "CVC4::theory::quantifiers::SygusFilterSolMode"
+  default    = "CVC4::theory::quantifiers::SYGUS_FILTER_SOL_NONE"
+  handler    = "stringToSygusFilterSolMode"
+  includes   = ["options/quantifiers_modes.h"]
+  help       = "mode for filtering sygus solutions"
+
+[[option]]
+  name       = "sygusFilterSolRevSubsume"
+  category   = "expert"
+  long       = "sygus-filter-sol-rev"
+  type       = "bool"
+  default    = "false"
+  help       = "compute backwards filtering to compute whether previous solutions are filtered based on later ones"
+
+  
+[[option]]
+  name       = "sygusExprMinerCheckUseExport"
+  category   = "expert"
+  long       = "sygus-expr-miner-check-use-export"
+  type       = "bool"
+  default    = "true"
+  help       = "export expressions to a different ExprManager with different options for satisfiability checks in expression miners"
 
 # CEGQI applied to general quantified formulas
 
@@ -1364,15 +1472,6 @@ header = "options/quantifiers_options.h"
   type       = "bool"
   default    = "false"
   help       = "turns on full effort counterexample-based quantifier instantiation, which may resort to model-value instantiation"
-
-[[option]]
-  name       = "recurseCbqi"
-  category   = "regular"
-  long       = "cbqi-recurse"
-  type       = "bool"
-  default    = "true"
-  read_only  = true
-  help       = "turns on recursive counterexample-based quantifier instantiation"
 
 [[option]]
   name       = "cbqiSat"

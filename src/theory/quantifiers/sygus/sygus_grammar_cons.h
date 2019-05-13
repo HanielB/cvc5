@@ -2,9 +2,9 @@
 /*! \file sygus_grammar_cons.h
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Reynolds
+ **   Andrew Reynolds, Haniel Barbosa
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -15,8 +15,8 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__THEORY__QUANTIFIERS__SYGUS_GRAMMAR_CONS_H
-#define __CVC4__THEORY__QUANTIFIERS__SYGUS_GRAMMAR_CONS_H
+#ifndef CVC4__THEORY__QUANTIFIERS__SYGUS_GRAMMAR_CONS_H
+#define CVC4__THEORY__QUANTIFIERS__SYGUS_GRAMMAR_CONS_H
 
 #include "theory/quantifiers_engine.h"
 
@@ -113,6 +113,16 @@ public:
    * sygus grammar, add them to vector ops.
    */
   static void mkSygusConstantsForType(TypeNode type, std::vector<Node>& ops);
+  /**
+   * Convert node n based on deep embedding, see Section 4 of Reynolds et al
+   * CAV 2015.
+   *
+   * This returns the result of converting n to its deep embedding based on
+   * the mapping from functions to datatype variables, stored in
+   * d_synth_fun_vars. This method should be called only after calling process
+   * above.
+   */
+  Node convertToEmbedding(Node n);
 
  private:
   /** reference to quantifier engine */
@@ -121,17 +131,21 @@ public:
   * This contains global information about the synthesis conjecture.
   */
   SynthConjecture* d_parent;
+  /**
+   * Maps each synthesis function to its corresponding (first-order) sygus
+   * datatype variable. This map is initialized by the process methods.
+   */
+  std::map<Node, Node> d_synth_fun_vars;
   /** is the syntax restricted? */
   bool d_is_syntax_restricted;
   /** collect terms */
   void collectTerms( Node n, std::map< TypeNode, std::vector< Node > >& consts );
-  /** convert node n based on deep embedding (Section 4 of Reynolds et al CAV 2015) */
-  Node convertToEmbedding( Node n, std::map< Node, Node >& synth_fun_vars );
   //---------------- grammar construction
   // helper for mkSygusDefaultGrammar (makes unresolved type for mutually recursive datatype construction)
   static TypeNode mkUnresolvedType(const std::string& name, std::set<Type>& unres);
   // collect the list of types that depend on type range
-  static void collectSygusGrammarTypesFor( TypeNode range, std::vector< TypeNode >& types, std::map< TypeNode, std::vector< DatatypeConstructorArg > >& sels );
+  static void collectSygusGrammarTypesFor(TypeNode range,
+                                          std::vector<TypeNode>& types);
   /** helper function for function mkSygusDefaultType
   * Collects a set of mutually recursive datatypes "datatypes" corresponding to
   * encoding type "range" to SyGuS.

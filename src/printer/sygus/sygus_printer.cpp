@@ -140,14 +140,18 @@ void SygusPrinter::toStream(std::ostream& out,
 
   if (tryToStream<SetBenchmarkLogicCommand>(out, c)
       || tryToStream<CommandSequence>(out, c)
-      || tryToStream<DeclareVarCommand>(out, c)
-      || tryToStream<DeclarePrimedVarCommand>(out, c)
-      || tryToStream<DeclareSygusFunctionCommand>(out, c)
+      || tryToStream<DeclareSygusVarCommand>(out, c)
+      || tryToStream<DeclareSygusPrimedVarCommand>(out, c)
+      || tryToStream<DeclareFunctionCommand>(out, c)
       || tryToStream<DefineFunctionCommand>(out, c)
       || tryToStream<SynthFunCommand>(out, c)
-      || tryToStream<ConstraintCommand>(out, c)
-      || tryToStream<InvConstraintCommand>(out, c)
-      || tryToStream<CheckSynthCommand>(out, c))
+      || tryToStream<SygusConstraintCommand>(out, c)
+      || tryToStream<SygusInvConstraintCommand>(out, c)
+      || tryToStream<CheckSynthCommand>(out, c)
+      || tryToStream<SetOptionCommand>(out, c)
+      || tryToStream<DeclareTypeCommand>(out, c)
+      || tryToStream<DefineTypeCommand>(out, c)
+      || tryToStream<DatatypeDeclarationCommand>(out, c))
   {
     return;
   }
@@ -159,16 +163,27 @@ void SygusPrinter::toStream(std::ostream& out,
 
 void SygusPrinter::toStream(std::ostream& out, const CommandStatus* c) const
 {
-  c->toStream(out, language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, language::output::LANG_SMTLIB_V2_6_1);
 }
 
 static void toStream(std::ostream& out, const SetBenchmarkLogicCommand* c)
 {
-  c->toStream(out,
-              -1,
-              false,
-              options::defaultDagThresh(),
-              language::output::LANG_SMTLIB_V2_5);
+  out << "(set-logic " << c->getSygusLogic() << ")";
+}
+
+static void toStream(std::ostream& out, const SetOptionCommand* c)
+{
+  c->toStream(out, language::output::LANG_SMTLIB_V2_6_1);
+}
+
+static void toStream(std::ostream& out, const DeclareTypeCommand* c)
+{
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
+}
+
+static void toStream(std::ostream& out, const DefineTypeCommand* c)
+{
+  c->toStream(out, language::output::LANG_SMTLIB_V2_6_1);
 }
 
 static void toStream(std::ostream& out, const CommandSequence* c)
@@ -191,27 +206,22 @@ static void toStream(std::ostream& out, const CommandSequence* c)
   }
 }
 
-static void toStream(std::ostream& out, const DeclareSygusFunctionCommand* c)
+static void toStream(std::ostream& out, const DatatypeDeclarationCommand* c)
 {
-  DeclareFunctionCommand* cf = new DeclareFunctionCommand(
-      c->getSymbol(), c->getFunction(), c->getType());
-  cf->toStream(out,
-              -1,
-              false,
-              options::defaultDagThresh(),
-              language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
+}
+
+static void toStream(std::ostream& out, const DeclareFunctionCommand* c)
+{
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
 }
 
 static void toStream(std::ostream& out, const DefineFunctionCommand* c)
 {
-  c->toStream(out,
-              -1,
-              false,
-              options::defaultDagThresh(),
-              language::output::LANG_SMTLIB_V2_5);
+  c->toStream(out, -1, false, 1, language::output::LANG_SMTLIB_V2_6_1);
 }
 
-static void toStream(std::ostream& out, const DeclareVarCommand* c)
+static void toStream(std::ostream& out, const DeclareSygusVarCommand* c)
 {
   out << "(declare-var " << CVC4::quoteSymbol(c->getSymbol());
   Type type = c->getType();
@@ -219,7 +229,7 @@ static void toStream(std::ostream& out, const DeclareVarCommand* c)
   out << " " << type << ")";
 }
 
-static void toStream(std::ostream& out, const DeclarePrimedVarCommand* c)
+static void toStream(std::ostream& out, const DeclareSygusPrimedVarCommand* c)
 {
   out << "(declare-primed-var " << CVC4::quoteSymbol(c->getSymbol());
   Type type = c->getType();
@@ -262,7 +272,7 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
   if (sygusType.isDatatype()
       && static_cast<DatatypeType>(sygusType).getDatatype().isSygus())
   {
-    out << "\n(";
+    std::stringstream types_predecl, types_list;
     std::set<Type> grammarTypes;
     std::list<Type> typesToPrint;
     grammarTypes.insert(sygusType);
@@ -271,6 +281,7 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
     //   name
     //   sygus type
     //   constructors in order
+    Printer* sygus_printer = Printer::getPrinter(language::output::LANG_SYGUS_V2);
     do
     {
       Type curr = typesToPrint.front();
@@ -278,11 +289,11 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
       Assert(curr.isDatatype()
              && static_cast<DatatypeType>(curr).getDatatype().isSygus());
       const Datatype& dt = static_cast<DatatypeType>(curr).getDatatype();
-      // TODO make the first guys be "Start"
-      out << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
+      types_list << "(" << dt.getName() << " " << dt.getSygusType() << "\n(";
+      types_predecl << "(" << dt.getName() << " " << dt.getSygusType() << ")";
       if (dt.getSygusAllowConst())
       {
-        out << "(Constant " << dt.getSygusType() << ") ";
+        types_list << "(Constant " << dt.getSygusType() << ") ";
       }
       for (const DatatypeConstructor& cons : dt)
       {
@@ -290,47 +301,61 @@ static void toStream(std::ostream& out, const SynthFunCommand* c)
                                             i_end = cons.end();
         if (i != i_end)
         {
-          out << "(";
-          // TODO use sygusprintcallback
-          out << cons.getSygusOp();
+          types_list << "(";
+          SygusPrintCallback* spc = cons.getSygusPrintCallback().get();
+          if (spc != nullptr && options::sygusPrintCallbacks())
+          {
+            spc->toStreamSygus(sygus_printer, types_list, cons.getSygusOp());
+          }
+          else
+          {
+            types_list << cons.getSygusOp();
+          }
           do
           {
             Type argType = (*i).getRangeType();
             // print argument type
-            out << " " << argType;
+            types_list << " " << argType;
             // if fresh type, store it for later processing
             if (grammarTypes.insert(argType).second)
             {
               typesToPrint.push_back(argType);
             }
           } while (++i != i_end);
-          out << ")";
+          types_list << ")";
         }
         else
         {
-          // TODO use sygusprintcallback
-          out << cons.getSygusOp();
+          SygusPrintCallback* spc = cons.getSygusPrintCallback().get();
+          if (spc != nullptr && options::sygusPrintCallbacks())
+          {
+            spc->toStreamSygus(sygus_printer, types_list, cons.getSygusOp());
+          }
+          else
+          {
+            types_list << cons.getSygusOp();
+          }
         }
-        out << "\n";
+        types_list << "\n";
       }
-      out << "))\n";
+      types_list << "))\n";
     } while (!typesToPrint.empty());
 
-    out << ")";
+    out << "\n(" << types_predecl.str() << ")\n(" << types_list.str() << ")";
   }
   out << ")";
 }
 
-static void toStream(std::ostream& out, const ConstraintCommand* c)
+static void toStream(std::ostream& out, const SygusConstraintCommand* c)
 {
   out << "(constraint " << c->getExpr() << ")";
 }
 
-static void toStream(std::ostream& out, const InvConstraintCommand* c)
+static void toStream(std::ostream& out, const SygusInvConstraintCommand* c)
 {
   out << "(inv-constraint";
-  const std::vector<Expr>& place_holders = c->getPlaceHolders();
-  for (const Expr& e : place_holders)
+  const std::vector<Expr>& predicates = c->getPredicates();
+  for (const Expr& e : predicates)
   {
     out << " " << e;
   }

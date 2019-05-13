@@ -2,9 +2,9 @@
 /*! \file datatypes_sygus.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Reynolds, Tim King
+ **   Andrew Reynolds, Tim King, Morgan Deters
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -538,9 +538,10 @@ Node SygusSymBreakNew::getSimpleSymBreakPred(Node e,
     // enumerator is only specific to variable agnostic symmetry breaking
     e = Node::null();
   }
-  std::map<unsigned, Node>::iterator it =
-      d_simple_sb_pred[e][tn][tindex][optHashVal].find(depth);
-  if (it != d_simple_sb_pred[e][tn][tindex][optHashVal].end())
+  std::map<unsigned, Node>& ssbCache =
+      d_simple_sb_pred[e][tn][tindex][optHashVal];
+  std::map<unsigned, Node>::iterator it = ssbCache.find(depth);
+  if (it != ssbCache.end())
   {
     return it->second;
   }
@@ -759,12 +760,12 @@ Node SygusSymBreakNew::getSimpleSymBreakPred(Node e,
             deq_child[1].push_back(1);
           }
         }
-        if (nk == ITE || nk == STRING_STRREPL)
+        if (nk == ITE || nk == STRING_STRREPL || nk == STRING_STRREPLALL)
         {
           deq_child[0].push_back(1);
           deq_child[1].push_back(2);
         }
-        if (nk == STRING_STRREPL)
+        if (nk == STRING_STRREPL || nk == STRING_STRREPLALL)
         {
           deq_child[0].push_back(0);
           deq_child[1].push_back(1);
@@ -1087,60 +1088,19 @@ Node SygusSymBreakNew::registerSearchValue(Node a,
 
       if (options::sygusRewVerify())
       {
-        // add to the sampler database object
-        std::map<TypeNode, quantifiers::SygusSampler>::iterator its =
-            d_sampler[a].find(tn);
-        if (its == d_sampler[a].end())
+        if (bv != bvr)
         {
-          d_sampler[a][tn].initializeSygus(
-              d_tds, nv, options::sygusSamples(), false);
-          its = d_sampler[a].find(tn);
-        }
-
-        // register the rewritten node with the sampler
-        Node bvr_sample_ret = its->second.registerTerm(bvr);
-        // register the current node with the sampler
-        Node sample_ret = its->second.registerTerm(bv);
-
-        // bv and bvr should be equivalent under examples
-        if (sample_ret != bvr_sample_ret)
-        {
-          // we have detected unsoundness in the rewriter
-          Options& nodeManagerOptions = NodeManager::currentNM()->getOptions();
-          std::ostream* out = nodeManagerOptions.getOut();
-          (*out) << "(unsound-rewrite " << bv << " " << bvr << ")" << std::endl;
-          // debugging information
-          int pt_index = its->second.getDiffSamplePointIndex(bv, bvr);
-          if (pt_index >= 0)
+          // add to the sampler database object
+          std::map<TypeNode, quantifiers::SygusSampler>::iterator its =
+              d_sampler[a].find(tn);
+          if (its == d_sampler[a].end())
           {
-            (*out) << "; unsound: are not equivalent for : " << std::endl;
-            std::vector<Node> vars;
-            its->second.getVariables(vars);
-            std::vector<Node> pt;
-            its->second.getSamplePoint(pt_index, pt);
-            Assert(vars.size() == pt.size());
-            for (unsigned i = 0, size = pt.size(); i < size; i++)
-            {
-              (*out) << "; unsound:    " << vars[i] << " -> " << pt[i]
-                     << std::endl;
-            }
-            Node bv_e = its->second.evaluate(bv, pt_index);
-            Node pbv_e = its->second.evaluate(bvr, pt_index);
-            Assert(bv_e != pbv_e);
-            (*out) << "; unsound: where they evaluate to " << bv_e << " and "
-                   << pbv_e << std::endl;
+            d_sampler[a][tn].initializeSygus(
+                d_tds, nv, options::sygusSamples(), false);
+            its = d_sampler[a].find(tn);
           }
-          else
-          {
-            // no witness point found?
-            Assert(false);
-          }
-          if (options::sygusRewVerifyAbort())
-          {
-            AlwaysAssert(
-                false,
-                "--sygus-rr-verify detected unsoundness in the rewriter!");
-          }
+          // check equivalent
+          its->second.checkEquivalent(bv, bvr);
         }
       }
 
@@ -1303,7 +1263,8 @@ void SygusSymBreakNew::preRegisterTerm( TNode n, std::vector< Node >& lemmas  ) 
   }
 }
 
-void SygusSymBreakNew::registerSizeTerm( Node e, std::vector< Node >& lemmas ) {
+void SygusSymBreakNew::registerSizeTerm(Node e, std::vector<Node>& lemmas)
+{
   if (d_register_st.find(e) != d_register_st.end())
   {
     // already registered
@@ -1544,15 +1505,32 @@ void SygusSymBreakNew::check( std::vector< Node >& lemmas ) {
       {
         // symmetry breaking lemmas should only be for enumerators
         Assert(d_register_st[a]);
-        std::vector<Node> sbl;
-        d_tds->getSymBreakLemmas(a, sbl);
-        for (const Node& lem : sbl)
+        // If this is a non-basic enumerator, process its symmetry breaking
+        // clauses. Since this class is not responsible for basic enumerators,
+        // their symmetry breaking clauses are ignored.
+        if (!d_tds->isBasicEnumerator(a))
         {
-          TypeNode tn = d_tds->getTypeForSymBreakLemma(lem);
-          unsigned sz = d_tds->getSizeForSymBreakLemma(lem);
-          registerSymBreakLemma(tn, lem, sz, a, lemmas);
+          std::vector<Node> sbl;
+          d_tds->getSymBreakLemmas(a, sbl);
+          for (const Node& lem : sbl)
+          {
+            if (d_tds->isSymBreakLemmaTemplate(lem))
+            {
+              // register the lemma template
+              TypeNode tn = d_tds->getTypeForSymBreakLemma(lem);
+              unsigned sz = d_tds->getSizeForSymBreakLemma(lem);
+              registerSymBreakLemma(tn, lem, sz, a, lemmas);
+            }
+            else
+            {
+              Trace("dt-sygus-debug")
+                  << "DT sym break lemma : " << lem << std::endl;
+              // it is a normal lemma
+              lemmas.push_back(lem);
+            }
+          }
+          d_tds->clearSymBreakLemmas(a);
         }
-        d_tds->clearSymBreakLemmas(a);
       }
     }
     if (!lemmas.empty())
@@ -1562,9 +1540,20 @@ void SygusSymBreakNew::check( std::vector< Node >& lemmas ) {
   }
 
   // register search values, add symmetry breaking lemmas if applicable
-  for( std::map< Node, bool >::iterator it = d_register_st.begin(); it != d_register_st.end(); ++it ){
-    if( it->second ){
-      Node prog = it->first;
+  std::vector<Node> es;
+  d_tds->getEnumerators(es);
+  bool needsRecheck = false;
+  // for each enumerator registered to d_tds
+  for (Node& prog : es)
+  {
+    if (d_register_st.find(prog) == d_register_st.end())
+    {
+      // not yet registered, do so now
+      registerSizeTerm(prog, lemmas);
+      needsRecheck = true;
+    }
+    else
+    {
       Trace("dt-sygus-debug") << "Checking model value of " << prog << "..."
                               << std::endl;
       Assert(prog.getType().isDatatype());
@@ -1623,14 +1612,12 @@ void SygusSymBreakNew::check( std::vector< Node >& lemmas ) {
       prog.setAttribute(ssbo, !isExc);
     }
   }
-  //register any measured terms that we haven't encountered yet (should only be invoked on first call to check
-  Trace("sygus-sb") << "Register size terms..." << std::endl;
-  std::vector< Node > mts;
-  d_tds->getEnumerators(mts);
-  for( unsigned i=0; i<mts.size(); i++ ){
-    registerSizeTerm( mts[i], lemmas );
+  Trace("sygus-sb") << "SygusSymBreakNew::check: finished." << std::endl;
+  if (needsRecheck)
+  {
+    Trace("sygus-sb") << " SygusSymBreakNew::rechecking..." << std::endl;
+    return check(lemmas);
   }
-  Trace("sygus-sb") << " SygusSymBreakNew::check: finished." << std::endl;
 
   if (Trace.isOn("cegqi-engine") && !d_szinfo.empty())
   {

@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds, Tim King, Morgan Deters
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -159,6 +159,7 @@ void SynthEngine::assignConjecture(Node q)
     {
       // create new smt engine to do quantifier elimination
       SmtEngine smt_qe(nm->toExprManager());
+      smt_qe.setIsInternalSubsolver();
       smt_qe.setLogic(smt::currentSmtEngine()->getLogicInfo());
       Trace("cegqi-qep") << "Property is non-ground single invocation, run "
                             "QE to obtain single invocation."
@@ -321,7 +322,8 @@ bool SynthEngine::checkConjecture(SynthConjecture* conj)
       return true;
     }
 
-    Trace("cegqi-engine") << "  *** Check candidate phase..." << std::endl;
+    Trace("cegqi-engine-debug")
+        << "  *** Check candidate phase..." << std::endl;
     std::vector<Node> cclems;
     bool ret = conj->doCheck(cclems);
     bool addedLemma = false;
@@ -343,7 +345,8 @@ bool SynthEngine::checkConjecture(SynthConjecture* conj)
     }
     if (addedLemma)
     {
-      Trace("cegqi-engine") << "  ...check for counterexample." << std::endl;
+      Trace("cegqi-engine-debug")
+          << "  ...check for counterexample." << std::endl;
       return true;
     }
     else
@@ -358,7 +361,8 @@ bool SynthEngine::checkConjecture(SynthConjecture* conj)
   }
   else
   {
-    Trace("cegqi-engine") << "  *** Refine candidate phase..." << std::endl;
+    Trace("cegqi-engine-debug")
+        << "  *** Refine candidate phase..." << std::endl;
     std::vector<Node> rlems;
     conj->doRefine(rlems);
     bool addedLemma = false;
@@ -381,7 +385,7 @@ bool SynthEngine::checkConjecture(SynthConjecture* conj)
     }
     if (addedLemma)
     {
-      Trace("cegqi-engine") << "  ...refine candidate." << std::endl;
+      Trace("cegqi-engine-debug") << "  ...refine candidate." << std::endl;
     }
   }
   return true;
@@ -426,17 +430,16 @@ SynthEngine::Statistics::Statistics()
       d_cegqi_lemmas_refine("SynthEngine::cegqi_lemmas_refine", 0),
       d_cegqi_si_lemmas("SynthEngine::cegqi_lemmas_si", 0),
       d_solutions("SynthConjecture::solutions", 0),
-      d_candidate_rewrites_print("SynthConjecture::candidate_rewrites_print",
-                                 0),
-      d_candidate_rewrites("SynthConjecture::candidate_rewrites", 0)
+      d_filtered_solutions("SynthConjecture::filtered_solutions", 0),
+      d_candidate_rewrites_print("SynthConjecture::candidate_rewrites_print", 0)
 
 {
   smtStatisticsRegistry()->registerStat(&d_cegqi_lemmas_ce);
   smtStatisticsRegistry()->registerStat(&d_cegqi_lemmas_refine);
   smtStatisticsRegistry()->registerStat(&d_cegqi_si_lemmas);
   smtStatisticsRegistry()->registerStat(&d_solutions);
+  smtStatisticsRegistry()->registerStat(&d_filtered_solutions);
   smtStatisticsRegistry()->registerStat(&d_candidate_rewrites_print);
-  smtStatisticsRegistry()->registerStat(&d_candidate_rewrites);
 }
 
 SynthEngine::Statistics::~Statistics()
@@ -445,8 +448,8 @@ SynthEngine::Statistics::~Statistics()
   smtStatisticsRegistry()->unregisterStat(&d_cegqi_lemmas_refine);
   smtStatisticsRegistry()->unregisterStat(&d_cegqi_si_lemmas);
   smtStatisticsRegistry()->unregisterStat(&d_solutions);
+  smtStatisticsRegistry()->unregisterStat(&d_filtered_solutions);
   smtStatisticsRegistry()->unregisterStat(&d_candidate_rewrites_print);
-  smtStatisticsRegistry()->unregisterStat(&d_candidate_rewrites);
 }
 
 }  // namespace quantifiers

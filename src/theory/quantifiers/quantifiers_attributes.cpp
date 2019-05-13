@@ -2,9 +2,9 @@
 /*! \file quantifiers_attributes.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Andrew Reynolds, Paul Meng, Tim King
+ **   Andrew Reynolds, Paul Meng, Morgan Deters
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -266,6 +266,14 @@ void QuantAttributes::computeQuantAttributes( Node q, QAttributes& qa ){
           //Assert( q[1][0].getKind()==FORALL );
           Trace("quant-attr") << "Attribute : sygus : " << q << std::endl;
           qa.d_sygus = true;
+        }
+        if (avar.hasAttribute(SygusSideConditionAttribute()))
+        {
+          qa.d_sygusSideCondition =
+              avar.getAttribute(SygusSideConditionAttribute());
+          Trace("quant-attr")
+              << "Attribute : sygus side condition : "
+              << qa.d_sygusSideCondition << " : " << q << std::endl;
         }
         if (avar.getAttribute(QuantNameAttribute()))
         {

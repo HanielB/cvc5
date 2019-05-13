@@ -4,7 +4,7 @@
  ** Top contributors (to current version):
  **   Andrew Reynolds, Andres Noetzli, Tianyi Liang
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -15,8 +15,11 @@
 
 #include "cvc4_private.h"
 
-#ifndef __CVC4__THEORY__STRINGS__THEORY_STRINGS_REWRITER_H
-#define __CVC4__THEORY__STRINGS__THEORY_STRINGS_REWRITER_H
+#ifndef CVC4__THEORY__STRINGS__THEORY_STRINGS_REWRITER_H
+#define CVC4__THEORY__STRINGS__THEORY_STRINGS_REWRITER_H
+
+#include <utility>
+#include <vector>
 
 #include "theory/rewriter.h"
 #include "theory/type_enumerator.h"
@@ -184,6 +187,18 @@ class TheoryStringsRewriter {
   * Returns the rewritten form of node.
   */
   static Node rewriteReplace(Node node);
+  /** rewrite replace all
+   * This is the entry point for post-rewriting terms n of the form
+   *   str.replaceall( s, t, r )
+   * Returns the rewritten form of node.
+   */
+  static Node rewriteReplaceAll(Node node);
+  /** rewrite replace internal
+   *
+   * This method implements rewrite rules that apply to both str.replace and
+   * str.replaceall. If it returns a non-null ret, then node rewrites to ret.
+   */
+  static Node rewriteReplaceInternal(Node node);
   /** rewrite string less than or equal
   * This is the entry point for post-rewriting terms n of the form
   *   str.<=( t, s )
@@ -446,12 +461,38 @@ class TheoryStringsRewriter {
    */
   static Node lengthPreserveRewrite(Node n);
 
+  /**
+   * Checks whether a string term `a` is entailed to contain or not contain a
+   * string term `b`.
+   *
+   * @param a The string that is checked whether it contains `b`
+   * @param b The string that is checked whether it is contained in `a`
+   * @param fullRewriter Determines whether the function can use the full
+   * rewriter or only `rewriteContains()` (useful for avoiding loops)
+   * @return true node if it can be shown that `a` contains `b`, false node if
+   * it can be shown that `a` does not contain `b`, null node otherwise
+   */
+  static Node checkEntailContains(Node a, Node b, bool fullRewriter = true);
+
   /** entail non-empty
    *
    * Checks whether string a is entailed to be non-empty. Is equivalent to
    * the call checkArithEntail( len( a ), true ).
    */
   static bool checkEntailNonEmpty(Node a);
+
+  /**
+   * Checks whether string has at most/exactly length one. Length one strings
+   * can be used for more aggressive rewriting because there is guaranteed that
+   * it cannot be overlap multiple components in a string concatenation.
+   *
+   * @param s The string to check
+   * @param strict If true, the string must have exactly length one, otherwise
+   * at most length one
+   * @return True if the string has at most/exactly length one, false otherwise
+   */
+  static bool checkEntailLengthOne(Node s, bool strict = false);
+
   /** check arithmetic entailment equal
    * Returns true if it is always the case that a = b.
    */
@@ -498,6 +539,52 @@ class TheoryStringsRewriter {
   static void getArithApproximations(Node a,
                                      std::vector<Node>& approx,
                                      bool isOverApprox = false);
+
+  /**
+   * Checks whether it is always true that `a` is a strict subset of `b` in the
+   * multiset domain.
+   *
+   * Examples:
+   *
+   * a = (str.++ "A" x), b = (str.++ "A" x "B") ---> true
+   * a = (str.++ "A" x), b = (str.++ "B" x "AA") ---> true
+   * a = (str.++ "A" x), b = (str.++ "B" y "AA") ---> false
+   *
+   * @param a The term for which it should be checked if it is a strict subset
+   * of `b` in the multiset domain
+   * @param b The term for which it should be checked if it is a strict
+   * superset of `a` in the multiset domain
+   * @return True if it is always the case that `a` is a strict subset of `b`,
+   * false otherwise.
+   */
+  static bool checkEntailMultisetSubset(Node a, Node b);
+
+  /**
+   * Returns a character `c` if it is always the case that str.in.re(a, c*),
+   * i.e. if all possible values of `a` only consist of `c` characters, and the
+   * null node otherwise. If `a` is the empty string, the function returns an
+   * empty string.
+   *
+   * @param a The node to check for homogeneity
+   * @return If `a` is homogeneous, the only character that it may contain, the
+   * empty string if `a` is empty, and the null node otherwise
+   */
+  static Node checkEntailHomogeneousString(Node a);
+
+  /**
+   * Simplifies a given node `a` s.t. the result is a concatenation of string
+   * terms that can be interpreted as a multiset and which contains all
+   * multisets that `a` could form.
+   *
+   * Examples:
+   *
+   * (str.substr "AA" 0 n) ---> "AA"
+   * (str.replace "AAA" x "BB") ---> (str.++ "AAA" "BB")
+   *
+   * @param a The node to simplify
+   * @return A concatenation that can be interpreted as a multiset
+   */
+  static Node getMultisetApproximation(Node a);
 
   /**
    * Checks whether assumption |= a >= 0 (if strict is false) or
@@ -563,6 +650,12 @@ class TheoryStringsRewriter {
    *   checkEntailArith( a, strict ) = true.
    */
   static Node getConstantArithBound(Node a, bool isLower = true);
+  /** get length for regular expression
+   *
+   * Given regular expression n, if this method returns a non-null value c, then
+   * x in n entails len( x ) = c.
+   */
+  static Node getFixedLengthForRegexp(Node n);
   /** decompose substr chain
    *
    * If s is substr( ... substr( base, x1, y1 ) ..., xn, yn ), then this
@@ -632,10 +725,30 @@ class TheoryStringsRewriter {
    * infer that any of the yi must be empty.
    */
   static Node inferEqsFromContains(Node x, Node y);
+
+  /**
+   * Collects equal-to-empty nodes from a conjunction or a single
+   * node. Returns a list of nodes that are compared to empty nodes
+   * and a boolean that indicates whether all nodes in the
+   * conjunction were a comparison with the empty node. The nodes in
+   * the list are sorted and duplicates removed.
+   *
+   * Examples:
+   *
+   * collectEmptyEqs( (= "" x) ) = { true, [x] }
+   * collectEmptyEqs( (and (= "" x) (= "" y)) ) = { true, [x, y] }
+   * collectEmptyEqs( (and (= "A" x) (= "" y) (= "" y)) ) = { false, [y] }
+   *
+   * @param x The conjunction of equalities or a single equality
+   * @return A pair of a boolean that indicates whether the
+   * conjunction consists only of comparisons to the empty string
+   * and the list of nodes that are compared to the empty string
+   */
+  static std::pair<bool, std::vector<Node> > collectEmptyEqs(Node x);
 };/* class TheoryStringsRewriter */
 
 }/* CVC4::theory::strings namespace */
 }/* CVC4::theory namespace */
 }/* CVC4 namespace */
 
-#endif /* __CVC4__THEORY__STRINGS__THEORY_STRINGS_REWRITER_H */
+#endif /* CVC4__THEORY__STRINGS__THEORY_STRINGS_REWRITER_H */
