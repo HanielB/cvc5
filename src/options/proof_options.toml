@@ -36,3 +36,12 @@ header = "options/proof_options.h"
   default    = "false"
   read_only  = true
   help       = "if unable to track the dependencies of a rewritten/preprocessed assertion, fail silently"
+
+[[option]]
+  name       = "lazy-proofs"
+  category   = "regular"
+  long       = "lazy-proofs"
+  type       = "bool"
+  default    = "true"
+  read_only  = true
+  help       = "Use lazy proofs (UF, AX)"
