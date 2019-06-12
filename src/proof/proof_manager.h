@@ -55,10 +55,6 @@ namespace prop {
 
 class SmtEngine;
 
-const ClauseId ClauseIdEmpty(-1);
-const ClauseId ClauseIdUndef(-2);
-const ClauseId ClauseIdError(-3);
-
 template <class Solver> class TSatProof;
 typedef TSatProof< CVC4::Minisat::Solver> CoreSatProof;
 
@@ -87,12 +83,6 @@ namespace prop {
   class SatLiteral;
   typedef std::vector<SatLiteral> SatClause;
 }/* CVC4::prop namespace */
-
-// different proof modes
-enum ProofFormat {
-  LFSC,
-  NATIVE
-};/* enum ProofFormat */
 
 std::string append(const std::string& str, uint64_t num);
 

@@ -21,7 +21,7 @@
 
 namespace CVC4 {
 
-enum ProofRule {
+enum NewProofRule {
   RULE_INPUT,
   RULE_RESOLUTION,
   RULE_REFLEXIVITY,
@@ -38,7 +38,7 @@ class NewProof
 
  private:
   unsigned d_id;
-  ProofRule d_rule;
+  NewProofRule d_rule;
   Node d_conclusion;
   std::vector<unsigned> d_premises;
 }; /* class NewProof */

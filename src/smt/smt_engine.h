@@ -60,6 +60,7 @@ class DecisionEngine;
 class TheoryEngine;
 
 class ProofManager;
+class NewProofManager;
 
 class Model;
 class LogicRequest;
@@ -93,6 +94,7 @@ namespace smt {
   class BooleanTermConverter;
 
   ProofManager* currentProofManager();
+  NewProofManager* currentNewProofManager();
 
   struct CommandCleanup;
   typedef context::CDList<Command*, CommandCleanup> CommandList;
@@ -145,6 +147,8 @@ class CVC4_PUBLIC SmtEngine {
   prop::PropEngine* d_propEngine;
   /** The proof manager */
   ProofManager* d_proofManager;
+  /** The new proof manager */
+  NewProofManager* d_newProofManager;
   /** An index of our defined functions */
   DefinedFunctionMap* d_definedFunctions;
   /** recursive function definition abstractions for --fmf-fun */
@@ -276,7 +280,7 @@ class CVC4_PUBLIC SmtEngine {
    * Verbosity of various commands.
    */
   std::map<std::string, Integer> d_commandVerbosity;
-  
+
 
   /** ReplayStream for the solver. */
   ExprStream* d_replayStream;
@@ -399,6 +403,7 @@ class CVC4_PUBLIC SmtEngine {
   friend class ::CVC4::smt::SmtScope;
   friend class ::CVC4::smt::BooleanTermConverter;
   friend ProofManager* ::CVC4::smt::currentProofManager();
+  friend NewProofManager* ::CVC4::smt::currentNewProofManager();
   friend class ::CVC4::LogicRequest;
   // to access d_modelCommands
   friend class ::CVC4::Model;
@@ -842,7 +847,7 @@ class CVC4_PUBLIC SmtEngine {
    * extended command get-qe-disjunct, which can be used
    * for incrementally computing the result of a
    * quantifier elimination.
-   * 
+   *
    * The argument strict is whether to output
    * warnings, such as when an unexpected logic is used.
    */
@@ -854,7 +859,7 @@ class CVC4_PUBLIC SmtEngine {
    * Get list of quantified formulas that were instantiated
    */
   void getInstantiatedQuantifiedFormulas( std::vector< Expr >& qs );
-   
+
   /**
    * Get instantiations
    */
@@ -1058,7 +1063,7 @@ class CVC4_PUBLIC SmtEngine {
   */
   bool getExpressionName(Expr e, std::string& name) const;
 
-  /** set expression name 
+  /** set expression name
   * Sets the expression name of e to name.
   * This information is user-context-dependent.
   * If e already has a name, it is overwritten.

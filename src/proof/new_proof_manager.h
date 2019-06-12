@@ -49,38 +49,12 @@ namespace prop {
 
 class SmtEngine;
 
-const ClauseId ClauseIdEmpty(-1);
-const ClauseId ClauseIdUndef(-2);
-const ClauseId ClauseIdError(-3);
-
-template <class Solver> class TSatProof;
-typedef TSatProof<CVC4::Minisat::Solver> CoreSatProof;
-
-class CnfProof;
-class TheoryProofEngine;
-class TheoryProof;
-class UFProof;
-
-template <class Solver> class LFSCSatProof;
-typedef TSatProof<CVC4::Minisat::Solver> CoreSatProof;
-
-class LFSCCnfProof;
-class LFSCTheoryProofEngine;
-class LFSCUFProof;
-class LFSCRewriterProof;
-
 namespace prop {
   typedef uint64_t SatVariable;
   class SatLiteral;
   typedef std::vector<SatLiteral> SatClause;
 }/* CVC4::prop namespace */
 
-// different proof modes
-enum ProofFormat {
-  LFSC,
-  VERIT,
-  LEAN
-};/* enum ProofFormat */
 
 typedef std::unordered_map<ClauseId, prop::SatClause*> IdToSatClause;
 typedef std::unordered_map<Node, std::vector<Node>, NodeHashFunction> NodeToNodes;
@@ -97,15 +71,15 @@ public:
   NewProofManager(ProofFormat format = VERIT);
   ~NewProofManager();
 
-  static ProofManager* currentPM();
+  static NewProofManager* currentPM();
 
-  // getting various proofs
-  static const Proof& getProof();
+  // getting proof
+  const std::vector<NewProof>& getProof() const;
 
   static SkolemizationManager *getSkolemizationManager();
 
   /** Add input **/
-  void addAssertion(Expr formula);
+  void addAssertion(Node formula);
 
   int getNextId() { return d_nextId++; }
 
@@ -118,20 +92,18 @@ public:
   TimerStat* getProofProductionTime() { return &d_stats.d_proofProductionTime; }
 
  private:
-  std::map<Node, std::string> d_inputFormulaToName;
-
   SkolemizationManager d_skolemizationManager;
 
   int d_nextId;
 
-  std::map<unsigned, NewProof> d_proof;
+  std::vector<NewProof> d_proof;
 
   ProofFormat d_format;
 
-  struct ProofManagerStatistics
+  struct NewProofManagerStatistics
   {
-    ProofManagerStatistics();
-    ~ProofManagerStatistics();
+    NewProofManagerStatistics();
+    ~NewProofManagerStatistics();
 
     /**
      * Time spent producing proofs (i.e. generating the proof from the logging
@@ -140,7 +112,7 @@ public:
     TimerStat d_proofProductionTime;
   }; /* struct ProofManagerStatistics */
 
-  ProofManagerStatistics d_stats;
+  NewProofManagerStatistics d_stats;
 
 };/* class ProofManager */
 

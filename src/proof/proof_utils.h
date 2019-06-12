@@ -25,8 +25,20 @@
 #include <vector>
 
 #include "expr/node_manager.h"
+#include "proof/clause_id.h"
 
 namespace CVC4 {
+
+const ClauseId ClauseIdEmpty(-1);
+const ClauseId ClauseIdUndef(-2);
+const ClauseId ClauseIdError(-3);
+
+// different proof modes
+enum ProofFormat {
+  LFSC,
+  VERIT,
+  LEAN
+};/* enum ProofFormat */
 
 typedef std::unordered_set<Expr, ExprHashFunction> ExprSet;
 typedef std::unordered_set<Node, NodeHashFunction> NodeSet;
