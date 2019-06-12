@@ -38,7 +38,7 @@ header = "options/proof_options.h"
   help       = "if unable to track the dependencies of a rewritten/preprocessed assertion, fail silently"
 
 [[option]]
-  name       = "lazy-proofs"
+  name       = "lazyProofs"
   category   = "regular"
   long       = "lazy-proofs"
   type       = "bool"
