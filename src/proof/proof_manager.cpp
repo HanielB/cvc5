@@ -579,11 +579,8 @@ void LFSCProof::toStream(std::ostream& out) const
   }
   Debug("pf::pm") << std::endl;
 
-  // Debug("pf::pm") << std::endl << "Used lemmas: " << std::endl;
-  // for (it2 = used_lemmas.begin(); it2 != used_lemmas.end(); ++it2) {
-  //   Debug("pf::pm") << "\t lemma = " << *(it2->second) << std::endl;
-  // }
-  // Debug("pf::pm") << std::endl;
+  // HB Since lemmas / inputs are in terms of the stuff in the SAT solver, need
+  // to go through the CNF proof to get the actual terms
   Debug("pf::pm") << std::endl << "Used lemmas: " << std::endl;
   for (it2 = used_lemmas.begin(); it2 != used_lemmas.end(); ++it2) {
 
@@ -609,6 +606,8 @@ void LFSCProof::toStream(std::ostream& out) const
   Debug("pf::pm") << std::endl;
 
   // collecting assertions that lead to the clauses being asserted
+  // HB similar to above, I guess, since used_inputs is in terms of stuff in SAT
+  // solver, need to retrieve original assertions
   NodeSet used_assertions;
   d_cnfProof->collectAssertionsForClauses(used_inputs, used_assertions);
 
