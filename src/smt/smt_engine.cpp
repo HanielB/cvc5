@@ -76,6 +76,8 @@
 #include "preprocessing/preprocessing_pass_context.h"
 #include "preprocessing/preprocessing_pass_registry.h"
 #include "printer/printer.h"
+#include "proof/new_proof.h"
+#include "proof/new_proof_manager.h"
 #include "proof/proof.h"
 #include "proof/proof_manager.h"
 #include "proof/theory_proof.h"
@@ -870,6 +872,7 @@ SmtEngine::SmtEngine(ExprManager* em)
       d_theoryEngine(NULL),
       d_propEngine(NULL),
       d_proofManager(NULL),
+      d_newProofManager(),
       d_definedFunctions(NULL),
       d_fmfRecFunctionsDefined(NULL),
       d_assertionList(NULL),
@@ -914,6 +917,7 @@ SmtEngine::SmtEngine(ExprManager* em)
   // that options::proof() is set correctly yet.
 #ifdef CVC4_PROOF
   d_proofManager = new ProofManager(d_userContext);
+  d_newProofManager = new NewProofManager();
 #endif
 
   d_definedFunctions = new (true) DefinedFunctionMap(d_userContext);
@@ -999,13 +1003,18 @@ void SmtEngine::finishInit()
   }
   d_dumpCommands.clear();
 
-  PROOF( ProofManager::currentPM()->setLogic(d_logic); );
   PROOF({
-      for(TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id) {
-        ProofManager::currentPM()->getTheoryProofEngine()->
-          finishRegisterTheory(d_theoryEngine->theoryOf(id));
-      }
-    });
+    ProofManager::currentPM()->setLogic(d_logic);
+    if (options::newProofs())
+    {
+      NewProofManager::currentPM()->setLogic(d_logic);
+    }
+    for (TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id)
+    {
+      ProofManager::currentPM()->getTheoryProofEngine()->finishRegisterTheory(
+          d_theoryEngine->theoryOf(id));
+    }
+  });
   d_private->finishInit();
   Trace("smt-debug") << "SmtEngine::finishInit done" << std::endl;
 }
@@ -1095,10 +1104,15 @@ SmtEngine::~SmtEngine()
     //
     // Note: the proof manager must be destroyed before the theory engine.
     // Because the destruction of the proofs depends on contexts owned be the
-    // theory solvers.
+    // theory solvers
+    //
+    // HB Since the new proof manager does not depend on the context, this
+    // dependency should no longer apply.
 #ifdef CVC4_PROOF
     delete d_proofManager;
     d_proofManager = NULL;
+    delete d_newProofManager;
+    d_newProofManager = NULL;
 #endif
 
     delete d_theoryEngine;
@@ -3190,12 +3204,16 @@ void SmtEnginePrivate::processAssertions() {
   dumpAssertions("post-definition-expansion", d_assertions);
 
   // save the assertions now
-  THEORY_PROOF
-    (
-     for (unsigned i = 0; i < d_assertions.size(); ++i) {
-       ProofManager::currentPM()->addAssertion(d_assertions[i].toExpr());
-     }
-     );
+  THEORY_PROOF({
+    for (unsigned i = 0, size = d_assertions.size(); i < size; ++i)
+    {
+      ProofManager::currentPM()->addAssertion(d_assertions[i].toExpr());
+      if (options::newProofs())
+      {
+        NewProofManager::currentPM()->addAssertion(d_assertions[i]);
+      }
+    }
+  });
 
   Debug("smt") << " d_assertions     : " << d_assertions.size() << endl;
 
@@ -3548,24 +3566,37 @@ void SmtEnginePrivate::addFormula(TNode n,
                << ", isAssumption = " << isAssumption << endl;
 
   // Give it to proof manager
-  PROOF(
-    if( inInput ){
+  PROOF({
+    if (inInput)
+    {
       // n is an input assertion
-      if (inUnsatCore || options::unsatCores() || options::dumpUnsatCores() || options::checkUnsatCores() || options::fewerPreprocessingHoles()) {
-
+      if (inUnsatCore || options::unsatCores() || options::dumpUnsatCores()
+          || options::checkUnsatCores() || options::fewerPreprocessingHoles())
+      {
         ProofManager::currentPM()->addCoreAssertion(n.toExpr());
+        if (options::newProofs())
+        {
+          NewProofManager::currentPM()->addAssertionWeird(n);
+        }
       }
-    }else{
-      // n is the result of an unknown preprocessing step, add it to dependency map to null
+    }
+    else
+    {
+      // n is the result of an unknown preprocessing step, add it to dependency
+      // map to null
       ProofManager::currentPM()->addDependence(n, Node::null());
+      if (options::newProofs())
+      {
+        NewProofManager::currentPM()->addUnknown(n);
+      }
     }
     // rewrite rules are by default in the unsat core because
     // they need to be applied until saturation
-    if(options::unsatCores() &&
-       n.getKind() == kind::REWRITE_RULE ){
+    if (options::unsatCores() && n.getKind() == kind::REWRITE_RULE)
+    {
       ProofManager::currentPM()->addUnsatCore(n.toExpr());
     }
-  );
+  });
 
   // Add the normalized formula to the queue
   d_assertions.push_back(n, isAssumption);
@@ -4879,6 +4910,30 @@ const Proof& SmtEngine::getProof()
 
   return ProofManager::getProof(this);
 #else /* IS_PROOFS_BUILD */
+  throw ModalException("This build of CVC4 doesn't have proof support.");
+#endif /* IS_PROOFS_BUILD */
+}
+
+const NewProof& SmtEngine::getNewProof()
+{
+  Trace("smt") << "SMT getNewProof()" << endl;
+  SmtScope smts(this);
+  finalOptionsAreSet();
+#if IS_PROOFS_BUILD
+  if (!options::proof())
+  {
+    throw ModalException(
+        "Cannot get a proof when produce-proofs option is off.");
+  }
+  if (d_status.isNull() || d_status.asSatisfiabilityResult() != Result::UNSAT
+      || d_problemExtended)
+  {
+    throw RecoverableModalException(
+        "Cannot get a proof unless immediately preceded by UNSAT/VALID "
+        "response.");
+  }
+  return NewProofManager::getProof();
+#else  /* IS_PROOFS_BUILD */
   throw ModalException("This build of CVC4 doesn't have proof support.");
 #endif /* IS_PROOFS_BUILD */
 }

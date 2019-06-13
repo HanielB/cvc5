@@ -31,6 +31,7 @@
 #include "expr/expr_stream.h"
 #include "options/options.h"
 #include "proof/unsat_core.h"
+#include "proof/new_proof.h"
 #include "smt/logic_exception.h"
 #include "smt_util/lemma_channels.h"
 #include "theory/logic_info.h"
@@ -778,6 +779,7 @@ class CVC4_PUBLIC SmtEngine {
    * destroyed.
    */
   const Proof& getProof();
+  const NewProof& getNewProof();
 
   /**
    * Print all instantiations made by the quantifiers module.

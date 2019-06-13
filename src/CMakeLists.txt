@@ -173,6 +173,8 @@ libcvc4_add_sources(
   proof/uf_proof.h
   proof/unsat_core.cpp
   proof/unsat_core.h
+  proof/verit_proof.cpp
+  proof/verit_proof.h
   prop/bvminisat/bvminisat.cpp
   prop/bvminisat/bvminisat.h
   prop/bvminisat/core/Dimacs.h

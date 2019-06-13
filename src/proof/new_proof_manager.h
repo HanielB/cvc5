@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file proof_manager.h
+/*! \file new_proof_manager.h
  ** \verbatim
  ** Top contributors (to current version):
  **   Haniel Barbosa
@@ -55,7 +55,6 @@ namespace prop {
   typedef std::vector<SatLiteral> SatClause;
 }/* CVC4::prop namespace */
 
-
 typedef std::unordered_map<ClauseId, prop::SatClause*> IdToSatClause;
 typedef std::unordered_map<Node, std::vector<Node>, NodeHashFunction> NodeToNodes;
 typedef std::unordered_set<ClauseId> IdHashSet;
@@ -74,14 +73,23 @@ public:
   static NewProofManager* currentPM();
 
   // getting proof
-  const std::vector<NewProof>& getProof() const;
+  static NewProof& getProof();
 
   static SkolemizationManager *getSkolemizationManager();
+
+  /* ------------ BEGIN Registering proof steps ------------ */
 
   /** Add input **/
   void addAssertion(Node formula);
 
-  int getNextId() { return d_nextId++; }
+  /** Add input (but in a weird way) **/
+  void addAssertionWeird(Node formula);
+
+  /** Add a result of an unknown preprocessing step **/
+  void addUnknown(Node formula);
+
+
+  /* ------------ END Registering proof steps ------------ */
 
   void setLogic(const LogicInfo& logic);
 
@@ -94,9 +102,7 @@ public:
  private:
   SkolemizationManager d_skolemizationManager;
 
-  int d_nextId;
-
-  std::vector<NewProof> d_proof;
+  std::unique_ptr<NewProof> d_proof;
 
   ProofFormat d_format;
 

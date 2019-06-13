@@ -1,5 +1,5 @@
 /*********************                                                        */
-/*! \file proof_manager.cpp
+/*! \file new_proof_manager.cpp
  ** \verbatim
  ** Top contributors (to current version):
  **   Haniel Barbosa
@@ -40,9 +40,8 @@
 
 namespace CVC4 {
 
-
 NewProofManager::NewProofManager(ProofFormat format)
-    : d_format(format)
+    : d_format(format), d_proof()
 {
 }
 
@@ -53,9 +52,9 @@ NewProofManager* NewProofManager::currentPM() {
   return smt::currentNewProofManager();
 }
 
-const std::vector<NewProof>& NewProofManager::getProof() const
+NewProof& NewProofManager::getProof()
 {
-  return currentPM()->d_proof;
+  return *(currentPM()->d_proof);
 }
 
 SkolemizationManager* NewProofManager::getSkolemizationManager() {
@@ -63,10 +62,15 @@ SkolemizationManager* NewProofManager::getSkolemizationManager() {
   return &(currentPM()->d_skolemizationManager);
 }
 
-void NewProofManager::addAssertion(Node formula) {
+void NewProofManager::addAssertion(Node formula)
+{
   Debug("proof:pm") << "assert: " << formula << std::endl;
   // TODO add input formula rule
 }
+
+void NewProofManager::addAssertionWeird(Node formula) {}
+
+void NewProofManager::addUnknown(Node formula) {}
 
 void NewProofManager::setLogic(const LogicInfo& logic) {
   d_logic = logic;

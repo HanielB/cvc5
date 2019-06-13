@@ -45,3 +45,12 @@ header = "options/proof_options.h"
   default    = "true"
   read_only  = true
   help       = "Use lazy proofs (UF, AX)"
+
+[[option]]
+  name       = "newProofs"
+  category   = "regular"
+  long       = "new-proofs"
+  type       = "bool"
+  default    = "false"
+  read_only  = true
+  help       = "Use new proof module"

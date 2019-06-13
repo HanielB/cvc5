@@ -34,6 +34,7 @@
 #include "expr/variable_type_map.h"
 #include "proof/unsat_core.h"
 #include "util/proof.h"
+#include "proof/new_proof.h"
 #include "util/result.h"
 #include "util/sexpr.h"
 
@@ -975,6 +976,7 @@ class CVC4_PUBLIC GetProofCommand : public Command
   SmtEngine* d_smtEngine;
   // d_result is owned by d_smtEngine.
   const Proof* d_result;
+  const NewProof* d_resultNewProof;
 }; /* class GetProofCommand */
 
 class CVC4_PUBLIC GetInstantiationsCommand : public Command

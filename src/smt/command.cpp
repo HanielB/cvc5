@@ -28,6 +28,7 @@
 #include "expr/expr_iomanip.h"
 #include "expr/node.h"
 #include "options/options.h"
+#include "options/proof_options.h"
 #include "options/smt_options.h"
 #include "printer/printer.h"
 #include "smt/dump.h"
@@ -1880,6 +1881,10 @@ void GetProofCommand::invoke(SmtEngine* smtEngine)
   {
     d_smtEngine = smtEngine;
     d_result = &smtEngine->getProof();
+    if (options::newProofs())
+    {
+      d_resultNewProof = &smtEngine->getNewProof();
+    }
     d_commandStatus = CommandSuccess::instance();
   }
   catch (RecoverableModalException& e)
@@ -1907,6 +1912,10 @@ void GetProofCommand::printResult(std::ostream& out, uint32_t verbosity) const
   {
     smt::SmtScope scope(d_smtEngine);
     d_result->toStream(out);
+    if (options::newProofs())
+    {
+      d_resultNewProof->toStream(out);
+    }
   }
 }
 
@@ -1915,6 +1924,7 @@ Command* GetProofCommand::exportTo(ExprManager* exprManager,
 {
   GetProofCommand* c = new GetProofCommand();
   c->d_result = d_result;
+  c->d_resultNewProof = d_resultNewProof;
   c->d_smtEngine = d_smtEngine;
   return c;
 }
@@ -1923,6 +1933,7 @@ Command* GetProofCommand::clone() const
 {
   GetProofCommand* c = new GetProofCommand();
   c->d_result = d_result;
+  c->d_resultNewProof = d_resultNewProof;
   c->d_smtEngine = d_smtEngine;
   return c;
 }
