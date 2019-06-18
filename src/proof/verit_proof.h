@@ -12,6 +12,9 @@
  ** \brief A proof to be output in the veriT proof format.
  **/
 
+#include "cvc4_private.h"
+
+#include "expr/node.h"
 #include "proof/new_proof.h"
 
 #ifndef CVC4__VERIT_PROOF_H
@@ -19,17 +22,34 @@
 
 namespace CVC4 {
 
+class VeritProofStep : ProofStep
+{
+ public:
+  ~VeritProofStep() override {}
+  Node getConclusion() const;
+  const std::vector<unsigned>& getPremises() const;
+
+ private:
+  Node d_conclusion;
+  std::vector<unsigned> d_premises;
+};
+
 class VeritProof : public NewProof
 {
  public:
-  VeritProof();
-  ~VeritProof() {}
-  void toStream(std::ostream& out);
+  VeritProof() {}
+  ~VeritProof() override {}
+  void toStream(std::ostream& out) const override;
+  void addProofStep(VeritProofStep s);
+  const std::vector<VeritProofStep>& getProofSteps() const;
 
  private:
-  void printStep(std::ostream& out, ProofStep* s);
+  void printStep(std::ostream& out, VeritProofStep* s) const;
+
+  std::vector<VeritProofStep> d_proofSteps;
+
 };
 
-}
+}  // namespace CVC4
 
 #endif /* CVC4__VERIT_PROOF_H */

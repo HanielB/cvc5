@@ -12,7 +12,7 @@
  ** \brief
  **/
 
-#include "expr/node.h"
+#include "cvc4_public.h"
 
 #ifndef CVC4__NEW_PROOF_H
 #define CVC4__NEW_PROOF_H
@@ -21,70 +21,57 @@
 
 namespace CVC4 {
 
-enum NewProofRule {
+enum NewProofRule
+{
   RULE_INPUT,
   RULE_RESOLUTION,
   RULE_REFLEXIVITY,
   RULE_SYMMETRY,
   RULE_TRANSITIVITY,
   RULE_CONGRUENCE,
-};/* enum ProofRules */
+}; /* enum ProofRules */
 
 class ProofStep
 {
  public:
-  ~ProofStep() {}
+  virtual ~ProofStep() {}
+  unsigned getId() const { return d_id; }
+  NewProofRule getRule() const { return d_rule; }
 
-  const unsigned getId() { return d_id; }
-  const NewProofRule getRule() { return d_rule; }
-  Node getConclusion() { return d_conclusion; }
-  const std::vector<unsigned>& getPremises() const { return d_premises; }
-
- private:
+ protected:
   unsigned d_id;
   NewProofRule d_rule;
-  Node d_conclusion;
-  std::vector<unsigned> d_premises;
 }; /* class ProofStep */
-
 
 /* This will contain the step lists, basically. Then the actual proofs will have
    more information. */
-class NewProof
+class CVC4_PUBLIC NewProof
 {
  public:
-  ~NewProof() {}
-  void toStream(std::ostream& out);
+  virtual ~NewProof() {}
+  virtual void toStream(std::ostream& out) const = 0;
 
-  void addProofStep(ProofStep s);
-
-  const std::vector<ProofStep>& getProofSteps() const { return d_proofSteps; }
-
- private:
-  std::vector<ProofStep> d_proofSteps;
-
+ protected:
   int d_nextId;
-
-  int getNextId() { return d_nextId++; }
+  // int getNextId();
 }; /* class NewProof */
 
+// std::ostream& operator<<(std::ostream& out, CVC4::NewProofRule r)
+// {
+//   switch (r)
+//   {
+//     case RULE_INPUT: out << "input"; break;
+//     case RULE_RESOLUTION: out << "resolution"; break;
+//     case RULE_REFLEXIVITY: out << "reflexivity"; break;
+//     case RULE_SYMMETRY: out << "symmetry"; break;
+//     case RULE_TRANSITIVITY: out << "transitivity"; break;
+//     case RULE_CONGRUENCE: out << "congruence"; break;
+//     default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
+//   }
 
-std::ostream& operator<<(std::ostream& out, CVC4::NewProofRule r)
-{
-  switch (r)
-  {
-    case RULE_INPUT: out << "input"; break;
-    case RULE_RESOLUTION: out << "resolution"; break;
-    case RULE_REFLEXIVITY: out << "reflexivity"; break;
-    case RULE_SYMMETRY: out << "symmetry"; break;
-    case RULE_TRANSITIVITY: out << "transitivity"; break;
-    case RULE_CONGRUENCE: out << "congruence"; break;
-    default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
-  }
+//   return out;
+// }
 
-  return out;
-}
+}  // namespace CVC4
 
-}/* CVC4 namespace */
-
-#endif /* CVC4__PROOF_H */
+#endif /* CVC4__NEW_PROOF_H */

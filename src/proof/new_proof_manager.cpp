@@ -25,6 +25,7 @@
 #include "proof/resolution_bitvector_proof.h"
 #include "proof/sat_proof_implementation.h"
 #include "proof/theory_proof.h"
+#include "proof/verit_proof.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
 #include "smt/smt_statistics_registry.h"
@@ -41,8 +42,9 @@
 namespace CVC4 {
 
 NewProofManager::NewProofManager(ProofFormat format)
-    : d_format(format), d_proof()
+  : d_format(format)
 {
+  d_proof.reset(new VeritProof());
 }
 
 NewProofManager::~NewProofManager() {

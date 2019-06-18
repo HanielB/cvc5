@@ -19,15 +19,29 @@
 
 namespace CVC4 {
 
-void VeritProof::toStream(std::ostream& out)
+Node VeritProofStep::getConclusion() const { return d_conclusion; }
+
+const std::vector<unsigned>& VeritProofStep::getPremises() const
 {
-  for (ProofStep s : getProofSteps())
+  return d_premises;
+}
+
+void VeritProof::toStream(std::ostream& out) const
+{
+  for (VeritProofStep s : getProofSteps())
   {
     printStep(out, &s);
   }
 }
 
-void VeritProof::printStep(std::ostream& out, ProofStep* s)
+void VeritProof::addProofStep(VeritProofStep s) {}
+
+const std::vector<VeritProofStep>& VeritProof::getProofSteps() const
+{
+  return d_proofSteps;
+};
+
+void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
 {
   // out << "(set .c" << s->getId() << " (";// << step->getRule();
   // std::vector<unsigned> premises = s->getPremises();
