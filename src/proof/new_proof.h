@@ -50,27 +50,32 @@ class CVC4_PUBLIC NewProof
  public:
   virtual ~NewProof() {}
   virtual void toStream(std::ostream& out) const = 0;
+  virtual void addProofStep(NewProofRule rule) = 0;
 
  protected:
   int d_nextId;
   // int getNextId();
 }; /* class NewProof */
 
-// std::ostream& operator<<(std::ostream& out, CVC4::NewProofRule r)
-// {
-//   switch (r)
-//   {
-//     case RULE_INPUT: out << "input"; break;
-//     case RULE_RESOLUTION: out << "resolution"; break;
-//     case RULE_REFLEXIVITY: out << "reflexivity"; break;
-//     case RULE_SYMMETRY: out << "symmetry"; break;
-//     case RULE_TRANSITIVITY: out << "transitivity"; break;
-//     case RULE_CONGRUENCE: out << "congruence"; break;
-//     default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
-//   }
+inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
+{
+  // Debug("newproof:pm")
+  //     << "checking to print out rule\n";
 
-//   return out;
-// }
+  switch (r)
+  {
+    case RULE_INPUT: out << "input"; break;
+    case RULE_RESOLUTION: out << "resolution"; break;
+    case RULE_REFLEXIVITY: out << "reflexivity"; break;
+    case RULE_SYMMETRY: out << "symmetry"; break;
+    case RULE_TRANSITIVITY: out << "transitivity"; break;
+    case RULE_CONGRUENCE: out << "congruence"; break;
+    default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
+  }
+
+  return out;
+}
+
 
 }  // namespace CVC4
 

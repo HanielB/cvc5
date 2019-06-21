@@ -19,12 +19,33 @@
 
 namespace CVC4 {
 
+VeritProofStep::VeritProofStep(unsigned id, NewProofRule rule)
+{
+  d_id = id;
+  d_rule = rule;
+}
+
+void VeritProofStep::addPremises(std::vector<unsigned>& reasons)
+{
+  d_premises = reasons;
+}
+
+void VeritProofStep::addConclusion(Node conclusion)
+{
+  d_conclusion = conclusion;
+}
+
 Node VeritProofStep::getConclusion() const { return d_conclusion; }
 
 const std::vector<unsigned>& VeritProofStep::getPremises() const
 {
   return d_premises;
 }
+
+const std::vector<VeritProofStep>& VeritProof::getProofSteps() const
+{
+  return d_proofSteps;
+};
 
 void VeritProof::toStream(std::ostream& out) const
 {
@@ -35,28 +56,121 @@ void VeritProof::toStream(std::ostream& out) const
   }
 }
 
-void VeritProof::addProofStep(VeritProofStep s) {}
-
-const std::vector<VeritProofStep>& VeritProof::getProofSteps() const
+void VeritProof::addProofStep(NewProofRule rule)
 {
-  return d_proofSteps;
-};
+  switch (rule)
+  {
+    case RULE_INPUT:
+    case RULE_RESOLUTION:
+    case RULE_REFLEXIVITY:
+    case RULE_SYMMETRY:
+    case RULE_TRANSITIVITY:
+    case RULE_CONGRUENCE:
+    {
+      unsigned id = getNextId();
+      Debug("newproof:pm") << "VeritProof::addProfStep: adding proof step with "
+                           << id// << " " << rule
+                           << "\n";
+      d_proofSteps.push_back(VeritProofStep(id, rule));
+      break;
+    }
+    default:
+      Debug("newproof:pm") << "VeritProof::addProfStep: unrecognized rule (or "
+                              "non-simple rule)\n";
+  }
+}
+
+void VeritProof::addProofStep(NewProofRule rule, Node conclusion)
+{
+  switch (rule)
+  {
+    case RULE_INPUT:
+    case RULE_RESOLUTION:
+    case RULE_REFLEXIVITY:
+    case RULE_SYMMETRY:
+    case RULE_TRANSITIVITY:
+    case RULE_CONGRUENCE:
+    {
+      unsigned id = getNextId();
+      Debug("newproof:pm") << "VeritProof::addProfStep: adding proof step with "
+                           << id << " " << rule
+                           << " " << conclusion << "\n";
+      VeritProofStep vtproofstep = VeritProofStep(id, rule);
+      vtproofstep.addConclusion(conclusion);
+      d_proofSteps.push_back(vtproofstep);
+      break;
+    }
+    default:
+      Debug("newproof:pm") << "VeritProof::addProfStep: unrecognized rule (or "
+                              "non-simple rule)\n";
+  }
+}
+
+void VeritProof::addProofStep(NewProofRule rule,
+                              std::vector<unsigned>& reasons,
+                              Node conclusion)
+{
+  switch (rule)
+  {
+    case RULE_INPUT:
+    case RULE_RESOLUTION:
+    case RULE_REFLEXIVITY:
+    case RULE_SYMMETRY:
+    case RULE_TRANSITIVITY:
+    case RULE_CONGRUENCE:
+    {
+      unsigned id = getNextId();
+      Debug("newproof:pm") << "VeritProof::addProfStep: adding proof step with "
+                           << id << " " << rule
+                           << " " //<< reasons << " "
+                           << conclusion << "\n";
+      VeritProofStep vtproofstep = VeritProofStep(id, rule);
+      vtproofstep.addPremises(reasons);
+      vtproofstep.addConclusion(conclusion);
+      d_proofSteps.push_back(vtproofstep);
+      break;
+    }
+    default:
+      Debug("newproof:pm") << "VeritProof::addProfStep: unrecognized rule (or "
+                              "non-simple rule)\n";
+  }
+}
+
+void VeritProof::addToLastProofStep(Node conclusion)
+{
+  Debug("newproof:pm")
+      << "VeritProof::addToLastProfStep: adding to last proof step with id "
+      << d_proofSteps.back().getId() << " " << d_proofSteps.back().getRule()
+      << "\n";
+  d_proofSteps.back().addConclusion(conclusion);
+}
+
+void VeritProof::addToLastProofStep(std::vector<unsigned>& reasons,
+                                    Node conclusion)
+{
+  Debug("newproof:pm")
+      << "VeritProof::addToLastProfStep: adding to last proof step with id "
+      << d_proofSteps.back().getId() << " " << d_proofSteps.back().getRule()
+      << "\n";
+  d_proofSteps.back().addPremises(reasons);
+  d_proofSteps.back().addConclusion(conclusion);
+}
 
 void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
 {
-  // out << "(set .c" << s->getId() << " (";// << step->getRule();
-  // std::vector<unsigned> premises = s->getPremises();
-  // if (!premises.empty())
-  // {
-  //   out << " :clauses (";
-  //   for (unsigned i = 0, size = premises.size(); i < size; ++i)
-  //   {
-  //     out << ".c" << (i < size -1? " " : "");
-  //   }
-  //   out << ")";
-  // }
-  // out << " :conclusion " << s->getConclusion();
-  // out << ")";
+  out << "(set .c" << s->getId() << " (" << s->getRule();
+  const std::vector<unsigned>& premises = s->getPremises();
+  if (!premises.empty())
+  {
+    out << " :clauses (";
+    for (unsigned i = 0, size = premises.size(); i < size; ++i)
+    {
+      out << ".c" << (i < size -1? " " : "");
+    }
+    out << ")";
+  }
+  out << " :conclusion " << s->getConclusion();
+  out << ")\n";
 }
 
 }  // namespace CVC4

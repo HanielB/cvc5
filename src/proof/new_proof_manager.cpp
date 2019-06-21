@@ -41,9 +41,15 @@
 
 namespace CVC4 {
 
-NewProofManager::NewProofManager(ProofFormat format)
-  : d_format(format)
+NewProofManager::NewProofManager(ProofFormat format) : d_format(format)
 {
+  // TODO change
+  if (format == LFSC)
+  {
+    d_proof.reset(new VeritProof());
+    return;
+  }
+  // default
   d_proof.reset(new VeritProof());
 }
 
@@ -66,8 +72,13 @@ SkolemizationManager* NewProofManager::getSkolemizationManager() {
 
 void NewProofManager::addAssertion(Node formula)
 {
-  Debug("proof:pm") << "assert: " << formula << std::endl;
-  // TODO add input formula rule
+  Debug("newproof:pm") << "assert: " << formula << std::endl;
+  d_proof.get()->addProofStep(RULE_INPUT);
+  if (d_format == VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    vtproof->addToLastProofStep(formula);
+  }
 }
 
 void NewProofManager::addAssertionWeird(Node formula) {}

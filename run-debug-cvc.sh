@@ -1,1 +1,1 @@
-./debug/bin/cvc4 --proof --dump-proof "$@"
+./debug/bin/cvc4 --proof --dump-proof --no-unconstrained-simp --simplification=none --no-repeat-simp --no-global-negate --no-symmetry-breaker --no-pb-rewrites --no-sort-inference --no-pre-skolem-quant --no-bv-eq --no-bv-ineq --no-bv-algebraic --no-bv-to-bool --bool-to-bv=off --no-bv-intro-pow2 --no-bitblast-aig  "$@"
