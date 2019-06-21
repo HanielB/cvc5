@@ -1881,10 +1881,13 @@ void GetProofCommand::invoke(SmtEngine* smtEngine)
   {
     d_smtEngine = smtEngine;
     d_result = &smtEngine->getProof();
-    if (options::newProofs())
-    {
-      d_resultNewProof = &smtEngine->getNewProof();
-    }
+    d_resultNewProof = &smtEngine->getNewProof();
+
+    // TODO realize why calling the option below explodes
+    // if (options::newProofs())
+    // {
+    //   // d_resultNewProof = &smtEngine->getNewProof();
+    // }
     d_commandStatus = CommandSuccess::instance();
   }
   catch (RecoverableModalException& e)
@@ -1911,11 +1914,14 @@ void GetProofCommand::printResult(std::ostream& out, uint32_t verbosity) const
   else
   {
     smt::SmtScope scope(d_smtEngine);
-    d_result->toStream(out);
-    if (options::newProofs())
-    {
-      d_resultNewProof->toStream(out);
-    }
+    // d_result->toStream(out);
+    d_resultNewProof->toStream(out);
+
+    // TODO realize why calling the option below explodes
+    // if (options::newProofs())
+    // {
+    //   d_resultNewProof->toStream(out);
+    // }
   }
 }
 

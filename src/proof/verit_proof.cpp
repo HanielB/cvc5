@@ -28,6 +28,7 @@ const std::vector<unsigned>& VeritProofStep::getPremises() const
 
 void VeritProof::toStream(std::ostream& out) const
 {
+  out << "VERIT PROOF!!!!!!!!!!!!!!!!!!!!\n";
   for (VeritProofStep s : getProofSteps())
   {
     printStep(out, &s);
