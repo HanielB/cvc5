@@ -24,6 +24,7 @@
 #include "options/smt_options.h"
 #include "options/theory_options.h"
 #include "options/uf_options.h"
+#include "proof/new_proof_manager.h"
 #include "proof/proof_manager.h"
 #include "proof/theory_proof.h"
 #include "proof/uf_proof.h"
@@ -156,7 +157,7 @@ void TheoryUF::check(Effort level) {
         }else{
           // support for cardinality constraints is not enabled, set incomplete
           d_out->setIncomplete();
-        } 
+        }
       }
       //needed for models
       if( options::produceModels() ){
@@ -827,11 +828,11 @@ unsigned TheoryUF::checkExtensionality(TheoryModel* m)
     }
     ++eqcs_i;
   }
-  
-  for( std::map< TypeNode, std::vector< Node > >::iterator itf = func_eqcs.begin(); 
+
+  for( std::map< TypeNode, std::vector< Node > >::iterator itf = func_eqcs.begin();
        itf != func_eqcs.end(); ++itf ){
     for( unsigned j=0; j<itf->second.size(); j++ ){
-      for( unsigned k=(j+1); k<itf->second.size(); k++ ){ 
+      for( unsigned k=(j+1); k<itf->second.size(); k++ ){
         // if these equivalence classes are not explicitly disequal, do extensionality to ensure distinctness
         if (!d_equalityEngine.areDisequal(
                 itf->second[j], itf->second[k], false))
@@ -866,7 +867,7 @@ unsigned TheoryUF::checkExtensionality(TheoryModel* m)
             num_lemmas += applyExtensionality(deq);
           }
         }
-      }   
+      }
     }
   }
   return num_lemmas;
@@ -954,13 +955,13 @@ unsigned TheoryUF::checkAppCompletion() {
 unsigned TheoryUF::checkHigherOrder() {
   Trace("uf-ho") << "TheoryUF::checkHigherOrder..." << std::endl;
 
-  // infer new facts based on apply completion until fixed point 
+  // infer new facts based on apply completion until fixed point
   unsigned num_facts;
   do{
     num_facts = checkAppCompletion();
     if( d_conflict ){
       Trace("uf-ho") << "...conflict during app-completion." << std::endl;
-      return 1;  
+      return 1;
     }
   }while( num_facts>0 );
 
