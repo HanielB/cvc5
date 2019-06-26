@@ -1,0 +1,58 @@
+(check
+ ;; Declarations
+(% U sort
+(% f4 (term U)
+(% f3 (term U)
+(% p (term (arrow U Bool))
+(% f1 (term U)
+(% f2 (term U)
+(% A3 (th_holds (not (p_app (apply _ _ p f3))))
+(% A2 (th_holds (p_app (apply _ _ p f1)))
+(% A0 (th_holds (= U f1 f2))
+(% A4 (th_holds true)
+(% A1 (th_holds (impl (p_app (apply _ _ p f1)) (impl (or (= U f1 f2) (and (and (not (= U f3 f4))(not (= U f3 f2)))(not (= U f4 f2)))) (p_app (apply _ _ p f3)))))
+(: (holds cln)
+
+ ;; Printing the global let map
+(@ let1 f1
+(@ let2 f2
+(@ let3 (= U let1 let2)
+(@ let4 (p_app (apply _ _ p let1))
+(@ let5 f3
+(@ let6 (p_app (apply _ _ p let5))
+(@ let7 f4
+(@ let8 (= U let5 let7)
+(@ let9 (not let8)
+(@ let10 (= U let2 let5)
+(@ let11 (not let10)
+(@ let12 (= U let2 let7)
+(@ let13 (not let12)
+(@ let14 (and let11 let13)
+(@ let15 (and let9 let14)
+(@ let16 (or let3 let15)
+(@ let17 (impl let16 let6)
+
+ ;; In the preprocessor we trust
+(th_let_pf _ (trust_f (not let6)) (\ .PA270
+(th_let_pf _ (trust_f (= U let1 let2)) (\ .PA245
+(th_let_pf _ (trust_f (p_app (apply _ _ p let1))) (\ .PA264
+(th_let_pf _ (trust_f (impl let4 let17)) (\ .PA285
+
+;; Printing mapping from preprocessed assertions into atoms
+(decl_atom let3 (\ .v2 (\ .a2
+(decl_atom let4 (\ .v3 (\ .a3
+(decl_atom let6 (\ .v9 (\ .a9
+(decl_atom let16 (\ .v8 (\ .a8
+(decl_atom let17 (\ .v10 (\ .a10
+(satlem _ _ (asf _ _ _ .a2 (\ .l4 (clausify_false (contra _ .PA245 .l4)))) (\ .pb4
+(satlem _ _ (asf _ _ _ .a8 (\ .l16 (ast _ _ _ .a2 (\ .l5 (clausify_false (contra _ .l5 (and_elim_1 _ _ (not_or_elim _ _ .l16)))))))) (\ .pb9
+(satlem _ _ (asf _ _ _ .a3 (\ .l6 (clausify_false (contra _ .PA264 .l6)))) (\ .pb13
+(satlem _ _ (asf _ _ _ .a10 (\ .l20 (ast _ _ _ .a3 (\ .l7 (clausify_false (contra _ (or_elim_1 _ _ (not_not_intro _ .l7) (impl_elim _ _ .PA285)) .l20)))))) (\ .pb12
+(satlem _ _ (ast _ _ _ .a9 (\ .l19 (clausify_false (contra _ .l19 .PA270)))) (\ .pb14
+(satlem _ _ (asf _ _ _ .a9 (\ .l18 (ast _ _ _ .a10 (\ .l21 (ast _ _ _ .a8 (\ .l17 (clausify_false (contra _ (or_elim_1 _ _ (not_not_intro _ .l17) (impl_elim _ _ .l21)) .l18)))))))) (\ .pb10
+
+;; Printing final unsat proof
+(satlem_simplify _ _ _ (Q _ _ .pb12 .pb13 .v3) (\ .cl15
+(satlem_simplify _ _ _ (Q _ _ .pb9 .pb4 .v2) (\ .cl16
+(satlem_simplify _ _ _ (Q _ _ (Q _ _ .pb10 .cl15 .v10) .cl16 .v8) (\ .cl17
+(satlem_simplify _ _ _ (Q _ _ .pb14 .cl17 .v9) (\ empty empty)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
