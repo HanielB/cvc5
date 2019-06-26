@@ -1,0 +1,4 @@
+(set .c1 (input :conclusion ((= a b))))
+(set .c2 (input :conclusion ((not (= (f a) (f b))))))
+(set .c3 (eq_congruent :conclusion ((not (= a b)) (= (f a) (f b)))))
+(set .c4 (resolution :clauses (.c3 .c1 .c2) :conclusion ()))

@@ -1,0 +1,32 @@
+(check
+ ;; Declarations
+(% U sort
+(% f (term (arrow U U))
+(% a (term U)
+(% b (term U)
+(% A2 (th_holds true)
+(% A0 (th_holds (= U a b))
+(% A1 (th_holds (not (= U (apply _ _ f a) (apply _ _ f b))))
+(: (holds cln)
+ ;; Printing the global let map
+(@ let1 a
+(@ let2 b
+(@ let3 (= U let1 let2)
+(@ let4 (apply _ _ f let1)
+(@ let5 (apply _ _ f let2)
+(@ let6 (= U let4 let5)
+ ;; In the preprocessor we trust
+(th_let_pf _ (trust_f (not let6)) (\ .PA267
+(th_let_pf _ (trust_f (= U let1 let2)) (\ .PA244
+;; Printing mapping from preprocessed assertions into atoms
+(decl_atom let3 (\ .v2 (\ .a2
+(decl_atom let6 (\ .v3 (\ .a3
+(satlem _ _ (asf _ _ _ .a2 (\ .l4 (clausify_false (contra _ .PA244 .l4)))) (\ .pb4
+(satlem _ _ (ast _ _ _ .a3 (\ .l7 (clausify_false (contra _ .l7 .PA267)))) (\ .pb5
+ ;; Theory Lemmas
+(satlem _ _ (asf _ _ _ .a3 (\ .l6 (ast _ _ _ .a2 (\ .l5  ;; UF Theory Lemma
+;;(= (f a) (f b)) (not (= a b))
+(clausify_false (contra _ (cong _ _ _ _ _ _ (refl _ f) .l5) .l6))
+))))( \ .lemc6
+;; Printing final unsat proof
+(satlem_simplify _ _ _ (Q _ _ (R _ _ .lemc6 .pb5 .v3) .pb4 .v2) (\ empty empty)))))))))))))))))))))))))))))))))
