@@ -1003,16 +1003,13 @@ void SmtEngine::finishInit()
 
   PROOF({
     ProofManager::currentPM()->setLogic(d_logic);
-    if (options::newProofs())
-    {
-      NewProofManager::currentPM()->setLogic(d_logic);
-    }
     for (TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id)
     {
       ProofManager::currentPM()->getTheoryProofEngine()->finishRegisterTheory(
           d_theoryEngine->theoryOf(id));
     }
   });
+  NEWPROOF(NewProofManager::currentPM()->setLogic(d_logic););
   d_private->finishInit();
   Trace("smt-debug") << "SmtEngine::finishInit done" << std::endl;
 }
@@ -3212,12 +3209,9 @@ void SmtEnginePrivate::processAssertions() {
     for (unsigned i = 0, size = d_assertions.size(); i < size; ++i)
     {
       ProofManager::currentPM()->addAssertion(d_assertions[i].toExpr());
-      if (options::newProofs())
-      {
-        NewProofManager::currentPM()->addAssertion(d_assertions[i]);
-      }
     }
   });
+  NEWPROOF(NewProofManager::currentPM()->addAssertion(d_assertions[i]););
 
   Debug("smt") << " d_assertions     : " << d_assertions.size() << endl;
 
@@ -3584,10 +3578,6 @@ void SmtEnginePrivate::addFormula(TNode n,
           || options::checkUnsatCores() || options::fewerPreprocessingHoles())
       {
         ProofManager::currentPM()->addCoreAssertion(n.toExpr());
-        if (options::newProofs())
-        {
-          NewProofManager::currentPM()->addAssertionWeird(n);
-        }
       }
     }
     else
@@ -3595,16 +3585,22 @@ void SmtEnginePrivate::addFormula(TNode n,
       // n is the result of an unknown preprocessing step, add it to dependency
       // map to null
       ProofManager::currentPM()->addDependence(n, Node::null());
-      if (options::newProofs())
-      {
-        NewProofManager::currentPM()->addUnknown(n);
-      }
     }
     // rewrite rules are by default in the unsat core because
     // they need to be applied until saturation
     if (options::unsatCores() && n.getKind() == kind::REWRITE_RULE)
     {
       ProofManager::currentPM()->addUnsatCore(n.toExpr());
+    }
+  });
+  NEWPROOF({
+    if (inInput)
+    {
+      NewProofManager::currentPM()->addAssertionWeird(n);
+    }
+    else
+    {
+      NewProofManager::currentPM()->addUnknown(n);
     }
   });
 
