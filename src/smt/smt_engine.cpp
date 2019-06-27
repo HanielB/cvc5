@@ -872,7 +872,6 @@ SmtEngine::SmtEngine(ExprManager* em)
       d_theoryEngine(NULL),
       d_propEngine(NULL),
       d_proofManager(NULL),
-      d_newProofManager(),
       d_definedFunctions(NULL),
       d_fmfRecFunctionsDefined(NULL),
       d_assertionList(NULL),
@@ -917,7 +916,6 @@ SmtEngine::SmtEngine(ExprManager* em)
   // that options::proof() is set correctly yet.
 #ifdef CVC4_PROOF
   d_proofManager = new ProofManager(d_userContext);
-  d_newProofManager = new NewProofManager();
 #endif
 
   d_definedFunctions = new (true) DefinedFunctionMap(d_userContext);
@@ -1111,8 +1109,6 @@ SmtEngine::~SmtEngine()
 #ifdef CVC4_PROOF
     delete d_proofManager;
     d_proofManager = NULL;
-    delete d_newProofManager;
-    d_newProofManager = NULL;
 #endif
 
     delete d_theoryEngine;
