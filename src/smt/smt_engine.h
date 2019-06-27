@@ -148,6 +148,8 @@ class CVC4_PUBLIC SmtEngine {
   prop::PropEngine* d_propEngine;
   /** The proof manager */
   ProofManager* d_proofManager;
+  /** The new proof manager */
+  NewProofManager* d_newProofManager;
   /** An index of our defined functions */
   DefinedFunctionMap* d_definedFunctions;
   /** recursive function definition abstractions for --fmf-fun */
