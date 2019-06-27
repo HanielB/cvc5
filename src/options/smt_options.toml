@@ -59,6 +59,14 @@ header = "options/smt_options.h"
   help       = "use static learning (on by default)"
 
 [[option]]
+  name       = "expandDefinitionsPp"
+  category   = "regular"
+  long       = "expand-definitions-pp"
+  type       = "bool"
+  default    = "true"
+  help       = "apply expand definitions preprocessing step"
+
+[[option]]
   name       = "expandDefinitions"
   smt_name   = "expand-definitions"
   category   = "regular"
@@ -328,6 +336,22 @@ header = "options/smt_options.h"
   help       = "make multiple passes with nonclausal simplifier"
 
 [[option]]
+  name       = "applySubst"
+  category   = "regular"
+  long       = "apply-subst"
+  type       = "bool"
+  default    = "true"
+  help       = "Apply top level substitutions in preprocessing pass"
+
+[[option]]
+  name       = "theoryPreprocess"
+  category   = "regular"
+  long       = "theory-preprocess"
+  type       = "bool"
+  default    = "true"
+  help       = "Apply the TheoryPreprocess preprocessing pass"
+
+[[option]]
   name       = "zombieHuntThreshold"
   category   = "regular"
   long       = "simp-ite-hunt-zombies=N"
@@ -343,15 +367,15 @@ header = "options/smt_options.h"
   type       = "bool"
   default    = "false"
   help       = "calculate sort inference of input problem, convert the input based on monotonic sorts"
-  
+
 [[option]]
   name       = "symmetryBreakerExp"
   category   = "regular"
   long       = "symmetry-breaker-exp"
   type       = "bool"
   default    = "false"
-  help       = "generate symmetry breaking constraints after symmetry detection"    
-  
+  help       = "generate symmetry breaking constraints after symmetry detection"
+
 [[option]]
   name       = "incrementalSolving"
   category   = "common"

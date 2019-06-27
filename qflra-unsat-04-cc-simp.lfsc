@@ -1,0 +1,76 @@
+(check
+ ;; Declarations
+(% U sort
+(% f (term (arrow U U))
+(% y (term Real)
+(% x (term Real)
+(% a (term U)
+(% b (term U)
+(% A2 (th_holds (>_Real x (+_Real y (a_real 1/1) ) ) )
+(% A0 (th_holds (= U a b))
+(% A3 (th_holds true)
+(% A1 (th_holds (or (= Real x y) (not (= U (apply _ _ f a) (apply _ _ f b)))))
+(: (holds cln)
+
+ ;; Printing deferred declarations
+
+
+;; BV const letification
+
+
+
+ ;; Printing the global let map
+(@ let1 a
+(@ let2 b
+(@ let3 (= U let1 let2)
+(@ let4 x
+(@ let5 y
+(@ let6 (= Real let4 let5)
+(@ let7 (apply _ _ f let1)
+(@ let8 (apply _ _ f let2)
+(@ let9 (= U let7 let8)
+(@ let10 (a_real (~ 1/1) )
+(@ let11 (*_Real let10 let4)
+(@ let12 (+_Real let11 let5)
+(@ let13 (>=_Real let12 let10)
+
+ ;; Printing aliasing declarations
+
+
+ ;; Rewrites for Lemmas
+
+ ;; In the preprocessor we trust
+(th_let_pf _ (trust_f (not let13)) (\ .PA285
+(th_let_pf _ (trust_f (= U let1 let2)) (\ .PA246
+(th_let_pf _ (trust_f (or let6 (not let9))) (\ .PA269
+
+;; Printing mapping from preprocessed assertions into atoms
+(decl_atom let3 (\ .v2 (\ .a2
+(decl_atom let6 (\ .v3 (\ .a3
+(decl_atom let9 (\ .v4 (\ .a4
+(decl_atom let13 (\ .v5 (\ .a5
+(satlem _ _ (asf _ _ _ .a2 (\ .l4 (clausify_false (contra _ .PA246 .l4)))) (\ .pb4
+(satlem _ _ (asf _ _ _ .a3 (\ .l6 (ast _ _ _ .a4 (\ .l9 (clausify_false (contra _ .l9 (or_elim_1 _ _ .l6 .PA269))))))) (\ .pb5
+(satlem _ _ (ast _ _ _ .a5 (\ .l11 (clausify_false (contra _ .l11 .PA285)))) (\ .pb6
+ ;; Theory Lemmas
+
+;; BB atom mapping
+
+
+;; Bit-blasting definitional clauses
+
+
+ ;; Bit-blasting learned clauses
+
+(satlem _ _ (asf _ _ _ .a4 (\ .l8 (ast _ _ _ .a2 (\ .l5  ;; UF Theory Lemma
+;;(= (f a) (f b)) (not (= a b))
+(clausify_false (contra _ (cong _ _ _ _ _ _ (refl _ f) .l5) .l8))
+))))( \ .lemc9
+(satlem _ _ (ast _ _ _ .a3 (\ .l7 (asf _ _ _ .a5 (\ .l10
+; Arithmetic proofs which use reasoning more complex than Farkas proofs are currently unsupported
+(clausify_false trust)
+))))( \ .lemc7
+;; Printing final unsat proof
+(satlem_simplify _ _ _ (R _ _ .lemc7 .pb6 .v5) (\ .cl8
+(satlem_simplify _ _ _ (Q _ _ .lemc9 .pb4 .v2) (\ .cl10
+(satlem_simplify _ _ _ (Q _ _ (R _ _ .pb5 .cl8 .v3) .cl10 .v4) (\ empty empty)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))

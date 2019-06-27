@@ -1,0 +1,63 @@
+(check
+ ;; Declarations
+(% U sort
+(% p (term Bool)
+(% f (term (arrow U U))
+(% a (term U)
+(% b (term U)
+(% A3 (th_holds true)
+(% A2 (th_holds (not (p_app p)))
+(% A0 (th_holds (= U a b))
+(% A1 (th_holds (or (p_app p) (not (= U (apply _ _ f a) (apply _ _ f b)))))
+(: (holds cln)
+
+ ;; Printing deferred declarations
+
+
+;; BV const letification
+
+
+
+ ;; Printing the global let map
+(@ let1 p
+(@ let2 a
+(@ let3 b
+(@ let4 (= U let2 let3)
+(@ let5 (apply _ _ f let2)
+(@ let6 (apply _ _ f let3)
+(@ let7 (= U let5 let6)
+
+ ;; Printing aliasing declarations
+
+
+ ;; Rewrites for Lemmas
+
+ ;; In the preprocessor we trust
+(th_let_pf _ (trust_f (not (p_app let1))) (\ .PA269
+(th_let_pf _ (trust_f (= U let2 let3)) (\ .PA245
+(th_let_pf _ (trust_f (or (p_app let1) (not let7))) (\ .PA268
+
+;; Printing mapping from preprocessed assertions into atoms
+(decl_atom (p_app let1) (\ .v3 (\ .a3
+(decl_atom let4 (\ .v2 (\ .a2
+(decl_atom let7 (\ .v4 (\ .a4
+(satlem _ _ (asf _ _ _ .a2 (\ .l4 (clausify_false (contra _ .PA245 .l4)))) (\ .pb4
+(satlem _ _ (ast _ _ _ .a4 (\ .l9 (asf _ _ _ .a3 (\ .l6 (clausify_false (contra _ .l9 (or_elim_1 _ _ .l6 .PA268))))))) (\ .pb5
+(satlem _ _ (ast _ _ _ .a3 (\ .l7 (clausify_false (contra _ .l7 .PA269)))) (\ .pb6
+ ;; Theory Lemmas
+
+;; BB atom mapping
+
+
+;; Bit-blasting definitional clauses
+
+
+ ;; Bit-blasting learned clauses
+
+(satlem _ _ (asf _ _ _ .a4 (\ .l8 (ast _ _ _ .a2 (\ .l5  ;; UF Theory Lemma
+;;(= (f a) (f b)) (not (= a b))
+(clausify_false (contra _ (cong _ _ _ _ _ _ (refl _ f) .l5) .l8))
+))))( \ .lemc7
+;; Printing final unsat proof
+(satlem_simplify _ _ _ (R _ _ .pb5 .pb6 .v3) (\ .cl8
+(satlem_simplify _ _ _ (Q _ _ (R _ _ .lemc7 .cl8 .v4) .pb4 .v2) (\ empty empty)))))))))))))))))))))))))))))))))))))))))))))

@@ -3189,19 +3189,27 @@ void SmtEnginePrivate::processAssertions() {
 
   // Assertions are NOT guaranteed to be rewritten by this point
 
-  Trace("smt-proc") << "SmtEnginePrivate::processAssertions() : pre-definition-expansion" << endl;
-  dumpAssertions("pre-definition-expansion", d_assertions);
+  if (options::expandDefinitionsPp())
   {
+    Trace("smt-proc")
+        << "SmtEnginePrivate::processAssertions() : pre-definition-expansion"
+        << endl;
+    dumpAssertions("pre-definition-expansion", d_assertions);
+
     Chat() << "expanding definitions..." << endl;
-    Trace("simplify") << "SmtEnginePrivate::simplify(): expanding definitions" << endl;
+    Trace("simplify") << "SmtEnginePrivate::simplify(): expanding definitions"
+                      << endl;
     TimerStat::CodeTimer codeTimer(d_smt.d_stats->d_definitionExpansionTime);
     unordered_map<Node, Node, NodeHashFunction> cache;
-    for(unsigned i = 0; i < d_assertions.size(); ++ i) {
+    for (unsigned i = 0; i < d_assertions.size(); ++i)
+    {
       d_assertions.replace(i, expandDefinitions(d_assertions[i], cache));
     }
+    Trace("smt-proc")
+        << "SmtEnginePrivate::processAssertions() : post-definition-expansion"
+        << endl;
+    dumpAssertions("post-definition-expansion", d_assertions);
   }
-  Trace("smt-proc") << "SmtEnginePrivate::processAssertions() : post-definition-expansion" << endl;
-  dumpAssertions("post-definition-expansion", d_assertions);
 
   // save the assertions now
   THEORY_PROOF({
@@ -3292,7 +3300,7 @@ void SmtEnginePrivate::processAssertions() {
     // are skipped
     d_passes["rewrite"]->apply(&d_assertions);
   }
-  else
+  else if (options::applySubst())
   {
     d_passes["apply-substs"]->apply(&d_assertions);
   }
@@ -3411,7 +3419,10 @@ void SmtEnginePrivate::processAssertions() {
     // This is needed because when solving incrementally, removeITEs may introduce
     // skolems that were solved for earlier and thus appear in the substitution
     // map.
-    d_passes["apply-substs"]->apply(&d_assertions);
+    if (options::applySubst())
+    {
+      d_passes["apply-substs"]->apply(&d_assertions);
+    }
     d_smt.d_stats->d_numAssertionsPost += d_assertions.size();
   }
 
@@ -3505,7 +3516,10 @@ void SmtEnginePrivate::processAssertions() {
   Debug("smt") << "SmtEnginePrivate::processAssertions() POST SIMPLIFICATION" << endl;
   Debug("smt") << " d_assertions     : " << d_assertions.size() << endl;
 
-  d_passes["theory-preprocess"]->apply(&d_assertions);
+  if (options::theoryPreprocess())
+  {
+    d_passes["theory-preprocess"]->apply(&d_assertions);
+  }
 
   if (options::bitblastMode() == theory::bv::BITBLAST_MODE_EAGER)
   {
