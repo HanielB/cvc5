@@ -56,6 +56,8 @@ class VeritProof : public NewProof
   void addToLastProofStep(Node conclusion);
   void addToLastProofStep(std::vector<unsigned>& reasons, Node conclusion);
 
+  void addTheoryProof(theory::EqProof* proof);
+
   const std::vector<VeritProofStep>& getProofSteps() const;
 
  private:

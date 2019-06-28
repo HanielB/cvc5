@@ -1381,10 +1381,10 @@ bool TheoryProof::match(TNode n1, TNode n2)
 }
 
 int TheoryProof::assertAndPrint(
-    const theory::eq::EqProof& pf,
+    const theory::EqProof& pf,
     const ProofLetMap& map,
-    std::shared_ptr<theory::eq::EqProof> subTrans,
-    theory::eq::EqProof::PrettyPrinter* pPrettyPrinter)
+    std::shared_ptr<theory::EqProof> subTrans,
+    theory::EqProof::PrettyPrinter* pPrettyPrinter)
 {
   theory::TheoryId theoryId = getTheoryId();
   int neg = -1;
@@ -1394,11 +1394,11 @@ int TheoryProof::assertAndPrint(
   pf.debug_print(("pf::" + theoryName).c_str(), 0, pPrettyPrinter);
   Debug("pf::" + theoryName) << std::endl;
 
-  Assert(pf.d_id == theory::eq::MERGED_THROUGH_TRANS);
+  Assert(pf.d_id == theory::MERGED_THROUGH_TRANS);
   Assert(!pf.d_node.isNull());
   Assert(pf.d_children.size() >= 2);
 
-  subTrans->d_id = theory::eq::MERGED_THROUGH_TRANS;
+  subTrans->d_id = theory::MERGED_THROUGH_TRANS;
   subTrans->d_node = pf.d_node;
 
   size_t i = 0;
@@ -1406,7 +1406,7 @@ int TheoryProof::assertAndPrint(
   {
     // special treatment for uf and not for array
     if (ufProof
-        || pf.d_children[i]->d_id != theory::eq::MERGED_THROUGH_CONGRUENCE)
+        || pf.d_children[i]->d_id != theory::MERGED_THROUGH_CONGRUENCE)
     {
       pf.d_children[i]->d_node = simplifyBooleanNode(pf.d_children[i]->d_node);
     }
@@ -1421,21 +1421,21 @@ int TheoryProof::assertAndPrint(
     }
 
     // Handle congruence closures over equalities.
-    else if (pf.d_children[i]->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE
+    else if (pf.d_children[i]->d_id == theory::MERGED_THROUGH_CONGRUENCE
              && pf.d_children[i]->d_node.isNull())
     {
       Debug("pf::" + theoryName) << "Handling congruence over equalities"
                                  << std::endl;
 
       // Gather the sequence of consecutive congruence closures.
-      std::vector<std::shared_ptr<const theory::eq::EqProof>>
+      std::vector<std::shared_ptr<const theory::EqProof>>
           congruenceClosures;
       unsigned count;
       Debug("pf::" + theoryName) << "Collecting congruence sequence"
                                  << std::endl;
       for (count = 0; i + count < pf.d_children.size()
                       && pf.d_children[i + count]->d_id
-                             == theory::eq::MERGED_THROUGH_CONGRUENCE
+                             == theory::MERGED_THROUGH_CONGRUENCE
                       && pf.d_children[i + count]->d_node.isNull();
            ++count)
       {
@@ -1490,7 +1490,7 @@ int TheoryProof::assertAndPrint(
 
       // Begin breaking up the congruences and ordering the equalities
       // correctly.
-      std::vector<std::shared_ptr<theory::eq::EqProof>> orderedEqualities;
+      std::vector<std::shared_ptr<theory::EqProof>> orderedEqualities;
 
       // Insert target clause first.
       if (targetAppearsBefore)
@@ -1511,11 +1511,11 @@ int TheoryProof::assertAndPrint(
         for (unsigned j = 0; j < count; ++j)
         {
           if (pf.d_children[i + j]->d_children[0]->d_id
-              != theory::eq::MERGED_THROUGH_REFLEXIVITY)
+              != theory::MERGED_THROUGH_REFLEXIVITY)
             orderedEqualities.insert(orderedEqualities.begin(),
                                      pf.d_children[i + j]->d_children[0]);
           if (pf.d_children[i + j]->d_children[1]->d_id
-              != theory::eq::MERGED_THROUGH_REFLEXIVITY)
+              != theory::MERGED_THROUGH_REFLEXIVITY)
             orderedEqualities.insert(orderedEqualities.end(),
                                      pf.d_children[i + j]->d_children[1]);
         }
@@ -1525,12 +1525,12 @@ int TheoryProof::assertAndPrint(
         for (unsigned j = 0; j < count; ++j)
         {
           if (pf.d_children[i + count - 1 - j]->d_children[0]->d_id
-              != theory::eq::MERGED_THROUGH_REFLEXIVITY)
+              != theory::MERGED_THROUGH_REFLEXIVITY)
             orderedEqualities.insert(
                 orderedEqualities.begin(),
                 pf.d_children[i + count - 1 - j]->d_children[0]);
           if (pf.d_children[i + count - 1 - j]->d_children[1]->d_id
-              != theory::eq::MERGED_THROUGH_REFLEXIVITY)
+              != theory::MERGED_THROUGH_REFLEXIVITY)
             orderedEqualities.insert(
                 orderedEqualities.end(),
                 pf.d_children[i + count - 1 - j]->d_children[1]);
@@ -1575,7 +1575,7 @@ int TheoryProof::assertAndPrint(
 std::pair<Node, Node> TheoryProof::identicalEqualitiesPrinterHelper(
     bool evenLengthSequence,
     bool sequenceOver,
-    const theory::eq::EqProof& pf,
+    const theory::EqProof& pf,
     const ProofLetMap& map,
     const std::string subproofStr,
     std::stringstream* outStream,

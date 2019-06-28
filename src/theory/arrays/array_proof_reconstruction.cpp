@@ -41,7 +41,7 @@ void ArrayProofReconstruction::setExtMergeTag(unsigned tag) {
 
 void ArrayProofReconstruction::notify(
     unsigned reasonType, Node reason, Node a, Node b,
-    std::vector<TNode>& equalities, eq::EqProof* proof) const {
+    std::vector<TNode>& equalities, EqProof* proof) const {
   Debug("pf::array") << "ArrayProofReconstruction::notify( "
                      << reason << ", " << a << ", " << b << std::endl;
 
@@ -50,7 +50,7 @@ void ArrayProofReconstruction::notify(
     if (proof) {
       // Todo: here we assume that a=b is an assertion. We should probably call
       // explain() recursively, to explain this.
-      std::shared_ptr<eq::EqProof> childProof = std::make_shared<eq::EqProof>();
+      std::shared_ptr<EqProof> childProof = std::make_shared<EqProof>();
       childProof->d_node = reason;
       proof->d_children.push_back(childProof);
     }
@@ -103,8 +103,8 @@ void ArrayProofReconstruction::notify(
         Debug("pf::ee") << "Getting explanation for ROW guard: "
                         << indexOne << " != " << indexTwo << std::endl;
 
-        std::shared_ptr<eq::EqProof> childProof =
-            std::make_shared<eq::EqProof>();
+        std::shared_ptr<EqProof> childProof =
+            std::make_shared<EqProof>();
         d_equalityEngine->explainEquality(indexOne, indexTwo, false, equalities,
                                           childProof.get());
 
@@ -117,14 +117,14 @@ void ArrayProofReconstruction::notify(
         }
 
         if ((childProof->d_children.size() != 0) &&
-            (childProof->d_id == theory::eq::MERGED_THROUGH_CONSTANTS || !haveNegChild)) {
+            (childProof->d_id == theory::MERGED_THROUGH_CONSTANTS || !haveNegChild)) {
           // The proof has two children, explaining why each index is a (different) constant.
           Assert(childProof->d_children.size() == 2);
 
           Node constantOne, constantTwo;
           // Each subproof explains why one of the indices is constant.
 
-          if (childProof->d_children[0]->d_id == theory::eq::MERGED_THROUGH_REFLEXIVITY) {
+          if (childProof->d_children[0]->d_id == theory::MERGED_THROUGH_REFLEXIVITY) {
             constantOne = childProof->d_children[0]->d_node;
           } else {
             Assert(childProof->d_children[0]->d_node.getKind() == kind::EQUAL);
@@ -136,7 +136,7 @@ void ArrayProofReconstruction::notify(
             }
           }
 
-          if (childProof->d_children[1]->d_id == theory::eq::MERGED_THROUGH_REFLEXIVITY) {
+          if (childProof->d_children[1]->d_id == theory::MERGED_THROUGH_REFLEXIVITY) {
             constantTwo = childProof->d_children[1]->d_node;
           } else {
             Assert(childProof->d_children[1]->d_node.getKind() == kind::EQUAL);
@@ -148,20 +148,20 @@ void ArrayProofReconstruction::notify(
             }
           }
 
-          std::shared_ptr<eq::EqProof> constantDisequalityProof =
-              std::make_shared<eq::EqProof>();
-          constantDisequalityProof->d_id = theory::eq::MERGED_THROUGH_CONSTANTS;
+          std::shared_ptr<EqProof> constantDisequalityProof =
+              std::make_shared<EqProof>();
+          constantDisequalityProof->d_id = theory::MERGED_THROUGH_CONSTANTS;
           constantDisequalityProof->d_node =
             NodeManager::currentNM()->mkNode(kind::EQUAL, constantOne, constantTwo).negate();
 
           // Middle is where we need to insert the new disequality
-          std::vector<std::shared_ptr<eq::EqProof>>::iterator middle =
+          std::vector<std::shared_ptr<EqProof>>::iterator middle =
               childProof->d_children.begin();
           ++middle;
 
           childProof->d_children.insert(middle, constantDisequalityProof);
 
-          childProof->d_id = theory::eq::MERGED_THROUGH_TRANS;
+          childProof->d_id = theory::MERGED_THROUGH_TRANS;
           childProof->d_node =
             NodeManager::currentNM()->mkNode(kind::EQUAL, indexOne, indexTwo).negate();
         }
@@ -179,8 +179,8 @@ void ArrayProofReconstruction::notify(
         Assert(reason.getNumChildren() == 2);
         Debug("pf::ee") << "Getting explanation for ROW guard: " << reason[1] << std::endl;
 
-        std::shared_ptr<eq::EqProof> childProof =
-            std::make_shared<eq::EqProof>();
+        std::shared_ptr<EqProof> childProof =
+            std::make_shared<EqProof>();
         d_equalityEngine->explainEquality(reason[1][0], reason[1][1], false,
                                           equalities, childProof.get());
         proof->d_children.push_back(childProof);

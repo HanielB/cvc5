@@ -156,6 +156,47 @@ void VeritProof::addToLastProofStep(std::vector<unsigned>& reasons,
   d_proofSteps.back().addConclusion(conclusion);
 }
 
+void VeritProof::addTheoryProof(unsigned id, theory::EqProof* proof)
+{
+  NewRule r = NewProofManager::convert(proof->d_id);
+  if (!d_children.empty())
+  {
+
+    if (!d_node.isNull())
+    {
+      os << std::endl;
+      for (unsigned i = 0; i < tb + 1; i++)
+      {
+        os << "  ";
+      }
+      os << d_node;
+    }
+    for (unsigned i = 0; i < d_children.size(); i++)
+    {
+      if (i > 0 || !d_node.isNull())
+      {
+        os << ",";
+      }
+      os << std::endl;
+      d_children[i]->debug_print(os, tb + 1, prettyPrinter);
+    }
+  }
+  os << ")" << std::endl;
+
+
+}
+
+void VeritProof::addTheoryProof(theory::EqProof* proof)
+{
+  unsigned id = getNextId();
+  // TODO traverse the proof bottom up (just as it has been constructed). Anything
+  // that has more than one level must be turned into a resolution of
+  // clauses. The (valid) clauses are always the conclusion and the conclusions
+  // of the premises.
+  d_proofSteps.back().addPremises(reasons);
+  d_proofSteps.back().addConclusion(conclusion);
+}
+
 void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
 {
   out << "(set .c" << s->getId() << " (" << s->getRule();

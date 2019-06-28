@@ -58,61 +58,14 @@ static const TriggerId null_trigger = (TriggerId)(-1);
 static const EqualityEdgeId null_edge = (EqualityEdgeId)(-1);
 
 /**
- * A reason for a merge. Either an equality x = y, a merge of two
- * function applications f(x1, x2), f(y1, y2) due to congruence,
- * or a merge of an equality to false due to both sides being
- * (different) constants.
- */
-enum MergeReasonType {
-  /** Terms were merged due to application of congruence closure */
-  MERGED_THROUGH_CONGRUENCE,
-  /** Terms were merged due to application of pure equality */
-  MERGED_THROUGH_EQUALITY,
-  /** Equality was merged to true, due to both sides of equality being in the same class */
-  MERGED_THROUGH_REFLEXIVITY,
-  /** Equality was merged to false, due to both sides of equality being a constant */
-  MERGED_THROUGH_CONSTANTS,
-  /** (for proofs only) Equality was merged due to transitivity */
-  MERGED_THROUGH_TRANS,
-
-  /** Reason types beyond this constant are theory specific reasons */
-  NUMBER_OF_MERGE_REASONS
-};
-
-inline std::ostream& operator << (std::ostream& out, MergeReasonType reason) {
-  switch (reason) {
-  case MERGED_THROUGH_CONGRUENCE:
-    out << "congruence";
-    break;
-  case MERGED_THROUGH_EQUALITY:
-    out << "pure equality";
-    break;
-  case MERGED_THROUGH_REFLEXIVITY:
-    out << "reflexivity";
-    break;
-  case MERGED_THROUGH_CONSTANTS:
-    out << "constants disequal";
-    break;
-  case MERGED_THROUGH_TRANS:
-    out << "transitivity";
-    break;
-
-  default:
-    out << "[theory]";
-    break;
-  }
-  return out;
-}
-
-/**
  * A candidate for merging two equivalence classes, with the necessary
  * additional information.
  */
 struct MergeCandidate {
   EqualityNodeId t1Id, t2Id;
-  unsigned type;
+  MergeReasonType type;
   TNode reason;
-  MergeCandidate(EqualityNodeId x, EqualityNodeId y, unsigned type, TNode reason)
+  MergeCandidate(EqualityNodeId x, EqualityNodeId y, MergeReasonType type, TNode reason)
   : t1Id(x), t2Id(y), type(type), reason(reason)
   {}
 };

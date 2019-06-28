@@ -131,11 +131,11 @@ class TheoryArrays : public Theory {
   // Merge reason types
 
   /** Merge tag for ROW applications */
-  unsigned d_reasonRow;
+  MergeReasonType d_reasonRow;
   /** Merge tag for ROW1 applications */
-  unsigned d_reasonRow1;
+  MergeReasonType d_reasonRow1;
   /** Merge tag for EXT applications */
-  unsigned d_reasonExt;
+  MergeReasonType d_reasonExt;
 
  public:
 
@@ -195,7 +195,7 @@ class TheoryArrays : public Theory {
 
   /** Explain why this literal is true by adding assumptions */
   void explain(TNode literal, std::vector<TNode>& assumptions,
-               eq::EqProof* proof);
+               EqProof* proof);
 
   /** For debugging only- checks invariants about when things are preregistered*/
   context::CDHashSet<Node, NodeHashFunction > d_isPreRegistered;
@@ -206,7 +206,7 @@ class TheoryArrays : public Theory {
  public:
   void preRegisterTerm(TNode n) override;
   void propagate(Effort e) override;
-  Node explain(TNode n, eq::EqProof* proof);
+  Node explain(TNode n, EqProof* proof) override;
   Node explain(TNode n) override;
 
   /////////////////////////////////////////////////////////////////////////////

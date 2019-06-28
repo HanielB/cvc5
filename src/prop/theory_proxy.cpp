@@ -29,6 +29,7 @@
 #include "smt_util/lemma_output_channel.h"
 #include "theory/rewriter.h"
 #include "theory/theory_engine.h"
+#include "theory/uf/equality_engine.h"
 #include "util/statistics_registry.h"
 
 
@@ -103,6 +104,11 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
   PROOF(proofRecipe = new LemmaProofRecipe;);
 
   Node theoryExplanation = d_theoryEngine->getExplanationAndRecipe(lNode, proofRecipe);
+
+  NEWPROOF({
+      theory::EqProof* proof = new theory::EqProof();
+      d_theoryEngine->getExplanationAndProof(lNode, proof);
+    })
 
   PROOF({
       ProofManager::getCnfProof()->pushCurrentAssertion(theoryExplanation);

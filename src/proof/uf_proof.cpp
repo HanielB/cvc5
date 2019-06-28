@@ -39,7 +39,7 @@ void ProofUF::toStream(std::ostream& out, const ProofLetMap& map) const
 
 void ProofUF::toStreamLFSC(std::ostream& out,
                            TheoryProof* tp,
-                           const theory::eq::EqProof& pf,
+                           const theory::EqProof& pf,
                            const ProofLetMap& map)
 {
   Debug("pf::uf") << "ProofUF::toStreamLFSC starting" << std::endl;
@@ -51,7 +51,7 @@ void ProofUF::toStreamLFSC(std::ostream& out,
 
 Node ProofUF::toStreamRecLFSC(std::ostream& out,
                               TheoryProof* tp,
-                              const theory::eq::EqProof& pf,
+                              const theory::EqProof& pf,
                               unsigned tb,
                               const ProofLetMap& map)
 {
@@ -62,7 +62,7 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
   if (tb == 0)
   {
     // Special case: false was an input, so the proof is just "false".
-    if (pf.d_id == theory::eq::MERGED_THROUGH_EQUALITY &&
+    if (pf.d_id == theory::MERGED_THROUGH_EQUALITY &&
         pf.d_node == NodeManager::currentNM()->mkConst(false)) {
       out << "(clausify_false ";
       out << ProofManager::getLitName(NodeManager::currentNM()->mkConst(false).notNode());
@@ -70,8 +70,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
       return Node();
     }
 
-    std::shared_ptr<theory::eq::EqProof> subTrans =
-        std::make_shared<theory::eq::EqProof>();
+    std::shared_ptr<theory::EqProof> subTrans =
+        std::make_shared<theory::EqProof>();
 
     int neg = tp->assertAndPrint(pf, map, subTrans);
 
@@ -143,12 +143,12 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
   }
   // TODO (#2965): improve this code, which is highly complicated.
   switch(pf.d_id) {
-  case theory::eq::MERGED_THROUGH_CONGRUENCE: {
+  case theory::MERGED_THROUGH_CONGRUENCE: {
     Debug("pf::uf") << "\nok, looking at congruence:\n";
     pf.debug_print("pf::uf");
-    std::stack<const theory::eq::EqProof*> stk;
-    for (const theory::eq::EqProof* pf2 = &pf;
-         pf2->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE;
+    std::stack<const theory::EqProof*> stk;
+    for (const theory::EqProof* pf2 = &pf;
+         pf2->d_id == theory::MERGED_THROUGH_CONGRUENCE;
          pf2 = pf2->d_children[0].get()) {
       Assert(!pf2->d_node.isNull());
       Assert(pf2->d_node.getKind() == kind::PARTIAL_APPLY_UF
@@ -160,11 +160,11 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
       out << "(cong _ _ _ _ _ _ ";
       stk.push(pf2);
     }
-    Assert(stk.top()->d_children[0]->d_id != theory::eq::MERGED_THROUGH_CONGRUENCE);
+    Assert(stk.top()->d_children[0]->d_id != theory::MERGED_THROUGH_CONGRUENCE);
     NodeBuilder<> b1(kind::PARTIAL_APPLY_UF), b2(kind::PARTIAL_APPLY_UF);
-    const theory::eq::EqProof* pf2 = stk.top();
+    const theory::EqProof* pf2 = stk.top();
     stk.pop();
-    Assert(pf2->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE);
+    Assert(pf2->d_id == theory::MERGED_THROUGH_CONGRUENCE);
     Node n1 = toStreamRecLFSC(out, tp, *(pf2->d_children[0]), tb + 1, map);
     out << " ";
     std::stringstream ss;
@@ -243,7 +243,7 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
       }
       pf2 = stk.top();
       stk.pop();
-      Assert(pf2->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE);
+      Assert(pf2->d_id == theory::MERGED_THROUGH_CONGRUENCE);
       out << " ";
       ss.str("");
       n2 = toStreamRecLFSC(ss, tp, *(pf2->d_children[1]), tb + 1, map);
@@ -302,7 +302,7 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
     return n;
   }
 
-  case theory::eq::MERGED_THROUGH_REFLEXIVITY:
+  case theory::MERGED_THROUGH_REFLEXIVITY:
   {
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
@@ -311,13 +311,13 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
     out << ")";
     return pf.d_node.eqNode(pf.d_node);
   }
-  case theory::eq::MERGED_THROUGH_EQUALITY:
+  case theory::MERGED_THROUGH_EQUALITY:
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
     out << ProofManager::getLitName(pf.d_node.negate());
     return pf.d_node;
 
-  case theory::eq::MERGED_THROUGH_TRANS: {
+  case theory::MERGED_THROUGH_TRANS: {
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.size() >= 2);
     std::stringstream ss;

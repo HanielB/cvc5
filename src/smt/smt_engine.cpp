@@ -3215,7 +3215,12 @@ void SmtEnginePrivate::processAssertions() {
       ProofManager::currentPM()->addAssertion(d_assertions[i].toExpr());
     }
   });
-  NEWPROOF(NewProofManager::currentPM()->addAssertion(d_assertions[i]););
+  NEWPROOF({
+    for (unsigned i = 0, size = d_assertions.size(); i < size; ++i)
+    {
+      NewProofManager::currentPM()->addAssertion(d_assertions[i]);
+    }
+  });
 
   Debug("smt") << " d_assertions     : " << d_assertions.size() << endl;
 

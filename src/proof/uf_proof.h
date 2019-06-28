@@ -33,20 +33,20 @@ namespace CVC4 {
 class ProofUF : public Proof
 {
  public:
-  ProofUF(std::shared_ptr<theory::eq::EqProof> pf) : d_proof(pf) {}
+  ProofUF(std::shared_ptr<theory::EqProof> pf) : d_proof(pf) {}
   void toStream(std::ostream& out) const override;
   void toStream(std::ostream& out, const ProofLetMap& map) const override;
 
  private:
   static void toStreamLFSC(std::ostream& out, TheoryProof* tp,
-                           const theory::eq::EqProof& pf,
+                           const theory::EqProof& pf,
                            const ProofLetMap& map);
   static Node toStreamRecLFSC(std::ostream& out, TheoryProof* tp,
-                              const theory::eq::EqProof& pf, unsigned tb,
+                              const theory::EqProof& pf, unsigned tb,
                               const ProofLetMap& map);
 
   // it is simply an equality engine proof
-  std::shared_ptr<theory::eq::EqProof> d_proof;
+  std::shared_ptr<theory::EqProof> d_proof;
 };
 
 namespace theory {

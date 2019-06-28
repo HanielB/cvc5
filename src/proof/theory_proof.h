@@ -256,10 +256,10 @@ protected:
    *    - the index of the contradicting node in pf.
    *    */
   int assertAndPrint(
-      const theory::eq::EqProof& pf,
+      const theory::EqProof& pf,
       const ProofLetMap& map,
-      std::shared_ptr<theory::eq::EqProof> subTrans,
-      theory::eq::EqProof::PrettyPrinter* pPrettyPrinter = nullptr);
+      std::shared_ptr<theory::EqProof> subTrans,
+      theory::EqProof::PrettyPrinter* pPrettyPrinter = nullptr);
 
   /**
    * Helper function for ProofUF::toStreamRecLFSC and
@@ -281,7 +281,7 @@ protected:
   std::pair<Node, Node> identicalEqualitiesPrinterHelper(
       bool evenLengthSequence,
       bool sequenceOver,
-      const theory::eq::EqProof& pf,
+      const theory::EqProof& pf,
       const ProofLetMap& map,
       const std::string subproofStr,
       std::stringstream* outStream,

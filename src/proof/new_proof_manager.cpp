@@ -85,6 +85,15 @@ void NewProofManager::addAssertionWeird(Node formula) {}
 
 void NewProofManager::addUnknown(Node formula) {}
 
+void NewProofManager::addTheoryProof(theory::EqProof *proof)
+{
+  if (d_format == VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    vtproof->addTheoryProof(proof);
+  }
+}
+
 void NewProofManager::setLogic(const LogicInfo& logic) {
   d_logic = logic;
 }

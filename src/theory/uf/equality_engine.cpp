@@ -94,7 +94,7 @@ void EqualityEngine::init() {
   d_trueId = getNodeId(d_true);
   d_falseId = getNodeId(d_false);
 
-  d_freshMergeReasonType = eq::NUMBER_OF_MERGE_REASONS;
+  d_freshMergeReasonType = NUMBER_OF_MERGE_REASONS;
 }
 
 EqualityEngine::~EqualityEngine() {
@@ -397,7 +397,7 @@ const EqualityNode& EqualityEngine::getEqualityNode(EqualityNodeId nodeId) const
   return d_equalityNodes[nodeId];
 }
 
-void EqualityEngine::assertEqualityInternal(TNode t1, TNode t2, TNode reason, unsigned pid) {
+void EqualityEngine::assertEqualityInternal(TNode t1, TNode t2, TNode reason, MergeReasonType pid) {
 
   Debug("equality") << d_name << "::eq::addEqualityInternal(" << t1 << "," << t2 << "), reason = " << reason << ", pid = " << pid << std::endl;
 
@@ -415,7 +415,7 @@ void EqualityEngine::assertEqualityInternal(TNode t1, TNode t2, TNode reason, un
   enqueue(MergeCandidate(t1Id, t2Id, pid, reason));
 }
 
-void EqualityEngine::assertPredicate(TNode t, bool polarity, TNode reason, unsigned pid) {
+void EqualityEngine::assertPredicate(TNode t, bool polarity, TNode reason, MergeReasonType pid) {
   Debug("equality") << d_name << "::eq::addPredicate(" << t << "," << (polarity ? "true" : "false") << ")" << std::endl;
   Assert(t.getKind() != kind::EQUAL, "Use assertEquality instead");
   assertEqualityInternal(t, polarity ? d_true : d_false, reason, pid);
@@ -428,7 +428,7 @@ void EqualityEngine::mergePredicates(TNode p, TNode q, TNode reason) {
   propagate();
 }
 
-void EqualityEngine::assertEquality(TNode eq, bool polarity, TNode reason, unsigned pid) {
+void EqualityEngine::assertEquality(TNode eq, bool polarity, TNode reason, MergeReasonType pid) {
   Debug("equality") << d_name << "::eq::addEquality(" << eq << "," << (polarity ? "true" : "false") << ")" << std::endl;
   if (polarity) {
     // If two terms are already equal, don't assert anything
@@ -896,7 +896,7 @@ void EqualityEngine::backtrack() {
 
 }
 
-void EqualityEngine::addGraphEdge(EqualityNodeId t1, EqualityNodeId t2, unsigned type, TNode reason) {
+void EqualityEngine::addGraphEdge(EqualityNodeId t1, EqualityNodeId t2, MergeReasonType type, TNode reason) {
   Debug("equality") << d_name << "::eq::addGraphEdge(" << d_nodes[t1] << "," << d_nodes[t2] << "," << reason << ")" << std::endl;
   EqualityEdgeId edge = d_equalityEdges.size();
   d_equalityEdges.push_back(EqualityEdge(t2, d_equalityGraph[t1], type, reason));
@@ -946,7 +946,7 @@ void EqualityEngine::explainEquality(TNode t1, TNode t2, bool polarity,
     getExplanation(t1Id, t2Id, equalities, cache, eqp);
   } else {
     if (eqp) {
-      eqp->d_id = eq::MERGED_THROUGH_TRANS;
+      eqp->d_id = MERGED_THROUGH_TRANS;
       eqp->d_node = d_nodes[t1Id].eqNode(d_nodes[t2Id]).notNode();
     }
 
@@ -974,11 +974,11 @@ void EqualityEngine::explainEquality(TNode t1, TNode t2, bool polarity,
           Debug("pf::ee") << "Child proof is:" << std::endl;
           eqpc->debug_print("pf::ee", 1);
         }
-        if (eqpc->d_id == eq::MERGED_THROUGH_TRANS) {
+        if (eqpc->d_id == MERGED_THROUGH_TRANS) {
           std::vector<std::shared_ptr<EqProof>> orderedChildren;
           bool nullCongruenceFound = false;
           for (unsigned i = 0; i < eqpc->d_children.size(); ++i) {
-            if (eqpc->d_children[i]->d_id==eq::MERGED_THROUGH_CONGRUENCE &&
+            if (eqpc->d_children[i]->d_id==MERGED_THROUGH_CONGRUENCE &&
                 eqpc->d_children[i]->d_node.isNull()) {
               nullCongruenceFound = true;
               Debug("pf::ee") << "Have congruence with empty d_node. Splitting..." << std::endl;
@@ -1055,6 +1055,7 @@ void EqualityEngine::getExplanation(
   // determine if we have already computed the explanation.
   std::pair<EqualityNodeId, EqualityNodeId> cacheKey;
   std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*>::iterator it;
+  // Is the cache used solely for proofs, I take it?
   if (!eqp)
   {
     // If proofs are disabled, we order the ids, since explaining t1 = t2 is the
@@ -1111,6 +1112,7 @@ void EqualityEngine::getExplanation(
 
   // If the nodes are the same, we're done
   if (t1Id == t2Id){
+    // TODO HB what about this?
     if( eqp ) {
       if ((d_nodes[t1Id].getKind() == kind::BUILTIN) && (d_nodes[t1Id].getConst<Kind>() == kind::SELECT)) {
         std::vector<Node> no_children;
@@ -1171,7 +1173,7 @@ void EqualityEngine::getExplanation(
             // The current node
             currentNode = bfsQueue[currentIndex].nodeId;
             EqualityNodeId edgeNode = d_equalityEdges[currentEdge].getNodeId();
-            unsigned reasonType = d_equalityEdges[currentEdge].getReasonType();
+            MergeReasonType reasonType = d_equalityEdges[currentEdge].getReasonType();
             Node reason = d_equalityEdges[currentEdge].getReason();
 
             Debug("equality") << d_name << "::eq::getExplanation(): currentEdge = " << currentEdge << ", currentNode = " << currentNode << std::endl;
@@ -1815,8 +1817,12 @@ void EqualityEngine::addPathReconstructionTrigger(unsigned trigger, const PathRe
   d_pathReconstructionTriggers[trigger] = notify;
 }
 
-unsigned EqualityEngine::getFreshMergeReasonType() {
-  return d_freshMergeReasonType++;
+MergeReasonType EqualityEngine::getFreshMergeReasonType()
+{
+  MergeReasonType old_fresh = d_freshMergeReasonType;
+  d_freshMergeReasonType = static_cast<MergeReasonType>(
+      static_cast<unsigned>(d_freshMergeReasonType) + 1);
+  return old_fresh;
 }
 
 void EqualityEngine::addTriggerTerm(TNode t, TheoryId tag)
@@ -2303,51 +2309,6 @@ EqClassIterator EqClassIterator::operator++(int) {
 
 bool EqClassIterator::isFinished() const {
   return d_current == null_id;
-}
-
-void EqProof::debug_print(const char* c, unsigned tb, PrettyPrinter* prettyPrinter) const {
-  std::stringstream ss;
-  debug_print(ss, tb, prettyPrinter);
-  Debug(c) << ss.str();
-}
-void EqProof::debug_print(std::ostream& os,
-                          unsigned tb,
-                          PrettyPrinter* prettyPrinter) const
-{
-  for (unsigned i = 0; i < tb; i++)
-  {
-    os << "  ";
-  }
-
-  if (prettyPrinter)
-  {
-    os << prettyPrinter->printTag(d_id);
-  }
-  else
-  {
-    os << d_id;
-  }
-
-  os << "(";
-  if( !d_children.empty() || !d_node.isNull() ){
-    if( !d_node.isNull() ){
-      os << std::endl;
-      for (unsigned i = 0; i < tb + 1; i++)
-      {
-        os << "  ";
-      }
-      os << d_node;
-    }
-    for( unsigned i=0; i<d_children.size(); i++ ){
-      if (i > 0 || !d_node.isNull())
-      {
-        os << ",";
-      }
-      os << std::endl;
-      d_children[i]->debug_print(os, tb + 1, prettyPrinter);
-    }
-  }
-  os << ")" << std::endl;
 }
 
 } // Namespace uf

@@ -33,7 +33,7 @@ namespace CVC4 {
 // Proof object outputted by TheoryARRAY.
 class ProofArray : public Proof {
  public:
-  ProofArray(std::shared_ptr<theory::eq::EqProof> pf, unsigned row,
+  ProofArray(std::shared_ptr<theory::EqProof> pf, unsigned row,
              unsigned row1, unsigned ext);
 
   void registerSkolem(Node equality, Node skolem);
@@ -44,17 +44,17 @@ class ProofArray : public Proof {
  private:
   void toStreamLFSC(std::ostream& out,
                     TheoryProof* tp,
-                    const theory::eq::EqProof& pf,
+                    const theory::EqProof& pf,
                     const ProofLetMap& map) const;
 
   Node toStreamRecLFSC(std::ostream& out,
                        TheoryProof* tp,
-                       const theory::eq::EqProof& pf,
+                       const theory::EqProof& pf,
                        unsigned tb,
                        const ProofLetMap& map) const;
 
   // It is simply an equality engine proof.
-  std::shared_ptr<theory::eq::EqProof> d_proof;
+  std::shared_ptr<theory::EqProof> d_proof;
 
   /** Merge tag for ROW applications */
   unsigned d_reasonRow;

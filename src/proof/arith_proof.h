@@ -33,18 +33,18 @@ namespace CVC4 {
 //proof object outputted by TheoryArith
 class ProofArith : public Proof {
  public:
-  ProofArith(std::shared_ptr<theory::eq::EqProof> pf) : d_proof(pf) {}
+  ProofArith(std::shared_ptr<theory::EqProof> pf) : d_proof(pf) {}
   void toStream(std::ostream& out) const override;
 
  private:
   static void toStreamLFSC(std::ostream& out, TheoryProof* tp,
-                           const theory::eq::EqProof& pf,
+                           const theory::EqProof& pf,
                            const ProofLetMap& map);
   static Node toStreamRecLFSC(std::ostream& out, TheoryProof* tp,
-                              const theory::eq::EqProof& pf,
+                              const theory::EqProof& pf,
                               unsigned tb, const ProofLetMap& map);
   // it is simply an equality engine proof
-  std::shared_ptr<theory::eq::EqProof> d_proof;
+  std::shared_ptr<theory::EqProof> d_proof;
 };
 
 namespace theory {

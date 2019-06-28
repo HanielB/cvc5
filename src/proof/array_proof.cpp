@@ -28,7 +28,7 @@ namespace CVC4 {
 
 namespace {
 
-class ArrayProofPrinter : public theory::eq::EqProof::PrettyPrinter {
+class ArrayProofPrinter : public theory::EqProof::PrettyPrinter {
  public:
   ArrayProofPrinter(unsigned row, unsigned row1, unsigned ext)
       : d_row(row), d_row1(row1), d_ext(ext) {}
@@ -42,11 +42,11 @@ class ArrayProofPrinter : public theory::eq::EqProof::PrettyPrinter {
 };  // class ArrayProofPrinter
 
 std::string ArrayProofPrinter::printTag(unsigned tag) {
-  if (tag == theory::eq::MERGED_THROUGH_CONGRUENCE) return "Congruence";
-  if (tag == theory::eq::MERGED_THROUGH_EQUALITY) return "Pure Equality";
-  if (tag == theory::eq::MERGED_THROUGH_REFLEXIVITY) return "Reflexivity";
-  if (tag == theory::eq::MERGED_THROUGH_CONSTANTS) return "Constants";
-  if (tag == theory::eq::MERGED_THROUGH_TRANS) return "Transitivity";
+  if (tag == theory::MERGED_THROUGH_CONGRUENCE) return "Congruence";
+  if (tag == theory::MERGED_THROUGH_EQUALITY) return "Pure Equality";
+  if (tag == theory::MERGED_THROUGH_REFLEXIVITY) return "Reflexivity";
+  if (tag == theory::MERGED_THROUGH_CONSTANTS) return "Constants";
+  if (tag == theory::MERGED_THROUGH_TRANS) return "Transitivity";
 
   if (tag == d_row) return "Read Over Write";
   if (tag == d_row1) return "Read Over Write (1)";
@@ -61,7 +61,7 @@ std::string ArrayProofPrinter::printTag(unsigned tag) {
 
 
 
-ProofArray::ProofArray(std::shared_ptr<theory::eq::EqProof> pf,
+ProofArray::ProofArray(std::shared_ptr<theory::EqProof> pf,
                        unsigned row,
                        unsigned row1,
                        unsigned ext)
@@ -84,7 +84,7 @@ void ProofArray::toStream(std::ostream& out, const ProofLetMap& map) const
 
 void ProofArray::toStreamLFSC(std::ostream& out,
                               TheoryProof* tp,
-                              const theory::eq::EqProof& pf,
+                              const theory::EqProof& pf,
                               const ProofLetMap& map) const
 {
   Debug("pf::array") << "Printing array proof in LFSC : " << std::endl;
@@ -97,7 +97,7 @@ void ProofArray::toStreamLFSC(std::ostream& out,
 
 Node ProofArray::toStreamRecLFSC(std::ostream& out,
                                  TheoryProof* tp,
-                                 const theory::eq::EqProof& pf,
+                                 const theory::EqProof& pf,
                                  unsigned tb,
                                  const ProofLetMap& map) const
 {
@@ -107,8 +107,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
                      << " . proof:" << std::endl;
   ArrayProofPrinter proofPrinter(d_reasonRow, d_reasonRow1, d_reasonExt);
   if(tb == 0) {
-    std::shared_ptr<theory::eq::EqProof> subTrans =
-        std::make_shared<theory::eq::EqProof>();
+    std::shared_ptr<theory::EqProof> subTrans =
+        std::make_shared<theory::EqProof>();
 
     int neg = tp->assertAndPrint(pf, map, subTrans, &proofPrinter);
 
@@ -140,7 +140,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
       if (n1.getNumChildren() > 1) { Debug("mgdx") << "n1[1]: " << n1[1] << std::endl; }
 
       if ((pf.d_children[neg]->d_id == d_reasonExt) ||
-          (pf.d_children[neg]->d_id == theory::eq::MERGED_THROUGH_TRANS)) {
+          (pf.d_children[neg]->d_id == theory::MERGED_THROUGH_TRANS)) {
         // Ext case: The negative node was created by an EXT rule; e.g. it is a[k]!=b[k], due to a!=b.
         out << ss.str();
         out << " ";
@@ -182,13 +182,13 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
 
   switch (pf.d_id)
   {
-    case theory::eq::MERGED_THROUGH_CONGRUENCE:
+    case theory::MERGED_THROUGH_CONGRUENCE:
     {
       Debug("mgd") << "\nok, looking at congruence:\n";
       pf.debug_print("mgd", 0, &proofPrinter);
-      std::stack<const theory::eq::EqProof*> stk;
-      for (const theory::eq::EqProof* pf2 = &pf;
-           pf2->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE;
+      std::stack<const theory::EqProof*> stk;
+      for (const theory::EqProof* pf2 = &pf;
+           pf2->d_id == theory::MERGED_THROUGH_CONGRUENCE;
            pf2 = pf2->d_children[0].get())
       {
         Debug("mgd") << "Looking at pf2 with d_node: " << pf2->d_node
@@ -207,14 +207,14 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
         stk.push(pf2);
       }
       Assert(stk.top()->d_children[0]->d_id
-             != theory::eq::MERGED_THROUGH_CONGRUENCE);
+             != theory::MERGED_THROUGH_CONGRUENCE);
       //    NodeBuilder<> b1(kind::PARTIAL_APPLY_UF),
       //    b2(kind::PARTIAL_APPLY_UF);
       NodeBuilder<> b1, b2;
 
-      const theory::eq::EqProof* pf2 = stk.top();
+      const theory::EqProof* pf2 = stk.top();
       stk.pop();
-      Assert(pf2->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE);
+      Assert(pf2->d_id == theory::MERGED_THROUGH_CONGRUENCE);
       Node n1 = toStreamRecLFSC(out, tp, *(pf2->d_children[0]), tb + 1, map);
       out << " ";
       std::stringstream ss;
@@ -343,7 +343,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
 
       pf2 = stk.top();
       stk.pop();
-      Assert(pf2->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE);
+      Assert(pf2->d_id == theory::MERGED_THROUGH_CONGRUENCE);
       out << " ";
       ss.str("");
       n2 = toStreamRecLFSC(ss, tp, *(pf2->d_children[1]), tb + 1, map);
@@ -432,7 +432,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
     Debug("mgdx") << "\ncong proved: " << n << "\n";
     return n;
   }
-  case theory::eq::MERGED_THROUGH_REFLEXIVITY:
+  case theory::MERGED_THROUGH_REFLEXIVITY:
   {
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
@@ -441,7 +441,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
     out << ")";
     return pf.d_node.eqNode(pf.d_node);
   }
-  case theory::eq::MERGED_THROUGH_EQUALITY:
+  case theory::MERGED_THROUGH_EQUALITY:
   {
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
@@ -451,7 +451,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
     return pf.d_node;
   }
 
-  case theory::eq::MERGED_THROUGH_TRANS:
+  case theory::MERGED_THROUGH_TRANS:
   {
     bool firstNeg = false;
     bool secondNeg = false;
@@ -493,7 +493,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
       // congruence application
       // later.
 
-      if (pf.d_children[i]->d_id != theory::eq::MERGED_THROUGH_CONGRUENCE)
+      if (pf.d_children[i]->d_id != theory::MERGED_THROUGH_CONGRUENCE)
         pf.d_children[i]->d_node =
             simplifyBooleanNode(pf.d_children[i]->d_node);
 
@@ -724,7 +724,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
     return n1;
   }
 
-  case theory::eq::MERGED_THROUGH_CONSTANTS:
+  case theory::MERGED_THROUGH_CONSTANTS:
   {
     Debug("pf::array") << "Proof for: " << pf.d_node << std::endl;
     Assert(pf.d_node.getKind() == kind::NOT);
@@ -1034,7 +1034,7 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
     Assert(pf.d_node.getKind() == kind::NOT);
     Assert(pf.d_node[0].getKind() == kind::EQUAL);
     Assert(pf.d_children.size() == 1);
-    std::shared_ptr<theory::eq::EqProof> child_proof = pf.d_children[0];
+    std::shared_ptr<theory::EqProof> child_proof = pf.d_children[0];
     Assert(child_proof->d_node.getKind() == kind::NOT);
     Assert(child_proof->d_node[0].getKind() == kind::EQUAL);
 

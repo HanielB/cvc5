@@ -1598,6 +1598,45 @@ static Node mkExplanation(const std::vector<NodeTheoryPair>& explanation) {
   return conjunction;
 }
 
+Node TheoryEngine::getExplanationAndProof(TNode node, EqProof* proof) {
+  Debug("theory::explain") << "TheoryEngine::getExplanation(" << node
+                           << "): current propagation index = "
+                           << d_propagationMapTimestamp << endl;
+
+  bool polarity = node.getKind() != kind::NOT;
+  TNode atom = polarity ? node : node[0];
+
+  // For now only consider non-shared mode, with simpler explanations
+  if (d_logicInfo.isSharingEnabled())
+  {
+    throw LogicException();
+  }
+
+  Debug("theory::explain")
+      << "TheoryEngine::getExplanation: sharing is NOT enabled. "
+      << " Responsible theory is: " << theoryOf(atom)->getId() << std::endl;
+
+  Node explanation = theoryOf(atom)->explain(node, proof);
+  Debug("theory::explain") << "TheoryEngine::getExplanation(" << node << ") => "
+                           << explanation << endl;
+  NEWPROOF({
+    if (proof)
+    {
+      if (Debug.isOn("theory::explain"))
+      {
+        Debug("theory::explain") << "TheoryEngine::getExplanation: Proof: \n";
+        proof->debug_print("theory::explain");
+      }
+      // Register in proof module
+      NewProofManager* pm = NewProofManager::currentPM();
+      pm->addTheoryProof(proof);
+    }
+  });
+
+  return explanation;
+
+}
+
 Node TheoryEngine::getExplanationAndRecipe(TNode node, LemmaProofRecipe* proofRecipe) {
   Debug("theory::explain") << "TheoryEngine::getExplanation(" << node << "): current propagation index = " << d_propagationMapTimestamp << endl;
 
@@ -1754,7 +1793,7 @@ void TheoryEngine::ensureLemmaAtoms(const std::vector<TNode>& atoms, theory::The
       }
       continue;
     }else if( eqNormalized.getKind() != kind::EQUAL){
-      Assert( eqNormalized.getKind()==kind::BOOLEAN_TERM_VARIABLE || 
+      Assert( eqNormalized.getKind()==kind::BOOLEAN_TERM_VARIABLE ||
               ( eqNormalized.getKind()==kind::NOT && eqNormalized[0].getKind()==kind::BOOLEAN_TERM_VARIABLE ) );
       // this happens for Boolean term equalities V = true that are rewritten to V, we should skip
       //  TODO : revisit this
@@ -2183,9 +2222,9 @@ void TheoryEngine::checkTheoryAssertionsWithModel(bool hardFailure) {
           ss << theoryId << " has an asserted fact that the model doesn't satisfy." << endl
              << "The fact: " << assertion << endl
              << "Model value: " << val << endl;
-	  if(hardFailure) {
-	    InternalError(ss.str());
-	  }
+    if(hardFailure) {
+      InternalError(ss.str());
+    }
         }
       }
     }

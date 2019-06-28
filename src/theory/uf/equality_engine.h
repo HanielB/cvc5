@@ -30,6 +30,7 @@
 #include "context/cdo.h"
 #include "expr/kind_map.h"
 #include "expr/node.h"
+#include "proof/new_proof.h"
 #include "theory/rewriter.h"
 #include "theory/theory.h"
 #include "theory/uf/equality_engine_types.h"
@@ -40,7 +41,6 @@ namespace theory {
 namespace eq {
 
 
-class EqProof;
 class EqClassesIterator;
 class EqClassIterator;
 
@@ -292,7 +292,7 @@ private:
   std::vector<UseListNode> d_useListNodes;
 
   /** A fresh merge reason type to return upon request */
-  unsigned d_freshMergeReasonType;
+  MergeReasonType d_freshMergeReasonType;
 
   /**
    * We keep a list of asserted equalities. Not among original terms, but
@@ -324,7 +324,7 @@ private:
     // The next edge
     EqualityEdgeId d_nextId;
     // Type of reason for this equality
-    unsigned d_mergeType;
+    MergeReasonType d_mergeType;
     // Reason of this equality
     TNode d_reason;
 
@@ -333,8 +333,16 @@ private:
     EqualityEdge():
       d_nodeId(null_edge), d_nextId(null_edge), d_mergeType(MERGED_THROUGH_CONGRUENCE) {}
 
-    EqualityEdge(EqualityNodeId nodeId, EqualityNodeId nextId, unsigned type, TNode reason):
-      d_nodeId(nodeId), d_nextId(nextId), d_mergeType(type), d_reason(reason) {}
+    EqualityEdge(EqualityNodeId nodeId,
+                 EqualityNodeId nextId,
+                 MergeReasonType type,
+                 TNode reason)
+        : d_nodeId(nodeId),
+          d_nextId(nextId),
+          d_mergeType(type),
+          d_reason(reason)
+    {
+    }
 
     /** Returns the id of the next edge */
     EqualityEdgeId getNext() const { return d_nextId; }
@@ -343,7 +351,7 @@ private:
     EqualityNodeId getNodeId() const { return d_nodeId; }
 
     /** The reason of this edge */
-    unsigned getReasonType() const { return d_mergeType; }
+    MergeReasonType getReasonType() const { return d_mergeType; }
 
     /** The reason of this edge */
     TNode getReason() const { return d_reason; }
@@ -368,7 +376,10 @@ private:
   std::vector<EqualityEdgeId> d_equalityGraph;
 
   /** Add an edge to the equality graph */
-  void addGraphEdge(EqualityNodeId t1, EqualityNodeId t2, unsigned type, TNode reason);
+  void addGraphEdge(EqualityNodeId t1,
+                    EqualityNodeId t2,
+                    MergeReasonType type,
+                    TNode reason);
 
   /** Returns the equality node of the given node */
   EqualityNode& getEqualityNode(TNode node);
@@ -553,7 +564,10 @@ private:
   /**
    * Adds an equality of terms t1 and t2 to the database.
    */
-  void assertEqualityInternal(TNode t1, TNode t2, TNode reason, unsigned pid = MERGED_THROUGH_EQUALITY);
+  void assertEqualityInternal(TNode t1,
+                              TNode t2,
+                              TNode reason,
+                              MergeReasonType pid = MERGED_THROUGH_EQUALITY);
 
   /**
    * Adds a trigger equality to the database with the trigger node and polarity for notification.
@@ -742,9 +756,9 @@ public:
   }
 
   /**
-   * Add a kind to treat as function applications. 
-   * When extOperator is true, this equality engine will treat the operators of this kind 
-   * as "external" e.g. not internal nodes (see d_isInternal). This means that we will 
+   * Add a kind to treat as function applications.
+   * When extOperator is true, this equality engine will treat the operators of this kind
+   * as "external" e.g. not internal nodes (see d_isInternal). This means that we will
    * consider equivalence classes containing the operators of such terms, and "hasTerm" will
    * return true.
    */
@@ -786,7 +800,10 @@ public:
    *                 asserting the negated predicate
    * @param reason the reason to keep for building explanations
    */
-  void assertPredicate(TNode p, bool polarity, TNode reason, unsigned pid = MERGED_THROUGH_EQUALITY);
+  void assertPredicate(TNode p,
+                       bool polarity,
+                       TNode reason,
+                       MergeReasonType pid = MERGED_THROUGH_EQUALITY);
 
   /**
    * Adds predicate p and q and makes them equal.
@@ -801,7 +818,10 @@ public:
    *                 asserting the negated equality
    * @param reason the reason to keep for building explanations
    */
-  void assertEquality(TNode eq, bool polarity, TNode reason, unsigned pid = MERGED_THROUGH_EQUALITY);
+  void assertEquality(TNode eq,
+                      bool polarity,
+                      TNode reason,
+                      MergeReasonType pid = MERGED_THROUGH_EQUALITY);
 
   /**
    * Returns the current representative of the term t.
@@ -901,7 +921,7 @@ public:
   /**
    * Returns a fresh merge reason type tag for the client to use.
    */
-  unsigned getFreshMergeReasonType();
+  MergeReasonType getFreshMergeReasonType();
 };
 
 /**
@@ -940,34 +960,6 @@ public:
   EqClassIterator operator++(int);
   bool isFinished() const;
 };/* class EqClassIterator */
-
-class EqProof
-{
-public:
-  class PrettyPrinter {
-  public:
-    virtual ~PrettyPrinter() {}
-    virtual std::string printTag(unsigned tag) = 0;
-  };
-
-  EqProof() : d_id(MERGED_THROUGH_REFLEXIVITY){}
-  unsigned d_id;
-  Node d_node;
-  std::vector<std::shared_ptr<EqProof>> d_children;
-  /**
-   * Debug print this proof on debug trace c with tabulation tb and pretty
-   * printer prettyPrinter.
-   */
-  void debug_print(const char* c, unsigned tb = 0,
-                   PrettyPrinter* prettyPrinter = nullptr) const;
-  /**
-   * Debug print this proof on output stream os with tabulation tb and pretty
-   * printer prettyPrinter.
-   */
-  void debug_print(std::ostream& os,
-                   unsigned tb = 0,
-                   PrettyPrinter* prettyPrinter = nullptr) const;
-};/* class EqProof */
 
 } // Namespace eq
 } // Namespace theory

@@ -33,6 +33,47 @@ using namespace std;
 namespace CVC4 {
 namespace theory {
 
+void EqProof::debug_print(const char* c, unsigned tb, PrettyPrinter* prettyPrinter) const {
+  std::stringstream ss;
+  debug_print(ss, tb, prettyPrinter);
+  Debug(c) << ss.str();
+}
+void EqProof::debug_print(std::ostream& os,
+                          unsigned tb,
+                          PrettyPrinter* prettyPrinter) const
+{
+  for (unsigned i = 0; i < tb; i++)
+  {
+    os << "  ";
+  }
+
+  os << d_id;
+
+  os << "(";
+  if (!d_children.empty() || !d_node.isNull())
+  {
+    if (!d_node.isNull())
+    {
+      os << std::endl;
+      for (unsigned i = 0; i < tb + 1; i++)
+      {
+        os << "  ";
+      }
+      os << d_node;
+    }
+    for (unsigned i = 0; i < d_children.size(); i++)
+    {
+      if (i > 0 || !d_node.isNull())
+      {
+        os << ",";
+      }
+      os << std::endl;
+      d_children[i]->debug_print(os, tb + 1, prettyPrinter);
+    }
+  }
+  os << ")" << std::endl;
+}
+
 /** Default value for the uninterpreted sorts is the UF theory */
 TheoryId Theory::s_uninterpretedSortOwner = THEORY_UF;
 
@@ -200,12 +241,12 @@ void Theory::computeCareGraph() {
       switch (d_valuation.getEqualityStatus(a, b)) {
       case EQUALITY_TRUE_AND_PROPAGATED:
       case EQUALITY_FALSE_AND_PROPAGATED:
-  	// If we know about it, we should have propagated it, so we can skip
-  	break;
+    // If we know about it, we should have propagated it, so we can skip
+    break;
       default:
-  	// Let's split on it
-  	addCarePair(a, b);
-  	break;
+    // Let's split on it
+    addCarePair(a, b);
+    break;
       }
     }
   }

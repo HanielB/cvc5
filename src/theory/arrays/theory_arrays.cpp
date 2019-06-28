@@ -411,12 +411,12 @@ bool TheoryArrays::propagate(TNode literal)
 
 
 void TheoryArrays::explain(TNode literal, std::vector<TNode>& assumptions,
-                           eq::EqProof* proof) {
+                           EqProof* proof) {
   // Do the work
   bool polarity = literal.getKind() != kind::NOT;
   TNode atom = polarity ? literal : literal[0];
-  //eq::EqProof * eqp = new eq::EqProof;
-  // eq::EqProof * eqp = NULL;
+  //EqProof * eqp = new EqProof;
+  // EqProof * eqp = NULL;
   if (atom.getKind() == kind::EQUAL) {
     d_equalityEngine.explainEquality(atom[0], atom[1], polarity, assumptions, proof);
   } else {
@@ -849,7 +849,7 @@ Node TheoryArrays::explain(TNode literal) {
   return explanation;
 }
 
-Node TheoryArrays::explain(TNode literal, eq::EqProof* proof) {
+Node TheoryArrays::explain(TNode literal, EqProof* proof) {
   ++d_numExplain;
   Debug("arrays") << spaces(getSatContext()->getLevel())
                   << "TheoryArrays::explain(" << literal << ")" << std::endl;
@@ -2256,8 +2256,8 @@ bool TheoryArrays::dischargeLemmas()
 
 void TheoryArrays::conflict(TNode a, TNode b) {
   Debug("pf::array") << "TheoryArrays::Conflict called" << std::endl;
-  std::shared_ptr<eq::EqProof> proof = d_proofsEnabled ?
-      std::make_shared<eq::EqProof>() : nullptr;
+  std::shared_ptr<EqProof> proof = d_proofsEnabled ?
+      std::make_shared<EqProof>() : nullptr;
 
   d_conflictNode = explain(a.eqNode(b), proof.get());
 

@@ -152,12 +152,12 @@ private:
    * Explain why this literal is true by adding assumptions
    * with proof (if "pf" is non-NULL).
    */
-  void explain(TNode literal, std::vector<TNode>& assumptions, eq::EqProof* pf);
+  void explain(TNode literal, std::vector<TNode>& assumptions, EqProof* pf);
 
   /**
    * Explain a literal, with proof (if "pf" is non-NULL).
    */
-  Node explain(TNode literal, eq::EqProof* pf);
+  Node explain(TNode literal, EqProof* pf) override;
 
   /** All the function terms that the theory has seen */
   context::CDList<TNode> d_functionsTerms;

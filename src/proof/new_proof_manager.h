@@ -77,17 +77,32 @@ public:
 
   static SkolemizationManager *getSkolemizationManager();
 
+  static NewProofRule convert(MergeReasonType reason)
+  {
+    NewProofRule newreason;
+    switch (reason)
+    {
+      case MERGED_THROUGH_CONGRUENCE: newreason = RULE_CONGRUENCE; break;
+      case MERGED_THROUGH_EQUALITY: newreason = RULE_PURE_EQ; break;
+      case MERGED_THROUGH_REFLEXIVITY: newreason = RULE_PURE_EQ; break;
+      case MERGED_THROUGH_CONSTANTS: newreason = RULE_CONSTANTS; break;
+      default:  // MERGED_THROUGH_TRANS:
+        newreason = RULE_TRANSITIVITY;
+        break;
+    }
+    return newreason;
+  }
+
   /* ------------ BEGIN Registering proof steps ------------ */
 
   /** Add input **/
   void addAssertion(Node formula);
-
   /** Add input (but in a weird way) **/
   void addAssertionWeird(Node formula);
-
   /** Add a result of an unknown preprocessing step **/
   void addUnknown(Node formula);
 
+  void addTheoryProof(theory::EqProof* proof);
 
   /* ------------ END Registering proof steps ------------ */
 

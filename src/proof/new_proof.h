@@ -29,6 +29,8 @@ enum NewProofRule
   RULE_SYMMETRY,
   RULE_TRANSITIVITY,
   RULE_CONGRUENCE,
+  RULE_PURE_EQ,
+  RULE_CONSTANTS
 }; /* enum ProofRules */
 
 class ProofStep
@@ -59,9 +61,6 @@ class CVC4_PUBLIC NewProof
 
 inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
 {
-  // Debug("newproof:pm")
-  //     << "checking to print out rule\n";
-
   switch (r)
   {
     case RULE_INPUT: out << "input"; break;
@@ -70,6 +69,9 @@ inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
     case RULE_SYMMETRY: out << "symmetry"; break;
     case RULE_TRANSITIVITY: out << "transitivity"; break;
     case RULE_CONGRUENCE: out << "congruence"; break;
+    case RULE_PURE_EQ: out << "pure_eq"; break;
+    case RULE_CONSTANTS: out << "constants"; break;
+
     default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
   }
 

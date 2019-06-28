@@ -68,6 +68,72 @@ namespace eq {
 }/* CVC4::theory::eq namespace */
 
 /**
+ * A reason for a merge. Either an equality x = y, a merge of two
+ * function applications f(x1, x2), f(y1, y2) due to congruence,
+ * or a merge of an equality to false due to both sides being
+ * (different) constants.
+ */
+enum MergeReasonType {
+  /** Terms were merged due to application of congruence closure */
+  MERGED_THROUGH_CONGRUENCE,
+  /** Terms were merged due to application of pure equality */
+  MERGED_THROUGH_EQUALITY,
+  /** Equality was merged to true, due to both sides of equality being in the same class */
+  MERGED_THROUGH_REFLEXIVITY,
+  /** Equality was merged to false, due to both sides of equality being a constant */
+  MERGED_THROUGH_CONSTANTS,
+  /** (for proofs only) Equality was merged due to transitivity */
+  MERGED_THROUGH_TRANS,
+
+  /** Reason types beyond this constant are theory specific reasons */
+  NUMBER_OF_MERGE_REASONS
+};
+
+inline std::ostream& operator<<(std::ostream& out, MergeReasonType reason)
+{
+  switch (reason)
+  {
+    case MERGED_THROUGH_CONGRUENCE: out << "congruence"; break;
+    case MERGED_THROUGH_EQUALITY: out << "pure equality"; break;
+    case MERGED_THROUGH_REFLEXIVITY: out << "reflexivity"; break;
+    case MERGED_THROUGH_CONSTANTS: out << "constants disequal"; break;
+    case MERGED_THROUGH_TRANS: out << "transitivity"; break;
+
+    default: out << "[theory]"; break;
+  }
+  return out;
+}
+
+class EqProof
+{
+public:
+  class PrettyPrinter {
+  public:
+    virtual ~PrettyPrinter() {}
+    virtual std::string printTag(unsigned tag) = 0;
+  };
+
+  EqProof() : d_id(MERGED_THROUGH_REFLEXIVITY){}
+  MergeReasonType d_id;
+  Node d_node;
+  std::vector<std::shared_ptr<EqProof>> d_children;
+  /**
+   * Debug print this proof on debug trace c with tabulation tb and pretty
+   * printer prettyPrinter.
+   */
+  void debug_print(const char* c, unsigned tb = 0,
+                   PrettyPrinter* prettyPrinter = nullptr) const;
+  /**
+   * Debug print this proof on output stream os with tabulation tb and pretty
+   * printer prettyPrinter.
+   */
+  void debug_print(std::ostream& os,
+                   unsigned tb = 0,
+                   PrettyPrinter* prettyPrinter = nullptr) const;
+};/* class EqProof */
+
+
+/**
  * Base class for T-solvers.  Abstract DPLL(T).
  *
  * This is essentially an interface class.  The TheoryEngine has
@@ -430,7 +496,7 @@ public:
    * possible, for example in handling under-specified operations
    * using partially defined functions.
    *
-   * TODO (github issue #1076): 
+   * TODO (github issue #1076):
    * some theories like sets use expandDefinition as a "context
    * independent preRegisterTerm".  This is required for cases where
    * a theory wants to be notified about a term before preprocessing
@@ -519,6 +585,14 @@ public:
   virtual Node explain(TNode n) {
     Unimplemented("Theory %s propagated a node but doesn't implement the "
                   "Theory::explain() interface!", identify().c_str());
+  }
+
+  virtual Node explain(TNode literal, EqProof* pf)
+  {
+    Unimplemented(
+        "Theory %s propagated a node but doesn't implement the proof producing "
+        "Theory::explain() interface!",
+        identify().c_str());
   }
 
   /**
@@ -723,15 +797,15 @@ public:
    *
    * @return true iff facts have been asserted to this theory.
    */
-  bool hasFacts() { 
-    return !d_facts.empty(); 
+  bool hasFacts() {
+    return !d_facts.empty();
   }
 
   /** Return total number of facts asserted to this theory */
   size_t numAssertions() {
     return d_facts.size();
   }
-  
+
   typedef context::CDList<TNode>::const_iterator shared_terms_iterator;
 
   /**
@@ -838,7 +912,7 @@ public:
 
   /* is extended function reduced */
   virtual bool isExtfReduced( int effort, Node n, Node on, std::vector< Node >& exp ) { return n.isConst(); }
-  
+
   /**
    * Get reduction for node
    * If return value is not 0, then n is reduced.
