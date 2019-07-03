@@ -16,6 +16,7 @@
 
 #include "expr/node.h"
 #include "proof/new_proof.h"
+#include "theory/theory.h"
 
 #ifndef CVC4__VERIT_PROOF_H
 #define CVC4__VERIT_PROOF_H
@@ -30,12 +31,15 @@ class VeritProofStep : public ProofStep
 
   void addPremises(std::vector<unsigned>& reasons);
   void addConclusion(Node conclusion);
+  void addConclusion(std::vector<Node>& conclusion);
 
-  Node getConclusion() const;
+  const std::vector<Node>& getConclusion() const;
   const std::vector<unsigned>& getPremises() const;
 
  private:
-  Node d_conclusion;
+  // invariant: given n + 1 nodes, the first are to be negated in a cluase, while
+  // the last one is not
+  std::vector<Node> d_conclusion;
   std::vector<unsigned> d_premises;
 };
 
@@ -62,6 +66,8 @@ class VeritProof : public NewProof
 
  private:
   unsigned getNextId() { return d_nextId++; }
+
+  unsigned processTheoryProof(theory::EqProof* proof);
 
   void printStep(std::ostream& out, VeritProofStep* s) const;
 

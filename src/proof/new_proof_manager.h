@@ -29,6 +29,7 @@
 #include "proof/skolemization_manager.h"
 #include "theory/logic_info.h"
 #include "theory/substitutions.h"
+#include "theory/theory.h"
 #include "new_proof.h"
 #include "util/statistics_registry.h"
 
@@ -77,15 +78,15 @@ public:
 
   static SkolemizationManager *getSkolemizationManager();
 
-  static NewProofRule convert(MergeReasonType reason)
+  static NewProofRule convert(theory::MergeReasonType reason)
   {
     NewProofRule newreason;
     switch (reason)
     {
-      case MERGED_THROUGH_CONGRUENCE: newreason = RULE_CONGRUENCE; break;
-      case MERGED_THROUGH_EQUALITY: newreason = RULE_PURE_EQ; break;
-      case MERGED_THROUGH_REFLEXIVITY: newreason = RULE_PURE_EQ; break;
-      case MERGED_THROUGH_CONSTANTS: newreason = RULE_CONSTANTS; break;
+      case theory::MERGED_THROUGH_CONGRUENCE: newreason = RULE_CONGRUENCE; break;
+      case theory::MERGED_THROUGH_EQUALITY: newreason = RULE_PURE_EQ; break;
+      case theory::MERGED_THROUGH_REFLEXIVITY: newreason = RULE_PURE_EQ; break;
+      case theory::MERGED_THROUGH_CONSTANTS: newreason = RULE_CONSTANTS; break;
       default:  // MERGED_THROUGH_TRANS:
         newreason = RULE_TRANSITIVITY;
         break;

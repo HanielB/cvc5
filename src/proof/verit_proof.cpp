@@ -32,10 +32,18 @@ void VeritProofStep::addPremises(std::vector<unsigned>& reasons)
 
 void VeritProofStep::addConclusion(Node conclusion)
 {
-  d_conclusion = conclusion;
+  d_conclusion.push_back(conclusion);
 }
 
-Node VeritProofStep::getConclusion() const { return d_conclusion; }
+void VeritProofStep::addConclusion(std::vector<Node>& conclusion)
+{
+  d_conclusion.insert(d_conclusion.end(), conclusion.begin(), conclusion.end());
+}
+
+const std::vector<Node>& VeritProofStep::getConclusion() const
+{
+  return d_conclusion;
+}
 
 const std::vector<unsigned>& VeritProofStep::getPremises() const
 {
@@ -156,45 +164,47 @@ void VeritProof::addToLastProofStep(std::vector<unsigned>& reasons,
   d_proofSteps.back().addConclusion(conclusion);
 }
 
-void VeritProof::addTheoryProof(unsigned id, theory::EqProof* proof)
-{
-  NewRule r = NewProofManager::convert(proof->d_id);
-  if (!d_children.empty())
-  {
 
-    if (!d_node.isNull())
+// recursive call for building the proof
+
+unsigned VeritProof::processTheoryProof(theory::EqProof* proof)
+{
+  // add proof step for valid clause
+  unsigned current_id = getNextId();
+  d_proofSteps.push_back(
+      VeritProofStep(current_id, NewProofManager::convert(proof->d_id)));
+  unsigned i, size = proof->d_children.size();
+  for (i = 0; i < size; ++i)
+  {
+    d_proofSteps.back().addConclusion(proof->d_children[i]->d_node);
+  }
+  d_proofSteps.back().addConclusion(proof->d_node);
+  // recursively process proofs that have premises
+  unsigned child_id, next_id;
+  for (i = 0; i < size; ++i)
+  {
+    if (!proof->d_children[i]->d_children.empty())
     {
-      os << std::endl;
-      for (unsigned i = 0; i < tb + 1; i++)
-      {
-        os << "  ";
-      }
-      os << d_node;
-    }
-    for (unsigned i = 0; i < d_children.size(); i++)
-    {
-      if (i > 0 || !d_node.isNull())
-      {
-        os << ",";
-      }
-      os << std::endl;
-      d_children[i]->debug_print(os, tb + 1, prettyPrinter);
+      child_id = processTheoryProof(proof->d_children[i].get());
+      // add resolution step between current proof step and resulting proof step
+      // from processing child proof
+  //     next_id = getNextId();
+  // d_proofSteps.push_back(
+  //     VeritProofStep(next_id, RULE_RESOLUTION);
+
+  //     current_id = next_id;
     }
   }
-  os << ")" << std::endl;
-
-
 }
 
 void VeritProof::addTheoryProof(theory::EqProof* proof)
 {
-  unsigned id = getNextId();
+
   // TODO traverse the proof bottom up (just as it has been constructed). Anything
   // that has more than one level must be turned into a resolution of
   // clauses. The (valid) clauses are always the conclusion and the conclusions
   // of the premises.
-  d_proofSteps.back().addPremises(reasons);
-  d_proofSteps.back().addConclusion(conclusion);
+  processTheoryProof(proof);
 }
 
 void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const

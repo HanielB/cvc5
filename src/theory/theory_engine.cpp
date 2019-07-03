@@ -32,6 +32,7 @@
 #include "preprocessing/assertion_pipeline.h"
 #include "proof/cnf_proof.h"
 #include "proof/lemma_proof.h"
+#include "proof/new_proof_manager.h"
 #include "proof/proof_manager.h"
 #include "proof/theory_proof.h"
 #include "smt/logic_exception.h"
