@@ -30,6 +30,7 @@ class VeritProofStep : public ProofStep
   ~VeritProofStep() override {}
 
   void addPremises(std::vector<unsigned>& reasons);
+  void addPremises(unsigned reason);
   void addConclusion(Node conclusion);
   void addConclusion(std::vector<Node>& conclusion);
 
