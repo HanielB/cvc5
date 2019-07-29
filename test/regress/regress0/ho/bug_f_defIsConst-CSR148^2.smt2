@@ -1,4 +1,6 @@
-(set-option :incremental false)
+; COMMAND-LINE:  --uf-ho --ho-elim
+; EXPECT: unsat
+
 (set-logic ALL)
 (declare-sort $$unsorted 0)
 (declare-sort num 0)
@@ -285,5 +287,3 @@
 (assert (not (exists ((X $$unsorted) (Y $$unsorted)) (holdsDuring_THFTYPE_IiooI (lYearFn_THFTYPE_IiiI Y) (likes_THFTYPE_IiioI lSue_THFTYPE_i X)) )))
 (meta-info :filename "CSR148^2")
 (check-sat-assuming ( (not false) ))
-
-% SZS status GaveUp for CSR148^2

@@ -468,6 +468,7 @@ set(regress_0_tests
   regress0/ho/apply-collapse-sat.smt2
   regress0/ho/apply-collapse-unsat.smt2
   regress0/ho/bug_freeVar_BDD_General_data_270.p
+  regress0/ho/bug_f_defIsConst-CSR148^2.smt2
   regress0/ho/cong-full-apply.smt2
   regress0/ho/cong.smt2
   regress0/ho/declare-fun-variants.smt2
