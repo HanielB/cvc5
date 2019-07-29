@@ -467,6 +467,7 @@ set(regress_0_tests
   regress0/get-value-reals.smt2
   regress0/ho/apply-collapse-sat.smt2
   regress0/ho/apply-collapse-unsat.smt2
+  regress0/ho/bound_var_bug.p
   regress0/ho/bug_freeVar_BDD_General_data_270.p
   regress0/ho/bug_f_defIsConst-CSR148^2.smt2
   regress0/ho/cong-full-apply.smt2
