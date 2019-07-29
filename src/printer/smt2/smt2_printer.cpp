@@ -508,31 +508,9 @@ void Smt2Printer::toStream(std::ostream& out,
     break;
 
   // uf theory
-  case kind::APPLY_UF:
-    typeChildren = true;
-    // do beta reduction
-    // if (n.getOperator().getKind() == kind::LAMBDA)
-    // {
-    //   Trace("test-printer") << ".. rewrote UF_applied lambda to " << theory::Rewriter::rewrite(n) << "\n";
-    //   // delete application parenthesis
-    //   out << "\b";
-    //   toStream(
-    //       out, theory::Rewriter::rewrite(n), toDepth, types, TypeNode::null());
-    //   return;
-    // }
-    break;
+  case kind::APPLY_UF: typeChildren = true; break;
   // higher-order
   case kind::HO_APPLY:
-    // print beta reduced lambda
-    // if (n[0].getKind() == kind::LAMBDA)
-    // {
-    //   Trace("test-printer") << ".. rewrote HO_applied lambda to " << theory::Rewriter::rewrite(n) << "\n";
-    //   // delete application parenthesis
-    //   out << "\b";
-    //   toStream(
-    //       out, theory::Rewriter::rewrite(n), toDepth, types, TypeNode::null());
-    //   return;
-    // }
     // collapse "@" chains, i.e.
     //
     // @(@(a, b), c) --> (@ a b c)
@@ -595,68 +573,45 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::INTS_MODULUS_TOTAL:
   case kind::ABS:
   case kind::IS_INTEGER:
-      case kind::TO_INTEGER:
-      case kind::TO_REAL:
-      case kind::POW:
-        parametricTypeChildren = true;
-        out << smtKindString(k, d_variant) << " ";
-        break;
+  case kind::TO_INTEGER:
+  case kind::TO_REAL:
+  case kind::POW:
+    parametricTypeChildren = true;
+    out << smtKindString(k, d_variant) << " ";
+    break;
 
-      case kind::DIVISIBLE:
-        out << "(_ divisible " << n.getOperator().getConst<Divisible>().k
-            << ")";
-        stillNeedToPrintParams = false;
-        break;
+  case kind::DIVISIBLE:
+    out << "(_ divisible " << n.getOperator().getConst<Divisible>().k
+        << ")";
+    stillNeedToPrintParams = false;
+    break;
 
-        // arrays theory
-      case kind::SELECT:
-      case kind::STORE: typeChildren = true;
-      case kind::PARTIAL_SELECT_0:
-      case kind::PARTIAL_SELECT_1:
-      case kind::ARRAY_TYPE: out << smtKindString(k, d_variant) << " "; break;
+    // arrays theory
+  case kind::SELECT:
+  case kind::STORE: typeChildren = true;
+  case kind::PARTIAL_SELECT_0:
+  case kind::PARTIAL_SELECT_1:
+  case kind::ARRAY_TYPE: out << smtKindString(k, d_variant) << " "; break;
 
-      // string theory
-      case kind::STRING_CONCAT:
-        if (d_variant == z3str_variant)
-        {
-          out << "Concat ";
-          for (unsigned i = 0; i < n.getNumChildren(); ++i)
-          {
-            toStream(out, n[i], -1, types, TypeNode::null());
-            if (i + 1 < n.getNumChildren())
-            {
-              out << ' ';
-            }
-            if (i + 2 < n.getNumChildren())
-            {
-              out << "(Concat ";
-            }
-          }
-          for (unsigned i = 0; i < n.getNumChildren() - 1; ++i)
-          {
-            out << ")";
-          }
-          return;
-        }
-        out << "str.++ ";
-        break;
-      case kind::STRING_IN_REGEXP:
+  // string theory
+  case kind::STRING_CONCAT:
+    if (d_variant == z3str_variant)
+    {
+      out << "Concat ";
+      for (unsigned i = 0; i < n.getNumChildren(); ++i)
       {
-        stringstream ss;
-        if (d_variant == z3str_variant && stringifyRegexp(n[1], ss))
+        toStream(out, n[i], -1, types, TypeNode::null());
+        if (i + 1 < n.getNumChildren())
         {
-          out << "= ";
-          toStream(out, n[0], -1, types, TypeNode::null());
-          out << " ";
-          Node str = NodeManager::currentNM()->mkConst(String(ss.str()));
-          toStream(out, str, -1, types, TypeNode::null());
-          out << ")";
-          return;
+          out << ' ';
         }
-        out << smtKindString(k, d_variant) << " ";
-        break;
+        if (i + 2 < n.getNumChildren())
+        {
+          out << "(Concat ";
+        }
       }
-      for(unsigned i = 0; i < n.getNumChildren() - 1; ++i) {
+      for (unsigned i = 0; i < n.getNumChildren() - 1; ++i)
+      {
         out << ")";
       }
       return;
@@ -708,242 +663,242 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::CARDINALITY_CONSTRAINT: out << "fmf.card "; break;
   case kind::CARDINALITY_VALUE: out << "fmf.card.val "; break;
 
-        // bv theory
-      case kind::BITVECTOR_CONCAT:
-        out << "concat ";
-        forceBinary = true;
-        break;
-      case kind::BITVECTOR_AND:
-        out << "bvand ";
-        forceBinary = true;
-        break;
-      case kind::BITVECTOR_OR:
-        out << "bvor ";
-        forceBinary = true;
-        break;
-      case kind::BITVECTOR_XOR:
-        out << "bvxor ";
-        forceBinary = true;
-        break;
-      case kind::BITVECTOR_NOT: out << "bvnot "; break;
-      case kind::BITVECTOR_NAND: out << "bvnand "; break;
-      case kind::BITVECTOR_NOR: out << "bvnor "; break;
-      case kind::BITVECTOR_XNOR: out << "bvxnor "; break;
-      case kind::BITVECTOR_COMP: out << "bvcomp "; break;
-      case kind::BITVECTOR_MULT:
-        out << "bvmul ";
-        forceBinary = true;
-        break;
-      case kind::BITVECTOR_PLUS:
-        out << "bvadd ";
-        forceBinary = true;
-        break;
-      case kind::BITVECTOR_SUB: out << "bvsub "; break;
-      case kind::BITVECTOR_NEG: out << "bvneg "; break;
-      case kind::BITVECTOR_UDIV: out << "bvudiv "; break;
-      case kind::BITVECTOR_UDIV_TOTAL:
-        out << (isVariant_2_6(d_variant) ? "bvudiv " : "bvudiv_total ");
-        break;
-      case kind::BITVECTOR_UREM: out << "bvurem "; break;
-      case kind::BITVECTOR_UREM_TOTAL:
-        out << (isVariant_2_6(d_variant) ? "bvurem " : "bvurem_total ");
-        break;
-      case kind::BITVECTOR_SDIV: out << "bvsdiv "; break;
-      case kind::BITVECTOR_SREM: out << "bvsrem "; break;
-      case kind::BITVECTOR_SMOD: out << "bvsmod "; break;
-      case kind::BITVECTOR_SHL: out << "bvshl "; break;
-      case kind::BITVECTOR_LSHR: out << "bvlshr "; break;
-      case kind::BITVECTOR_ASHR: out << "bvashr "; break;
-      case kind::BITVECTOR_ULT: out << "bvult "; break;
-      case kind::BITVECTOR_ULE: out << "bvule "; break;
-      case kind::BITVECTOR_UGT: out << "bvugt "; break;
-      case kind::BITVECTOR_UGE: out << "bvuge "; break;
-      case kind::BITVECTOR_SLT: out << "bvslt "; break;
-      case kind::BITVECTOR_SLE: out << "bvsle "; break;
-      case kind::BITVECTOR_SGT: out << "bvsgt "; break;
-      case kind::BITVECTOR_SGE: out << "bvsge "; break;
-      case kind::BITVECTOR_TO_NAT: out << "bv2nat "; break;
-      case kind::BITVECTOR_REDOR: out << "bvredor "; break;
-      case kind::BITVECTOR_REDAND: out << "bvredand "; break;
+    // bv theory
+  case kind::BITVECTOR_CONCAT:
+    out << "concat ";
+    forceBinary = true;
+    break;
+  case kind::BITVECTOR_AND:
+    out << "bvand ";
+    forceBinary = true;
+    break;
+  case kind::BITVECTOR_OR:
+    out << "bvor ";
+    forceBinary = true;
+    break;
+  case kind::BITVECTOR_XOR:
+    out << "bvxor ";
+    forceBinary = true;
+    break;
+  case kind::BITVECTOR_NOT: out << "bvnot "; break;
+  case kind::BITVECTOR_NAND: out << "bvnand "; break;
+  case kind::BITVECTOR_NOR: out << "bvnor "; break;
+  case kind::BITVECTOR_XNOR: out << "bvxnor "; break;
+  case kind::BITVECTOR_COMP: out << "bvcomp "; break;
+  case kind::BITVECTOR_MULT:
+    out << "bvmul ";
+    forceBinary = true;
+    break;
+  case kind::BITVECTOR_PLUS:
+    out << "bvadd ";
+    forceBinary = true;
+    break;
+  case kind::BITVECTOR_SUB: out << "bvsub "; break;
+  case kind::BITVECTOR_NEG: out << "bvneg "; break;
+  case kind::BITVECTOR_UDIV: out << "bvudiv "; break;
+  case kind::BITVECTOR_UDIV_TOTAL:
+    out << (isVariant_2_6(d_variant) ? "bvudiv " : "bvudiv_total ");
+    break;
+  case kind::BITVECTOR_UREM: out << "bvurem "; break;
+  case kind::BITVECTOR_UREM_TOTAL:
+    out << (isVariant_2_6(d_variant) ? "bvurem " : "bvurem_total ");
+    break;
+  case kind::BITVECTOR_SDIV: out << "bvsdiv "; break;
+  case kind::BITVECTOR_SREM: out << "bvsrem "; break;
+  case kind::BITVECTOR_SMOD: out << "bvsmod "; break;
+  case kind::BITVECTOR_SHL: out << "bvshl "; break;
+  case kind::BITVECTOR_LSHR: out << "bvlshr "; break;
+  case kind::BITVECTOR_ASHR: out << "bvashr "; break;
+  case kind::BITVECTOR_ULT: out << "bvult "; break;
+  case kind::BITVECTOR_ULE: out << "bvule "; break;
+  case kind::BITVECTOR_UGT: out << "bvugt "; break;
+  case kind::BITVECTOR_UGE: out << "bvuge "; break;
+  case kind::BITVECTOR_SLT: out << "bvslt "; break;
+  case kind::BITVECTOR_SLE: out << "bvsle "; break;
+  case kind::BITVECTOR_SGT: out << "bvsgt "; break;
+  case kind::BITVECTOR_SGE: out << "bvsge "; break;
+  case kind::BITVECTOR_TO_NAT: out << "bv2nat "; break;
+  case kind::BITVECTOR_REDOR: out << "bvredor "; break;
+  case kind::BITVECTOR_REDAND: out << "bvredand "; break;
 
-      case kind::BITVECTOR_EXTRACT:
-      case kind::BITVECTOR_REPEAT:
-      case kind::BITVECTOR_ZERO_EXTEND:
-      case kind::BITVECTOR_SIGN_EXTEND:
-      case kind::BITVECTOR_ROTATE_LEFT:
-      case kind::BITVECTOR_ROTATE_RIGHT:
-      case kind::INT_TO_BITVECTOR:
-        out << n.getOperator() << ' ';
-        stillNeedToPrintParams = false;
-        break;
+  case kind::BITVECTOR_EXTRACT:
+  case kind::BITVECTOR_REPEAT:
+  case kind::BITVECTOR_ZERO_EXTEND:
+  case kind::BITVECTOR_SIGN_EXTEND:
+  case kind::BITVECTOR_ROTATE_LEFT:
+  case kind::BITVECTOR_ROTATE_RIGHT:
+  case kind::INT_TO_BITVECTOR:
+    out << n.getOperator() << ' ';
+    stillNeedToPrintParams = false;
+    break;
 
-        // sets
-      case kind::UNION:
-      case kind::INTERSECTION:
-      case kind::SETMINUS:
-      case kind::SUBSET:
-      case kind::CARD:
-      case kind::JOIN:
-      case kind::PRODUCT:
-      case kind::TRANSPOSE:
-      case kind::TCLOSURE:
-        parametricTypeChildren = true;
-        out << smtKindString(k, d_variant) << " ";
-        break;
-      case kind::MEMBER: typeChildren = true;
-      case kind::INSERT:
-      case kind::SET_TYPE:
-      case kind::SINGLETON:
-      case kind::COMPLEMENT: out << smtKindString(k, d_variant) << " "; break;
-      case kind::UNIVERSE_SET:
-        out << "(as univset " << n.getType() << ")";
-        break;
+    // sets
+  case kind::UNION:
+  case kind::INTERSECTION:
+  case kind::SETMINUS:
+  case kind::SUBSET:
+  case kind::CARD:
+  case kind::JOIN:
+  case kind::PRODUCT:
+  case kind::TRANSPOSE:
+  case kind::TCLOSURE:
+    parametricTypeChildren = true;
+    out << smtKindString(k, d_variant) << " ";
+    break;
+  case kind::MEMBER: typeChildren = true;
+  case kind::INSERT:
+  case kind::SET_TYPE:
+  case kind::SINGLETON:
+  case kind::COMPLEMENT: out << smtKindString(k, d_variant) << " "; break;
+  case kind::UNIVERSE_SET:
+    out << "(as univset " << n.getType() << ")";
+    break;
 
-        // fp theory
-      case kind::FLOATINGPOINT_FP:
-      case kind::FLOATINGPOINT_EQ:
-      case kind::FLOATINGPOINT_ABS:
-      case kind::FLOATINGPOINT_NEG:
-      case kind::FLOATINGPOINT_PLUS:
-      case kind::FLOATINGPOINT_SUB:
-      case kind::FLOATINGPOINT_MULT:
-      case kind::FLOATINGPOINT_DIV:
-      case kind::FLOATINGPOINT_FMA:
-      case kind::FLOATINGPOINT_SQRT:
-      case kind::FLOATINGPOINT_REM:
-      case kind::FLOATINGPOINT_RTI:
-      case kind::FLOATINGPOINT_MIN:
-      case kind::FLOATINGPOINT_MAX:
-      case kind::FLOATINGPOINT_LEQ:
-      case kind::FLOATINGPOINT_LT:
-      case kind::FLOATINGPOINT_GEQ:
-      case kind::FLOATINGPOINT_GT:
-      case kind::FLOATINGPOINT_ISN:
-      case kind::FLOATINGPOINT_ISSN:
-      case kind::FLOATINGPOINT_ISZ:
-      case kind::FLOATINGPOINT_ISINF:
-      case kind::FLOATINGPOINT_ISNAN:
-      case kind::FLOATINGPOINT_ISNEG:
-      case kind::FLOATINGPOINT_ISPOS:
-      case kind::FLOATINGPOINT_TO_REAL:
-      case kind::FLOATINGPOINT_COMPONENT_NAN:
-      case kind::FLOATINGPOINT_COMPONENT_INF:
-      case kind::FLOATINGPOINT_COMPONENT_ZERO:
-      case kind::FLOATINGPOINT_COMPONENT_SIGN:
-      case kind::FLOATINGPOINT_COMPONENT_EXPONENT:
-      case kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND:
-      case kind::ROUNDINGMODE_BITBLAST:
-        out << smtKindString(k, d_variant) << ' ';
-        break;
+    // fp theory
+  case kind::FLOATINGPOINT_FP:
+  case kind::FLOATINGPOINT_EQ:
+  case kind::FLOATINGPOINT_ABS:
+  case kind::FLOATINGPOINT_NEG:
+  case kind::FLOATINGPOINT_PLUS:
+  case kind::FLOATINGPOINT_SUB:
+  case kind::FLOATINGPOINT_MULT:
+  case kind::FLOATINGPOINT_DIV:
+  case kind::FLOATINGPOINT_FMA:
+  case kind::FLOATINGPOINT_SQRT:
+  case kind::FLOATINGPOINT_REM:
+  case kind::FLOATINGPOINT_RTI:
+  case kind::FLOATINGPOINT_MIN:
+  case kind::FLOATINGPOINT_MAX:
+  case kind::FLOATINGPOINT_LEQ:
+  case kind::FLOATINGPOINT_LT:
+  case kind::FLOATINGPOINT_GEQ:
+  case kind::FLOATINGPOINT_GT:
+  case kind::FLOATINGPOINT_ISN:
+  case kind::FLOATINGPOINT_ISSN:
+  case kind::FLOATINGPOINT_ISZ:
+  case kind::FLOATINGPOINT_ISINF:
+  case kind::FLOATINGPOINT_ISNAN:
+  case kind::FLOATINGPOINT_ISNEG:
+  case kind::FLOATINGPOINT_ISPOS:
+  case kind::FLOATINGPOINT_TO_REAL:
+  case kind::FLOATINGPOINT_COMPONENT_NAN:
+  case kind::FLOATINGPOINT_COMPONENT_INF:
+  case kind::FLOATINGPOINT_COMPONENT_ZERO:
+  case kind::FLOATINGPOINT_COMPONENT_SIGN:
+  case kind::FLOATINGPOINT_COMPONENT_EXPONENT:
+  case kind::FLOATINGPOINT_COMPONENT_SIGNIFICAND:
+  case kind::ROUNDINGMODE_BITBLAST:
+    out << smtKindString(k, d_variant) << ' ';
+    break;
 
-      case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR:
-      case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT:
-      case kind::FLOATINGPOINT_TO_FP_REAL:
-      case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR:
-      case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR:
-      case kind::FLOATINGPOINT_TO_FP_GENERIC:
-      case kind::FLOATINGPOINT_TO_UBV:
-      case kind::FLOATINGPOINT_TO_SBV:
-        out << n.getOperator() << ' ';
-        stillNeedToPrintParams = false;
-        break;
+  case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR:
+  case kind::FLOATINGPOINT_TO_FP_FLOATINGPOINT:
+  case kind::FLOATINGPOINT_TO_FP_REAL:
+  case kind::FLOATINGPOINT_TO_FP_SIGNED_BITVECTOR:
+  case kind::FLOATINGPOINT_TO_FP_UNSIGNED_BITVECTOR:
+  case kind::FLOATINGPOINT_TO_FP_GENERIC:
+  case kind::FLOATINGPOINT_TO_UBV:
+  case kind::FLOATINGPOINT_TO_SBV:
+    out << n.getOperator() << ' ';
+    stillNeedToPrintParams = false;
+    break;
 
-      case kind::APPLY_CONSTRUCTOR:
+  case kind::APPLY_CONSTRUCTOR:
+  {
+    typeChildren = true;
+    const Datatype& dt = Datatype::datatypeOf(n.getOperator().toExpr());
+    if (dt.isTuple())
+    {
+      stillNeedToPrintParams = false;
+      out << "mkTuple" << (dt[0].getNumArgs() == 0 ? "" : " ");
+    }
+  }
+
+  case kind::APPLY_TESTER:
+  case kind::APPLY_SELECTOR:
+  case kind::APPLY_SELECTOR_TOTAL:
+  case kind::PARAMETRIC_DATATYPE: break;
+
+  // separation logic
+  case kind::SEP_EMP:
+  case kind::SEP_PTO:
+  case kind::SEP_STAR:
+  case kind::SEP_WAND: out << smtKindString(k, d_variant) << " "; break;
+
+  case kind::SEP_NIL:
+    out << "(as sep.nil " << n.getType() << ")";
+    break;
+
+    // quantifiers
+  case kind::FORALL:
+  case kind::EXISTS:
+    if (k == kind::FORALL)
+    {
+      out << "forall ";
+    }
+    else
+    {
+      out << "exists ";
+    }
+    for (unsigned i = 0; i < 2; i++)
+    {
+      out << n[i] << " ";
+      if (i == 0 && n.getNumChildren() == 3)
       {
-        typeChildren = true;
-        const Datatype& dt = Datatype::datatypeOf(n.getOperator().toExpr());
-        if (dt.isTuple())
+        out << "(! ";
+      }
+    }
+    if (n.getNumChildren() == 3)
+    {
+      out << n[2];
+      out << ")";
+    }
+    out << ")";
+    return;
+    break;
+  case kind::BOUND_VAR_LIST:
+    // the left parenthesis is already printed (before the switch)
+    for (TNode::iterator i = n.begin(), iend = n.end(); i != iend;)
+    {
+      out << '(';
+      toStream(out, *i, toDepth < 0 ? toDepth : toDepth - 1, types, 0);
+      out << ' ';
+      out << (*i).getType();
+      // The following code do stange things
+      // (*i).getType().toStream(out, toDepth < 0 ? toDepth : toDepth - 1,
+      //                         false, language::output::LANG_SMTLIB_V2_5);
+      out << ')';
+      if (++i != iend)
+      {
+        out << ' ';
+      }
+    }
+    out << ')';
+    return;
+  case kind::INST_PATTERN: break;
+  case kind::INST_PATTERN_LIST:
+    for (unsigned i = 0; i < n.getNumChildren(); i++)
+    {
+      if (n[i].getKind() == kind::INST_ATTRIBUTE)
+      {
+        if (n[i][0].getAttribute(theory::FunDefAttribute()))
         {
-          stillNeedToPrintParams = false;
-          out << "mkTuple" << (dt[0].getNumArgs() == 0 ? "" : " ");
+          out << ":fun-def";
         }
       }
+      else
+      {
+        out << ":pattern " << n[i];
+      }
+    }
+    return;
+    break;
 
-      case kind::APPLY_TESTER:
-      case kind::APPLY_SELECTOR:
-      case kind::APPLY_SELECTOR_TOTAL:
-      case kind::PARAMETRIC_DATATYPE: break;
-
-      // separation logic
-      case kind::SEP_EMP:
-      case kind::SEP_PTO:
-      case kind::SEP_STAR:
-      case kind::SEP_WAND: out << smtKindString(k, d_variant) << " "; break;
-
-      case kind::SEP_NIL:
-        out << "(as sep.nil " << n.getType() << ")";
-        break;
-
-        // quantifiers
-      case kind::FORALL:
-      case kind::EXISTS:
-        if (k == kind::FORALL)
-        {
-          out << "forall ";
-        }
-        else
-        {
-          out << "exists ";
-        }
-        for (unsigned i = 0; i < 2; i++)
-        {
-          out << n[i] << " ";
-          if (i == 0 && n.getNumChildren() == 3)
-          {
-            out << "(! ";
-          }
-        }
-        if (n.getNumChildren() == 3)
-        {
-          out << n[2];
-          out << ")";
-        }
-        out << ")";
-        return;
-        break;
-      case kind::BOUND_VAR_LIST:
-        // the left parenthesis is already printed (before the switch)
-        for (TNode::iterator i = n.begin(), iend = n.end(); i != iend;)
-        {
-          out << '(';
-          toStream(out, *i, toDepth < 0 ? toDepth : toDepth - 1, types, 0);
-          out << ' ';
-          out << (*i).getType();
-          // The following code do stange things
-          // (*i).getType().toStream(out, toDepth < 0 ? toDepth : toDepth - 1,
-          //                         false, language::output::LANG_SMTLIB_V2_5);
-          out << ')';
-          if (++i != iend)
-          {
-            out << ' ';
-          }
-        }
-        out << ')';
-        return;
-      case kind::INST_PATTERN: break;
-      case kind::INST_PATTERN_LIST:
-        for (unsigned i = 0; i < n.getNumChildren(); i++)
-        {
-          if (n[i].getKind() == kind::INST_ATTRIBUTE)
-          {
-            if (n[i][0].getAttribute(theory::FunDefAttribute()))
-            {
-              out << ":fun-def";
-            }
-          }
-          else
-          {
-            out << ":pattern " << n[i];
-          }
-        }
-        return;
-        break;
-
-      default:
-        // fall back on however the kind prints itself; this probably
-        // won't be SMT-LIB v2 compliant, but it will be clear from the
-        // output that support for the kind needs to be added here.
-        out << n.getKind() << ' ';
+  default:
+    // fall back on however the kind prints itself; this probably
+    // won't be SMT-LIB v2 compliant, but it will be clear from the
+    // output that support for the kind needs to be added here.
+    out << n.getKind() << ' ';
   }
   if( n.getMetaKind() == kind::metakind::PARAMETERIZED &&
       stillNeedToPrintParams ) {
