@@ -467,6 +467,7 @@ set(regress_0_tests
   regress0/get-value-reals.smt2
   regress0/ho/apply-collapse-sat.smt2
   regress0/ho/apply-collapse-unsat.smt2
+  regress0/ho/bug_freeVar_BDD_General_data_270.p
   regress0/ho/cong-full-apply.smt2
   regress0/ho/cong.smt2
   regress0/ho/declare-fun-variants.smt2
@@ -478,15 +479,19 @@ set(regress_0_tests
   regress0/ho/ext-sat.smt2
   regress0/ho/finite-fun-ext.smt2
   regress0/ho/fta0144-alpha-eq.smt2
+  regress0/ho/fta0328.lfho.p
   regress0/ho/ho-match-fun-suffix.smt2
   regress0/ho/ho-matching-enum.smt2
   regress0/ho/ho-matching-nested-app.smt2
   regress0/ho/ite-apply-eq.smt2
   regress0/ho/lambda-equality-non-canon.smt2
   regress0/ho/modulo-func-equality.smt2
+  regress0/ho/NUM925^1.p
   regress0/ho/shadowing-defs.smt2
   regress0/ho/simple-matching-partial.smt2
   regress0/ho/simple-matching.smt2
+  regress0/ho/store-ax-min.p
+  regress0/ho/SYO056^1.p
   regress0/ho/trans.smt2
   regress0/hung10_itesdk_output1.smt2
   regress0/hung10_itesdk_output2.smt2
@@ -1189,6 +1194,7 @@ set(regress_1_tests
   regress1/ho/ho-std-fmf.smt2
   regress1/ho/hoa0008.smt2
   regress1/ho/match-middle.smt2
+  regress1/ho/SYO362^5.p
   regress1/hole6.cvc
   regress1/ite5.smt2
   regress1/lemmas/clocksynchro_5clocks.main_invar.base.smt

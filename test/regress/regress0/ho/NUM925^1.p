@@ -1,3 +1,6 @@
+% COMMAND-LINE:  --uf-ho
+% EXPECT: % SZS status Theorem for NUM925^1
+
 %------------------------------------------------------------------------------
 % File     : NUM925^1 : TPTP v7.2.0. Released v5.3.0.
 % Domain   : Number Theory

@@ -1,3 +1,6 @@
+% COMMAND-LINE:  --uf-ho --finite-model-find
+% EXPECT: % SZS status CounterSatisfiable for SYO056^1
+
 %------------------------------------------------------------------------------
 % File     : SYO056^1 : TPTP v7.2.0. Released v4.0.0.
 % Domain   : Logic Calculi (Quantified multimodal logic)
