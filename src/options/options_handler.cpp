@@ -2,9 +2,9 @@
 /*! \file options_handler.cpp
  ** \verbatim
  ** Top contributors (to current version):
- **   Tim King, Andrew Reynolds, Aina Niemetz
+ **   Andrew Reynolds, Tim King, Morgan Deters
  ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2018 by the authors listed in the file AUTHORS
+ ** Copyright (c) 2009-2019 by the authors listed in the file AUTHORS
  ** in the top-level source directory) and their institutional affiliations.
  ** All rights reserved.  See the file COPYING in the top-level source
  ** directory for licensing information.\endverbatim
@@ -73,10 +73,6 @@ void throwLazyBBUnsupported(theory::bv::SatSolverMode m)
 }  // namespace
 
 OptionsHandler::OptionsHandler(Options* options) : d_options(options) { }
-
-void OptionsHandler::notifyForceLogic(const std::string& option){
-  d_options->d_forceLogicListeners.notify();
-}
 
 void OptionsHandler::notifyBeforeSearch(const std::string& option)
 {
@@ -223,7 +219,7 @@ ErrorSelectionRule OptionsHandler::stringToErrorSelectionRule(
 // theory/quantifiers/options_handlers.h
 
 const std::string OptionsHandler::s_instWhenHelp = "\
-Modes currently supported by the --inst-when option:\n\
+Instantiation modes currently supported by the --inst-when option:\n\
 \n\
 full-last-call (default)\n\
 + Alternate running instantiation rounds at full effort and last\n\
@@ -353,7 +349,8 @@ min-s-all \n\
 \n\
 ";
 const std::string OptionsHandler::s_triggerActiveSelModeHelp = "\
-Trigger active selection modes currently supported by the --trigger-sel option:\n\
+Trigger active selection modes currently supported by the \
+--trigger-active-sel option:\n\
 \n\
 all \n\
 + Make all triggers active. \n\
@@ -403,7 +400,8 @@ none \n\
 ";
 
 const std::string OptionsHandler::s_termDbModeHelp = "\
-Modes for term database, supported by --term-db-mode:\n\
+Modes for terms included in the quantifiers term database, supported by\
+--term-db-mode:\n\
 \n\
 all  \n\
 + Quantifiers module considers all ground terms.\n\
@@ -429,7 +427,8 @@ all \n\
 
 const std::string OptionsHandler::s_cbqiBvIneqModeHelp =
     "\
-Modes for single invocation techniques, supported by --cbqi-bv-ineq:\n\
+Modes for handling bit-vector inequalities in counterexample-guided\
+instantiation, supported by --cbqi-bv-ineq:\n\
 \n\
 eq-slack (default)  \n\
 + Solve for the inequality using the slack value in the model, e.g.,\
@@ -1175,14 +1174,16 @@ theory::bv::SatSolverMode OptionsHandler::stringToSatSolver(std::string option,
   }
   else if (optarg == "cadical")
   {
+#ifndef CVC4_INCREMENTAL_CADICAL
     if (options::incrementalSolving()
         && options::incrementalSolving.wasSetByUser())
     {
-      throw OptionException(
-          std::string("CaDiCaL does not support incremental mode. \n\
-                         Try --bv-sat-solver=cryptominisat or "
-                      "--bv-sat-solver=minisat"));
+      throw OptionException(std::string(
+          "CaDiCaL version used does not support incremental mode. \n\
+                       Update CaDiCal or Try --bv-sat-solver=cryptominisat or "
+          "--bv-sat-solver=minisat"));
     }
+#endif
 
     if (options::bitblastMode() == theory::bv::BITBLAST_MODE_LAZY
         && options::bitblastMode.wasSetByUser())
@@ -1245,6 +1246,45 @@ theory::bv::BvProofFormat OptionsHandler::stringToBvProofFormat(
   }
 }
 
+const std::string OptionsHandler::s_bvOptimizeSatProofHelp =
+    "\
+Optimization levels currently supported by the --bv-optimize-sat-proof option:\n\
+\n\
+  none    : Do not optimize the SAT proof\n\
+\n\
+  proof   : Use drat-trim to shrink the SAT proof\n\
+\n\
+  formula : Use drat-trim to shrink the SAT proof and formula (default)\
+";
+
+theory::bv::BvOptimizeSatProof OptionsHandler::stringToBvOptimizeSatProof(
+    std::string option, std::string optarg)
+{
+  if (optarg == "none")
+  {
+    return theory::bv::BITVECTOR_OPTIMIZE_SAT_PROOF_NONE;
+  }
+  else if (optarg == "proof")
+  {
+    return theory::bv::BITVECTOR_OPTIMIZE_SAT_PROOF_PROOF;
+  }
+  else if (optarg == "formula")
+  {
+    return theory::bv::BITVECTOR_OPTIMIZE_SAT_PROOF_FORMULA;
+  }
+  else if (optarg == "help")
+  {
+    puts(s_bvOptimizeSatProofHelp.c_str());
+    exit(1);
+  }
+  else
+  {
+    throw OptionException(std::string("unknown option for --bv-optimize-sat-proof: `")
+                          + optarg + "'.  Try --bv-optimize-sat-proof=help.");
+  }
+}
+
+
 const std::string OptionsHandler::s_bitblastingModeHelp = "\
 Bit-blasting modes currently supported by the --bitblast option:\n\
 \n\
@@ -1259,26 +1299,34 @@ eager\n\
 theory::bv::BitblastMode OptionsHandler::stringToBitblastMode(
     std::string option, std::string optarg)
 {
-  if(optarg == "lazy") {
-    if (!options::bitvectorPropagate.wasSetByUser()) {
+  if (optarg == "lazy")
+  {
+    if (!options::bitvectorPropagate.wasSetByUser())
+    {
       options::bitvectorPropagate.set(true);
     }
-    if (!options::bitvectorEqualitySolver.wasSetByUser()) {
+    if (!options::bitvectorEqualitySolver.wasSetByUser())
+    {
       options::bitvectorEqualitySolver.set(true);
     }
-    if (!options::bitvectorEqualitySlicer.wasSetByUser()) {
-      if (options::incrementalSolving() ||
-          options::produceModels()) {
+    if (!options::bitvectorEqualitySlicer.wasSetByUser())
+    {
+      if (options::incrementalSolving() || options::produceModels())
+      {
         options::bitvectorEqualitySlicer.set(theory::bv::BITVECTOR_SLICER_OFF);
-      } else {
+      }
+      else
+      {
         options::bitvectorEqualitySlicer.set(theory::bv::BITVECTOR_SLICER_AUTO);
       }
     }
 
-    if (!options::bitvectorInequalitySolver.wasSetByUser()) {
+    if (!options::bitvectorInequalitySolver.wasSetByUser())
+    {
       options::bitvectorInequalitySolver.set(true);
     }
-    if (!options::bitvectorAlgebraicSolver.wasSetByUser()) {
+    if (!options::bitvectorAlgebraicSolver.wasSetByUser())
+    {
       options::bitvectorAlgebraicSolver.set(true);
     }
     if (options::bvSatSolver() != theory::bv::SAT_SOLVER_MINISAT)
@@ -1286,23 +1334,24 @@ theory::bv::BitblastMode OptionsHandler::stringToBitblastMode(
       throwLazyBBUnsupported(options::bvSatSolver());
     }
     return theory::bv::BITBLAST_MODE_LAZY;
-  } else if(optarg == "eager") {
-    if (!options::bitvectorToBool.wasSetByUser()) {
+  }
+  else if (optarg == "eager")
+  {
+    if (!options::bitvectorToBool.wasSetByUser())
+    {
       options::bitvectorToBool.set(true);
     }
-
-    if (!options::bvAbstraction.wasSetByUser() &&
-        !options::skolemizeArguments.wasSetByUser()) {
-      options::bvAbstraction.set(true);
-      options::skolemizeArguments.set(true);
-    }
     return theory::bv::BITBLAST_MODE_EAGER;
-  } else if(optarg == "help") {
+  }
+  else if (optarg == "help")
+  {
     puts(s_bitblastingModeHelp.c_str());
     exit(1);
-  } else {
-    throw OptionException(std::string("unknown option for --bitblast: `") +
-                          optarg + "'.  Try --bitblast=help.");
+  }
+  else
+  {
+    throw OptionException(std::string("unknown option for --bitblast: `")
+                          + optarg + "'.  Try --bitblast=help.");
   }
 }
 
@@ -1541,7 +1590,7 @@ table\n\
 ";
 
 const std::string OptionsHandler::s_instFormatHelp = "\
-Inst format modes currently supported by the --model-format option:\n\
+Inst format modes currently supported by the --inst-format option:\n\
 \n\
 default \n\
 + Print instantiations as a list in the output language format.\n\
@@ -1665,7 +1714,7 @@ SimplificationMode OptionsHandler::stringToSimplificationMode(
 
 const std::string OptionsHandler::s_modelCoresHelp =
     "\
-Model cores modes currently supported by the --simplification option:\n\
+Model cores modes currently supported by the --model-cores option:\n\
 \n\
 none (default) \n\
 + do not compute model cores\n\
@@ -1710,7 +1759,7 @@ ModelCoresMode OptionsHandler::stringToModelCoresMode(std::string option,
 
 const std::string OptionsHandler::s_sygusSolutionOutModeHelp =
     "\
-Modes for finite model finding bound minimization, supported by --sygus-out:\n\
+Modes for sygus solution output, supported by --sygus-out:\n\
 \n\
 status \n\
 + Print only status for check-synth calls.\n\
@@ -1769,10 +1818,11 @@ void OptionsHandler::proofEnabledBuild(std::string option, bool value)
 {
 #ifdef CVC4_PROOF
   if (value && options::bitblastMode() == theory::bv::BITBLAST_MODE_EAGER
-      && options::bvSatSolver() != theory::bv::SAT_SOLVER_MINISAT)
+      && options::bvSatSolver() != theory::bv::SAT_SOLVER_MINISAT
+      && options::bvSatSolver() != theory::bv::SAT_SOLVER_CRYPTOMINISAT)
   {
     throw OptionException(
-        "Eager BV proofs only supported when minisat is used");
+        "Eager BV proofs only supported when MiniSat or CryptoMiniSat is used");
   }
 #else
   if(value) {
@@ -1938,6 +1988,7 @@ void OptionsHandler::showConfiguration(std::string option) {
   print_config_cond("glpk", Configuration::isBuiltWithGlpk());
   print_config_cond("cadical", Configuration::isBuiltWithCadical());
   print_config_cond("cryptominisat", Configuration::isBuiltWithCryptominisat());
+  print_config_cond("drat2er", Configuration::isBuiltWithDrat2Er());
   print_config_cond("gmp", Configuration::isBuiltWithGmp());
   print_config_cond("lfsc", Configuration::isBuiltWithLfsc());
   print_config_cond("readline", Configuration::isBuiltWithReadline());

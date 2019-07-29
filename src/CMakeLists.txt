@@ -90,6 +90,8 @@ libcvc4_add_sources(
   preprocessing/passes/sort_infer.h
   preprocessing/passes/static_learning.cpp
   preprocessing/passes/static_learning.h
+  preprocessing/passes/sygus_abduct.cpp
+  preprocessing/passes/sygus_abduct.h
   preprocessing/passes/sygus_inference.cpp
   preprocessing/passes/sygus_inference.h
   preprocessing/passes/symmetry_breaker.cpp
@@ -137,8 +139,8 @@ libcvc4_add_sources(
   proof/clause_id.h
   proof/cnf_proof.cpp
   proof/cnf_proof.h
-  proof/dimacs_printer.cpp
-  proof/dimacs_printer.h
+  proof/dimacs.cpp
+  proof/dimacs.h
   proof/drat/drat_proof.cpp
   proof/drat/drat_proof.h
   proof/er/er_proof.cpp
@@ -219,6 +221,7 @@ libcvc4_add_sources(
   prop/sat_solver_factory.cpp
   prop/sat_solver_factory.h
   prop/bv_sat_solver_notify.h
+  prop/sat_solver_types.cpp
   prop/sat_solver_types.h
   prop/theory_proxy.cpp
   prop/theory_proxy.h
@@ -611,6 +614,8 @@ libcvc4_add_sources(
   theory/sep/theory_sep_type_rules.h
   theory/sets/normal_form.h
   theory/sets/rels_utils.h
+  theory/sets/skolem_cache.cpp
+  theory/sets/skolem_cache.h
   theory/sets/theory_sets.cpp
   theory/sets/theory_sets.h
   theory/sets/theory_sets_private.cpp
@@ -625,10 +630,18 @@ libcvc4_add_sources(
   theory/shared_terms_database.h
   theory/sort_inference.cpp
   theory/sort_inference.h
+  theory/strings/infer_info.cpp
+  theory/strings/infer_info.h
+  theory/strings/inference_manager.cpp
+  theory/strings/inference_manager.h
+  theory/strings/normal_form.cpp
+  theory/strings/normal_form.h
   theory/strings/regexp_elim.cpp
   theory/strings/regexp_elim.h
   theory/strings/regexp_operation.cpp
   theory/strings/regexp_operation.h
+  theory/strings/regexp_solver.cpp
+  theory/strings/regexp_solver.h
   theory/strings/skolem_cache.cpp
   theory/strings/skolem_cache.h
   theory/strings/theory_strings.cpp
@@ -638,6 +651,8 @@ libcvc4_add_sources(
   theory/strings/theory_strings_rewriter.cpp
   theory/strings/theory_strings_rewriter.h
   theory/strings/theory_strings_type_rules.h
+  theory/strings/theory_strings_utils.cpp
+  theory/strings/theory_strings_utils.h
   theory/strings/type_enumerator.h
   theory/subs_minimize.cpp
   theory/subs_minimize.h
@@ -661,6 +676,8 @@ libcvc4_add_sources(
   theory/uf/equality_engine.cpp
   theory/uf/equality_engine.h
   theory/uf/equality_engine_types.h
+  theory/uf/ho_extension.cpp
+  theory/uf/ho_extension.h
   theory/uf/symmetry_breaker.cpp
   theory/uf/symmetry_breaker.h
   theory/uf/theory_uf.cpp
@@ -770,6 +787,11 @@ endif()
 # depends on GMP.
 target_link_libraries(cvc4 ${GMP_LIBRARIES})
 target_include_directories(cvc4 PUBLIC ${GMP_INCLUDE_DIR})
+
+# Add rt library
+# Note: For glibc < 2.17 we have to additionally link against rt (man clock_gettime).
+#       RT_LIBRARIES should be empty for glibc >= 2.17
+target_link_libraries(cvc4 ${RT_LIBRARIES})
 
 #-----------------------------------------------------------------------------#
 # Visit main subdirectory after creating target cvc4. For target main, we have
