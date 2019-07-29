@@ -486,6 +486,7 @@ set(regress_0_tests
   regress0/ho/ite-apply-eq.smt2
   regress0/ho/lambda-equality-non-canon.smt2
   regress0/ho/modulo-func-equality.smt2
+  regress0/ho/nested_lambdas-AGT034^2.smt2
   regress0/ho/NUM925^1.p
   regress0/ho/shadowing-defs.smt2
   regress0/ho/simple-matching-partial.smt2
