@@ -105,6 +105,12 @@ class Tptp : public Parser {
   void makeApplication(Expr& expr, std::string& name, std::vector<Expr>& args,
                        bool term);
 
+  /** creates a lambda abstraction around expression
+   *
+   * Given an expression expr of type argType = t1...tn -> t, creates a lambda
+   * expression
+   *  (lambda x1:t1,...,xn:tn . (expr x)) : t
+   */
   void mkLambdaWrapper(Expr& expr, Type argType);
 
   /** get assertion expression, based on the formula role.

@@ -320,13 +320,6 @@ void Tptp::mkLambdaWrapper(Expr& expr, Type argType)
       getExprManager()->mkExpr(kind::BOUND_VAR_LIST, lvars),
       getExprManager()->mkExpr(expr, lvars));
 
-  Debug("parser") << "thfLogicFormula: from builtin arg " << expr << " with op "
-                  << getExprManager()->operatorToKind(expr)
-                  << " and (min) arity "
-                  << getExprManager()->minArity(
-                         getExprManager()->operatorToKind(expr))
-                  << " and type " << argType << " built wrapper " << wrapper
-                  << "\n";
   expr = wrapper;
 }
 
