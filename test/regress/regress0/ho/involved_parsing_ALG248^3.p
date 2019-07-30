@@ -1,3 +1,6 @@
+% COMMAND-LINE:  --uf-ho
+% EXPECT: % SZS status Theorem for involved_parsing_ALG248^3
+
 %------------------------------------------------------------------------------
 % File     : ALG248^3 : TPTP v7.2.0. Bugfixed v5.2.0.
 % Domain   : Algebra
