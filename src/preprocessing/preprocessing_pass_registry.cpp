@@ -49,7 +49,6 @@
 #include "preprocessing/passes/sep_skolem_emp.h"
 #include "preprocessing/passes/sort_infer.h"
 #include "preprocessing/passes/static_learning.h"
-#include "preprocessing/passes/sygus_abduct.h"
 #include "preprocessing/passes/sygus_inference.h"
 #include "preprocessing/passes/symmetry_breaker.h"
 #include "preprocessing/passes/symmetry_detect.h"
@@ -128,7 +127,6 @@ PreprocessingPassRegistry::PreprocessingPassRegistry()
   registerPassInfo("synth-rr", callCtor<SynthRewRulesPass>);
   registerPassInfo("real-to-int", callCtor<RealToInt>);
   registerPassInfo("sygus-infer", callCtor<SygusInference>);
-  registerPassInfo("sygus-abduct", callCtor<SygusAbduct>);
   registerPassInfo("bv-to-bool", callCtor<BVToBool>);
   registerPassInfo("bv-intro-pow2", callCtor<BvIntroPow2>);
   registerPassInfo("sort-inference", callCtor<SortInferencePass>);
