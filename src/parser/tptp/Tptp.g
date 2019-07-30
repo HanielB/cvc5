@@ -349,9 +349,6 @@ atomicFormula[CVC4::Expr& expr]
        if(!equal) expr = MK_EXPR(kind::NOT, expr);
      }
     )?
-  // TODO simpleTerm can also be a variable, which is ambiguous with
-  // thfUnitaryFormula that have a production for only variable, which if that's
-  // not the case goes to atomicFormula.
   | (simpleTerm[expr] | letTerm[expr] | conditionalTerm[expr])
     (equalOp[equal] term[expr2]
     { // equality/disequality between terms
@@ -367,6 +364,41 @@ atomicFormula[CVC4::Expr& expr]
     }
   | definedProp[expr]
   ;
+
+// TODO support tuples
+thfAtomicFormula[CVC4::Expr& expr]
+@declarations {
+  Expr expr2;
+  std::string name;
+  std::vector<CVC4::Expr> args;
+  bool equal;
+}
+  : atomicWord[name] (LPAREN_TOK arguments[args] RPAREN_TOK)?
+    {
+      PARSER_STATE->makeApplication(expr, name, args, true);
+    }
+  | definedFun[expr]
+    (
+     LPAREN_TOK arguments[args] RPAREN_TOK
+     equalOp[equal] term[expr2]
+     { expr = EXPR_MANAGER->mkExpr(expr, args);
+       expr = MK_EXPR(kind::EQUAL, expr, expr2);
+       if(!equal) expr = MK_EXPR(kind::NOT, expr);
+     }
+    )?
+  | thfSimpleTerm[expr]
+  | letTerm[expr]
+  | conditionalTerm[expr]
+  | thfDefinedPred[expr] (LPAREN_TOK arguments[args] RPAREN_TOK)?
+    {
+      if (!args.empty())
+      {
+        expr = EXPR_MANAGER->mkExpr(expr, args);
+      }
+    }
+  | definedProp[expr]
+  ;
+
 //%----Using <plain_term> removes a reduce/reduce ambiguity in lex/yacc.
 //%----Note: "defined" means a word starting with one $ and "system" means $$.
 
@@ -404,6 +436,41 @@ definedPred[CVC4::Expr& expr]
   | AND_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::AND); }
   | IMPLIES_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::IMPLIES); }
   | OR_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::OR); }
+  ;
+
+thfDefinedPred[CVC4::Expr& expr]
+  : '$less' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::LT); }
+  | '$lesseq' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::LEQ); }
+  | '$greater' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::GT); }
+  | '$greatereq' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::GEQ); }
+  | '$is_rat'
+    // a real n is a rational if there exists q,r integers such that
+    //   to_real(q) = n*to_real(r),
+    // where r is non-zero.
+    { Expr n = EXPR_MANAGER->mkBoundVar("N", EXPR_MANAGER->realType());
+      Expr q = EXPR_MANAGER->mkBoundVar("Q", EXPR_MANAGER->integerType());
+      Expr qr = MK_EXPR(CVC4::kind::TO_REAL, q);
+      Expr r = EXPR_MANAGER->mkBoundVar("R", EXPR_MANAGER->integerType());
+      Expr rr = MK_EXPR(CVC4::kind::TO_REAL, r);
+      Expr body =
+          MK_EXPR(CVC4::kind::AND,
+                  MK_EXPR(CVC4::kind::NOT,
+                          MK_EXPR(CVC4::kind::EQUAL, r, MK_CONST(Rational(0)))),
+                  MK_EXPR(CVC4::kind::EQUAL, qr, MK_EXPR(CVC4::kind::MULT, n, rr)));
+      Expr bvl = MK_EXPR(CVC4::kind::BOUND_VAR_LIST, q, r);
+      body = MK_EXPR(CVC4::kind::EXISTS, bvl, body);
+      Expr lbvl = MK_EXPR(CVC4::kind::BOUND_VAR_LIST, n);
+      expr = MK_EXPR(CVC4::kind::LAMBDA, lbvl, body);
+    }
+  | '$is_int' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::IS_INTEGER); }
+  | '$distinct' { expr = EXPR_MANAGER->operatorOf(CVC4::kind::DISTINCT); }
+  | LPAREN_TOK
+    (
+      AND_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::AND); }
+    | OR_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::OR); }
+    | IMPLIES_TOK { expr = EXPR_MANAGER->operatorOf(CVC4::kind::IMPLIES); }
+    )
+    RPAREN_TOK
   ;
 
 definedFun[CVC4::Expr& expr]
@@ -534,6 +601,16 @@ simpleTerm[CVC4::Expr& expr]
   : variable[expr]
   | NUMBER { expr = PARSER_STATE->d_tmp_expr; }
   | DISTINCT_OBJECT { expr = PARSER_STATE->convertStrToUnsorted(AntlrInput::tokenText($DISTINCT_OBJECT)); }
+  ;
+
+/* Not an application */
+thfSimpleTerm[CVC4::Expr& expr]
+  : NUMBER { expr = PARSER_STATE->d_tmp_expr; }
+  | DISTINCT_OBJECT
+    {
+      expr = PARSER_STATE->convertStrToUnsorted(
+          AntlrInput::tokenText($DISTINCT_OBJECT));
+    }
   ;
 
 functionTerm[CVC4::Expr& expr]
@@ -933,10 +1010,11 @@ thfUnitaryFormula[CVC4::Expr& expr]
   Kind kind;
   std::vector< Expr > bv;
   Expr expr2;
+  bool equal;
 }
   : variable[expr]
     { Debug("parser") << "thfUnitaryFormula: Variable: " << expr << "\n"; }
-  | atomicFormula[expr]
+  | thfAtomicFormula[expr]
     { Debug("parser") << "thfUnitaryFormula: AtomicFormula: " << expr << "\n"; }
   | LPAREN_TOK
     {
