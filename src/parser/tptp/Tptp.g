@@ -205,7 +205,7 @@ parseCommand returns [CVC4::Command* cmd = NULL]
     ) RPAREN_TOK DOT_TOK
   | THF_TOK LPAREN_TOK nameN[name] COMMA_TOK
     // Supported THF formulas: either a logic formula or a typing atom (i.e. we
-    // ignore subtyping and logic sequents)
+    // ignore subtyping and logic sequents). Also, only TH0
     ( TYPE_TOK COMMA_TOK thfAtomTyping[cmd]
     | formulaRole[fr] COMMA_TOK
       { PARSER_STATE->setCnf(false); PARSER_STATE->setFof(false); }
@@ -344,17 +344,26 @@ atomicFormula[CVC4::Expr& expr]
     (
      LPAREN_TOK arguments[args] RPAREN_TOK
      equalOp[equal] term[expr2]
-     { expr = EXPR_MANAGER->mkExpr(expr, args);
+     {
+       expr = EXPR_MANAGER->mkExpr(expr, args);
        expr = MK_EXPR(kind::EQUAL, expr, expr2);
-       if(!equal) expr = MK_EXPR(kind::NOT, expr);
+       if (!equal)
+       {
+         expr = MK_EXPR(kind::NOT, expr);
+       }
      }
     )?
   | (simpleTerm[expr] | letTerm[expr] | conditionalTerm[expr])
-    (equalOp[equal] term[expr2]
-    { // equality/disequality between terms
-      expr = MK_EXPR(kind::EQUAL, expr, expr2);
-      if(!equal) expr = MK_EXPR(kind::NOT, expr);
-    })?
+    (
+      equalOp[equal] term[expr2]
+      { // equality/disequality between terms
+        expr = MK_EXPR(kind::EQUAL, expr, expr2);
+        if (!equal)
+        {
+          expr = MK_EXPR(kind::NOT, expr);
+        }
+      }
+    )?
   | definedPred[expr] (LPAREN_TOK arguments[args] RPAREN_TOK)?
     {
       if (!args.empty())
@@ -365,7 +374,6 @@ atomicFormula[CVC4::Expr& expr]
   | definedProp[expr]
   ;
 
-// TODO support tuples
 thfAtomicFormula[CVC4::Expr& expr]
 @declarations {
   Expr expr2;
@@ -379,12 +387,16 @@ thfAtomicFormula[CVC4::Expr& expr]
     }
   | definedFun[expr]
     (
-     LPAREN_TOK arguments[args] RPAREN_TOK
-     equalOp[equal] term[expr2]
-     { expr = EXPR_MANAGER->mkExpr(expr, args);
-       expr = MK_EXPR(kind::EQUAL, expr, expr2);
-       if(!equal) expr = MK_EXPR(kind::NOT, expr);
-     }
+      LPAREN_TOK arguments[args] RPAREN_TOK
+      equalOp[equal] term[expr2]
+      {
+        expr = EXPR_MANAGER->mkExpr(expr, args);
+        expr = MK_EXPR(kind::EQUAL, expr, expr2);
+        if(!equal)
+        {
+          expr = MK_EXPR(kind::NOT, expr);
+        }
+      }
     )?
   | thfSimpleTerm[expr]
   | letTerm[expr]
@@ -564,8 +576,7 @@ definedFun[CVC4::Expr& expr]
 //%----at the roots of a refutation.
 
 equalOp[bool& equal]
-  : { Debug("parser") << "equalOp: Init\n"; }
-    EQUAL_TOK    { equal = true; }
+  : EQUAL_TOK    { equal = true; }
   | DISEQUAL_TOK { equal = false; }
   ;
 
@@ -812,13 +823,15 @@ thfAtomTyping[CVC4::Command*& cmd]
           if (type == PARSER_STATE->getVariable(name).getType())
           {
             // duplicate declaration is fine, they're compatible
-            cmd = new EmptyCommand("compatible redeclaration of constant " + name);
+            cmd = new EmptyCommand("compatible redeclaration of constant "
+                                   + name);
           }
           else
           {
             // error: sorts incompatible
-            PARSER_STATE->parseError("Symbol `" + name
-                                     + "' declared previously with a different sort");
+            PARSER_STATE->parseError(
+                "Symbol `" + name
+                + "' declared previously with a different sort");
           }
         }
         else
@@ -857,55 +870,57 @@ thfLogicFormula[CVC4::Expr& expr]
     ( // Equality: =
       equalOp[equal]
       thfUnitaryFormula[expr2]
-      { Debug("parser") << "thfLogicFormula: equal/disequal case\n";
-
+      {
         if (expr.getKind() == kind::BUILTIN && expr2.getKind() != kind::BUILTIN)
         {
           // make expr with a lambda of the same type as expr
           PARSER_STATE->mkLambdaWrapper(expr, expr2.getType());
         }
-        else if (expr2.getKind() == kind::BUILTIN && expr.getKind() != kind::BUILTIN)
+        else if (expr2.getKind() == kind::BUILTIN
+                 && expr.getKind() != kind::BUILTIN)
         {
           // make expr2 with a lambda of the same type as expr
           PARSER_STATE->mkLambdaWrapper(expr2, expr.getType());
         }
-        else if (expr.getKind() == kind::BUILTIN && expr2.getKind() == kind::BUILTIN)
+        else if (expr.getKind() == kind::BUILTIN
+                 && expr2.getKind() == kind::BUILTIN)
         {
           // TODO create whatever lambda
         }
         expr = MK_EXPR(kind::EQUAL, expr, expr2);
-        if (!equal) expr = MK_EXPR(kind::NOT, expr);
+        if (!equal)
+        {
+          expr = MK_EXPR(kind::NOT, expr);
+        }
       }
     | // Non-associative: <=> <~> ~& ~|
       fofBinaryNonAssoc[na] thfUnitaryFormula[expr2]
-        {
-          // TODO lambda wrappers for expressions
-          switch(na) {
-           case tptp::NA_IFF:
-             expr = MK_EXPR(kind::EQUAL,expr,expr2);
-             break;
-           case tptp::NA_REVIFF:
-             expr = MK_EXPR(kind::XOR,expr,expr2);
-             break;
-           case tptp::NA_IMPLIES:
-             expr = MK_EXPR(kind::IMPLIES,expr,expr2);
-             break;
-           case tptp::NA_REVIMPLIES:
-             expr = MK_EXPR(kind::IMPLIES,expr2,expr);
-             break;
-           case tptp::NA_REVOR:
-             expr = MK_EXPR(kind::NOT,MK_EXPR(kind::OR,expr,expr2));
-             break;
-           case tptp::NA_REVAND:
-             expr = MK_EXPR(kind::NOT,MK_EXPR(kind::AND,expr,expr2));
-             break;
-          }
+      {
+        switch(na) {
+         case tptp::NA_IFF:
+           expr = MK_EXPR(kind::EQUAL,expr,expr2);
+           break;
+         case tptp::NA_REVIFF:
+           expr = MK_EXPR(kind::XOR,expr,expr2);
+           break;
+         case tptp::NA_IMPLIES:
+           expr = MK_EXPR(kind::IMPLIES,expr,expr2);
+           break;
+         case tptp::NA_REVIMPLIES:
+           expr = MK_EXPR(kind::IMPLIES,expr2,expr);
+           break;
+         case tptp::NA_REVOR:
+           expr = MK_EXPR(kind::NOT,MK_EXPR(kind::OR,expr,expr2));
+           break;
+         case tptp::NA_REVAND:
+           expr = MK_EXPR(kind::NOT,MK_EXPR(kind::AND,expr,expr2));
+           break;
         }
+      }
     | // N-ary and &
       ( { args.push_back(expr); }
         ( AND_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
         {
-          // TODO lambda wrappers for expressions
           expr = MK_EXPR_ASSOCIATIVE(kind::AND, args);
         }
       )
@@ -913,7 +928,6 @@ thfLogicFormula[CVC4::Expr& expr]
       ( { args.push_back(expr); }
         ( OR_TOK thfUnitaryFormula[expr] { args.push_back(expr); } )+
         {
-          // TODO lambda wrappers for expressions
           expr = MK_EXPR_ASSOCIATIVE(kind::OR, args);
         }
       )
@@ -927,7 +941,10 @@ thfLogicFormula[CVC4::Expr& expr]
       ( APP_TOK
         (
          thfUnitaryFormula[expr] { args.push_back(expr); }
-         | LBRACK_TOK { UNSUPPORTED("Tuple terms"); } thfTupleForm[args] RBRACK_TOK
+         | LBRACK_TOK
+           { UNSUPPORTED("Tuple terms"); }
+           thfTupleForm[args]
+           RBRACK_TOK
         )
       )+
       {
@@ -965,18 +982,12 @@ thfLogicFormula[CVC4::Expr& expr]
           }
           else
           {
-            Debug("parser")
-                << "thfLogicFormula: builing HO_APP chain with funct " << expr
-                << " : " << expr.getType() << " and args ";
             for (unsigned i = 1; i < args.size(); ++i)
             {
-              Debug("parser") << args[i] << " : " << args[i].getType() << " | ";
               expr = MK_EXPR(kind::HO_APPLY, expr, args[i]);
             }
-            Debug("parser") << "\n";
           }
         }
-        Debug("parser") << "thfLogicFormula: built expression " << expr << "\n";
       }
     )?
   ;
@@ -1013,72 +1024,41 @@ thfUnitaryFormula[CVC4::Expr& expr]
   bool equal;
 }
   : variable[expr]
-    { Debug("parser") << "thfUnitaryFormula: Variable: " << expr << "\n"; }
   | thfAtomicFormula[expr]
-    { Debug("parser") << "thfUnitaryFormula: AtomicFormula: " << expr << "\n"; }
   | LPAREN_TOK
-    {
-      Debug("parser")
-          << "thfUnitaryFormula: got left parent, go for logicformula with : "
-          << expr << "\n";
-    }
     thfLogicFormula[expr]
-    { Debug("parser") << "thfUnitaryFormula: got expr: " << expr << "\n"; }
     RPAREN_TOK
   | NOT_TOK
     { expr = EXPR_MANAGER->operatorOf(CVC4::kind::NOT); }
     (thfUnitaryFormula[expr2] { expr = MK_EXPR(expr,expr2); })?
-  // TODO add case for th0_quantifier: Lambda.
-  //
-  // Probably throw an error with Choice and Description, or maybe consider the
-  // former at least. The same applies for TH1 quantifiers
   | // Quantified
-    { Debug("parser") << "thfUnitaryFormula: Quantifier case\n"; }
     thfQuantifier[kind]
     LBRACK_TOK {PARSER_STATE->pushScope();}
     thfBindVariable[expr]
     {
       bv.push_back(expr);
-      Debug("parser") << "thfUnitaryFormula:   parsed variable: " << expr
-                      << "\n";
     }
     ( COMMA_TOK thfBindVariable[expr]
      {
        bv.push_back(expr);
-       Debug("parser") << "thfUnitaryFormula:   parsed variable: " << expr
-                       << "\n";
      }
      )*
     RBRACK_TOK COLON_TOK
-    {
-      Debug("parser") << "thfUnitaryFormula:   got colon for qnt body, going "
-                         "to unitary with expr: "
-                      << expr << "\n";
-    }
     thfUnitaryFormula[expr]
     {
       PARSER_STATE->popScope();
-      Debug("parser") << "thfUnitaryFormula:   parsed " << bv.size()
-                      << " variables:\n";
-      for (Expr v : bv)
-      {
-        Debug("parser") << "thfUnitaryFormula:    " << v << " : " << v.getType()
-                        << "\n";
-      }
-      Debug("parser") << "thfUnitaryFormula:   body: " << expr << " with type " << expr.getType() << "\n";
       // handle lambda case, in which return type must be flattened and the
       // auxiliary variables introduced in the proccess must be added no the
       // variable list
       //
-     // The argument flattenVars is needed in the case of defined functions
-     // with function return type. These have implicit arguments, for instance:
-     //    (define-fun Q ((x Int)) (-> Int Int) (lambda y (P x)))
-     // is equivalent to the command:
-     //    (define-fun Q ((x Int) (z Int)) Int (@ (lambda y (P x)) z))
-     // where @ is (higher-order) application. In this example, z is added to
-     // flattenVars.
+      // The argument flattenVars is needed in the case of defined functions
+      // with function return type. These have implicit arguments, for instance:
+      //    (define-fun Q ((x Int)) (-> Int Int) (lambda y (P x)))
+      // is equivalent to the command:
+      //    (define-fun Q ((x Int) (z Int)) Int (@ (lambda y (P x)) z))
+      // where @ is (higher-order) application. In this example, z is added to
+      // flattenVars.
 
-      // TODO is one leval of flattenning sufficient?
       // flatten body type
       Type range = expr.getType();
       std::vector<Expr> flattenVars;
@@ -1098,16 +1078,8 @@ thfUnitaryFormula[CVC4::Expr& expr]
         range = static_cast<FunctionType>(range).getRangeType();
         // apply body of lambda to flatten vars
         expr = PARSER_STATE->mkHoApply(expr, flattenVars);
-        Debug("parser") << "thfUnitaryFormula:   updated body: " << expr
-                        << " with type " << expr.getType() << "\n";
         // add variables to BOUND_VAR_LIST
         bv.insert(bv.end(), flattenVars.begin(), flattenVars.end());
-        Debug("parser") << "thfUnitaryFormula:   updated var list:\n";
-        for (Expr v : bv)
-        {
-          Debug("parser") << "thfUnitaryFormula:    " << v << " : "
-                          << v.getType() << "\n";
-        }
       }
       expr = MK_EXPR(kind, MK_EXPR(kind::BOUND_VAR_LIST, bv), expr);
     }
@@ -1331,11 +1303,6 @@ parseThfType[CVC4::Type& type]
      (ARROW_TOK | TIMES_TOK) thfType[type] { sorts.push_back(type); }
     )*
     {
-      Debug("parser") << "parseThfType: parsed " << sorts.size() << " types:\n";
-      for (Type t : sorts)
-      {
-        Debug("parser") << "parseThfType:    " << t << "\n";
-      }
       if (sorts.size() < 1)
       {
         type = sorts[0];
@@ -1346,7 +1313,6 @@ parseThfType[CVC4::Type& type]
         sorts.pop_back();
         type = PARSER_STATE->mkFlatFunctionType(sorts, range);
       }
-      Debug("parser") << "parseThfType: Built type " << type << "\n";
     }
   ;
 
