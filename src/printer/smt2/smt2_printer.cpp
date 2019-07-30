@@ -581,8 +581,7 @@ void Smt2Printer::toStream(std::ostream& out,
     break;
 
   case kind::DIVISIBLE:
-    out << "(_ divisible " << n.getOperator().getConst<Divisible>().k
-        << ")";
+    out << "(_ divisible " << n.getOperator().getConst<Divisible>().k << ")";
     stillNeedToPrintParams = false;
     break;
 
