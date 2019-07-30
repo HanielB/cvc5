@@ -471,6 +471,7 @@ set(regress_0_tests
   regress0/ho/bug_freeVar_BDD_General_data_270.p
   regress0/ho/bug_freevar_PHI004^4-delta.smt2
   regress0/ho/bug_instfalse_SEU882^5.p
+  regress0/ho/bug_nodbuilding_interpreted_SYO042^1.p
   regress0/ho/cong-full-apply.smt2
   regress0/ho/cong.smt2
   regress0/ho/declare-fun-variants.smt2
@@ -490,11 +491,13 @@ set(regress_0_tests
   regress0/ho/lambda-equality-non-canon.smt2
   regress0/ho/modulo-func-equality.smt2
   regress0/ho/nested_lambdas-AGT034^2.smt2
+  regress0/ho/nested_lambdas-sat-SYO056^1-delta.smt2
   regress0/ho/NUM638^1.smt2
   regress0/ho/NUM925^1.p
   regress0/ho/shadowing-defs.smt2
   regress0/ho/simple-matching-partial.smt2
   regress0/ho/simple-matching.smt2
+  regress0/ho/soundness_fmf_SYO362^5-delta.p
   regress0/ho/store-ax-min.p
   regress0/ho/SYO056^1.p
   regress0/ho/trans.smt2

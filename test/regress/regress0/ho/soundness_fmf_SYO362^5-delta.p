@@ -1,3 +1,6 @@
+% COMMAND-LINE:  --uf-ho --finite-model-find
+% EXPECT: % SZS status GaveUp for soundness_fmf_SYO362^5-delta
+
 %------------------------------------------------------------------------------
 % File     : SYO362^5 : TPTP v7.2.0. Released v4.0.0.
 % Domain   : Syntactic
@@ -55,33 +58,6 @@ thf(cTHM631A_pme,conjecture,
 
 %------------------------------------------------------------------------------
 
-%% soundness issue due to wrong lambda lifting. Free variables in
-%% lambda body not being carried out to quantified formula standing
-%% for lambda lifting
-
-%% (not
-%%  (=>
-%%    (forall ((X (-> $$unsorted Bool)) (Y (-> $$unsorted Bool)))
-%%      (=
-%%        (lambda ((Xw $$unsorted)) (or (cK X Xw) (cK Y Xw)))
-%%        (cK (lambda ((Xz $$unsorted)) (or (X Xz) (Y Xz))))))
-%%    (forall ((X (-> $$unsorted Bool)) (Y (-> $$unsorted Bool)) (BOUND_VARIABLE_341 $$unsorted))
-%%      (or
-%%        (not (forall ((Xx $$unsorted)) (or (not (X Xx)) (Y Xx)) ))
-%%        (not (cK X BOUND_VARIABLE_341)) (cK Y BOUND_VARIABLE_341)) )))
-
-%% ; lambda-lifted into
-
-%% (not
-%%  (=>
-%%    (forall ((X (-> $$unsorted Bool)) (Y (-> $$unsorted Bool)))
-%%      (= llf_2 (cK llf_1)) )
-%%    (forall ((X (-> $$unsorted Bool)) (Y (-> $$unsorted Bool)) (BOUND_VARIABLE_341 $$unsorted))
-%%      (or
-%%        (not (forall ((Xx $$unsorted)) (or (not (X Xx)) (Y Xx)) ))
-%%        (not (cK X BOUND_VARIABLE_341)) (cK Y BOUND_VARIABLE_341)) )))
-
-
-%% (forall ((BOUND_VARIABLE_364 $$unsorted)) (= (llf_2 BOUND_VARIABLE_364) (or (cK X BOUND_VARIABLE_364) (cK Y BOUND_VARIABLE_364))) )
-
-%% (forall ((BOUND_VARIABLE_372 $$unsorted)) (= (llf_1 BOUND_VARIABLE_372) (or (X BOUND_VARIABLE_372) (Y BOUND_VARIABLE_372))) )
+%% soundness issue (since resolved) was due to wrong lambda
+%% lifting. Free variables in lambda body not being carried out to
+%% quantified formula standing for lambda lifting

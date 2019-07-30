@@ -1,3 +1,6 @@
+% COMMAND-LINE:  --uf-ho
+% EXPECT: % SZS status Unsatisfiable for bug_nodbuilding_interpreted_SYO042^1
+
 %------------------------------------------------------------------------------
 % File     : SYO042^1 : TPTP v7.2.0. Released v4.0.0.
 % Domain   : Syntactic

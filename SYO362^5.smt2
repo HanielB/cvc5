@@ -1,7 +1,0 @@
-(set-option :incremental false)
-(set-logic ALL)
-(declare-sort $$unsorted 0)
-(declare-fun cK ((-> $$unsorted Bool) $$unsorted) Bool)
-(assert (not (=> (forall ((X (-> $$unsorted Bool)) (Y (-> $$unsorted Bool))) (= (cK (lambda ((Xz $$unsorted)) (or (X Xz) (Y Xz)))) (lambda ((Xw $$unsorted)) (or (cK X Xw) (cK Y Xw)))) ) (forall ((X (-> $$unsorted Bool)) (Y (-> $$unsorted Bool))) (=> (forall ((Xx $$unsorted)) (=> (X Xx) (Y Xx)) ) (forall ((Xx $$unsorted)) (=> (cK X Xx) (cK Y Xx)) )) ))))
-(meta-info :filename "SYO362^5")
-(check-sat-assuming ( (not false) ))
