@@ -36,11 +36,6 @@ PreprocessingPassResult TheoryPreprocess::applyInternal(
   for (size_t i = 0, size = assertionsToPreprocess->size(); i < size; ++i)
   {
     TNode a = (*assertionsToPreprocess)[i];
-    if (Rewriter::rewrite(a) != a)
-    {
-      Trace("bug-ho") << "Assertion " << a << " not rewrite inv, goes to "
-                      << Rewriter::rewrite(a) << "\n";
-    }
     Assert(Rewriter::rewrite(a) == a);
     assertionsToPreprocess->replace(i, te->preprocess(a));
     a = (*assertionsToPreprocess)[i];
