@@ -312,9 +312,9 @@ void Options::flushOut() {
   }
 }
 
-bool Options::getHoFlattenTotal() const{
+bool Options::getHoFlattenTotal() const
+{
   return (*this)[options::hoFlattenTotal];
 }
-
 
 }/* CVC4 namespace */
