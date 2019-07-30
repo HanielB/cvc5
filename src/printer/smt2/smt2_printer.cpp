@@ -33,7 +33,6 @@
 #include "theory/quantifiers/quantifiers_attributes.h"
 #include "theory/substitutions.h"
 #include "theory/theory_model.h"
-#include "theory/rewriter.h"
 #include "util/smt2_quote_string.h"
 
 using namespace std;
@@ -383,8 +382,8 @@ void Smt2Printer::toStream(std::ostream& out,
     }
     if(n.getNumChildren() != 0) {
       for(unsigned i = 0; i < n.getNumChildren(); ++i) {
-        out << ' ';
-        toStream(out, n[i], toDepth, types, TypeNode::null());
+	      out << ' ';
+	      toStream(out, n[i], toDepth, types, TypeNode::null());
       }
       out << ')';
     }
@@ -575,7 +574,7 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::IS_INTEGER:
   case kind::TO_INTEGER:
   case kind::TO_REAL:
-  case kind::POW:
+  case kind::POW: 
     parametricTypeChildren = true;
     out << smtKindString(k, d_variant) << " ";
     break;
@@ -590,27 +589,24 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::STORE: typeChildren = true;
   case kind::PARTIAL_SELECT_0:
   case kind::PARTIAL_SELECT_1:
-  case kind::ARRAY_TYPE: out << smtKindString(k, d_variant) << " "; break;
+  case kind::ARRAY_TYPE:
+    out << smtKindString(k, d_variant) << " ";
+    break;
 
   // string theory
   case kind::STRING_CONCAT:
-    if (d_variant == z3str_variant)
-    {
+    if(d_variant == z3str_variant) {
       out << "Concat ";
-      for (unsigned i = 0; i < n.getNumChildren(); ++i)
-      {
+      for(unsigned i = 0; i < n.getNumChildren(); ++i) {
         toStream(out, n[i], -1, types, TypeNode::null());
-        if (i + 1 < n.getNumChildren())
-        {
+        if(i + 1 < n.getNumChildren()) {
           out << ' ';
         }
-        if (i + 2 < n.getNumChildren())
-        {
+        if(i + 2 < n.getNumChildren()) {
           out << "(Concat ";
         }
       }
-      for (unsigned i = 0; i < n.getNumChildren() - 1; ++i)
-      {
+      for(unsigned i = 0; i < n.getNumChildren() - 1; ++i) {
         out << ")";
       }
       return;
@@ -663,35 +659,17 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::CARDINALITY_VALUE: out << "fmf.card.val "; break;
 
     // bv theory
-  case kind::BITVECTOR_CONCAT:
-    out << "concat ";
-    forceBinary = true;
-    break;
-  case kind::BITVECTOR_AND:
-    out << "bvand ";
-    forceBinary = true;
-    break;
-  case kind::BITVECTOR_OR:
-    out << "bvor ";
-    forceBinary = true;
-    break;
-  case kind::BITVECTOR_XOR:
-    out << "bvxor ";
-    forceBinary = true;
-    break;
+  case kind::BITVECTOR_CONCAT: out << "concat "; forceBinary = true; break;
+  case kind::BITVECTOR_AND: out << "bvand "; forceBinary = true; break;
+  case kind::BITVECTOR_OR: out << "bvor "; forceBinary = true; break;
+  case kind::BITVECTOR_XOR: out << "bvxor "; forceBinary = true; break;
   case kind::BITVECTOR_NOT: out << "bvnot "; break;
   case kind::BITVECTOR_NAND: out << "bvnand "; break;
   case kind::BITVECTOR_NOR: out << "bvnor "; break;
   case kind::BITVECTOR_XNOR: out << "bvxnor "; break;
   case kind::BITVECTOR_COMP: out << "bvcomp "; break;
-  case kind::BITVECTOR_MULT:
-    out << "bvmul ";
-    forceBinary = true;
-    break;
-  case kind::BITVECTOR_PLUS:
-    out << "bvadd ";
-    forceBinary = true;
-    break;
+  case kind::BITVECTOR_MULT: out << "bvmul "; forceBinary = true; break;
+  case kind::BITVECTOR_PLUS: out << "bvadd "; forceBinary = true; break;
   case kind::BITVECTOR_SUB: out << "bvsub "; break;
   case kind::BITVECTOR_NEG: out << "bvneg "; break;
   case kind::BITVECTOR_UDIV: out << "bvudiv "; break;
@@ -749,9 +727,7 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::SET_TYPE:
   case kind::SINGLETON:
   case kind::COMPLEMENT: out << smtKindString(k, d_variant) << " "; break;
-  case kind::UNIVERSE_SET:
-    out << "(as univset " << n.getType() << ")";
-    break;
+  case kind::UNIVERSE_SET:out << "(as univset " << n.getType() << ")";break;
 
     // fp theory
   case kind::FLOATINGPOINT_FP:
@@ -802,102 +778,102 @@ void Smt2Printer::toStream(std::ostream& out,
     stillNeedToPrintParams = false;
     break;
 
-  case kind::APPLY_CONSTRUCTOR:
-  {
-    typeChildren = true;
-    const Datatype& dt = Datatype::datatypeOf(n.getOperator().toExpr());
-    if (dt.isTuple())
+    case kind::APPLY_CONSTRUCTOR:
     {
-      stillNeedToPrintParams = false;
-      out << "mkTuple" << (dt[0].getNumArgs() == 0 ? "" : " ");
-    }
-  }
-
-  case kind::APPLY_TESTER:
-  case kind::APPLY_SELECTOR:
-  case kind::APPLY_SELECTOR_TOTAL:
-  case kind::PARAMETRIC_DATATYPE: break;
-
-  // separation logic
-  case kind::SEP_EMP:
-  case kind::SEP_PTO:
-  case kind::SEP_STAR:
-  case kind::SEP_WAND: out << smtKindString(k, d_variant) << " "; break;
-
-  case kind::SEP_NIL:
-    out << "(as sep.nil " << n.getType() << ")";
-    break;
-
-    // quantifiers
-  case kind::FORALL:
-  case kind::EXISTS:
-    if (k == kind::FORALL)
-    {
-      out << "forall ";
-    }
-    else
-    {
-      out << "exists ";
-    }
-    for (unsigned i = 0; i < 2; i++)
-    {
-      out << n[i] << " ";
-      if (i == 0 && n.getNumChildren() == 3)
+      typeChildren = true;
+      const Datatype& dt = Datatype::datatypeOf(n.getOperator().toExpr());
+      if (dt.isTuple())
       {
-        out << "(! ";
+        stillNeedToPrintParams = false;
+        out << "mkTuple" << ( dt[0].getNumArgs()==0 ? "" : " ");
       }
     }
-    if (n.getNumChildren() == 3)
-    {
-      out << n[2];
-      out << ")";
-    }
-    out << ")";
-    return;
-    break;
-  case kind::BOUND_VAR_LIST:
-    // the left parenthesis is already printed (before the switch)
-    for (TNode::iterator i = n.begin(), iend = n.end(); i != iend;)
-    {
-      out << '(';
-      toStream(out, *i, toDepth < 0 ? toDepth : toDepth - 1, types, 0);
-      out << ' ';
-      out << (*i).getType();
-      // The following code do stange things
-      // (*i).getType().toStream(out, toDepth < 0 ? toDepth : toDepth - 1,
-      //                         false, language::output::LANG_SMTLIB_V2_5);
-      out << ')';
-      if (++i != iend)
+
+    case kind::APPLY_TESTER:
+    case kind::APPLY_SELECTOR:
+    case kind::APPLY_SELECTOR_TOTAL:
+    case kind::PARAMETRIC_DATATYPE: break;
+
+    // separation logic
+    case kind::SEP_EMP:
+    case kind::SEP_PTO:
+    case kind::SEP_STAR:
+    case kind::SEP_WAND: out << smtKindString(k, d_variant) << " "; break;
+
+    case kind::SEP_NIL:
+      out << "(as sep.nil " << n.getType() << ")";
+      break;
+
+      // quantifiers
+    case kind::FORALL:
+    case kind::EXISTS:
+      if (k == kind::FORALL)
       {
-        out << ' ';
-      }
-    }
-    out << ')';
-    return;
-  case kind::INST_PATTERN: break;
-  case kind::INST_PATTERN_LIST:
-    for (unsigned i = 0; i < n.getNumChildren(); i++)
-    {
-      if (n[i].getKind() == kind::INST_ATTRIBUTE)
-      {
-        if (n[i][0].getAttribute(theory::FunDefAttribute()))
-        {
-          out << ":fun-def";
-        }
+        out << "forall ";
       }
       else
       {
-        out << ":pattern " << n[i];
+        out << "exists ";
       }
-    }
-    return;
-    break;
+      for (unsigned i = 0; i < 2; i++)
+      {
+        out << n[i] << " ";
+        if (i == 0 && n.getNumChildren() == 3)
+        {
+          out << "(! ";
+        }
+      }
+      if (n.getNumChildren() == 3)
+      {
+        out << n[2];
+        out << ")";
+      }
+      out << ")";
+      return;
+      break;
+    case kind::BOUND_VAR_LIST:
+      // the left parenthesis is already printed (before the switch)
+      for (TNode::iterator i = n.begin(), iend = n.end(); i != iend;)
+      {
+        out << '(';
+        toStream(out, *i, toDepth < 0 ? toDepth : toDepth - 1, types, 0);
+        out << ' ';
+        out << (*i).getType();
+        // The following code do stange things
+        // (*i).getType().toStream(out, toDepth < 0 ? toDepth : toDepth - 1,
+        //                         false, language::output::LANG_SMTLIB_V2_5);
+        out << ')';
+        if (++i != iend)
+        {
+          out << ' ';
+        }
+      }
+      out << ')';
+      return;
+    case kind::INST_PATTERN: break;
+    case kind::INST_PATTERN_LIST:
+      for (unsigned i = 0; i < n.getNumChildren(); i++)
+      {
+        if (n[i].getKind() == kind::INST_ATTRIBUTE)
+        {
+          if (n[i][0].getAttribute(theory::FunDefAttribute()))
+          {
+            out << ":fun-def";
+          }
+        }
+        else
+        {
+          out << ":pattern " << n[i];
+        }
+      }
+      return;
+      break;
 
-  default:
-    // fall back on however the kind prints itself; this probably
-    // won't be SMT-LIB v2 compliant, but it will be clear from the
-    // output that support for the kind needs to be added here.
-    out << n.getKind() << ' ';
+    default:
+      // fall back on however the kind prints itself; this probably
+      // won't be SMT-LIB v2 compliant, but it will be clear from the
+      // output that support for the kind needs to be added here.
+      out << n.getKind() << ' ';
   }
   if( n.getMetaKind() == kind::metakind::PARAMETERIZED &&
       stillNeedToPrintParams ) {
@@ -926,7 +902,7 @@ void Smt2Printer::toStream(std::ostream& out,
     }
   }
   stringstream parens;
-
+  
   // calculate the child type casts
   std::map< unsigned, TypeNode > force_child_type;
   if( parametricTypeChildren ){
@@ -985,7 +961,7 @@ void Smt2Printer::toStream(std::ostream& out,
       }
     }
   }
-
+  
   for(size_t i = 0, c = 1; i < n.getNumChildren(); ) {
     if(toDepth != 0) {
       Node cn = n[i];
@@ -1065,9 +1041,9 @@ static string smtKindString(Kind k, Variant v)
   case kind::GEQ: return ">=";
   case kind::DIVISION:
   case kind::DIVISION_TOTAL: return "/";
-  case kind::INTS_DIVISION_TOTAL:
+  case kind::INTS_DIVISION_TOTAL: 
   case kind::INTS_DIVISION: return "div";
-  case kind::INTS_MODULUS_TOTAL:
+  case kind::INTS_MODULUS_TOTAL: 
   case kind::INTS_MODULUS: return "mod";
   case kind::ABS: return "abs";
   case kind::IS_INTEGER: return "is_int";
