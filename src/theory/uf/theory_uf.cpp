@@ -159,7 +159,7 @@ void TheoryUF::check(Effort level) {
         }else{
           // support for cardinality constraints is not enabled, set incomplete
           d_out->setIncomplete();
-        }
+        } 
       }
       //needed for models
       if( options::produceModels() ){

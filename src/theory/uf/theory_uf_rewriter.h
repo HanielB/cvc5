@@ -163,7 +163,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     Assert( n.getKind()==kind::APPLY_UF );
     Node curr = n.getOperator();
     for( unsigned i=0; i<n.getNumChildren(); i++ ){
-      curr = NodeManager::currentNM()->mkNode( kind::HO_APPLY, curr, n[i] );
+      curr = NodeManager::currentNM()->mkNode( kind::HO_APPLY, curr, n[i] );     
     }
     return curr;
   }
@@ -176,7 +176,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     if( canUseAsApplyUfOperator( curr ) ){
       return NodeManager::currentNM()->mkNode( kind::APPLY_UF, children );
     }
-    // cannot construct APPLY_UF if operator is partially applied or is not standard
+    // cannot construct APPLY_UF if operator is partially applied or is not standard       
     return Node::null();
   }
   /**
@@ -188,7 +188,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     TNode curr = n;
     while( curr.getKind() == kind::HO_APPLY ){
       args.push_back( curr[1] );
-      curr = curr[0];
+      curr = curr[0];        
     }
     if( opInArgs ){
       args.push_back( curr );
@@ -197,7 +197,7 @@ public: //conversion between HO_APPLY AND APPLY_UF
     return curr;
   }
   /** returns true if this node can be used as an operator of an APPLY_UF node.  In higher-order logic,
-   * terms can have function types and not just variables.
+   * terms can have function types and not just variables. 
    * Currently, we want only free variables to be used as operators of APPLY_UF nodes. This is motivated by
    * E-matching, ite-lifting among other things.  For example:
    * f: Int -> Int, g : Int -> Int

@@ -233,7 +233,7 @@ void RelevantDomain::computeRelevantDomainLit( Node q, bool hasPol, bool pol, No
         d_rel_dom_lit[hasPol][pol][n].d_rd[i] = NULL;
       }
     }
-
+    
     Node r_add;
     bool varLhs = true;
     if( varCount==2 ){
@@ -321,3 +321,4 @@ void RelevantDomain::computeRelevantDomainLit( Node q, bool hasPol, bool pol, No
     }
   }
 }
+
