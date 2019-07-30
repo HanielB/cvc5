@@ -1,3 +1,6 @@
+; COMMAND-LINE: --uf-ho --finite-model-find
+; EXPECT: unsat
+
 (set-option :incremental false)
 (set-logic ALL)
 (declare-sort $$unsorted 0)

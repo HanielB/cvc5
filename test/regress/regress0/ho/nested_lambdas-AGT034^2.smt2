@@ -1,4 +1,4 @@
-; COMMAND-LINE: --uf-ho
+; COMMAND-LINE: --uf-ho --no-check-unsat-cores
 ; EXPECT: unsat
 
 (set-logic ALL)
