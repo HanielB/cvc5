@@ -212,7 +212,8 @@ parseCommand returns [CVC4::Command* cmd = NULL]
       thfLogicFormula[expr] (COMMA_TOK anything*)?
       {
         Expr aexpr = PARSER_STATE->getAssertionExpr(fr,expr);
-        if( !aexpr.isNull() ){
+        if (!aexpr.isNull())
+        {
           // set the expression name (e.g. used with unsat core printing)
           Command* csen = new SetExpressionNameCommand(aexpr, name);
           csen->setMuted(true);
@@ -392,7 +393,7 @@ thfAtomicFormula[CVC4::Expr& expr]
       {
         expr = EXPR_MANAGER->mkExpr(expr, args);
         expr = MK_EXPR(kind::EQUAL, expr, expr2);
-        if(!equal)
+        if (!equal)
         {
           expr = MK_EXPR(kind::NOT, expr);
         }
@@ -459,16 +460,17 @@ thfDefinedPred[CVC4::Expr& expr]
     // a real n is a rational if there exists q,r integers such that
     //   to_real(q) = n*to_real(r),
     // where r is non-zero.
-    { Expr n = EXPR_MANAGER->mkBoundVar("N", EXPR_MANAGER->realType());
+    {
+      Expr n = EXPR_MANAGER->mkBoundVar("N", EXPR_MANAGER->realType());
       Expr q = EXPR_MANAGER->mkBoundVar("Q", EXPR_MANAGER->integerType());
       Expr qr = MK_EXPR(CVC4::kind::TO_REAL, q);
       Expr r = EXPR_MANAGER->mkBoundVar("R", EXPR_MANAGER->integerType());
       Expr rr = MK_EXPR(CVC4::kind::TO_REAL, r);
-      Expr body =
-          MK_EXPR(CVC4::kind::AND,
-                  MK_EXPR(CVC4::kind::NOT,
-                          MK_EXPR(CVC4::kind::EQUAL, r, MK_CONST(Rational(0)))),
-                  MK_EXPR(CVC4::kind::EQUAL, qr, MK_EXPR(CVC4::kind::MULT, n, rr)));
+      Expr body = MK_EXPR(
+          CVC4::kind::AND,
+          MK_EXPR(CVC4::kind::NOT,
+                  MK_EXPR(CVC4::kind::EQUAL, r, MK_CONST(Rational(0)))),
+          MK_EXPR(CVC4::kind::EQUAL, qr, MK_EXPR(CVC4::kind::MULT, n, rr)));
       Expr bvl = MK_EXPR(CVC4::kind::BOUND_VAR_LIST, q, r);
       body = MK_EXPR(CVC4::kind::EXISTS, bvl, body);
       Expr lbvl = MK_EXPR(CVC4::kind::BOUND_VAR_LIST, n);
@@ -852,11 +854,6 @@ thfAtomTyping[CVC4::Command*& cmd]
     )
   ;
 
-// unary formula case
-// <unitary_term> != <unitary_term>
-
-// unitary_term -> atomicformula | variable | (logic_formula)
-
 thfLogicFormula[CVC4::Expr& expr]
 @declarations {
   tptp::NonAssoc na;
@@ -992,21 +989,6 @@ thfLogicFormula[CVC4::Expr& expr]
     )?
   ;
 
-// atom
-// unary op formula
-// quantified formula
-// ite form
-// let form
-// tuple -- ignore
-// formula between parethesis
-
-// <thf_unitary_formula> -> <thf_atomic_formula> | ...
-// <thf_atomic_formula>  -> <thf_defined_atomic> | ...
-// <thf_defined_atomic>  -> <defined_constant> | <thf_conditional> | <thf_let> |
-//                          (<thf_conn_term>) | <defined_term>
-// <thf_conn_term>       -> <nonassoc_connective> | <assoc_connective> |
-//                          <infix_equality> | <thf_unary_connective>
-
 thfTupleForm[std::vector<CVC4::Expr>& args]
 @declarations {
   Expr expr;
@@ -1051,31 +1033,14 @@ thfUnitaryFormula[CVC4::Expr& expr]
       // auxiliary variables introduced in the proccess must be added no the
       // variable list
       //
-      // The argument flattenVars is needed in the case of defined functions
-      // with function return type. These have implicit arguments, for instance:
-      //    (define-fun Q ((x Int)) (-> Int Int) (lambda y (P x)))
-      // is equivalent to the command:
-      //    (define-fun Q ((x Int) (z Int)) Int (@ (lambda y (P x)) z))
-      // where @ is (higher-order) application. In this example, z is added to
-      // flattenVars.
-
-      // flatten body type
-      Type range = expr.getType();
+      // see documentation of mkFlatFunctionType for how it's done
+      //
+      // flatten body via flattening its type
+      std::vector<Type> sorts;
       std::vector<Expr> flattenVars;
-      if (range.isFunction())
+      PARSER_STATE->mkFlatFunctionType(sorts, expr.getType(), flattenVars);
+      if (!flattenVars.empty())
       {
-        std::vector<Type> domainTypes =
-            (static_cast<FunctionType>(range)).getArgTypes();
-        for (unsigned i = 0, size = domainTypes.size(); i < size; ++i)
-        {
-          // the introduced variable is internal (not parsable)
-          std::stringstream ss;
-          ss << "__flatten_var_" << i;
-          Expr v = EXPR_MANAGER->mkBoundVar(ss.str(), domainTypes[i]);
-          flattenVars.push_back(v);
-        }
-        // update range type
-        range = static_cast<FunctionType>(range).getRangeType();
         // apply body of lambda to flatten vars
         expr = PARSER_STATE->mkHoApply(expr, flattenVars);
         // add variables to BOUND_VAR_LIST
@@ -1284,14 +1249,6 @@ tffVariableList[std::vector<CVC4::Expr>& bvlist]
   : tffbindvariable[e] { bvlist.push_back(e); }
     ( COMMA_TOK tffbindvariable[e] { bvlist.push_back(e); } )*
   ;
-
-// typelist -> type (arrow type)*
-// type     -> simple_type | ( typelist )
-
-// emptyset : $i
-// qmltpeq  : mu > mu > $i > $o
-// meq_prop : ( $i > $o ) > ( $i > $o ) > $i > $o )).
-
 
 parseThfType[CVC4::Type& type]
 // assumes only mapping types (arrows), no tuple type
