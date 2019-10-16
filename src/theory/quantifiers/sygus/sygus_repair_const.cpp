@@ -24,6 +24,7 @@
 #include "theory/quantifiers/cegqi/ceg_instantiator.h"
 #include "theory/quantifiers/sygus/sygus_grammar_norm.h"
 #include "theory/quantifiers/sygus/term_database_sygus.h"
+#include "theory/quantifiers_engine.h"
 
 using namespace CVC4::kind;
 
@@ -148,6 +149,19 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
                                       std::vector<Node>& repair_cv,
                                       bool useConstantsAsHoles)
 {
+  return repairSolution(d_base_inst,
+                        candidates,
+                        candidate_values,
+                        repair_cv,
+                        useConstantsAsHoles);
+}
+
+bool SygusRepairConst::repairSolution(Node sygusBody,
+                                      const std::vector<Node>& candidates,
+                                      const std::vector<Node>& candidate_values,
+                                      std::vector<Node>& repair_cv,
+                                      bool useConstantsAsHoles)
+{
   Assert(candidates.size() == candidate_values.size());
 
   // if no grammar type allows constants, no repair is possible
@@ -208,7 +222,8 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
 
   NodeManager* nm = NodeManager::currentNM();
   Trace("sygus-repair-const") << "Get first-order query..." << std::endl;
-  Node fo_body = getFoQuery(candidates, candidate_skeletons, sk_vars);
+  Node fo_body =
+      getFoQuery(sygusBody, candidates, candidate_skeletons, sk_vars);
 
   Trace("sygus-repair-const-debug") << "...got : " << fo_body << std::endl;
 
@@ -224,7 +239,8 @@ bool SygusRepairConst::repairSolution(const std::vector<Node>& candidates,
   LogicInfo logic = smt::currentSmtEngine()->getLogicInfo();
   if (logic.isTheoryEnabled(THEORY_ARITH) && logic.isLinear())
   {
-    fo_body = fitToLogic(logic,
+    fo_body = fitToLogic(sygusBody,
+                         logic,
                          fo_body,
                          candidates,
                          candidate_skeletons,
@@ -459,12 +475,12 @@ Node SygusRepairConst::getSkeleton(Node n,
   return visited[n];
 }
 
-Node SygusRepairConst::getFoQuery(const std::vector<Node>& candidates,
+Node SygusRepairConst::getFoQuery(Node body,
+                                  const std::vector<Node>& candidates,
                                   const std::vector<Node>& candidate_skeletons,
                                   const std::vector<Node>& sk_vars)
 {
   NodeManager* nm = NodeManager::currentNM();
-  Node body = d_base_inst;
   Trace("sygus-repair-const") << "  Substitute skeletons..." << std::endl;
   body = body.substitute(candidates.begin(),
                          candidates.end(),
@@ -557,7 +573,8 @@ Node SygusRepairConst::getFoQuery(const std::vector<Node>& candidates,
   return fo_body;
 }
 
-Node SygusRepairConst::fitToLogic(LogicInfo& logic,
+Node SygusRepairConst::fitToLogic(Node body,
+                                  LogicInfo& logic,
                                   Node n,
                                   const std::vector<Node>& candidates,
                                   std::vector<Node>& candidate_skeletons,
@@ -589,7 +606,7 @@ Node SygusRepairConst::fitToLogic(LogicInfo& logic,
     Assert(it != sk_vars.end());
     sk_vars.erase(it);
     // reconstruct the query
-    n = getFoQuery(candidates, candidate_skeletons, sk_vars);
+    n = getFoQuery(body, candidates, candidate_skeletons, sk_vars);
     // reset the exclusion variable
     exc_var = Node::null();
   }

@@ -772,8 +772,8 @@ void NodeBuilder<nchild_thresh>::clear(Kind k) {
 
 template <unsigned nchild_thresh>
 void NodeBuilder<nchild_thresh>::realloc(size_t toSize) {
-  Assert( toSize > d_nvMaxChildren,
-          "attempt to realloc() a NodeBuilder to a smaller/equal size!" );
+  AlwaysAssert(toSize > d_nvMaxChildren,
+               "attempt to realloc() a NodeBuilder to a smaller/equal size!");
   Assert( toSize < (1lu << CVC4__EXPR__NODE_VALUE__NBITS__NCHILDREN),
           "attempt to realloc() a NodeBuilder to size %u (beyond hard limit of %u)",
           toSize, (1lu << CVC4__EXPR__NODE_VALUE__NBITS__NCHILDREN) - 1 );
@@ -973,16 +973,6 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() {
          kind::kindToString(getKind()).c_str(),
          kind::metakind::getUpperBoundForKind(getKind()),
          getNumChildren());
-
-#if 0
-  // if the kind is PARAMETERIZED, check that the operator is correctly-kinded
-  Assert(kind::metaKindOf(getKind()) != kind::metakind::PARAMETERIZED ||
-         NodeManager::operatorToKind(getOperator()) == getKind(),
-         "Attempted to construct a parameterized kind `%s' with "
-         "incorrectly-kinded operator `%s'",
-         kind::kindToString(getKind()).c_str(),
-         kind::kindToString(getOperator().getKind()).c_str());
-#endif /* 0 */
 
   // Implementation differs depending on whether the NodeValue was
   // malloc'ed or not and whether or not it's in the already-been-seen
