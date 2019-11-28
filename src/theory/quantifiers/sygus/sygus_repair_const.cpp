@@ -110,7 +110,7 @@ void SygusRepairConst::initializeChecker(std::unique_ptr<SmtEngine>& checker,
   {
     // To support a separate timeout for the subsolver, we need to create
     // a separate ExprManager with its own options. This requires that
-    // the expressions sent to the subsolver can be exported from on
+    // the expressions sent to the subsolver can be exported from an
     // ExprManager to another. If the export fails, we throw an
     // OptionException.
     try
@@ -135,6 +135,7 @@ void SygusRepairConst::initializeChecker(std::unique_ptr<SmtEngine>& checker,
              "--sygus-repair-const-timeout.";
       throw OptionException(msg.str());
     }
+    needExport = true;
   }
   else
   {
@@ -272,10 +273,10 @@ bool SygusRepairConst::repairSolution(Node sygusBody,
 
   Trace("cegqi-engine") << "Repairing previous solution..." << std::endl;
   // make the satisfiability query
-  bool needExport = true;
-  ExprManagerMapCollection varMap;
+  bool needExport = false;
   ExprManager em(nm->getOptions());
   std::unique_ptr<SmtEngine> repcChecker;
+  ExprManagerMapCollection varMap;
   initializeChecker(repcChecker, em, varMap, fo_body, needExport);
   Result r = repcChecker->checkSat();
   Trace("sygus-repair-const") << "...got : " << r << std::endl;
