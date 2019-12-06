@@ -170,6 +170,10 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
    * is a condition or return value enumerator. For the latter we add symmetry
    * breaking lemmas that force enumerators to consider values in an increasing
    * order of size.
+   * 
+   * Index=0 indicates that e is an enumerator for the term assignment,
+   * whereas index=1 indicates that e is an enumerate for the condition pool
+   * (Section 4 of Barbosa et al FMCAD 2019).
    */
   void setUpEnumerator(Node e, StrategyPtInfo& si, unsigned index);
   /** register evaluation point at size
