@@ -358,6 +358,8 @@ enum SygusUnifPiMode
   /** use approach based on condition enumeration with information gain
      heuristics for piecewise-independent unification */
   SYGUS_UNIF_PI_CENUM_IGAIN,
+  /** use approach based on offline construction of decision trees */
+  SYGUS_UNIF_PI_SOLVE,
 };
 
 }/* CVC4::theory::quantifiers namespace */

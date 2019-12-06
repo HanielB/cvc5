@@ -588,6 +588,11 @@ cond-enum-igain \n\
 + Same as cond-enum, but additionally uses an information gain heuristic\n\
 when doing decision tree learning.\n\
 \n\
+solve \n\
++ Use offline solving for decision tree construction. This requires that the\n\
+grammar for the function-to-synthesize is finite modulo builtin fields and\n\
+ITEs. If it is not, then this option applies the complete strategy.\n\
+\n\
 ";
 
 const std::string OptionsHandler::s_sygusGrammarConsHelp =
@@ -1180,6 +1185,10 @@ theory::quantifiers::SygusUnifPiMode OptionsHandler::stringToSygusUnifPiMode(
   else if (optarg == "cond-enum-igain")
   {
     return theory::quantifiers::SYGUS_UNIF_PI_CENUM_IGAIN;
+  }
+  else if (optarg == "solve")
+  {
+    return theory::quantifiers::SYGUS_UNIF_PI_SOLVE;
   }
   else if (optarg == "help")
   {
