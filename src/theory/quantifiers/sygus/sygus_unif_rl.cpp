@@ -67,6 +67,10 @@ void SygusUnifRl::initializeCandidate(
   {
     d_cgenMode = UNIF_PI_CGEN_POOL;
   }
+  else if (mode==SYGUS_UNIF_PI_SOLVE)
+  {
+    d_cgenMode = UNIF_PI_CGEN_SOLVE;
+  }
   d_useCondPoolIGain = mode == SYGUS_UNIF_PI_CENUM_IGAIN;
 }
 
@@ -359,7 +363,7 @@ Node SygusUnifRl::constructSol(
   }
   EnumTypeInfoStrat* etis = snode.d_strats[itd->second.getStrategyIndex()];
   Node sol = itd->second.buildSol(etis->d_cons, lemmas);
-  Assert(d_cgenMode == UNIF_PI_CGEN_POOL || !sol.isNull() || !lemmas.empty());
+  Assert(d_cgenMode==UNIF_PI_CGEN_POOL || !sol.isNull() || !lemmas.empty());
   return sol;
 }
 
@@ -531,7 +535,7 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
   d_enums.insert(d_enums.end(), enums.begin(), enums.end());
   d_conds.insert(d_conds.end(), conds.begin(), conds.end());
   // add to condition pool
-  if (d_unif->getCondGenMode() == UNIF_PI_CGEN_POOL)
+  if (d_unif->getCondGenMode()==UNIF_PI_CGEN_POOL)
   {
     d_cond_mvs.insert(conds.begin(), conds.end());
     if (Trace.isOn("sygus-unif-cond-pool"))
@@ -568,19 +572,23 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
   // reset the trie
   d_pt_sep.d_trie.clear();
   UnifPiCondGenMode cmode = d_unif->getCondGenMode();
-  if (cmode == UNIF_PI_CGEN_POOL)
+  if (cmode==UNIF_PI_CGEN_SMART) 
   {
-    return buildSolPool(cons, lemmas);
+    return buildSolMinCond(cons, lemmas);
   }
-  else if (cmode == UNIF_PI_CGEN_SOLVE)
+  else if (cmode==UNIF_PI_CGEN_SOLVE)
   {
-    return buildSolSolve(cons, lemmas);
+    Node slv = buildSolSolve(cons, lemmas);
+    if (!slv.isNull())
+    {
+      return slv;
+    }
   }
-  return buildSolMinCond(cons, lemmas);
+  return buildSolPool(cons, lemmas);
 }
 
 Node SygusUnifRl::DecisionTreeInfo::buildSolPool(Node cons,
-                                                 std::vector<Node>& lemmas)
+                                                    std::vector<Node>& lemmas)
 {
   // model values for evaluation heads
   std::map<Node, Node> hd_mv;
@@ -918,9 +926,11 @@ Node SygusUnifRl::DecisionTreeInfo::buildSolMinCond(Node cons,
   return extractSol(cons, hd_mv);
 }
 
-Node SygusUnifRl::DecisionTreeInfo::buildSolSolve(Node cons,
-                                                  std::vector<Node>& lemmas)
+Node SygusUnifRl::DecisionTreeInfo::buildSolSolve(Node cons, std::vector<Node>& lemmas)
 {
+  Trace("sygus-unif-pi-solve") << "Build solution solve for " << cons << std::endl;
+  Assert(cons.getType().isDatatype());
+  //const Datatype& dt = Datatype::datatypeOf(cons.toExpr());
   std::map<Node, Node> hd_mv;
   for (const Node& e : d_hds)
   {
