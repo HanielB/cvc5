@@ -71,8 +71,7 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   void initialize(const std::vector<Node>& es,
                   const std::map<Node, Node>& e_to_cond,
                   const std::map<Node, std::vector<Node>>& strategy_lemmas,
-                  UnifPiCondGenMode cgenMode
-                 );
+                  UnifPiCondGenMode cgenMode);
 
   /*
    * Do not hide the zero-argument version of initialize() inherited from the
@@ -105,7 +104,7 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   TermDbSygus* d_tds;
   /** reference to the parent conjecture */
   SynthConjecture* d_parent;
-  /** 
+  /**
    * The condition generation mode we are using, e.g. via constraints
    * (Section 3) or as an offline pool (Section 4) of Barbosa et al FMCAD 2019.
    */
@@ -172,7 +171,7 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
    * is a condition or return value enumerator. For the latter we add symmetry
    * breaking lemmas that force enumerators to consider values in an increasing
    * order of size.
-   * 
+   *
    * Index=0 indicates that e is an enumerator for the term assignment,
    * whereas index=1 indicates that e is an enumerate for the condition pool
    * (Section 4 of Barbosa et al FMCAD 2019).

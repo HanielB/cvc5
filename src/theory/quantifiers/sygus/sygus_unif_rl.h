@@ -27,31 +27,31 @@ namespace CVC4 {
 namespace theory {
 namespace quantifiers {
 
-  
-/** 
+/**
  * Mode for how conditions are generated. This mode is determined by the option
  * options::sygusUnifPi() and may be impacted by the grammar for the function
  * to synthesize.
  */
-enum UnifPiCondGenMode {
+enum UnifPiCondGenMode
+{
   /** Not generating conditions */
   UNIF_PI_CGEN_NONE,
-  /** 
+  /**
    * Generate conditions using "smart" enumeration. This is the generation mode
    * using in Section 3 of Barbosa et al FMCAD 2019.
    */
   UNIF_PI_CGEN_SMART,
-  /** 
+  /**
    * Generate conditions using pool enumeration. This is the generation mode
    * using in Section 4 of Barbosa et al FMCAD 2019.
    */
   UNIF_PI_CGEN_POOL,
-  /** 
+  /**
    * Generate conditions using an offline satisfiability check.
    */
   UNIF_PI_CGEN_SOLVE,
 };
-  
+
 using BoolNodePair = std::pair<bool, Node>;
 using BoolNodePairHashFunction =
     PairHashFunction<bool, Node, BoolHashFunction, NodeHashFunction>;
@@ -127,12 +127,12 @@ class SygusUnifRl : public SygusUnif
 
   /** retrieve the head of evaluation points for candidate c, if any */
   std::vector<Node> getEvalPointHeads(Node c);
-  /** 
+  /**
    * Get the condition generation mode we are using, e.g. via constraints
    * (Section 3) or as an offline pool (Section 4) of Barbosa et al FMCAD 2019.
    */
   UnifPiCondGenMode getCondGenMode() const;
-  /** 
+  /**
    * Whether we are additionally using information gain. This flag can only be
    * true when the condition generation mode is UNIF_PI_CGEN_POOL.
    */
@@ -141,7 +141,7 @@ class SygusUnifRl : public SygusUnif
  protected:
   /** reference to the parent conjecture */
   SynthConjecture* d_parent;
-  /** 
+  /**
    * The condition generation mode we are using, e.g. via constraints
    * (Section 3) or as an offline pool (Section 4) of Barbosa et al FMCAD 2019.
    */

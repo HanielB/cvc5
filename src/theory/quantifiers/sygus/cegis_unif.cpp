@@ -84,7 +84,8 @@ bool CegisUnif::processInitialize(Node conj,
   }
   // initialize the enumeration manager
   UnifPiCondGenMode cmode = d_sygus_unif.getCondGenMode();
-  d_u_enum_manager.initialize(unif_candidate_pts, pt_to_cond, strategy_lemmas, cmode);
+  d_u_enum_manager.initialize(
+      unif_candidate_pts, pt_to_cond, strategy_lemmas, cmode);
   return true;
 }
 
@@ -153,7 +154,7 @@ bool CegisUnif::getEnumValues(const std::vector<Node>& enums,
         // set enums for condition enumerators
         if (index == 1)
         {
-          if (cmode==UNIF_PI_CGEN_POOL)
+          if (cmode == UNIF_PI_CGEN_POOL)
           {
             Assert(es.size() == 1);
             // whether valueus exhausted
@@ -253,7 +254,7 @@ void CegisUnif::setConditions(
       // d_sygus_unif.setConditions(e, cost_lit, unif_cenums[e],
       // unif_cvalues[e]); if condition enumerator had value and it is being
       // passively generated, exclude this value
-      if (cmode==UNIF_PI_CGEN_POOL && !itc->second.empty())
+      if (cmode == UNIF_PI_CGEN_POOL && !itc->second.empty())
       {
         Node eu = itc->second[0];
         Assert(d_tds->isEnumerator(eu));
@@ -325,7 +326,7 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
     // if condition values are being indepedently enumerated, they should be
     // communicated to the decision tree strategies indepedently of we
     // proceeding to attempt solution building
-    if (cmode==UNIF_PI_CGEN_POOL)
+    if (cmode == UNIF_PI_CGEN_POOL)
     {
       setConditions(unif_cenums, unif_cvalues, lems);
     }
@@ -357,7 +358,7 @@ bool CegisUnif::processConstructCandidates(const std::vector<Node>& enums,
   }
 
   // TODO tie this to the lemma for getting a new condition value
-  Assert(cmode==UNIF_PI_CGEN_POOL || !lemmas.empty());
+  Assert(cmode == UNIF_PI_CGEN_POOL || !lemmas.empty());
   for (const Node& lem : lemmas)
   {
     Trace("cegis-unif-lemma")
@@ -420,7 +421,7 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
     TypeNode ct = c.getType();
     Node eu = nm->mkSkolem("eu", ct);
     Node ceu;
-    if (d_cgenMode==UNIF_PI_CGEN_SMART && !ci.second.d_enums[0].empty())
+    if (d_cgenMode == UNIF_PI_CGEN_SMART && !ci.second.d_enums[0].empty())
     {
       // make a new conditional enumerator as well, starting the
       // second type around
@@ -516,8 +517,7 @@ void CegisUnifEnumDecisionStrategy::initialize(
     const std::vector<Node>& es,
     const std::map<Node, Node>& e_to_cond,
     const std::map<Node, std::vector<Node>>& strategy_lemmas,
-                  UnifPiCondGenMode cgenMode
-                                              )
+    UnifPiCondGenMode cgenMode)
 {
   Assert(!d_initialized);
   d_initialized = true;
@@ -567,7 +567,7 @@ void CegisUnifEnumDecisionStrategy::initialize(
       DecisionManager::STRAT_QUANT_CEGIS_UNIF_NUM_ENUMS, this);
 
   // create single condition enumerator for each decision tree strategy
-  if (d_cgenMode==UNIF_PI_CGEN_POOL)
+  if (d_cgenMode == UNIF_PI_CGEN_POOL)
   {
     // allocate a condition enumerator for each candidate
     for (std::pair<const Node, StrategyPtInfo>& ci : d_ce_info)
@@ -589,7 +589,7 @@ void CegisUnifEnumDecisionStrategy::getEnumeratorsForStrategyPt(
   if (index == 1)
   {
     // we always use (cost-1) conditions, 1 if we are generating a pool
-    num_enums = d_cgenMode!=UNIF_PI_CGEN_POOL ? num_enums - 1 : 1;
+    num_enums = d_cgenMode != UNIF_PI_CGEN_POOL ? num_enums - 1 : 1;
   }
   if (num_enums > 0)
   {
@@ -635,7 +635,7 @@ void CegisUnifEnumDecisionStrategy::setUpEnumerator(Node e,
   // if we are using a single independent enumerator for conditions, then we
   // allocate an active guard, and are eligible to use variable-agnostic
   // enumeration.
-  if (d_cgenMode==UNIF_PI_CGEN_POOL && index == 1)
+  if (d_cgenMode == UNIF_PI_CGEN_POOL && index == 1)
   {
     erole = ROLE_ENUM_POOL;
   }

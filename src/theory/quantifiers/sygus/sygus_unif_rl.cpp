@@ -359,7 +359,7 @@ Node SygusUnifRl::constructSol(
   }
   EnumTypeInfoStrat* etis = snode.d_strats[itd->second.getStrategyIndex()];
   Node sol = itd->second.buildSol(etis->d_cons, lemmas);
-  Assert(d_cgenMode==UNIF_PI_CGEN_POOL || !sol.isNull() || !lemmas.empty());
+  Assert(d_cgenMode == UNIF_PI_CGEN_POOL || !sol.isNull() || !lemmas.empty());
   return sol;
 }
 
@@ -531,7 +531,7 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
   d_enums.insert(d_enums.end(), enums.begin(), enums.end());
   d_conds.insert(d_conds.end(), conds.begin(), conds.end());
   // add to condition pool
-  if (d_unif->getCondGenMode()==UNIF_PI_CGEN_POOL)
+  if (d_unif->getCondGenMode() == UNIF_PI_CGEN_POOL)
   {
     d_cond_mvs.insert(conds.begin(), conds.end());
     if (Trace.isOn("sygus-unif-cond-pool"))
@@ -567,8 +567,9 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
                           << " conditions..." << std::endl;
   // reset the trie
   d_pt_sep.d_trie.clear();
-  return d_unif->getCondGenMode()==UNIF_PI_CGEN_POOL ? buildSolAllCond(cons, lemmas)
-                                      : buildSolMinCond(cons, lemmas);
+  return d_unif->getCondGenMode() == UNIF_PI_CGEN_POOL
+             ? buildSolAllCond(cons, lemmas)
+             : buildSolMinCond(cons, lemmas);
 }
 
 Node SygusUnifRl::DecisionTreeInfo::buildSolAllCond(Node cons,
