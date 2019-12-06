@@ -359,7 +359,7 @@ Node SygusUnifRl::constructSol(
   }
   EnumTypeInfoStrat* etis = snode.d_strats[itd->second.getStrategyIndex()];
   Node sol = itd->second.buildSol(etis->d_cons, lemmas);
-  Assert(d_cgenMode == UNIF_PI_CGEN_POOL || !sol.isNull() || !lemmas.empty());
+  Assert(d_cgenMode==UNIF_PI_CGEN_POOL || !sol.isNull() || !lemmas.empty());
   return sol;
 }
 
@@ -531,7 +531,7 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
   d_enums.insert(d_enums.end(), enums.begin(), enums.end());
   d_conds.insert(d_conds.end(), conds.begin(), conds.end());
   // add to condition pool
-  if (d_unif->getCondGenMode() == UNIF_PI_CGEN_POOL)
+  if (d_unif->getCondGenMode()==UNIF_PI_CGEN_POOL)
   {
     d_cond_mvs.insert(conds.begin(), conds.end());
     if (Trace.isOn("sygus-unif-cond-pool"))
@@ -567,12 +567,19 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
                           << " conditions..." << std::endl;
   // reset the trie
   d_pt_sep.d_trie.clear();
-  return d_unif->getCondGenMode() == UNIF_PI_CGEN_POOL
-             ? buildSolAllCond(cons, lemmas)
-             : buildSolMinCond(cons, lemmas);
+  UnifPiCondGenMode cmode = d_unif->getCondGenMode();
+  if (cmode==UNIF_PI_CGEN_POOL) 
+  {
+    return buildSolPool(cons, lemmas);
+  }
+  else if (cmode==UNIF_PI_CGEN_SOLVE)
+  {
+    return buildSolSolve(cons, lemmas);
+  }
+  return buildSolMinCond(cons, lemmas);
 }
 
-Node SygusUnifRl::DecisionTreeInfo::buildSolAllCond(Node cons,
+Node SygusUnifRl::DecisionTreeInfo::buildSolPool(Node cons,
                                                     std::vector<Node>& lemmas)
 {
   // model values for evaluation heads
@@ -909,6 +916,12 @@ Node SygusUnifRl::DecisionTreeInfo::buildSolMinCond(Node cons,
 
   Trace("sygus-unif-sol") << "...ready to build solution from DT\n";
   return extractSol(cons, hd_mv);
+}
+
+Node SygusUnifRl::DecisionTreeInfo::buildSolSolve(Node cons, std::vector<Node>& lemmas)
+{
+  // FIXME
+  return Node::null();
 }
 
 Node SygusUnifRl::DecisionTreeInfo::extractSol(Node cons,
