@@ -47,7 +47,9 @@ namespace quantifiers {
 class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
 {
  public:
-  CegisUnifEnumDecisionStrategy(QuantifiersEngine* qe, SynthConjecture* parent);
+  CegisUnifEnumDecisionStrategy(QuantifiersEngine* qe, SynthConjecture* parent,
+    bool useCondSmartEnum, bool useCondPool
+  );
   /** Make the n^th literal of this strategy (G_uq_n).
    *
    * This call may add new lemmas of the form described above
@@ -103,6 +105,12 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   TermDbSygus* d_tds;
   /** reference to the parent conjecture */
   SynthConjecture* d_parent;
+  /**
+   * Whether we are using smart enumeration for conditions. This is true if
+   * we are using the complete strategy for UNIF+PI (Section 3 of Barbosa et al
+   * FMCAD 2019).
+   */
+  bool d_useCondSmartEnum;
   /**
    * Whether we are using condition pool enumeration (Section 4 of Barbosa et al
    * FMCAD 2019). This is determined by option::sygusUnifPi().

@@ -401,13 +401,12 @@ CegisUnifEnumDecisionStrategy::CegisUnifEnumDecisionStrategy(
     QuantifiersEngine* qe, SynthConjecture* parent)
     : DecisionStrategyFmf(qe->getSatContext(), qe->getValuation()),
       d_qe(qe),
-      d_parent(parent)
+      d_parent(parent),
+      d_useCondSmartEnum(false),
+      d_useCondPool(false)
 {
   d_initialized = false;
   d_tds = d_qe->getTermDatabaseSygus();
-  SygusUnifPiMode mode = options::sygusUnifPi();
-  d_useCondPool =
-      mode == SYGUS_UNIF_PI_CENUM || mode == SYGUS_UNIF_PI_CENUM_IGAIN;
 }
 
 Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
@@ -423,7 +422,7 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
     TypeNode ct = c.getType();
     Node eu = nm->mkSkolem("eu", ct);
     Node ceu;
-    if (!d_useCondPool && !ci.second.d_enums[0].empty())
+    if (d_useCondSmartEnum && !ci.second.d_enums[0].empty())
     {
       // make a new conditional enumerator as well, starting the
       // second type around
@@ -437,6 +436,8 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
       {
         continue;
       }
+      // Notice we only use condition enumerators if d_useCondSmartEnum is
+      // true.
       setUpEnumerator(e, ci.second, index);
     }
   }
@@ -516,10 +517,15 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
 void CegisUnifEnumDecisionStrategy::initialize(
     const std::vector<Node>& es,
     const std::map<Node, Node>& e_to_cond,
-    const std::map<Node, std::vector<Node>>& strategy_lemmas)
+    const std::map<Node, std::vector<Node>>& strategy_lemmas,
+    
+    bool useCondSmartEnum, bool useCondPool
+                                              )
 {
   Assert(!d_initialized);
   d_initialized = true;
+  d_useCondSmartEnum = useCondSmartEnum;
+  d_useCondPool = useCondPool;
   if (es.empty())
   {
     return;
