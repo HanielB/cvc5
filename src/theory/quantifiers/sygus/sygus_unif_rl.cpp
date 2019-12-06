@@ -933,7 +933,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSolSolve(Node cons,
       << "Build solution solve for " << cons << std::endl;
   // Assert(cons.getType().isDatatype());
   const Datatype& dt = Datatype::datatypeOf(cons.toExpr());
-  TypeNode dtt = dt.getType();
+  TypeNode dtt = TypeNode::fromType(dt.getDatatypeType());
   Trace("sygus-unif-pi-solve") << "Type is " << dtt << std::endl;
   Assert(dt.isSygus());
   // is it finite?
