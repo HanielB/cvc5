@@ -30,7 +30,7 @@ namespace theory {
 namespace quantifiers {
 
 SygusUnifRl::SygusUnifRl(SynthConjecture* p)
-    : d_parent(p), d_useCondPool(false), d_useCondPoolIGain(false)
+    : d_parent(p), d_cgenMode(UNIF_PI_CGEN_NONE), d_useCondPoolIGain(false)
 {
 }
 SygusUnifRl::~SygusUnifRl() {}
@@ -62,8 +62,11 @@ void SygusUnifRl::initializeCandidate(
   }
   // check whether we are using condition enumeration
   SygusUnifPiMode mode = options::sygusUnifPi();
-  d_useCondPool =
-      mode == SYGUS_UNIF_PI_CENUM || mode == SYGUS_UNIF_PI_CENUM_IGAIN;
+  d_cgenMode = UNIF_PI_CGEN_SMART;
+  if (mode == SYGUS_UNIF_PI_CENUM || mode == SYGUS_UNIF_PI_CENUM_IGAIN)
+  {
+    d_cgenMode = UNIF_PI_CGEN_POOL;
+  }
   d_useCondPoolIGain = mode == SYGUS_UNIF_PI_CENUM_IGAIN;
 }
 
@@ -356,7 +359,7 @@ Node SygusUnifRl::constructSol(
   }
   EnumTypeInfoStrat* etis = snode.d_strats[itd->second.getStrategyIndex()];
   Node sol = itd->second.buildSol(etis->d_cons, lemmas);
-  Assert(d_useCondPool || !sol.isNull() || !lemmas.empty());
+  Assert(d_cgenMode==UNIF_PI_CGEN_POOL || !sol.isNull() || !lemmas.empty());
   return sol;
 }
 
@@ -393,7 +396,7 @@ std::vector<Node> SygusUnifRl::getEvalPointHeads(Node c)
   return it->second;
 }
 
-bool SygusUnifRl::usingConditionPool() const { return d_useCondPool; }
+UnifPiCondGenMode SygusUnifRl::getCondGenMode() const { return d_cgenMode; }
 bool SygusUnifRl::usingConditionPoolInfoGain() const
 {
   return d_useCondPoolIGain;
@@ -528,7 +531,7 @@ void SygusUnifRl::DecisionTreeInfo::setConditions(
   d_enums.insert(d_enums.end(), enums.begin(), enums.end());
   d_conds.insert(d_conds.end(), conds.begin(), conds.end());
   // add to condition pool
-  if (d_unif->usingConditionPool())
+  if (d_unif->getCondGenMode()==UNIF_PI_CGEN_POOL)
   {
     d_cond_mvs.insert(conds.begin(), conds.end());
     if (Trace.isOn("sygus-unif-cond-pool"))
@@ -564,7 +567,7 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
                           << " conditions..." << std::endl;
   // reset the trie
   d_pt_sep.d_trie.clear();
-  return d_unif->usingConditionPool() ? buildSolAllCond(cons, lemmas)
+  return d_unif->getCondGenMode()==UNIF_PI_CGEN_POOL ? buildSolAllCond(cons, lemmas)
                                       : buildSolMinCond(cons, lemmas);
 }
 

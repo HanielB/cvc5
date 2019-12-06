@@ -71,8 +71,7 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   void initialize(const std::vector<Node>& es,
                   const std::map<Node, Node>& e_to_cond,
                   const std::map<Node, std::vector<Node>>& strategy_lemmas,
-                  
-                bool useCondSmartEnum, bool useCondPool
+                  UnifPiCondGenMode cgenMode
                  );
 
   /*
@@ -106,17 +105,11 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   TermDbSygus* d_tds;
   /** reference to the parent conjecture */
   SynthConjecture* d_parent;
-  /**
-   * Whether we are using smart enumeration for conditions. This is true if
-   * we are using the complete strategy for UNIF+PI (Section 3 of Barbosa et al
-   * FMCAD 2019).
+  /** 
+   * The condition generation mode we are using, e.g. via constraints
+   * (Section 3) or as an offline pool (Section 4) of Barbosa et al FMCAD 2019.
    */
-  bool d_useCondSmartEnum;
-  /**
-   * Whether we are using condition pool enumeration (Section 4 of Barbosa et al
-   * FMCAD 2019). This is determined by option::sygusUnifPi().
-   */
-  bool d_useCondPool;
+  UnifPiCondGenMode d_cgenMode;
   /** whether this module has been initialized */
   bool d_initialized;
   /** null node */
@@ -312,17 +305,6 @@ class CegisUnif : public Cegis
                      std::map<Node, std::vector<Node>>& unif_cenums,
                      std::map<Node, std::vector<Node>>& unif_cvalues,
                      std::vector<Node>& lems);
-
-  /**
-   * Whether we are using smart condition enumeration (Section 3 of Barbosa et
-   * al FMCAD 2019). This is determined by option::sygusUnifPi().
-   */
-  bool usingConditionPool() const;
-  /**
-   * Whether we are using condition pool enumeration (Section 4 of Barbosa et al
-   * FMCAD 2019). This is determined by option::sygusUnifPi().
-   */
-  bool usingConditionPool() const;
   /**
    * Sygus unif utility. This class implements the core algorithm (e.g. decision
    * tree learning) that this module relies upon.
