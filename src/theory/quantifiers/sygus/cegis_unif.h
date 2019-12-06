@@ -47,9 +47,7 @@ namespace quantifiers {
 class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
 {
  public:
-  CegisUnifEnumDecisionStrategy(QuantifiersEngine* qe, SynthConjecture* parent,
-    bool useCondSmartEnum, bool useCondPool
-  );
+  CegisUnifEnumDecisionStrategy(QuantifiersEngine* qe, SynthConjecture* parent);
   /** Make the n^th literal of this strategy (G_uq_n).
    *
    * This call may add new lemmas of the form described above
@@ -72,7 +70,10 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
    */
   void initialize(const std::vector<Node>& es,
                   const std::map<Node, Node>& e_to_cond,
-                  const std::map<Node, std::vector<Node>>& strategy_lemmas);
+                  const std::map<Node, std::vector<Node>>& strategy_lemmas,
+                  
+                bool useCondSmartEnum, bool useCondPool
+                 );
 
   /*
    * Do not hide the zero-argument version of initialize() inherited from the
@@ -312,6 +313,11 @@ class CegisUnif : public Cegis
                      std::map<Node, std::vector<Node>>& unif_cvalues,
                      std::vector<Node>& lems);
 
+  /**
+   * Whether we are using smart condition enumeration (Section 3 of Barbosa et
+   * al FMCAD 2019). This is determined by option::sygusUnifPi().
+   */
+  bool usingConditionPool() const;
   /**
    * Whether we are using condition pool enumeration (Section 4 of Barbosa et al
    * FMCAD 2019). This is determined by option::sygusUnifPi().
