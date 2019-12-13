@@ -1184,7 +1184,6 @@ void CegGrammarConstructor::mkSygusDefaultGrammar(
     std::stringstream ss;
     ss << kindToString(k) << "_" << types[i];
     std::vector<TypeNode> cargsBinary;
-    cargsBinary.push_back(unres_types[iuse]);
     // if polynomial grammar, generate (= anyterm 0) and (<= anyterm 0) as the
     // predicates
     if (zarg != -1)
@@ -1195,6 +1194,7 @@ void CegGrammarConstructor::mkSygusDefaultGrammar(
     {
       cargsBinary.push_back(unres_types[iuse]);
     }
+    cargsBinary.push_back(unres_types[iuse]);
     sdtBool.addConstructor(nm->operatorOf(k), ss.str(), cargsBinary);
     // type specific predicates
     if (types[i].isReal())
