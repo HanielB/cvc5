@@ -35,14 +35,14 @@ namespace quantifiers {
  *
  * It maintains a set of guards, call them G_uq_1 ... G_uq_n, where the
  * semantics of G_uq_i is "for each type, the heads of evaluation points of that
- * type are interpreted as a value in a set whose cardinality is at most i".
- * We also enforce that the number of condition enumerators for evaluation
+ * type are interpreted as a value in a set whose cardinality is at most i".  We
+ * also enforce that the number of condition enumerators for heads of evaluation
  * points is equal to (n-1).
  *
  * To enforce this, we introduce sygus enumerator(s) of the same type as the
  * heads of evaluation points and condition enumerators registered to this class
  * and add lemmas that enforce that these terms are equal to at least one
- * enumerator (see registerEvalPtAtSize).
+ * enumerator (see registerEvalHdAtSize).
  */
 class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
 {
@@ -51,7 +51,7 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   /** Make the n^th literal of this strategy (G_uq_n).
    *
    * This call may add new lemmas of the form described above
-   * registerEvalPtAtSize on the output channel of d_qe.
+   * registerEvalHdAtSize on the output channel of d_qe.
    */
   Node mkLiteral(unsigned n) override;
   /** identify */
@@ -87,15 +87,17 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   void getEnumeratorsForStrategyPt(Node e,
                                    std::vector<Node>& es,
                                    unsigned index) const;
-  /** register evaluation point for candidate
+  /** register evaluation head for candidate
    *
    * This notifies this class that eis is a set of heads of evaluation points
    * for strategy point e, where e was passed to initialize in the vector es.
    *
    * This may add new lemmas of the form described above
-   * registerEvalPtAtSize on the output channel of d_qe.
+   * registerEvalHdAtSize on the output channel of d_qe.
    */
-  void registerEvalPts(const std::vector<Node>& eis, Node e);
+  void registerEvalHds(const std::vector<Node>& eis,
+                       const std::map<Node, std::vector<Node>>& eis_to_pts,
+                       Node e);
 
  private:
   /** reference to quantifier engine */
@@ -130,10 +132,12 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
     /** the type of conditional enumerators for this strategy point  */
     TypeNode d_ce_type;
     /**
-     * The set of evaluation points of this type. In models, we ensure that
+     * The set of evaluation heads of this type. In models, we ensure that
      * each of these are equal to one of d_enums[0].
      */
-    std::vector<Node> d_eval_points;
+    std::vector<Node> d_eval_heads;
+    /** maps evaluation heads to their respective points */
+    std::map<Node, std::vector<Node>> d_hd_to_pt;
     /** symmetry breaking lemma template for this strategy point
      *
      * Each pair stores (the symmetry breaking lemma template, argument (to be
@@ -184,7 +188,14 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
    * on the output channel of d_qe, where d1...dn are sygus enumerators of the
    * same type as e and ei, and ei is an evaluation point of strategy point e.
    */
-  void registerEvalPtAtSize(Node e, Node ei, Node guq_lit, unsigned n);
+  void registerEvalHdAtSize(Node e, Node ei, Node guq_lit, unsigned n);
+
+  void registerCondsForEvalHdAtSize(
+      Node e,
+      Node ei,
+      const std::vector<Node>& old_heads,
+      Node guq_lit,
+      unsigned n);
 };
 
 /** Synthesizes functions in a data-driven SyGuS approach

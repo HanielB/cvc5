@@ -390,13 +390,17 @@ void SygusUnifRl::setConditions(Node e,
   it->second.setConditions(guard, enums, conds);
 }
 
-std::vector<Node> SygusUnifRl::getEvalPointHeads(Node c)
+const std::vector<Node>& SygusUnifRl::getEvalPointHeads(Node c) const
 {
-  std::map<Node, std::vector<Node>>::iterator it = d_cand_to_eval_hds.find(c);
-  if (it == d_cand_to_eval_hds.end())
-  {
-    return std::vector<Node>();
-  }
+  std::map<Node, std::vector<Node>>::const_iterator it = d_cand_to_eval_hds.find(c);
+  Assert(it != d_cand_to_eval_hds.end());
+  return it->second;
+}
+
+const std::vector<Node>& SygusUnifRl::getEvalPointOfHead(Node hd) const
+{
+  std::map<Node, std::vector<Node>>::const_iterator it = d_hd_to_pt.find(hd);
+  Assert(it != d_cand_to_eval_hds.end());
   return it->second;
 }
 
@@ -576,15 +580,12 @@ Node SygusUnifRl::DecisionTreeInfo::buildSol(Node cons,
   {
     return buildSolMinCond(cons, lemmas);
   }
-  else if (cmode == UNIF_PI_CGEN_SOLVE)
+  if (cmode == UNIF_PI_CGEN_POOL)
   {
-    Node slv = buildSolSolve(cons, lemmas);
-    if (!slv.isNull())
-    {
-      return slv;
-    }
+    return buildSolPool(cons, lemmas);
   }
-  return buildSolPool(cons, lemmas);
+  Assert(cmode == UNIF_PI_CGEN_SOLVE);
+  return buildSolSolve(cons, lemmas);
 }
 
 Node SygusUnifRl::DecisionTreeInfo::buildSolPool(Node cons,
@@ -931,21 +932,45 @@ Node SygusUnifRl::DecisionTreeInfo::buildSolSolve(Node cons,
 {
   Trace("sygus-unif-pi-solve")
       << "Build solution solve for " << cons << std::endl;
-  // Assert(cons.getType().isDatatype());
-  const Datatype& dt = Datatype::datatypeOf(cons.toExpr());
-  TypeNode dtt = TypeNode::fromType(dt.getDatatypeType());
-  Trace("sygus-unif-pi-solve") << "Type is " << dtt << std::endl;
-  Assert(dt.isSygus());
-  // is it finite?
 
+  // TODO rather than do what is below, check if I don't need to myself generate
+  // conflicts? I think that the DT will be guaranteed to exist, since I got
+  // past the refinement lemmas and did not go to the decision heuristic...
+
+  // model values for evaluation heads
   std::map<Node, Node> hd_mv;
+  // add conditions
+  unsigned num_conds = d_conds.size();
+  for (unsigned i = 0; i < num_conds; ++i)
+  {
+    d_pt_sep.d_trie.addClassifier(&d_pt_sep, i);
+  }
+  // add heads
   for (const Node& e : d_hds)
   {
     Node v = d_unif->d_parent->getModelValue(e);
     hd_mv[e] = v;
+    Node er = d_pt_sep.d_trie.add(e, &d_pt_sep, num_conds);
+    // are we in conflict?
+    if (er == e)
+    {
+      // new separation class, no conflict
+      continue;
+    }
+    Assert(hd_mv.find(er) != hd_mv.end());
+    // merged into separation class with same model value, no conflict
+    if (hd_mv[e] == hd_mv[er])
+    {
+      continue;
+    }
+    // conflict. Explanation?
+    Trace("sygus-unif-sol")
+        << "  ...can't separate " << e << " from " << er << std::endl;
+    return Node::null();
   }
-  // FIXME
-  return Node::null();
+  Node sol = extractSol(cons, hd_mv);
+  d_sols.insert(sol);
+  return sol;
 }
 
 Node SygusUnifRl::DecisionTreeInfo::extractSol(Node cons,

@@ -97,6 +97,7 @@ void CegisUnif::getTermList(const std::vector<Node>& candidates,
       enums.end(), d_non_unif_candidates.begin(), d_non_unif_candidates.end());
   for (const Node& c : d_unif_candidates)
   {
+    // TODO couldn't this be done via d_eval_heads in StrategyPtInfo?
     // Collect heads of candidates
     for (const Node& hd : d_sygus_unif.getEvalPointHeads(c))
     {
@@ -374,19 +375,25 @@ void CegisUnif::registerRefinementLemma(const std::vector<Node>& vars,
                                         std::vector<Node>& lems)
 {
   // Notify lemma to unification utility and get its purified form
-  std::map<Node, std::vector<Node>> eval_pts;
-  Node plem = d_sygus_unif.addRefLemma(lem, eval_pts);
+  std::map<Node, std::vector<Node>> eval_hds;
+  Node plem = d_sygus_unif.addRefLemma(lem, eval_hds);
   addRefinementLemma(plem);
   Trace("cegis-unif-lemma")
       << "CegisUnif::lemma, refinement lemma : " << plem << "\n";
-  // Notify the enumeration manager if there are new evaluation points
-  for (const std::pair<const Node, std::vector<Node>>& ep : eval_pts)
+  // Notify the enumeration manager if there are new evaluation heads
+  for (const std::pair<const Node, std::vector<Node>>& eh : eval_hds)
   {
-    Assert(d_cand_to_strat_pt.find(ep.first) != d_cand_to_strat_pt.end());
+    Assert(d_cand_to_strat_pt.find(eh.first) != d_cand_to_strat_pt.end());
     // Notify each strategy point of the respective candidate
-    for (const Node& n : d_cand_to_strat_pt[ep.first])
+    for (const Node& n : d_cand_to_strat_pt[eh.first])
     {
-      d_u_enum_manager.registerEvalPts(ep.second, n);
+      // retrieve points of heads
+      std::map<Node, std::vector<Node>> eis_to_pts;
+      for (const Node& ei : eh.second)
+      {
+        eis_to_pts[ei] = d_sygus_unif.getEvalPointOfHead(ei);
+      }
+      d_u_enum_manager.registerEvalHds(eh.second, eis_to_pts, n);
     }
   }
   // Make the refinement lemma and add it to lems. This lemma is guarded by the
@@ -421,7 +428,8 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
     TypeNode ct = c.getType();
     Node eu = nm->mkSkolem("eu", ct);
     Node ceu;
-    if (d_cgenMode == UNIF_PI_CGEN_SMART && !ci.second.d_enums[0].empty())
+    if ((d_cgenMode == UNIF_PI_CGEN_SMART || d_cgenMode == UNIF_PI_CGEN_SOLVE)
+        && !ci.second.d_enums[0].empty())
     {
       // make a new conditional enumerator as well, starting the
       // second type around
@@ -436,19 +444,27 @@ Node CegisUnifEnumDecisionStrategy::mkLiteral(unsigned n)
         continue;
       }
       // Notice we only use condition enumerators if the condition generation
-      // mode is UNIF_PI_CGEN_SMART.
+      // mode is UNIF_PI_CGEN_SMART or UNIF_PI_CGEN_SOLVE.
       setUpEnumerator(e, ci.second, index);
     }
   }
-  // register the evaluation points at the new value
+  // register the evaluation heads at the new value
   for (std::pair<const Node, StrategyPtInfo>& ci : d_ce_info)
   {
     Node c = ci.first;
-    for (const Node& ei : ci.second.d_eval_points)
+    for (unsigned i = 0, n_hds = ci.second.d_eval_heads.size(); i < n_hds; ++i)
     {
+      Node ei = ci.second.d_eval_heads[i];
       Trace("cegis-unif-enum") << "...increasing enum number for hd " << ei
                                << " to new size " << new_size << "\n";
-      registerEvalPtAtSize(c, ei, new_lit, new_size);
+      registerEvalHdAtSize(c, ei, new_lit, new_size);
+      if (d_cgenMode == UNIF_PI_CGEN_SOLVE && i > 0)
+      {
+        // get heads up to i
+        std::vector<Node> old_hds(ci.second.d_eval_heads.begin(),
+                                  ci.second.d_eval_heads.begin() + i);
+        registerCondsForEvalHdAtSize(c, ei, old_hds, new_lit, new_size);
+      }
     }
   }
   // enforce fairness between number of enumerators and enumerator size
@@ -645,14 +661,25 @@ void CegisUnifEnumDecisionStrategy::setUpEnumerator(Node e,
   d_tds->registerEnumerator(e, si.d_pt, d_parent, erole, useSymCons);
 }
 
-void CegisUnifEnumDecisionStrategy::registerEvalPts(
-    const std::vector<Node>& eis, Node e)
+void CegisUnifEnumDecisionStrategy::registerEvalHds(
+    const std::vector<Node>& eis,
+    const std::map<Node, std::vector<Node>>& eis_to_pts,
+    Node e)
 {
+  std::vector<Node> old_hds;
   // candidates of the same type are managed
   std::map<Node, StrategyPtInfo>::iterator it = d_ce_info.find(e);
   Assert(it != d_ce_info.end());
-  it->second.d_eval_points.insert(
-      it->second.d_eval_points.end(), eis.begin(), eis.end());
+  // save old heads and collect cond enums in case we are doing UNIF_PI_SOLVE
+  if (d_cgenMode == UNIF_PI_CGEN_SOLVE)
+  {
+    old_hds = it->second.d_eval_heads;
+  }
+  // insert new heads in strategy information
+  it->second.d_eval_heads.insert(
+      it->second.d_eval_heads.end(), eis.begin(), eis.end());
+  // insert new points in strategy information
+  it->second.d_hd_to_pt.insert(eis_to_pts.begin(), eis_to_pts.end());
   // register at all already allocated sizes
   for (const Node& ei : eis)
   {
@@ -661,12 +688,16 @@ void CegisUnifEnumDecisionStrategy::registerEvalPts(
     {
       Trace("cegis-unif-enum") << "...for cand " << e << " adding hd " << ei
                                << " at size " << j << "\n";
-      registerEvalPtAtSize(e, ei, d_literals[j], j + 1);
+      registerEvalHdAtSize(e, ei, d_literals[j], j + 1);
+      if (d_cgenMode == UNIF_PI_CGEN_SOLVE)
+      {
+        registerCondsForEvalHdAtSize(e, ei, old_hds, d_literals[j], j + 1);
+      }
     }
   }
 }
 
-void CegisUnifEnumDecisionStrategy::registerEvalPtAtSize(Node e,
+void CegisUnifEnumDecisionStrategy::registerEvalHdAtSize(Node e,
                                                          Node ei,
                                                          Node guq_lit,
                                                          unsigned n)
@@ -683,8 +714,57 @@ void CegisUnifEnumDecisionStrategy::registerEvalPtAtSize(Node e,
   }
   Node lem = NodeManager::currentNM()->mkNode(OR, disj);
   Trace("cegis-unif-enum-lemma")
-      << "CegisUnifEnum::lemma, domain:" << lem << "\n";
+      << "CegisUnifEnum::lemma, domain: " << lem << "\n";
   d_qe->getOutputChannel().lemma(lem);
+}
+
+void CegisUnifEnumDecisionStrategy::registerCondsForEvalHdAtSize(
+    Node e,
+    Node ei,
+    const std::vector<Node>& old_heads,
+    Node guq_lit,
+    unsigned n)
+{
+  NodeManager* nm = NodeManager::currentNM();
+  // for each old eval head that it is different to, there must be one condition
+  // that separates them
+  std::map<Node, StrategyPtInfo>::iterator itc = d_ce_info.find(e);
+  Assert(itc != d_ce_info.end());
+  Assert(itc->second.d_enums[1].size() >= (n - 1));
+  for (const Node& e_old : old_heads)
+  {
+    std::vector<Node> disj;
+    disj.push_back(guq_lit.negate());
+    // ei != e_old
+    //
+    // if there is more than one head but no conditions, the loop below will be
+    // ignored. Thus the added lemma will ammount to forcing them to differ,
+    // there is no no way you can classify them correctly otherwise
+    disj.push_back(ei.eqNode(e_old).negate());
+    for (unsigned j = 0; j < (n - 1); ++j)
+    {
+      // retrieve points and build  Cj(pt_of_ei) != Cj(pt_of_e_old)
+      std::map<Node, std::vector<Node>>::iterator ith;
+      Node cond_app[2];
+      for (unsigned r = 0; r < 2; r++)
+      {
+        std::vector<Node> cond_children;
+        cond_children.push_back(itc->second.d_enums[1][j]);
+        Node ecurr = r == 0 ? ei : e_old;
+        ith = itc->second.d_hd_to_pt.find(ecurr);
+        AlwaysAssert(ith != itc->second.d_hd_to_pt.end());
+        cond_children.insert(
+            cond_children.end(), ith->second.begin(), ith->second.end());
+        Node app = nm->mkNode(DT_SYGUS_EVAL, cond_children);
+        cond_app[r] = app;
+      }
+      disj.push_back(cond_app[0].eqNode(cond_app[1]).negate());
+    }
+    Node lem = nm->mkNode(OR, disj);
+    Trace("cegis-unif-enum-lemma")
+        << "CegisUnifEnum::lemma, classifier: " << lem << "\n";
+    d_qe->getOutputChannel().lemma(lem);
+  }
 }
 
 }  // namespace quantifiers

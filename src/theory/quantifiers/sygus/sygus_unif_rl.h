@@ -126,7 +126,9 @@ class SygusUnifRl : public SygusUnif
                      const std::vector<Node>& conds);
 
   /** retrieve the head of evaluation points for candidate c, if any */
-  std::vector<Node> getEvalPointHeads(Node c);
+  const std::vector<Node>& getEvalPointHeads(Node c) const;
+  /** retrieve the respective evaluation point of a head */
+  const std::vector<Node>& getEvalPointOfHead(Node hd) const;
   /**
    * Get the condition generation mode we are using, e.g. via constraints
    * (Section 3) or as an offline pool (Section 4) of Barbosa et al FMCAD 2019.
@@ -176,7 +178,7 @@ class SygusUnifRl : public SygusUnif
    * of arguments (which constitute a "data point" aka an "evaluation point")
    */
   std::map<Node, std::vector<Node>> d_hd_to_pt;
-  /** maps unif candidates to heads of their evaluation points */
+  /** maps unif candidates to heads of their evaluation heads */
   std::map<Node, std::vector<Node>> d_cand_to_eval_hds;
   /**
    * maps applications of unif functions-to-synthesize to the result of their
