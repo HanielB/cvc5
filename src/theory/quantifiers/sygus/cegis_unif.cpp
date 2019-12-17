@@ -184,45 +184,50 @@ bool CegisUnif::getEnumValues(const std::vector<Node>& enums,
         if (index == 1)
         {
           unif_cvalues[e] = vs;
-        }
-        // inter-enumerator symmetry breaking for return values
-        else
-        {
-          // given a pool of unification enumerators eu_1, ..., eu_n,
-          // CegisUnifEnumDecisionStrategy insists that size(eu_1) <= ... <=
-          // size(eu_n). We additionally insist that M(eu_i) < M(eu_{i+1}) when
-          // size(eu_i) = size(eu_{i+1}), where < is pointer comparison.
-          // We enforce this below by adding symmetry breaking lemmas of the
-          // form ~( eu_i = M(eu_i) ^ eu_{i+1} = M(eu_{i+1} ) )
-          // when applicable.
-          // we only do this for return value enumerators, since condition
-          // enumerators cannot be ordered (their order is based on the
-          // seperation resolution scheme during model construction).
-          for (unsigned j = 1, nenum = vs.size(); j < nenum; j++)
+          if (d_sygus_unif.getCondGenMode() != UNIF_PI_CGEN_SOLVE)
           {
-            Node prev_val = vs[j - 1];
-            Node curr_val = vs[j];
-            // compare the node values
-            if (curr_val < prev_val)
+            continue;
+          }
+        }
+        // inter-enumerator symmetry breaking
+        //
+        // given a pool of unification enumerators eu_1, ..., eu_n,
+        // CegisUnifEnumDecisionStrategy insists that size(eu_1) <= ... <=
+        // size(eu_n). We additionally insist that M(eu_i) < M(eu_{i+1}) when
+        // size(eu_i) = size(eu_{i+1}), where < is pointer comparison.
+        // We enforce this below by adding symmetry breaking lemmas of the
+        // form ~( eu_i = M(eu_i) ^ eu_{i+1} = M(eu_{i+1} ) )
+        // when applicable.
+        //
+        // We only do this for return value enumerators, since condition
+        // enumerators cannot be ordered (their order is based on the
+        // seperation resolution scheme during model construction).
+        //
+        // However if we are doing eager constraints for the DT building we
+        // can also enforce this for the condition enumerators.
+        for (unsigned j = 1, nenum = vs.size(); j < nenum; j++)
+        {
+          Node prev_val = vs[j - 1];
+          Node curr_val = vs[j];
+          // compare the node values
+          if (curr_val < prev_val)
+          {
+            // must have the same size
+            unsigned prev_size = d_tds->getSygusTermSize(prev_val);
+            unsigned curr_size = d_tds->getSygusTermSize(curr_val);
+            Assert(prev_size <= curr_size);
+            if (curr_size == prev_size)
             {
-              // must have the same size
-              unsigned prev_size = d_tds->getSygusTermSize(prev_val);
-              unsigned curr_size = d_tds->getSygusTermSize(curr_val);
-              Assert(prev_size <= curr_size);
-              if (curr_size == prev_size)
-              {
-                Node slem =
-                    nm->mkNode(
-                          AND, es[j - 1].eqNode(vs[j - 1]), es[j].eqNode(vs[j]))
-                        .negate();
-                Trace("cegis-unif")
-                    << "CegisUnif::lemma, inter-unif-enumerator "
-                       "symmetry breaking lemma : "
-                    << slem << "\n";
-                d_qe->getOutputChannel().lemma(slem);
-                addedUnifEnumSymBreakLemma = true;
-                break;
-              }
+              Node slem =
+                  nm->mkNode(
+                        AND, es[j - 1].eqNode(vs[j - 1]), es[j].eqNode(vs[j]))
+                      .negate();
+              Trace("cegis-unif") << "CegisUnif::lemma, inter-unif-enumerator "
+                                     "symmetry breaking lemma : "
+                                  << slem << "\n";
+              d_qe->getOutputChannel().lemma(slem);
+              addedUnifEnumSymBreakLemma = true;
+              break;
             }
           }
         }
@@ -635,7 +640,8 @@ void CegisUnifEnumDecisionStrategy::setUpEnumerator(Node e,
     d_qe->getOutputChannel().lemma(sym_break_red_ops);
   }
   // symmetry breaking between enumerators
-  if (!si.d_enums[index].empty() && index == 0)
+  if (!si.d_enums[index].empty()
+      && (index == 0 || d_cgenMode == UNIF_PI_CGEN_SOLVE))
   {
     Node e_prev = si.d_enums[index].back();
     Node size_e = nm->mkNode(DT_SIZE, e);
