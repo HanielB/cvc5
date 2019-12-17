@@ -735,12 +735,12 @@ void CegisUnifEnumDecisionStrategy::registerCondsForEvalHdAtSize(
   {
     std::vector<Node> disj;
     disj.push_back(guq_lit.negate());
-    // ei != e_old
+    // ei = e_old
     //
     // if there is more than one head but no conditions, the loop below will be
-    // ignored. Thus the added lemma will ammount to forcing them to differ,
-    // there is no no way you can classify them correctly otherwise
-    disj.push_back(ei.eqNode(e_old).negate());
+    // ignored. Thus the added lemma will ammount to forcing them to be equal,
+    // since there is no no way you can classify them correctly otherwise
+    disj.push_back(ei.eqNode(e_old));
     for (unsigned j = 0; j < (n - 1); ++j)
     {
       // retrieve points and build  Cj(pt_of_ei) != Cj(pt_of_e_old)
