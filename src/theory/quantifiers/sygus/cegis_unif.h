@@ -51,7 +51,7 @@ class CegisUnifEnumDecisionStrategy : public DecisionStrategyFmf
   /** Make the n^th literal of this strategy (G_uq_n).
    *
    * This call may add new lemmas of the form described above
-   * registerEvalPtAtValue on the output channel of d_qe.
+   * registerEvalPtAtSize on the output channel of d_qe.
    */
   Node mkLiteral(unsigned n) override;
   /** identify */
