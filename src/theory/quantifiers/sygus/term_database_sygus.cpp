@@ -448,6 +448,36 @@ void TermDbSygus::registerEnumerator(Node e,
       // constructor (usually zero)
       registerSymBreakLemma(e, lem, stn, dt[rindex].getWeight());
     }
+    // add lemmas to ensure hard limit for anyconst is respected
+    if (anyC != -1 && useSymbolicCons && options::sygusCoeffLimit() != 0)
+    {
+      // make the apply-constructor corresponding to an application of the
+      // constant or "any constant" constructor
+      // we call getInstCons since in the case of any constant constructors, it
+      // is necessary to generate a term of the form any_constant( x.0 ) for a
+      // fresh variable x.0.
+      Node fv = getFreeVar(stn, 0);
+      Node anycons_val = datatypes::utils::getInstCons(fv, dt, rindex);
+      // should not include the constuctor in any subterm
+      Node x = getFreeVar(stn, 0);
+      // Trace("sygus-db") << "Construct symmetry breaking lemma from " << x
+      //                   << " == " << exc_val << std::endl;
+      // Node lem = getExplain()->getExplanationForEquality(x, exc_val);
+
+      // if (x.0 > 0) then (limit - x.0 > 0) else (limit + x.0 > 0)
+
+
+      lem = lem.negate();
+      // the size of the subterm we are blocking is the weight of the
+      // constructor (usually zero)
+      registerSymBreakLemma(e, lem, stn, dt[rindex].getWeight());
+      Trace("cegqi-lemma")
+          << "Cegqi::Lemma : hard limit for symbolic cons lemma (template) : " << lem
+          << std::endl;
+      // the size of the subterm we are blocking is the weight of the
+      // constructor (usually zero)
+      registerSymBreakLemma(e, lem, stn, dt[anyC].getWeight());
+    }
   }
   Trace("sygus-db") << "  ...finished" << std::endl;
 

@@ -1301,7 +1301,7 @@ header = "options/quantifiers_options.h"
   help = "When applicable, use constructors corresponding to any symbolic term, favoring conciseness over generality. This option is equivalent to any-term but enables a polynomial grammar for arithmetic when not in a combined theory."
 
 [[option]]
-  name       = "sygusCoeffLimi"
+  name       = "sygusCoeffLimit"
   category   = "regular"
   long       = "sygus-coeff-limit=N"
   type       = "unsigned"
