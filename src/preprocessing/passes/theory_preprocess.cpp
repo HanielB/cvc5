@@ -16,6 +16,7 @@
 
 #include "preprocessing/passes/theory_preprocess.h"
 
+#include "options/proof_options.h"
 #include "theory/rewriter.h"
 #include "theory/theory_engine.h"
 
@@ -36,7 +37,7 @@ PreprocessingPassResult TheoryPreprocess::applyInternal(
   for (size_t i = 0, size = assertionsToPreprocess->size(); i < size; ++i)
   {
     TNode a = (*assertionsToPreprocess)[i];
-    Assert(Rewriter::rewrite(a) == a);
+    Assert(options::newProofs() || Rewriter::rewrite(a) == a);
     assertionsToPreprocess->replace(i, te->preprocess(a));
     a = (*assertionsToPreprocess)[i];
     Assert(Rewriter::rewrite(a) == a);

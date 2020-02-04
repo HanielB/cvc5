@@ -3306,9 +3306,12 @@ void SmtEnginePrivate::processAssertions() {
 
   // Assertions ARE guaranteed to be rewritten by this point
 #ifdef CVC4_ASSERTIONS
-  for (unsigned i = 0; i < d_assertions.size(); ++i)
+  if (!options::newProofs())
   {
-    Assert(Rewriter::rewrite(d_assertions[i]) == d_assertions[i]);
+    for (unsigned i = 0; i < d_assertions.size(); ++i)
+    {
+      Assert(Rewriter::rewrite(d_assertions[i]) == d_assertions[i]);
+    }
   }
 #endif
 
