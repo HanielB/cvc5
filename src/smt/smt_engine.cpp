@@ -5157,8 +5157,7 @@ const NewProof& SmtEngine::getNewProof()
     throw ModalException(
         "Cannot get a proof when produce-proofs option is off.");
   }
-  if (d_status.isNull() || d_status.asSatisfiabilityResult() != Result::UNSAT
-      || d_problemExtended)
+  if (d_smtMode != SMT_MODE_UNSAT)
   {
     throw RecoverableModalException(
         "Cannot get a proof unless immediately preceded by UNSAT/VALID "

@@ -589,10 +589,9 @@ public:
 
   virtual Node explain(TNode literal, EqProof* pf)
   {
-    Unimplemented(
-        "Theory %s propagated a node but doesn't implement the proof producing "
-        "Theory::explain() interface!",
-        identify().c_str());
+    Unimplemented() << "Theory " << identify()
+                    << " propagated a node but doesn't implement the proof "
+                       "producing Theory::explain() interface!";
   }
 
   /**

@@ -14,7 +14,7 @@
 
 #include "proof/new_proof_manager.h"
 
-#include "base/cvc4_assert.h"
+#include "base/check.h"
 #include "context/context.h"
 #include "options/bv_options.h"
 #include "options/proof_options.h"
