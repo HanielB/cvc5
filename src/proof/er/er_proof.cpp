@@ -27,9 +27,10 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <sstream>
 #include <unordered_set>
 
-#include "base/cvc4_assert.h"
+#include "base/check.h"
 #include "base/map_util.h"
 #include "proof/dimacs.h"
 #include "proof/lfsc_proof_printer.h"
@@ -83,58 +84,51 @@ TraceCheckProof TraceCheckProof::fromText(std::istream& in)
 ErProof ErProof::fromBinaryDratProof(
     const std::unordered_map<ClauseId, prop::SatClause>& clauses,
     const std::vector<ClauseId>& usedIds,
-    const std::string& dratBinary)
+    const std::string& dratBinary,
+    TimerStat& toolTimer)
 {
-  std::ostringstream cmd;
-  char formulaFilename[] = "/tmp/cvc4-dimacs-XXXXXX";
-  char dratFilename[] = "/tmp/cvc4-drat-XXXXXX";
-  char tracecheckFilename[] = "/tmp/cvc4-tracecheck-er-XXXXXX";
-
-  int r;
-  r = mkstemp(formulaFilename);
-  AlwaysAssert(r > 0);
-  close(r);
-  r = mkstemp(dratFilename);
-  AlwaysAssert(r > 0);
-  close(r);
-  r = mkstemp(tracecheckFilename);
-  AlwaysAssert(r > 0);
-  close(r);
+  std::string formulaFilename("cvc4-dimacs-XXXXXX");
+  std::string dratFilename("cvc4-drat-XXXXXX");
+  std::string tracecheckFilename("cvc4-tracecheck-er-XXXXXX");
 
   // Write the formula
-  std::ofstream formStream(formulaFilename);
-  printDimacs(formStream, clauses, usedIds);
-  formStream.close();
+  std::unique_ptr<std::fstream> formStream = openTmpFile(&formulaFilename);
+  printDimacs(*formStream, clauses, usedIds);
+  formStream->close();
 
   // Write the (binary) DRAT proof
-  std::ofstream dratStream(dratFilename);
-  dratStream << dratBinary;
-  dratStream.close();
+  std::unique_ptr<std::fstream> dratStream = openTmpFile(&dratFilename);
+  (*dratStream) << dratBinary;
+  dratStream->close();
+
+  std::unique_ptr<std::fstream> tracecheckStream =
+      openTmpFile(&tracecheckFilename);
 
   // Invoke drat2er
+  {
+    CodeTimer blockTimer{toolTimer};
 #if CVC4_USE_DRAT2ER
-  drat2er::TransformDRATToExtendedResolution(formulaFilename,
-                                             dratFilename,
-                                             tracecheckFilename,
-                                             false,
-                                             drat2er::options::QUIET,
-                                             false);
-
+    drat2er::TransformDRATToExtendedResolution(formulaFilename,
+                                               dratFilename,
+                                               tracecheckFilename,
+                                               false,
+                                               drat2er::options::QUIET,
+                                               false);
 #else
-  Unimplemented(
-      "ER proof production requires drat2er.\n"
-      "Run contrib/get-drat2er, reconfigure with --drat2er, and rebuild");
+    Unimplemented()
+        << "ER proof production requires drat2er.\n"
+        << "Run contrib/get-drat2er, reconfigure with --drat2er, and rebuild";
 #endif
+  }
 
   // Parse the resulting TRACECHECK proof into an ER proof.
-  std::ifstream tracecheckStream(tracecheckFilename);
-  TraceCheckProof pf = TraceCheckProof::fromText(tracecheckStream);
+  TraceCheckProof pf = TraceCheckProof::fromText(*tracecheckStream);
   ErProof proof(clauses, usedIds, std::move(pf));
-  tracecheckStream.close();
+  tracecheckStream->close();
 
-  remove(formulaFilename);
-  remove(dratFilename);
-  remove(tracecheckFilename);
+  remove(formulaFilename.c_str());
+  remove(dratFilename.c_str());
+  remove(tracecheckFilename.c_str());
 
   return proof;
 }
@@ -191,8 +185,8 @@ ErProof::ErProof(const std::unordered_map<ClauseId, prop::SatClause>& clauses,
     size_t nLinesForThisDef = 2 + otherLiterals.size();
     // Look at the negation of the second literal in the second clause to get
     // the old literal
-    AlwaysAssert(d_tracecheck.d_lines.size() > i + 1,
-                 "Malformed definition in TRACECHECK proof from drat2er");
+    AlwaysAssert(d_tracecheck.d_lines.size() > i + 1)
+        << "Malformed definition in TRACECHECK proof from drat2er";
     d_definitions.emplace_back(newVar,
                                ~d_tracecheck.d_lines[i + 1].d_clause[1],
                                std::move(otherLiterals));
@@ -211,7 +205,7 @@ void ErProof::outputAsLfsc(std::ostream& os) const
   // Print Definitions
   for (const ErDefinition& def : d_definitions)
   {
-    os << "\n    (decl_rat_elimination_def ("
+    os << "\n    (decl_definition ("
        << (def.d_oldLiteral.isNegated() ? "neg " : "pos ")
        << ProofManager::getVarName(def.d_oldLiteral.getSatVariable(), "bb")
        << ") ";
@@ -226,8 +220,8 @@ void ErProof::outputAsLfsc(std::ostream& os) const
   TraceCheckIdx firstDefClause = d_inputClauseIds.size() + 1;
   for (const ErDefinition& def : d_definitions)
   {
-    os << "\n    (clausify_rat_elimination_def _ _ _ "
-       << "er.def " << def.d_newVariable << " _ _ (\\ er.c" << firstDefClause
+    os << "\n    (clausify_definition _ _ _ "
+       << "er.def" << def.d_newVariable << " _ (\\ er.c" << firstDefClause
        << " (\\ er.c" << (firstDefClause + 1) << " (\\ er.cnf"
        << def.d_newVariable;
 
@@ -235,22 +229,35 @@ void ErProof::outputAsLfsc(std::ostream& os) const
   }
   parenCount += 4 * d_definitions.size();
 
-  // Unroll proofs of CNFs to proofs of clauses
+  // Unroll proofs of CNF to proofs of clauses
   firstDefClause = d_inputClauseIds.size() + 1;
   for (const ErDefinition& def : d_definitions)
   {
     for (size_t i = 0, n = def.d_otherLiterals.size(); i < n; ++i)
     {
-      os << "\n    (cnfc_unroll _ _ ";
-      os << "er.cnf" << def.d_newVariable;
+      // Compute the name of the CNF proof we're unrolling in this step
+      std::ostringstream previousCnfProof;
+      previousCnfProof << "er.cnf" << def.d_newVariable;
       if (i != 0)
       {
-        os << ".u" << i;
+        // For all but the first unrolling, the previous CNF has an unrolling
+        // number attached
+        previousCnfProof << ".u" << i;
       }
-      os << " (\\ er.c" << (firstDefClause + 2 + i);
-      os << " (\\ er.cnf" << def.d_newVariable << ".u" << (i + 1);
+
+      // Prove the first clause in the CNF
+      os << "\n    (@ ";
+      os << "er.c" << (firstDefClause + 2 + i);
+      os << " (common_tail_cnf_prove_head _ _ _ " << previousCnfProof.str()
+         << ")";
+
+      // Prove the rest of the CNF
+      os << "\n    (@ ";
+      os << "er.cnf" << def.d_newVariable << ".u" << (i + 1);
+      os << " (common_tail_cnf_prove_tail _ _ _ " << previousCnfProof.str()
+         << ")";
     }
-    parenCount += 3 * def.d_otherLiterals.size();
+    parenCount += 2 * def.d_otherLiterals.size();
 
     firstDefClause += 2 + def.d_otherLiterals.size();
   }
@@ -306,8 +313,8 @@ void ErProof::outputAsLfsc(std::ostream& os) const
   }
 
   // Write proof of bottom
-  Assert(d_tracecheck.d_lines.back().d_clause.size() == 0,
-         "The TRACECHECK proof from drat2er did not prove bottom.");
+  Assert(d_tracecheck.d_lines.back().d_clause.size() == 0)
+      << "The TRACECHECK proof from drat2er did not prove bottom.";
   os << "\n      er.c" << d_tracecheck.d_lines.back().d_idx
      << " ; (holds cln)\n";
 
@@ -333,7 +340,7 @@ prop::SatLiteral resolveModify(
     std::unordered_set<prop::SatLiteral, prop::SatLiteralHashFunction>& dest,
     const prop::SatClause& src)
 {
-  bool foundPivot = false;
+  CVC4_UNUSED bool foundPivot = false;
   prop::SatLiteral pivot(0, false);
 
   for (prop::SatLiteral lit : src)
@@ -341,8 +348,10 @@ prop::SatLiteral resolveModify(
     auto negationLocation = dest.find(~lit);
     if (negationLocation != dest.end())
     {
+#ifdef CVC4_ASSERTIONS
       Assert(!foundPivot);
       foundPivot = true;
+#endif
       dest.erase(negationLocation);
       pivot = ~lit;
     }

@@ -236,7 +236,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
       out << ss.str();
       out << ") (pred_eq_f _ " << ProofManager::getLitName(n2[0]) << ")) t_t_neq_f))" << std::endl;
     } else {
-      Assert((n1[0] == n2[0][0] && n1[1] == n2[0][1]) || (n1[1] == n2[0][0] && n1[0] == n2[0][1]));
+      Assert((n1[0] == n2[0][0] && n1[1] == n2[0][1])
+             || (n1[1] == n2[0][0] && n1[0] == n2[0][1]));
       if(n1[1] == n2[0][0]) {
         out << "(symm _ _ _ " << ss.str() << ")";
       } else {
@@ -256,7 +257,11 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
          pf2->d_id == theory::MERGED_THROUGH_CONGRUENCE;
          pf2 = pf2->d_children[0].get()) {
       Assert(!pf2->d_node.isNull());
-      Assert(pf2->d_node.getKind() == kind::PARTIAL_APPLY_UF || pf2->d_node.getKind() == kind::BUILTIN || pf2->d_node.getKind() == kind::APPLY_UF || pf2->d_node.getKind() == kind::SELECT || pf2->d_node.getKind() == kind::STORE);
+      Assert(pf2->d_node.getKind() == kind::PARTIAL_APPLY_UF
+             || pf2->d_node.getKind() == kind::BUILTIN
+             || pf2->d_node.getKind() == kind::APPLY_UF
+             || pf2->d_node.getKind() == kind::SELECT
+             || pf2->d_node.getKind() == kind::STORE);
       Assert(pf2->d_children.size() == 2);
       out << "(cong _ _ _ _ _ _ ";
       stk.push(pf2);
@@ -322,7 +327,12 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
       b2 << n2[1-side];
       out << ss.str();
     } else {
-      Assert(pf2->d_node[b1.getNumChildren() - (pf2->d_node.getMetaKind() == kind::metakind::PARAMETERIZED ? 0 : 1)] == n2[1-side]);
+      Assert(pf2->d_node[b1.getNumChildren()
+                         - (pf2->d_node.getMetaKind()
+                                    == kind::metakind::PARAMETERIZED
+                                ? 0
+                                : 1)]
+             == n2[1 - side]);
       b1 << n2[1-side];
       b2 << n2[side];
       out << "(symm _ _ _ " << ss.str() << ")";
@@ -349,7 +359,7 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
         b2 << n2[1-side];
         out << ss.str();
       } else {
-        Assert(pf2->d_node[b1.getNumChildren()] == n2[1-side]);
+        Assert(pf2->d_node[b1.getNumChildren()] == n2[1 - side]);
         b1 << n2[1-side];
         b2 << n2[side];
         out << "(symm _ _ _ " << ss.str() << ")";
@@ -670,14 +680,18 @@ void ArithProof::registerTerm(Expr term) {
   }
 }
 
-void LFSCArithProof::printOwnedTerm(Expr term, std::ostream& os, const ProofLetMap& map) {
+void LFSCArithProof::printOwnedTermAsType(Expr term,
+                                          std::ostream& os,
+                                          const ProofLetMap& map,
+                                          TypeNode expectedType)
+{
   Debug("pf::arith") << "Arith print term: " << term << ". Kind: " << term.getKind()
                      << ". Type: " << term.getType()
                      << ". Number of children: " << term.getNumChildren() << std::endl;
 
   // !d_realMode <--> term.getType().isInteger()
 
-  Assert (theory::Theory::theoryOf(term) == theory::THEORY_ARITH);
+  Assert(theory::Theory::theoryOf(term) == theory::THEORY_ARITH);
   switch (term.getKind())
   {
     case kind::CONST_RATIONAL:
@@ -899,9 +913,8 @@ void LFSCArithProof::printLinearPolynomialNormalizer(std::ostream& o,
     }
     default:
 #ifdef CVC4_ASSERTIONS
-      std::ostringstream msg;
-      msg << "Invalid operation " << n.getKind() << " in linear polynomial";
-      Unreachable(msg.str().c_str());
+      Unreachable() << "Invalid operation " << n.getKind()
+                    << " in linear polynomial";
 #endif  // CVC4_ASSERTIONS
       break;
   }
@@ -914,13 +927,11 @@ void LFSCArithProof::printLinearMonomialNormalizer(std::ostream& o,
   {
     case kind::MULT: {
 #ifdef CVC4_ASSERTIONS
-      std::ostringstream s;
-      s << "node " << n << " is not a linear monomial";
-      s << " " << n[0].getKind() << " " << n[1].getKind();
       Assert((n[0].getKind() == kind::CONST_RATIONAL
               && (n[1].getKind() == kind::VARIABLE
-                  || n[1].getKind() == kind::SKOLEM)),
-             s.str().c_str());
+                  || n[1].getKind() == kind::SKOLEM)))
+          << "node " << n << " is not a linear monomial"
+          << " " << n[0].getKind() << " " << n[1].getKind();
 #endif  // CVC4_ASSERTIONS
 
       o << "\n        (pn_mul_c_L _ _ _ ";
@@ -946,9 +957,8 @@ void LFSCArithProof::printLinearMonomialNormalizer(std::ostream& o,
     }
     default:
 #ifdef CVC4_ASSERTIONS
-      std::ostringstream msg;
-      msg << "Invalid operation " << n.getKind() << " in linear monomial";
-      Unreachable(msg.str().c_str());
+      Unreachable() << "Invalid operation " << n.getKind()
+                    << " in linear monomial";
 #endif  // CVC4_ASSERTIONS
       break;
   }
@@ -963,18 +973,16 @@ void LFSCArithProof::printConstRational(std::ostream& o, const Node& n)
 
 void LFSCArithProof::printVariableNormalizer(std::ostream& o, const Node& n)
 {
-  std::ostringstream msg;
-  msg << "Invalid variable kind " << n.getKind() << " in linear monomial";
-  Assert(n.getKind() == kind::VARIABLE || n.getKind() == kind::SKOLEM,
-         msg.str().c_str());
+  Assert(n.getKind() == kind::VARIABLE || n.getKind() == kind::SKOLEM)
+      << "Invalid variable kind " << n.getKind() << " in linear monomial";
   o << "(pn_var " << n << ")";
 }
 
 void LFSCArithProof::printLinearPolynomialPredicateNormalizer(std::ostream& o,
                                                               const Node& n)
 {
-  Assert(n.getKind() == kind::GEQ,
-         "can only print normalization witnesses for (>=) nodes");
+  Assert(n.getKind() == kind::GEQ)
+      << "can only print normalization witnesses for (>=) nodes";
   Assert(n[1].getKind() == kind::CONST_RATIONAL);
   o << "(poly_formula_norm_>= _ _ _ ";
   o << "\n    (pn_- _ _ _ _ _ ";
@@ -1186,6 +1194,13 @@ void LFSCArithProof::printDeferredDeclarations(std::ostream& os, std::ostream& p
 
 void LFSCArithProof::printAliasingDeclarations(std::ostream& os, std::ostream& paren, const ProofLetMap &globalLetMap) {
   // Nothing to do here at this point.
+}
+
+bool LFSCArithProof::printsAsBool(const Node& n)
+{
+  // Our boolean variables and constants print as sort Bool.
+  // All complex booleans print as formulas.
+  return n.getType().isBoolean() and (n.isVar() or n.isConst());
 }
 
 } /* CVC4  namespace */
