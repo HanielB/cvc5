@@ -1,3 +1,4 @@
+; solved propositionally by CVC4
 (set-logic QF_UF)
 (set-info :smt-lib-version 2.0)
 (set-info :category "crafted")
@@ -14,5 +15,3 @@
 (assert (not (p f3)))
 (check-sat)
 (exit)
-
-

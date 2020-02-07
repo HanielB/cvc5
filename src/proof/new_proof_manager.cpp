@@ -72,7 +72,7 @@ SkolemizationManager* NewProofManager::getSkolemizationManager() {
 
 void NewProofManager::addAssertion(Node formula)
 {
-  Debug("newproof:pm") << "assert: " << formula << std::endl;
+  Debug("newproof::pm") << "assert: " << formula << std::endl;
   d_proof.get()->addProofStep(RULE_INPUT);
   if (d_format == VERIT)
   {

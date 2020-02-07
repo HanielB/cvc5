@@ -81,15 +81,15 @@ void VeritProof::addProofStep(NewProofRule rule)
     case RULE_CONGRUENCE:
     {
       unsigned id = getNextId();
-      Debug("newproof:pm") << "VeritProof::addProfStep: adding proof step with "
-                           << id// << " " << rule
-                           << "\n";
+      Debug("newproof::pm")
+          << "VeritProof::addProfStep: adding proof step with id/rule: " << id
+          << " / " << rule << "\n";
       d_proofSteps.push_back(VeritProofStep(id, rule));
       break;
     }
     default:
-      Debug("newproof:pm") << "VeritProof::addProfStep: unrecognized rule (or "
-                              "non-simple rule)\n";
+      Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
+                               "non-simple rule)\n";
   }
 }
 
@@ -105,17 +105,17 @@ void VeritProof::addProofStep(NewProofRule rule, Node conclusion)
     case RULE_CONGRUENCE:
     {
       unsigned id = getNextId();
-      Debug("newproof:pm") << "VeritProof::addProfStep: adding proof step with "
-                           << id << " " << rule
-                           << " " << conclusion << "\n";
+      Debug("newproof::pm")
+          << "VeritProof::addProfStep: adding proof step with id/rule: " << id
+          << " / " << rule << " " << conclusion << "\n";
       VeritProofStep vtproofstep = VeritProofStep(id, rule);
       vtproofstep.addConclusion(conclusion);
       d_proofSteps.push_back(vtproofstep);
       break;
     }
     default:
-      Debug("newproof:pm") << "VeritProof::addProfStep: unrecognized rule (or "
-                              "non-simple rule)\n";
+      Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
+                               "non-simple rule)\n";
   }
 }
 
@@ -133,10 +133,10 @@ void VeritProof::addProofStep(NewProofRule rule,
     case RULE_CONGRUENCE:
     {
       unsigned id = getNextId();
-      Debug("newproof:pm") << "VeritProof::addProfStep: adding proof step with "
-                           << id << " " << rule
-                           << " " //<< reasons << " "
-                           << conclusion << "\n";
+      Debug("newproof::pm")
+          << "VeritProof::addProfStep: adding proof step with id/rule: " << id
+          << " / " << rule << " "  //<< reasons << " "
+          << conclusion << "\n";
       VeritProofStep vtproofstep = VeritProofStep(id, rule);
       vtproofstep.addPremises(reasons);
       vtproofstep.addConclusion(conclusion);
@@ -144,31 +144,30 @@ void VeritProof::addProofStep(NewProofRule rule,
       break;
     }
     default:
-      Debug("newproof:pm") << "VeritProof::addProfStep: unrecognized rule (or "
-                              "non-simple rule)\n";
+      Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
+                               "non-simple rule)\n";
   }
 }
 
 void VeritProof::addToLastProofStep(Node conclusion)
 {
-  Debug("newproof:pm")
-      << "VeritProof::addToLastProfStep: adding to last proof step with id "
-      << d_proofSteps.back().getId() << " " << d_proofSteps.back().getRule()
-      << "\n";
+  Debug("newproof::pm") << "VeritProof::addToLastProfStep: adding to last "
+                           "proof step with id/rule: "
+                        << d_proofSteps.back().getId() << " / "
+                        << d_proofSteps.back().getRule() << "\n";
   d_proofSteps.back().addConclusion(conclusion);
 }
 
 void VeritProof::addToLastProofStep(std::vector<unsigned>& reasons,
                                     Node conclusion)
 {
-  Debug("newproof:pm")
-      << "VeritProof::addToLastProfStep: adding to last proof step with id "
-      << d_proofSteps.back().getId() << " " << d_proofSteps.back().getRule()
-      << "\n";
+  Debug("newproof::pm") << "VeritProof::addToLastProfStep: adding to last "
+                           "proof step with id/rule: "
+                        << d_proofSteps.back().getId() << " / "
+                        << d_proofSteps.back().getRule() << "\n";
   d_proofSteps.back().addPremises(reasons);
   d_proofSteps.back().addConclusion(conclusion);
 }
-
 
 // recursive call for building the proof
 
@@ -228,8 +227,13 @@ unsigned VeritProof::processTheoryProof(theory::EqProof* proof)
 
 void VeritProof::addTheoryProof(theory::EqProof* proof)
 {
-  // TODO traverse the proof bottom up (just as it has been constructed). Anything
-  // that has more than one level must be turned into a resolution of
+  Debug("newproof::pm") << "VeritProof::addTheoryProof:\n";
+  if (Debug.isOn("newproof::pm"))
+  {
+    proof->debug_print("newproof::pm", 1);
+  }
+  // TODO traverse the proof bottom up (just as it has been constructed).
+  // Anything that has more than one level must be turned into a resolution of
   // clauses. The (valid) clauses are always the conclusion and the conclusions
   // of the premises.
   processTheoryProof(proof);
@@ -244,7 +248,7 @@ void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
     out << " :clauses (";
     for (unsigned i = 0, size = premises.size(); i < size; ++i)
     {
-      out << ".c" << i << (i < size -1? " " : "");
+      out << ".c" << i << (i < size - 1 ? " " : "");
     }
     out << ")";
   }

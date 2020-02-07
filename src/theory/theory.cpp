@@ -34,11 +34,15 @@ using namespace std;
 namespace CVC4 {
 namespace theory {
 
-void EqProof::debug_print(const char* c, unsigned tb, PrettyPrinter* prettyPrinter) const {
+void EqProof::debug_print(const char* c,
+                          unsigned tb,
+                          PrettyPrinter* prettyPrinter) const
+{
   std::stringstream ss;
   debug_print(ss, tb, prettyPrinter);
   Debug(c) << ss.str();
 }
+
 void EqProof::debug_print(std::ostream& os,
                           unsigned tb,
                           PrettyPrinter* prettyPrinter) const
