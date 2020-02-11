@@ -277,8 +277,8 @@ void EqualityEngine::subtermEvaluates(EqualityNodeId id)  {
 }
 
 void EqualityEngine::addTermInternal(TNode t, bool isOperator) {
-
-  Debug("equality") << d_name << "::eq::addTermInternal(" << t << ")" << std::endl;
+  Debug("equality") << d_name << "::eq::addTermInternal(" << t << ")"
+                    << (isOperator ? " [op]" : "") << std::endl;
 
   // If there already, we're done
   if (hasTerm(t)) {
@@ -1240,18 +1240,26 @@ void EqualityEngine::getNonBinExplanation(
   // If the nodes are the same, we're done
   if (t1Id == t2Id)
   {
-    // TODO HB what about this?
     if (eqp)
     {
+      // FIXME this should be updated
       if ((d_nodes[t1Id].getKind() == kind::BUILTIN)
           && (d_nodes[t1Id].getConst<Kind>() == kind::SELECT))
       {
         std::vector<Node> no_children;
         eqp->d_node = nm->mkNode(kind::PARTIAL_SELECT_0, no_children);
       }
+      // ignore equalities between function symbols, i.e. internal nullary
+      // non-constant nodes
+      else if (d_isInternal[t1Id] && d_nodes[t1Id].getNumChildren() == 0
+               && !d_isConstant[t1Id])
+      {
+        eqp->d_node = Node::null();
+      }
       else
       {
-        eqp->d_node = ProofManager::currentPM()->mkOp(d_nodes[t1Id]);
+        AlwaysAssert(d_nodes[t1Id].getKind() != kind::BUILTIN);
+        eqp->d_node = d_nodes[t1Id];
       }
     }
     return;
@@ -1278,15 +1286,15 @@ void EqualityEngine::getNonBinExplanation(
     BfsData current = bfsQueue[currentIndex];
     EqualityNodeId currentNode = current.nodeId;
 
-    Debug("equality") << d_name << "::eq::getExplanation(): currentNode =  "
+    Debug("equality") << d_name << "::eq::getNonBinExplanation(): currentNode =  "
                       << d_nodes[currentNode] << std::endl;
 
     // Go through the equality edges of this node
     EqualityEdgeId currentEdge = d_equalityGraph[currentNode];
     Debug("equality") << d_name
-                      << "::eq::getExplanation(): edgesId =  " << currentEdge
+                      << "::eq::getNonBinExplanation(): edgesId =  " << currentEdge
                       << std::endl
-                      << d_name << "::eq::getExplanation(): edges =  "
+                      << d_name << "::eq::getNonBinExplanation(): edges =  "
                       << edgesToString(currentEdge) << std::endl;
     while (currentEdge != null_edge)
     {
@@ -1296,7 +1304,7 @@ void EqualityEngine::getNonBinExplanation(
       // If not just the backwards edge
       if ((currentEdge | 1u) != (current.edgeId | 1u))
       {
-        Debug("equality") << d_name << "::eq::getExplanation(): currentEdge = ("
+        Debug("equality") << d_name << "::eq::getNonBinExplanation(): currentEdge = ("
                           << d_nodes[currentNode] << ", "
                           << d_nodes[edge.getNodeId()] << ")" << std::endl;
 
@@ -1304,7 +1312,7 @@ void EqualityEngine::getNonBinExplanation(
         if (edge.getNodeId() == t2Id)
         {
           Debug("equality")
-              << d_name << "::eq::getExplanation(): path found: " << std::endl;
+              << d_name << "::eq::getNonBinExplanation(): path found: " << std::endl;
 
           std::vector<std::shared_ptr<EqProof>> eqp_trans;
 
@@ -1320,7 +1328,7 @@ void EqualityEngine::getNonBinExplanation(
 
             Debug("equality")
                 << d_name
-                << "::eq::getExplanation(): currentEdge = " << currentEdge
+                << "::eq::getNonBinExplanation(): currentEdge = " << currentEdge
                 << ", currentNode = " << currentNode << std::endl
                 << d_name
                 << "                        targetNode = " << d_nodes[edgeNode]
@@ -1340,6 +1348,7 @@ void EqualityEngine::getNonBinExplanation(
             if (eqp)
             {
               eqpc = std::make_shared<EqProof>();
+              eqpc->d_node = Node::null();
               eqpc->d_id = reasonType;
             }
 
@@ -1349,67 +1358,44 @@ void EqualityEngine::getNonBinExplanation(
               case MERGED_THROUGH_CONGRUENCE:
               {
                 // f(x1, x2) == f(y1, y2) because x1 = y1 and x2 = y2
-                Debug("equality")
-                    << d_name
-                    << "::eq::getExplanation(): due to congruence, going deeper"
-                    << std::endl;
+                Debug("equality") << d_name
+                                  << "::eq::getNonBinExplanation(): due to "
+                                     "congruence, going deeper"
+                                  << std::endl;
                 const FunctionApplication& f1 =
                     d_applications[currentNode].original;
                 const FunctionApplication& f2 =
                     d_applications[edgeNode].original;
 
                 Debug("equality") << push;
-                Debug("equality")
-                    << "Explaining left hand side equalities" << std::endl;
+                Debug("equality") << "Explaining left hand side equalities\n";
                 std::shared_ptr<EqProof> eqpc1 =
                     eqpc ? std::make_shared<EqProof>() : nullptr;
                 getNonBinExplanation(f1.a, f2.a, equalities, cache, eqpc1.get());
-                Debug("equality")
-                    << "Explaining right hand side equalities" << std::endl;
+                Debug("equality") << "Explaining right hand side equalities\n";
                 std::shared_ptr<EqProof> eqpc2 =
                     eqpc ? std::make_shared<EqProof>() : nullptr;
                 getNonBinExplanation(f1.b, f2.b, equalities, cache, eqpc2.get());
                 if (eqpc)
                 {
-                  eqpc->d_children.push_back(eqpc1);
-                  eqpc->d_children.push_back(eqpc2);
-                  if (d_nodes[currentNode].getKind() == kind::EQUAL)
+                  // ignore lhs proof if refl over function
+                  if (eqpc1->d_id != MERGED_THROUGH_REFLEXIVITY
+                      || eqpc1->d_node != Node::null())
                   {
-                    // leave node null for now
-                    eqpc->d_node = Node::null();
+                    eqpc->d_children.push_back(eqpc1);
                   }
-                  else
+                  eqpc->d_children.push_back(eqpc2);
+                  // if full application, create the result of the congruence
+                  if (!d_isInternal[currentNode])
                   {
-                    if (d_nodes[f1.a].getKind() == kind::APPLY_UF
-                        || d_nodes[f1.a].getKind() == kind::SELECT
-                        || d_nodes[f1.a].getKind() == kind::STORE)
+                    Kind k = d_nodes[f1.a].getKind();
+                    // second case accounts for parametric kinds
+                    // HB Are there others????
+                    if (d_congruenceKinds[k]
+                        || (k == kind::BUILTIN
+                            && d_nodes[f1.a].getConst<Kind>() == kind::SELECT))
                     {
-                      eqpc->d_node = d_nodes[f1.a];
-                    }
-                    else
-                    {
-                      if (d_nodes[f1.a].getKind() == kind::BUILTIN
-                          && d_nodes[f1.a].getConst<Kind>() == kind::SELECT)
-                      {
-                        eqpc->d_node =
-                            nm->mkNode(kind::PARTIAL_SELECT_1, d_nodes[f1.b]);
-                        // The first child is a PARTIAL_SELECT_0.
-                        // Give it a child so that we know what kind of (read)
-                        // it is, when we dump to LFSC.
-                        Assert(eqpc->d_children[0]->d_node.getKind()
-                               == kind::PARTIAL_SELECT_0);
-                        Assert(eqpc->d_children[0]->d_children.size() == 0);
-
-                        eqpc->d_children[0]->d_node =
-                            nm->mkNode(kind::PARTIAL_SELECT_0, d_nodes[f1.b]);
-                      }
-                      else
-                      {
-                        eqpc->d_node = nm->mkNode(
-                            kind::PARTIAL_APPLY_UF,
-                            ProofManager::currentPM()->mkOp(d_nodes[f1.a]),
-                            d_nodes[f1.b]);
-                      }
+                      eqpc->d_node = d_nodes[f1.a].eqNode(d_nodes[f2.a]);
                     }
                   }
                 }
@@ -1421,7 +1407,7 @@ void EqualityEngine::getNonBinExplanation(
               {
                 // x1 == x1
                 Debug("equality") << d_name
-                                  << "::eq::getExplanation(): due to "
+                                  << "::eq::getNonBinExplanation(): due to "
                                      "reflexivity, going deeper"
                                   << std::endl;
                 // HB no idea what is going on here
@@ -1443,7 +1429,7 @@ void EqualityEngine::getNonBinExplanation(
               {
                 // f(c1, ..., cn) = c semantically, we can just ignore it
                 Debug("equality") << d_name
-                                  << "::eq::getExplanation(): due to "
+                                  << "::eq::getNonBinExplanation(): due to "
                                      "constants, explain the constants"
                                   << std::endl;
                 Debug("equality") << push;
@@ -1488,11 +1474,11 @@ void EqualityEngine::getNonBinExplanation(
               {
                 // Construct the equality
                 Debug("equality")
-                    << d_name << "::eq::getExplanation(): adding: " << reason
+                    << d_name << "::eq::getNonBinExplanation(): adding: " << reason
                     << std::endl;
                 Debug("equality")
                     << d_name
-                    << "::eq::getExplanation(): reason type = " << reasonType
+                    << "::eq::getNonBinExplanation(): reason type = " << reasonType
                     << std::endl;
                 Node a = d_nodes[currentNode];
                 Node b = d_nodes[d_equalityEdges[currentEdge].getNodeId()];
