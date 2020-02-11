@@ -1,0 +1,7 @@
+(set .c1 (input :conclusion ((= a b))))
+(set .c2 (input :conclusion ((= c d))))
+(set .c3 (input :conclusion ((not (= (f a a c) (f a b d))))))
+(set .c4 (eq_congruent :conclusion ((not (= a a)) (not (= a b)) (not (= c d)) (= (f a a c) (f a b d)))))
+(set .c5 (eq_reflexive :conclusion ((= a a))))
+(set .c6 (th_resolution :clauses (.c4 .c5) :conclusion ((not (= a b)) (not (= c d)) (= (f a a c) (f a b d)))))
+(set .c7 (resolution :clauses (.c6 .c1 .c2 .c3) :conclusion ()))
