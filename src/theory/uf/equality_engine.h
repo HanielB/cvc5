@@ -358,9 +358,10 @@ private:
   };/* class EqualityEngine::EqualityEdge */
 
   /**
-   * All the equality edges (twice as many as the number of asserted equalities. If an equality
-   * t1 = t2 is asserted, the edges added are -> t2, -> t1 (in this order). Hence, having the index
-   * of one of the edges you can reconstruct the original equality.
+   * All the equality edges (twice as many as the number of asserted equalities.
+   * If an equality t1 = t2 is asserted, the edges added are -> t2, -> t1 (in
+   * this order)). Hence, having the index of one of the edges you can
+   * reconstruct the original equality.
    */
   std::vector<EqualityEdge> d_equalityEdges;
 
@@ -370,8 +371,8 @@ private:
   std::string edgesToString(EqualityEdgeId edgeId) const;
 
   /**
-   * Map from a node to its first edge in the equality graph. Edges are added to the front of the
-   * list which makes the insertion/backtracking easy.
+   * Map from a node to its first edge in the equality graph. Edges are added to
+   * the front of the list which makes the insertion/backtracking easy.
    */
   std::vector<EqualityEdgeId> d_equalityGraph;
 
