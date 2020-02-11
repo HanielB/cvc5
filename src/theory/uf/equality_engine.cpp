@@ -1321,9 +1321,9 @@ void EqualityEngine::getExplanation(
                 } else {
                   // The LFSC translator prefers (not (= a b)) over (= (= a b) false)
 
-                  if (a == NodeManager::currentNM()->mkConst(false)) {
+                  if (a == d_false) {
                     eqpc->d_node = b.notNode();
-                  } else if (b == NodeManager::currentNM()->mkConst(false)) {
+                  } else if (b == d_false) {
                     eqpc->d_node = a.notNode();
                   } else {
                     eqpc->d_node = b.eqNode(a);
