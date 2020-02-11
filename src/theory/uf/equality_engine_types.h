@@ -239,6 +239,9 @@ enum FunctionApplicationType {
  * represents the predicate (a = b). Note that since one can not
  * construct the equality over function terms, the equality and hash
  * function below are still well defined.
+ *
+ * HB how come this "cannot have equality between functions" is not an issue
+ * with HOL?
  */
 struct FunctionApplication {
   /** Type of application */
