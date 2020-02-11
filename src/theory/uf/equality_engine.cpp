@@ -50,8 +50,8 @@ struct BfsData {
   EqualityNodeId nodeId;
   // The index of the edge we traversed
   EqualityEdgeId edgeId;
-  // Index in the queue of the previous node. Shouldn't be too much of them, at most the size
-  // of the biggest equivalence class
+  // Index in the queue of the previous node. Shouldn't be too much of them, at
+  // most the size of the biggest equivalence class
   size_t previousIndex;
 
   BfsData(EqualityNodeId nodeId = null_id, EqualityEdgeId edgeId = null_edge, size_t prev = 0)
