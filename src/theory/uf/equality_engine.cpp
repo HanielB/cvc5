@@ -911,15 +911,23 @@ void EqualityEngine::addGraphEdge(EqualityNodeId t1, EqualityNodeId t2, MergeRea
   }
 }
 
-std::string EqualityEngine::edgesToString(EqualityEdgeId edgeId) const {
+std::string EqualityEngine::edgesToString(EqualityEdgeId edgeId) const
+{
   std::stringstream out;
   bool first = true;
-  if (edgeId == null_edge) {
+  if (edgeId == null_edge)
+  {
     out << "null";
-  } else {
-    while (edgeId != null_edge) {
+  }
+  else
+  {
+    while (edgeId != null_edge)
+    {
       const EqualityEdge& edge = d_equalityEdges[edgeId];
-      if (!first) out << ",";
+      if (!first)
+      {
+        out << ",";
+      }
       out << d_nodes[edge.getNodeId()];
       edgeId = edge.getNext();
       first = false;
@@ -1046,6 +1054,524 @@ void EqualityEngine::explainPredicate(TNode p, bool polarity,
       getNodeId(p), polarity ? d_trueId : d_falseId, assertions, cache, eqp);
 }
 
+void EqualityEngine::explainEqualityNonBin(TNode t1,
+                                           TNode t2,
+                                           bool polarity,
+                                           std::vector<TNode>& equalities,
+                                           EqProof* eqp) const
+{
+  Debug("pf::ee") << d_name << "::eq::explainEqualityNonBin(" << t1 << ", "
+                  << t2 << ", " << (polarity ? "true" : "false") << ")"
+                  << ", proof = " << (eqp ? "ON" : "OFF") << std::endl;
+
+  // The terms must be there already
+  Assert(hasTerm(t1) && hasTerm(t2));
+  ;
+
+  // Get the ids
+  EqualityNodeId t1Id = getNodeId(t1);
+  EqualityNodeId t2Id = getNodeId(t2);
+
+  std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*> cache;
+  if (polarity) {
+    // Get the explanation
+    getNonBinExplanation(t1Id, t2Id, equalities, cache, eqp);
+  } else {
+    if (eqp) {
+      eqp->d_id = MERGED_THROUGH_TRANS;
+      eqp->d_node = d_nodes[t1Id].eqNode(d_nodes[t2Id]).notNode();
+    }
+
+    // Get the reason for this disequality
+    EqualityPair pair(t1Id, t2Id);
+    Assert(d_disequalityReasonsMap.find(pair) != d_disequalityReasonsMap.end())
+        << "Don't ask for stuff I didn't notify you about";
+    DisequalityReasonRef reasonRef = d_disequalityReasonsMap.find(pair)->second;
+
+    for (unsigned i = reasonRef.mergesStart; i < reasonRef.mergesEnd; ++ i) {
+
+      EqualityPair toExplain = d_deducedDisequalityReasons[i];
+      std::shared_ptr<EqProof> eqpc;
+
+      // If we're constructing a (transitivity) proof, we don't need to include an explanation for x=x.
+      if (eqp && toExplain.first != toExplain.second) {
+        eqpc = std::make_shared<EqProof>();
+      }
+
+      getNonBinExplanation(
+          toExplain.first, toExplain.second, equalities, cache, eqpc.get());
+
+      if (eqpc) {
+        if (Debug.isOn("pf::ee"))
+        {
+          Debug("pf::ee") << "Child proof is:" << std::endl;
+          eqpc->debug_print("pf::ee", 1);
+        }
+        if (eqpc->d_id == MERGED_THROUGH_TRANS) {
+          std::vector<std::shared_ptr<EqProof>> orderedChildren;
+          bool nullCongruenceFound = false;
+          for (unsigned i = 0; i < eqpc->d_children.size(); ++i) {
+            if (eqpc->d_children[i]->d_id==MERGED_THROUGH_CONGRUENCE &&
+                eqpc->d_children[i]->d_node.isNull()) {
+              nullCongruenceFound = true;
+              Debug("pf::ee") << "Have congruence with empty d_node. Splitting..." << std::endl;
+              orderedChildren.insert(orderedChildren.begin(), eqpc->d_children[i]->d_children[0]);
+              orderedChildren.push_back(eqpc->d_children[i]->d_children[1]);
+            } else {
+              orderedChildren.push_back(eqpc->d_children[i]);
+            }
+          }
+
+          if (nullCongruenceFound) {
+            eqpc->d_children = orderedChildren;
+            if (Debug.isOn("pf::ee"))
+            {
+              Debug("pf::ee")
+                  << "Child proof's children have been reordered. It is now:"
+                  << std::endl;
+              eqpc->debug_print("pf::ee", 1);
+            }
+          }
+        }
+
+        eqp->d_children.push_back(eqpc);
+      }
+    }
+
+    if (eqp) {
+      if (eqp->d_children.size() == 0) {
+        // Corner case where this is actually a disequality between two constants
+        Debug("pf::ee") << "Encountered a constant disequality (not a transitivity proof): "
+                        << eqp->d_node << std::endl;
+        Assert(eqp->d_node[0][0].isConst());
+        Assert(eqp->d_node[0][1].isConst());
+        eqp->d_id = MERGED_THROUGH_CONSTANTS;
+      } else if (eqp->d_children.size() == 1) {
+        // The transitivity proof has just one child. Simplify.
+        std::shared_ptr<EqProof> temp = eqp->d_children[0];
+        eqp->d_children.clear();
+        *eqp = *temp;
+      }
+
+      if (Debug.isOn("pf::ee"))
+      {
+        Debug("pf::ee") << "Disequality explanation final proof: " << std::endl;
+        eqp->debug_print("pf::ee", 1);
+      }
+    }
+  }
+}
+
+void EqualityEngine::getNonBinExplanation(
+    EqualityNodeId t1Id,
+    EqualityNodeId t2Id,
+    std::vector<TNode>& equalities,
+    std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*>& cache,
+    EqProof* eqp) const
+{
+  Trace("eq-exp") << d_name << "::eq::getNonBinExplanation(" << d_nodes[t1Id]
+                  << "," << d_nodes[t2Id] << ") size = " << cache.size()
+                  << std::endl;
+
+  NodeManager* nm = NodeManager::currentNM();
+  // determine if we have already computed the explanation.
+  std::pair<EqualityNodeId, EqualityNodeId> cacheKey;
+  std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*>::iterator it;
+  // HB Is the cache used solely for proofs, I take it?
+  // HB Yeah, I'm pretty sure
+  if (!eqp)
+  {
+    // If proofs are disabled, we order the ids, since explaining t1 = t2 is the
+    // same as explaining t2 = t1.
+    cacheKey = std::minmax(t1Id, t2Id);
+    it = cache.find(cacheKey);
+    if (it != cache.end())
+    {
+      return;
+    }
+  }
+  else
+  {
+    // If proofs are enabled, note that proofs are sensitive to the order of t1
+    // and t2, so we don't sort the ids in this case. TODO: Depending on how
+    // issue #2965 is resolved, we may be able to revisit this, if it is the
+    // case that proof/uf_proof.h,cpp is robust to equality ordering.
+    cacheKey = std::pair<EqualityNodeId, EqualityNodeId>(t1Id, t2Id);
+    it = cache.find(cacheKey);
+    if (it != cache.end())
+    {
+      if (it->second)
+      {
+        eqp->d_id = it->second->d_id;
+        eqp->d_children.insert(eqp->d_children.end(),
+                               it->second->d_children.begin(),
+                               it->second->d_children.end());
+        eqp->d_node = it->second->d_node;
+      }
+      else
+      {
+        // We may have cached null in its place, create the trivial proof now.
+        Assert(d_nodes[t1Id] == d_nodes[t2Id]);
+        Assert(eqp->d_id == MERGED_THROUGH_REFLEXIVITY);
+        eqp->d_node = d_nodes[t1Id];
+      }
+      return;
+    }
+  }
+  cache[cacheKey] = eqp;
+
+  // We can only explain the nodes that got merged
+#ifdef CVC4_ASSERTIONS
+  bool canExplain =
+      getEqualityNode(t1Id).getFind() == getEqualityNode(t2Id).getFind()
+      || (d_done && isConstant(t1Id) && isConstant(t2Id));
+
+  if (!canExplain)
+  {
+    Warning() << "Can't explain equality:" << std::endl;
+    Warning() << d_nodes[t1Id] << " with find "
+              << d_nodes[getEqualityNode(t1Id).getFind()] << std::endl;
+    Warning() << d_nodes[t2Id] << " with find "
+              << d_nodes[getEqualityNode(t2Id).getFind()] << std::endl;
+  }
+  Assert(canExplain);
+#endif
+
+  // If the nodes are the same, we're done
+  if (t1Id == t2Id)
+  {
+    // TODO HB what about this?
+    if (eqp)
+    {
+      if ((d_nodes[t1Id].getKind() == kind::BUILTIN)
+          && (d_nodes[t1Id].getConst<Kind>() == kind::SELECT))
+      {
+        std::vector<Node> no_children;
+        eqp->d_node = nm->mkNode(kind::PARTIAL_SELECT_0, no_children);
+      }
+      else
+      {
+        eqp->d_node = ProofManager::currentPM()->mkOp(d_nodes[t1Id]);
+      }
+    }
+    return;
+  }
+
+  if (Debug.isOn("equality::internal"))
+  {
+    debugPrintGraph();
+  }
+
+  // Queue for the BFS containing nodes
+  std::vector<BfsData> bfsQueue;
+
+  // Find a path from t1 to t2 in the graph (BFS)
+  bfsQueue.push_back(BfsData(t1Id, null_id, 0));
+  size_t currentIndex = 0;
+  do
+  {
+    // There should always be a path, and every node can be visited only once
+    // (tree)
+    Assert(currentIndex < bfsQueue.size());
+
+    // The next node to visit
+    BfsData current = bfsQueue[currentIndex];
+    EqualityNodeId currentNode = current.nodeId;
+
+    Debug("equality") << d_name << "::eq::getExplanation(): currentNode =  "
+                      << d_nodes[currentNode] << std::endl;
+
+    // Go through the equality edges of this node
+    EqualityEdgeId currentEdge = d_equalityGraph[currentNode];
+    Debug("equality") << d_name
+                      << "::eq::getExplanation(): edgesId =  " << currentEdge
+                      << std::endl
+                      << d_name << "::eq::getExplanation(): edges =  "
+                      << edgesToString(currentEdge) << std::endl;
+    while (currentEdge != null_edge)
+    {
+      // Get the edge
+      const EqualityEdge& edge = d_equalityEdges[currentEdge];
+
+      // If not just the backwards edge
+      if ((currentEdge | 1u) != (current.edgeId | 1u))
+      {
+        Debug("equality") << d_name << "::eq::getExplanation(): currentEdge = ("
+                          << d_nodes[currentNode] << ", "
+                          << d_nodes[edge.getNodeId()] << ")" << std::endl;
+
+        // Did we find the path
+        if (edge.getNodeId() == t2Id)
+        {
+          Debug("equality")
+              << d_name << "::eq::getExplanation(): path found: " << std::endl;
+
+          std::vector<std::shared_ptr<EqProof>> eqp_trans;
+
+          // Reconstruct the path
+          do
+          {
+            // The current node
+            currentNode = bfsQueue[currentIndex].nodeId;
+            EqualityNodeId edgeNode = d_equalityEdges[currentEdge].getNodeId();
+            MergeReasonType reasonType =
+                d_equalityEdges[currentEdge].getReasonType();
+            Node reason = d_equalityEdges[currentEdge].getReason();
+
+            Debug("equality")
+                << d_name
+                << "::eq::getExplanation(): currentEdge = " << currentEdge
+                << ", currentNode = " << currentNode << std::endl
+                << d_name
+                << "                        targetNode = " << d_nodes[edgeNode]
+                << std::endl
+                << d_name << "                        in currentEdge = ("
+                << d_nodes[currentNode] << "," << d_nodes[edge.getNodeId()]
+                << ")" << std::endl
+                << d_name << "                        reason = " << reason
+                << std::endl
+                << d_name
+                << "                        reason type = " << reasonType
+                << std::endl;
+
+            std::shared_ptr<EqProof> eqpc;
+
+            // Make child proof if a proof is being constructed
+            if (eqp)
+            {
+              eqpc = std::make_shared<EqProof>();
+              eqpc->d_id = reasonType;
+            }
+
+            // Add the actual equality to the vector
+            switch (reasonType)
+            {
+              case MERGED_THROUGH_CONGRUENCE:
+              {
+                // f(x1, x2) == f(y1, y2) because x1 = y1 and x2 = y2
+                Debug("equality")
+                    << d_name
+                    << "::eq::getExplanation(): due to congruence, going deeper"
+                    << std::endl;
+                const FunctionApplication& f1 =
+                    d_applications[currentNode].original;
+                const FunctionApplication& f2 =
+                    d_applications[edgeNode].original;
+
+                Debug("equality") << push;
+                Debug("equality")
+                    << "Explaining left hand side equalities" << std::endl;
+                std::shared_ptr<EqProof> eqpc1 =
+                    eqpc ? std::make_shared<EqProof>() : nullptr;
+                getNonBinExplanation(f1.a, f2.a, equalities, cache, eqpc1.get());
+                Debug("equality")
+                    << "Explaining right hand side equalities" << std::endl;
+                std::shared_ptr<EqProof> eqpc2 =
+                    eqpc ? std::make_shared<EqProof>() : nullptr;
+                getNonBinExplanation(f1.b, f2.b, equalities, cache, eqpc2.get());
+                if (eqpc)
+                {
+                  eqpc->d_children.push_back(eqpc1);
+                  eqpc->d_children.push_back(eqpc2);
+                  if (d_nodes[currentNode].getKind() == kind::EQUAL)
+                  {
+                    // leave node null for now
+                    eqpc->d_node = Node::null();
+                  }
+                  else
+                  {
+                    if (d_nodes[f1.a].getKind() == kind::APPLY_UF
+                        || d_nodes[f1.a].getKind() == kind::SELECT
+                        || d_nodes[f1.a].getKind() == kind::STORE)
+                    {
+                      eqpc->d_node = d_nodes[f1.a];
+                    }
+                    else
+                    {
+                      if (d_nodes[f1.a].getKind() == kind::BUILTIN
+                          && d_nodes[f1.a].getConst<Kind>() == kind::SELECT)
+                      {
+                        eqpc->d_node =
+                            nm->mkNode(kind::PARTIAL_SELECT_1, d_nodes[f1.b]);
+                        // The first child is a PARTIAL_SELECT_0.
+                        // Give it a child so that we know what kind of (read)
+                        // it is, when we dump to LFSC.
+                        Assert(eqpc->d_children[0]->d_node.getKind()
+                               == kind::PARTIAL_SELECT_0);
+                        Assert(eqpc->d_children[0]->d_children.size() == 0);
+
+                        eqpc->d_children[0]->d_node =
+                            nm->mkNode(kind::PARTIAL_SELECT_0, d_nodes[f1.b]);
+                      }
+                      else
+                      {
+                        eqpc->d_node = nm->mkNode(
+                            kind::PARTIAL_APPLY_UF,
+                            ProofManager::currentPM()->mkOp(d_nodes[f1.a]),
+                            d_nodes[f1.b]);
+                      }
+                    }
+                  }
+                }
+                Debug("equality") << pop;
+                break;
+              }
+
+              case MERGED_THROUGH_REFLEXIVITY:
+              {
+                // x1 == x1
+                Debug("equality") << d_name
+                                  << "::eq::getExplanation(): due to "
+                                     "reflexivity, going deeper"
+                                  << std::endl;
+                // HB no idea what is going on here
+                EqualityNodeId eqId =
+                    currentNode == d_trueId ? edgeNode : currentNode;
+                const FunctionApplication& eq = d_applications[eqId].original;
+                Assert(eq.isEquality()) << "Must be an equality";
+
+                // Explain why a = b constant
+                Debug("equality") << push;
+                Assert(!eqpc || eqpc->d_node.isNull());
+                getNonBinExplanation(eq.a, eq.b, equalities, cache, eqpc.get());
+                Debug("equality") << pop;
+
+                break;
+              }
+
+              case MERGED_THROUGH_CONSTANTS:
+              {
+                // f(c1, ..., cn) = c semantically, we can just ignore it
+                Debug("equality") << d_name
+                                  << "::eq::getExplanation(): due to "
+                                     "constants, explain the constants"
+                                  << std::endl;
+                Debug("equality") << push;
+
+                // Get the node we interpreted
+                TNode interpreted = d_nodes[currentNode];
+                if (interpreted.isConst())
+                {
+                  interpreted = d_nodes[edgeNode];
+                }
+
+                // Explain why a is a constant by explaining each argument
+                for (unsigned i = 0; i < interpreted.getNumChildren(); ++i)
+                {
+                  EqualityNodeId childId = getNodeId(interpreted[i]);
+                  Assert(isConstant(childId));
+                  std::shared_ptr<EqProof> eqpcc =
+                      eqpc ? std::make_shared<EqProof>() : nullptr;
+                  getNonBinExplanation(childId,
+                                       getEqualityNode(childId).getFind(),
+                                       equalities,
+                                       cache,
+                                       eqpcc.get());
+                  if (eqpc)
+                  {
+                    eqpc->d_children.push_back(eqpcc);
+                    if (Debug.isOn("pf::ee"))
+                    {
+                      Debug("pf::ee")
+                          << "MERGED_THROUGH_CONSTANTS. Dumping the child proof"
+                          << std::endl;
+                      eqpc->debug_print("pf::ee", 1);
+                    }
+                  }
+                }
+
+                Debug("equality") << pop;
+                break;
+              }
+
+              default:
+              {
+                // Construct the equality
+                Debug("equality")
+                    << d_name << "::eq::getExplanation(): adding: " << reason
+                    << std::endl;
+                Debug("equality")
+                    << d_name
+                    << "::eq::getExplanation(): reason type = " << reasonType
+                    << std::endl;
+                Node a = d_nodes[currentNode];
+                Node b = d_nodes[d_equalityEdges[currentEdge].getNodeId()];
+
+                if (eqpc)
+                {
+                  // apply proof reconstruction processing (when eqpc is
+                  // non-null)
+                  if (d_pathReconstructionTriggers.find(reasonType)
+                      != d_pathReconstructionTriggers.end())
+                  {
+                    d_pathReconstructionTriggers.find(reasonType)
+                        ->second->notify(
+                            reasonType, reason, a, b, equalities, eqpc.get());
+                  }
+                  if (reasonType == MERGED_THROUGH_EQUALITY)
+                  {
+                    eqpc->d_node = reason;
+                  }
+                  else
+                  {
+                    // The LFSC translator prefers (not (= a b)) over (= (= a b)
+                    // false)
+                    eqpc->d_node = a == d_false ? b.notNode()
+                                                : (b == d_false ? a.notNode()
+                                                                : b.eqNode(a));
+                  }
+                  eqpc->d_id = reasonType;
+                }
+                equalities.push_back(reason);
+                break;
+              }
+            }
+
+            // Go to the previous
+            currentEdge = bfsQueue[currentIndex].edgeId;
+            currentIndex = bfsQueue[currentIndex].previousIndex;
+
+            eqp_trans.push_back(eqpc);
+          } while (currentEdge != null_id);
+
+          if (eqp)
+          {
+            if (eqp_trans.size() == 1)
+            {
+              *eqp = *eqp_trans[0];
+            }
+            else
+            {
+              eqp->d_id = MERGED_THROUGH_TRANS;
+              eqp->d_children.insert(
+                  eqp->d_children.end(), eqp_trans.begin(), eqp_trans.end());
+              eqp->d_node =
+                  nm->mkNode(kind::EQUAL, d_nodes[t1Id], d_nodes[t2Id]);
+            }
+            if (Debug.isOn("pf::ee"))
+            {
+              eqp->debug_print("pf::ee", 1);
+            }
+          }
+
+          // Done
+          return;
+        }
+
+        // Push to the visitation queue if it's not the backward edge
+        bfsQueue.push_back(
+            BfsData(edge.getNodeId(), currentEdge, currentIndex));
+      }
+
+      // Go to the next edge
+      currentEdge = edge.getNext();
+    }
+
+    // Go to the next node to visit
+    ++currentIndex;
+  } while (true);
+}
+
 void EqualityEngine::getExplanation(
     EqualityNodeId t1Id,
     EqualityNodeId t2Id,
@@ -1059,7 +1585,8 @@ void EqualityEngine::getExplanation(
   // determine if we have already computed the explanation.
   std::pair<EqualityNodeId, EqualityNodeId> cacheKey;
   std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*>::iterator it;
-  // Is the cache used solely for proofs, I take it?
+  // HB Is the cache used solely for proofs, I take it?
+  // HB Yeah, I'm pretty sure
   if (!eqp)
   {
     // If proofs are disabled, we order the ids, since explaining t1 = t2 is the
@@ -1183,6 +1710,7 @@ void EqualityEngine::getExplanation(
             Debug("equality") << d_name << "::eq::getExplanation(): currentEdge = " << currentEdge << ", currentNode = " << currentNode << std::endl;
             Debug("equality") << d_name << "                     targetNode = " << d_nodes[edgeNode] << std::endl;
             Debug("equality") << d_name << "                     in currentEdge = (" << d_nodes[currentNode] << "," << d_nodes[edge.getNodeId()] << ")" << std::endl;
+            Debug("equality") << d_name << "                     reason = " << reason << std::endl;
             Debug("equality") << d_name << "                     reason type = " << reasonType << std::endl;
 
             std::shared_ptr<EqProof> eqpc;;
@@ -1320,14 +1848,9 @@ void EqualityEngine::getExplanation(
                   eqpc->d_node = reason;
                 } else {
                   // The LFSC translator prefers (not (= a b)) over (= (= a b) false)
-
-                  if (a == d_false) {
-                    eqpc->d_node = b.notNode();
-                  } else if (b == d_false) {
-                    eqpc->d_node = a.notNode();
-                  } else {
-                    eqpc->d_node = b.eqNode(a);
-                  }
+                  eqpc->d_node =
+                      a == d_false ? b.notNode()
+                                   : (b == d_false ? a.notNode() : b.eqNode(a));
                 }
                 eqpc->d_id = reasonType;
               }

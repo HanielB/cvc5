@@ -547,6 +547,13 @@ private:
       std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*>& cache,
       EqProof* eqp) const;
 
+  void getNonBinExplanation(
+      EqualityNodeId t1Id,
+      EqualityNodeId t2Id,
+      std::vector<TNode>& equalities,
+      std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*>& cache,
+      EqProof* eqp) const;
+
   /**
    * Print the equality graph.
    */
@@ -843,6 +850,12 @@ public:
   void explainEquality(TNode t1, TNode t2, bool polarity,
                        std::vector<TNode>& assertions,
                        EqProof* eqp = nullptr) const;
+
+  void explainEqualityNonBin(TNode t1,
+                             TNode t2,
+                             bool polarity,
+                             std::vector<TNode>& assertions,
+                             EqProof* eqp = nullptr) const;
 
   /**
    * Get an explanation of the predicate being true or false.

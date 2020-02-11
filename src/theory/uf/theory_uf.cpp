@@ -289,19 +289,30 @@ void TheoryUF::explain(TNode literal, std::vector<TNode>& assumptions, EqProof* 
   TNode atom = polarity ? literal : literal[0];
   if (atom.getKind() == kind::EQUAL) {
     d_equalityEngine.explainEquality(atom[0], atom[1], polarity, assumptions, pf);
+    NEWPROOF({
+      theory::EqProof* proof = new theory::EqProof();
+      d_equalityEngine.explainEqualityNonBin(
+          atom[0], atom[1], polarity, assumptions, proof);
+      Debug("pf::uf") << "\n\tBuilt alternative proof: \n\n";
+      proof->debug_print("pf::uf", 1);
+    })
   } else {
     d_equalityEngine.explainPredicate(atom, polarity, assumptions, pf);
   }
-  if( pf ){
+  if (Debug.isOn("pf::uf"))
+  {
+    if (pf)
+    {
+      Debug("pf::uf") << "\nBuilt proof: \n\n";
+      pf->debug_print("pf::uf");
+    }
+    Debug("pf::uf") << "UF: explain( " << literal << " ):\n\t";
+    for (unsigned i = 0, size = assumptions.size(); i < size; ++i)
+    {
+      Debug("pf::uf") << assumptions[i] << " ";
+    }
     Debug("pf::uf") << std::endl;
-    pf->debug_print("pf::uf");
   }
-
-  Debug("pf::uf") << "UF: explain( " << literal << " ):" << std::endl << "\t";
-  for (unsigned i = 0; i < assumptions.size(); ++i) {
-    Debug("pf::uf") << assumptions[i] << " ";
-  }
-  Debug("pf::uf") << std::endl;
 }
 
 Node TheoryUF::explain(TNode literal) {
