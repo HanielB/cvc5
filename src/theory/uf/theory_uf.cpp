@@ -288,14 +288,16 @@ void TheoryUF::explain(TNode literal, std::vector<TNode>& assumptions, EqProof* 
   bool polarity = literal.getKind() != kind::NOT;
   TNode atom = polarity ? literal : literal[0];
   if (atom.getKind() == kind::EQUAL) {
-    d_equalityEngine.explainEquality(atom[0], atom[1], polarity, assumptions, pf);
-    NEWPROOF({
-      theory::EqProof* proof = new theory::EqProof();
+    if (pf && CVC4::options::newProofs())
+    {
       d_equalityEngine.explainEqualityNonBin(
-          atom[0], atom[1], polarity, assumptions, proof);
-      Debug("pf::uf") << "\n\tBuilt alternative proof: \n\n";
-      proof->debug_print("pf::uf", 1);
-    })
+          atom[0], atom[1], polarity, assumptions, pf);
+    }
+    else
+    {
+      d_equalityEngine.explainEquality(
+          atom[0], atom[1], polarity, assumptions, pf);
+    }
   } else {
     d_equalityEngine.explainPredicate(atom, polarity, assumptions, pf);
   }
