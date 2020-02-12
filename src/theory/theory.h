@@ -73,14 +73,17 @@ namespace eq {
  * or a merge of an equality to false due to both sides being
  * (different) constants.
  */
-enum MergeReasonType {
+enum MergeReasonType
+{
   /** Terms were merged due to application of congruence closure */
   MERGED_THROUGH_CONGRUENCE,
   /** Terms were merged due to application of pure equality */
   MERGED_THROUGH_EQUALITY,
-  /** Equality was merged to true, due to both sides of equality being in the same class */
+  /** Equality was merged to true, due to both sides of equality being in the
+     same class */
   MERGED_THROUGH_REFLEXIVITY,
-  /** Equality was merged to false, due to both sides of equality being a constant */
+  /** Equality was merged to false, due to both sides of equality being a
+     constant */
   MERGED_THROUGH_CONSTANTS,
   /** (for proofs only) Equality was merged due to transitivity */
   MERGED_THROUGH_TRANS,

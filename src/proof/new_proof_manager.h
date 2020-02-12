@@ -83,15 +83,27 @@ public:
     NewProofRule newreason;
     switch (reason)
     {
-      case theory::MERGED_THROUGH_CONGRUENCE: newreason = RULE_CONGRUENCE; break;
+      case theory::MERGED_THROUGH_CONGRUENCE:
+        newreason = RULE_CONGRUENCE;
+        break;
       case theory::MERGED_THROUGH_EQUALITY: newreason = RULE_PURE_EQ; break;
-      case theory::MERGED_THROUGH_REFLEXIVITY: newreason = RULE_PURE_EQ; break;
+      case theory::MERGED_THROUGH_REFLEXIVITY:
+        newreason = RULE_REFLEXIVITY;
+        break;
       case theory::MERGED_THROUGH_CONSTANTS: newreason = RULE_CONSTANTS; break;
       default:  // MERGED_THROUGH_TRANS:
         newreason = RULE_TRANSITIVITY;
         break;
     }
     return newreason;
+  }
+
+  /** Proof requires no proof step. As a rule of thumb this applies only for
+   * inputs.
+   */
+  static bool isSelfJustified(theory::MergeReasonType reason)
+  {
+    return reason == theory::MERGED_THROUGH_EQUALITY;
   }
 
   /* ------------ BEGIN Registering proof steps ------------ */

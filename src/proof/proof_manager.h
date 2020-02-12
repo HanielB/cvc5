@@ -94,14 +94,21 @@ typedef std::unordered_set<ClauseId> IdHashSet;
 
 enum ProofRule {
   RULE_GIVEN,       /* input assertion */
+  // HB Never used
   RULE_DERIVED,     /* a "macro" rule */
   RULE_RECONSTRUCT, /* prove equivalence using another method */
   RULE_TRUST,       /* trust without evidence (escape hatch until proofs are fully supported) */
+
   RULE_INVALID,     /* assert-fail if this is ever needed in proof; use e.g. for split lemmas */
   RULE_CONFLICT,    /* re-construct as a conflict */
+
+  // HB Also never used
   RULE_TSEITIN,     /* Tseitin CNF transformation */
+
   RULE_SPLIT,       /* A splitting lemma of the form a v ~ a*/
 
+  // HB these are not used anywhere in the code. Addition of array lemmas seems
+  // to use RULE_INVALID
   RULE_ARRAYS_EXT,  /* arrays, extensional */
   RULE_ARRAYS_ROW,  /* arrays, read-over-write */
 };/* enum ProofRules */

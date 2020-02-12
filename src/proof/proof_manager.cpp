@@ -157,6 +157,7 @@ void ProofManager::initCnfProof(prop::CnfStream* cnfStream,
   pm->d_cnfProof = cnf;
 
   // true and false have to be setup in a special way
+  // HB whyyyyyyyyy?
   Node true_node = NodeManager::currentNM()->mkConst<bool>(true);
   Node false_node = NodeManager::currentNM()->mkConst<bool>(false).notNode();
 

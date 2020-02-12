@@ -69,6 +69,11 @@ class VeritProof : public NewProof
   unsigned getNextId() { return d_nextId++; }
 
   unsigned processTheoryProof(theory::EqProof* proof);
+  /** traverse proof recursively and for every congruence rule with a non-null
+   * conclusion, flatten all congruence application in children with nullary
+   * conclusions */
+  // void flattenBinCongs(theory::EqProof* proof,
+  //                      std::vector<theory::EqProof*>& premises);
 
   void printStep(std::ostream& out, VeritProofStep* s) const;
 
