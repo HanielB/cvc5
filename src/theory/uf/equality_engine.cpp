@@ -1250,7 +1250,10 @@ void EqualityEngine::getNonBinExplanation(
         eqp->d_node = nm->mkNode(kind::PARTIAL_SELECT_0, no_children);
       }
       // ignore equalities between function symbols, i.e. internal nullary
-      // non-constant nodes
+      // non-constant nodes.
+      //
+      // This is robust for HOL because in that case function symbols  are not
+      // internal nodes
       else if (d_isInternal[t1Id] && d_nodes[t1Id].getNumChildren() == 0
                && !d_isConstant[t1Id])
       {
@@ -1259,7 +1262,7 @@ void EqualityEngine::getNonBinExplanation(
       else
       {
         AlwaysAssert(d_nodes[t1Id].getKind() != kind::BUILTIN);
-        eqp->d_node = d_nodes[t1Id];
+        eqp->d_node = d_nodes[t1Id].eqNode(d_nodes[t1Id]);
       }
     }
     return;
@@ -1360,8 +1363,7 @@ void EqualityEngine::getNonBinExplanation(
                 // f(x1, x2) == f(y1, y2) because x1 = y1 and x2 = y2
                 Debug("equality") << d_name
                                   << "::eq::getNonBinExplanation(): due to "
-                                     "congruence, going deeper"
-                                  << std::endl;
+                                     "congruence, going deeper\n";
                 const FunctionApplication& f1 =
                     d_applications[currentNode].original;
                 const FunctionApplication& f2 =
@@ -1376,6 +1378,7 @@ void EqualityEngine::getNonBinExplanation(
                 std::shared_ptr<EqProof> eqpc2 =
                     eqpc ? std::make_shared<EqProof>() : nullptr;
                 getNonBinExplanation(f1.b, f2.b, equalities, cache, eqpc2.get());
+                Debug("equality") << pop;
                 if (eqpc)
                 {
                   // ignore lhs proof if refl over function
@@ -1388,18 +1391,17 @@ void EqualityEngine::getNonBinExplanation(
                   // if full application, create the result of the congruence
                   if (!d_isInternal[currentNode])
                   {
-                    Kind k = d_nodes[f1.a].getKind();
+                    Kind k = d_nodes[currentNode].getKind();
                     // second case accounts for parametric kinds
                     // HB Are there others????
                     if (d_congruenceKinds[k]
                         || (k == kind::BUILTIN
                             && d_nodes[f1.a].getConst<Kind>() == kind::SELECT))
                     {
-                      eqpc->d_node = d_nodes[f1.a].eqNode(d_nodes[f2.a]);
+                      eqpc->d_node = d_nodes[currentNode].eqNode(d_nodes[edgeNode]);
                     }
                   }
                 }
-                Debug("equality") << pop;
                 break;
               }
 
