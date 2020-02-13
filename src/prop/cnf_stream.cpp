@@ -747,7 +747,7 @@ void TseitinCnfStream::convertAndAssert(TNode node, bool negated) {
     if( negated ){
       nnode = node.negate();
     }
-    // Atoms
+    // Literals to clauses, atoms and polarity to the SAT solver
     assertClause(nnode, toCNF(node, negated));
   }
     break;

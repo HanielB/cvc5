@@ -96,9 +96,9 @@ void CnfProof::registerConvertedClause(ClauseId clause, bool explanation) {
   Node current_assertion = getCurrentAssertion();
   Node current_expr = getCurrentDefinition();
 
-  Debug("proof:cnf") << "CnfProof::registerConvertedClause "
-                     << clause << " assertion = " << current_assertion
-                     << clause << " definition = " << current_expr << std::endl;
+  Debug("proof:cnf") << "CnfProof::registerConvertedClause " << clause
+                     << " assertion = " << current_assertion
+                     << ", definition = " << current_expr << std::endl;
 
   setClauseAssertion(clause, current_assertion);
   setClauseDefinition(clause, current_expr);
