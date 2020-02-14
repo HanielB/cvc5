@@ -1748,7 +1748,7 @@ termNonVariable[CVC4::Expr& expr, CVC4::Expr& expr2]
   | LPAREN_TOK qualIdentifier[p]
     termList[args,expr] RPAREN_TOK
     {
-      expr = PARSER_STATE->applyParseOp(p,args);
+      expr = PARSER_STATE->applyParseOp(p, args);
     }
   | /* a let or sygus let binding */
     LPAREN_TOK (
