@@ -88,6 +88,7 @@ using namespace CVC4::parser;
 #include <memory>
 
 #include "smt/command.h"
+#include "parser/parse_op.h"
 #include "parser/parser.h"
 #include "parser/tptp/tptp.h"
 #include "parser/antlr_tracing.h"
@@ -330,23 +331,23 @@ atomicFormula[CVC4::Expr& expr]
   bool equal;
   ParseOp p;
 }
-  : atomicWord[name] (LPAREN_TOK arguments[args] RPAREN_TOK)?
+  : atomicWord[p.name] (LPAREN_TOK arguments[args] RPAREN_TOK)?
     ( equalOp[equal] term[expr2]
       { // equality/disequality between terms
-        PARSER_STATE->makeApplication(expr, name, args, true);
+        expr = PARSER_STATE->applyParseOp(p, args);
         expr = MK_EXPR(kind::EQUAL, expr, expr2);
         if(!equal) expr = MK_EXPR(kind::NOT, expr);
       }
     | { // predicate
-        PARSER_STATE->makeApplication(expr, name, args, false);
+        expr = PARSER_STATE->applyParseOp(p, args);
       }
     )
-  | definedFun[expr]
+  | definedFun[p]
     (
      LPAREN_TOK arguments[args] RPAREN_TOK
      equalOp[equal] term[expr2]
      {
-       expr = EXPR_MANAGER->mkExpr(expr, args);
+       expr = PARSER_STATE->applyParseOp(p, args);
        expr = MK_EXPR(kind::EQUAL, expr, expr2);
        if (!equal)
        {
@@ -367,10 +368,7 @@ atomicFormula[CVC4::Expr& expr]
     )?
   | definedPred[p] (LPAREN_TOK arguments[args] RPAREN_TOK)?
     {
-      if (!args.empty())
-      {
-        expr = EXPR_MANAGER->mkExpr(expr, args);
-      }
+      expr = PARSER_STATE->applyParseOp(p, args);
     }
   | definedProp[expr]
   ;
@@ -383,7 +381,7 @@ thfAtomicFormula[CVC4::Expr& expr]
   bool equal;
   ParseOp p;
 }
-  : atomicWord[name] (LPAREN_TOK arguments[args] RPAREN_TOK)?
+  : atomicWord[p.name] (LPAREN_TOK arguments[args] RPAREN_TOK)?
     {
       PARSER_STATE->makeApplication(expr, name, args, true);
     }
@@ -488,7 +486,7 @@ thfDefinedPred[CVC4::ParseOp& p]
     RPAREN_TOK
   ;
 
-definedFun[CVC4::Expr& expr]
+definedFun[CVC4::ParseOp& p]
 @declarations {
   bool remainder = false;
 }
@@ -649,8 +647,9 @@ plainTerm[CVC4::Expr& expr]
 @declarations {
   std::string name;
   std::vector<Expr> args;
+  ParseOp p;
 }
-  : atomicWord[name] (LPAREN_TOK arguments[args] RPAREN_TOK)?
+  : atomicWord[p.name] (LPAREN_TOK arguments[args] RPAREN_TOK)?
     {
        PARSER_STATE->makeApplication(expr,name,args,true);
     }

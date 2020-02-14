@@ -80,8 +80,8 @@ using namespace CVC4::parser;
 #include <memory>
 
 #include "parser/antlr_tracing.h"
+#include "parser/parse_op.h"
 #include "parser/parser.h"
-#include "parser/smt2/parse_op.h"
 #include "smt/command.h"
 
 namespace CVC4 {

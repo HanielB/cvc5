@@ -25,6 +25,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "parser/parse_op.h"
 #include "parser/parser.h"
 #include "smt/command.h"
 #include "util/hash.h"
