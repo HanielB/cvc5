@@ -662,7 +662,7 @@ sygusGrammarV1[CVC4::Type & ret,
   std::vector<std::vector<CVC4::SygusGTerm>> sgts;
   std::vector<CVC4::Datatype> datatypes;
   std::vector<Type> sorts;
-  std::vector<std::vector<Expr>> ops;
+  std::vector<std::vector<ParseOp>> ops;
   std::vector<std::vector<std::string>> cnames;
   std::vector<std::vector<std::vector<CVC4::Type>>> cargs;
   std::vector<bool> allow_const;
@@ -837,7 +837,7 @@ sygusGTerm[CVC4::SygusGTerm& sgt, const std::string& fun]
           k = PARSER_STATE->getOperatorKind(name);
           sgt.d_name = kind::kindToString(k);
           sgt.d_gterm_type = SygusGTerm::gterm_op;
-          sgt.d_expr = EXPR_MANAGER->operatorOf(k);
+          sgt.d_op.d_kind = k;
         }else{
           // what is this sygus term trying to accomplish here, if the
           // symbol isn't yet declared?!  probably the following line will
@@ -853,7 +853,7 @@ sygusGTerm[CVC4::SygusGTerm& sgt, const std::string& fun]
           }
           sgt.d_name = name;
           sgt.d_gterm_type = SygusGTerm::gterm_op;
-          sgt.d_expr = PARSER_STATE->getVariable(name) ;
+          sgt.d_op.d_expr = PARSER_STATE->getVariable(name) ;
         }
       }
     )
@@ -878,7 +878,7 @@ sygusGTerm[CVC4::SygusGTerm& sgt, const std::string& fun]
                               << "expression " << atomTerm << std::endl;
         std::stringstream ss;
         ss << atomTerm;
-        sgt.d_expr = atomTerm.getExpr();
+        sgt.d_op.d_expr = atomTerm.getExpr();
         sgt.d_name = ss.str();
         sgt.d_gterm_type = SygusGTerm::gterm_op;
       }
@@ -888,13 +888,13 @@ sygusGTerm[CVC4::SygusGTerm& sgt, const std::string& fun]
         Debug("parser-sygus") << "Sygus grammar " << fun
                               << " : unary minus integer literal " << name
                               << std::endl;
-        sgt.d_expr = MK_CONST(Rational(name));
+        sgt.d_op.d_expr = MK_CONST(Rational(name));
         sgt.d_name = name;
         sgt.d_gterm_type = SygusGTerm::gterm_op;
       }else if( PARSER_STATE->isDeclared(name,SYM_VARIABLE) ){
         Debug("parser-sygus") << "Sygus grammar " << fun << " : symbol "
                               << name << std::endl;
-        sgt.d_expr = PARSER_STATE->getExpressionForName(name);
+        sgt.d_op.d_expr = PARSER_STATE->getExpressionForName(name);
         sgt.d_name = name;
         sgt.d_gterm_type = SygusGTerm::gterm_op;
       }else{
@@ -1399,19 +1399,19 @@ extendedCommand[std::unique_ptr<CVC4::Command>* cmd]
   | GET_QE_DISJUNCT_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     term[e,e2]
     { cmd->reset(new GetQuantifierEliminationCommand(e, false)); }
-  | GET_ABDUCT_TOK { 
+  | GET_ABDUCT_TOK {
       PARSER_STATE->checkThatLogicIsSet();
     }
     symbol[name,CHECK_UNDECLARED,SYM_VARIABLE]
     term[e,e2]
     (
       sygusGrammar[t, terms, name]
-    )? 
+    )?
     {
       cmd->reset(new GetAbductCommand(name,e, t));
     }
-  | DECLARE_HEAP LPAREN_TOK 
-    sortSymbol[t,CHECK_DECLARED] 
+  | DECLARE_HEAP LPAREN_TOK
+    sortSymbol[t,CHECK_DECLARED]
     sortSymbol[t, CHECK_DECLARED]
     // We currently do nothing with the type information declared for the heap.
     { cmd->reset(new EmptyCommand()); }
@@ -1740,14 +1740,14 @@ termNonVariable[CVC4::Expr& expr, CVC4::Expr& expr2]
       args.push_back(bvl);
     }
     term[f, f2] { args.push_back(f); }
-    term[f, f2] { 
-      args.push_back(f); 
+    term[f, f2] {
+      args.push_back(f);
       expr = MK_EXPR(CVC4::kind::COMPREHENSION, args);
     }
     RPAREN_TOK
   | LPAREN_TOK qualIdentifier[p]
     termList[args,expr] RPAREN_TOK
-    { 
+    {
       expr = PARSER_STATE->applyParseOp(p,args);
     }
   | /* a let or sygus let binding */
@@ -1852,7 +1852,7 @@ termNonVariable[CVC4::Expr& expr, CVC4::Expr& expr2]
           {
             f = PARSER_STATE->getVariable(name);
             type = f.getType();
-            if (!type.isConstructor() || 
+            if (!type.isConstructor() ||
                 !((ConstructorType)type).getArgTypes().empty())
             {
               PARSER_STATE->parseError("Must apply constructors of arity greater than 0 to arguments in pattern.");
