@@ -214,16 +214,36 @@ void Tptp::checkLetBinding(const std::vector<Expr>& bvlist, Expr lhs, Expr rhs,
   }
 }
 
+// either p has just the name or it already has the kind
 Expr Tptp::parseOpToExpr(ParseOp& p)
 {
   // FIXME
   return p.d_expr;
 }
 
+// p may contain just the string of the operator or already the expression
+// (courtesy of the above function).
 Expr Tptp::applyParseOp(ParseOp& p, std::vector<Expr>& args)
 {
-  // FIXME
-  return p.d_expr;
+  Assert(!args.empty());
+  bool isBuiltinOperator = false;
+  // the builtin kind of the overall return expression
+  Kind kind = kind::NULL_EXPR;
+  // First phase: process the operator
+
+  // operator already defined
+  if (!p.d_expr.isNull())
+  {
+    // An explicit operator, e.g. an indexed symbol.
+    args.insert(args.begin(), p.d_expr);
+    Kind k =
+        p.d_kind != kind::NULL_EXPR ? p.d_kind : getKindForFunction(p.d_expr);
+    Assert(fkind != kind::UNDEFINED_KIND);
+  }
+  // Second phase: apply the arguments to the parse op
+  ExprManager* em = getExprManager();
+
+  return em->mkExpr(kind, args);
 }
 
 void Tptp::forceLogic(const std::string& logic)
