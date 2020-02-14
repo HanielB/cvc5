@@ -342,7 +342,7 @@ atomicFormula[CVC4::Expr& expr]
         if (!equal)
         {
           expr = MK_EXPR(kind::NOT, expr);
-      }
+        }
       }
     )
   | definedFun[p]
@@ -668,15 +668,15 @@ definedFun[CVC4::ParseOp& p]
       expr =
           MK_EXPR(kind::ITE,
                   MK_EXPR(kind::LT, decPart, MK_CONST(Rational(1, 2))),
-                                      // if decPart < 0.5, round down
+                  // if decPart < 0.5, round down
                   MK_EXPR(kind::TO_INTEGER, n),
                   MK_EXPR(kind::ITE,
                           MK_EXPR(kind::GT, decPart, MK_CONST(Rational(1, 2))),
-                                      // if decPart > 0.5, round up
+                          // if decPart > 0.5, round up
                           MK_EXPR(kind::TO_INTEGER,
                                   MK_EXPR(kind::PLUS, n, MK_CONST(Rational(1)))),
-                                      // if decPart == 0.5, round to nearest even integer:
-                                      // result is: to_int(n/2 + .5) * 2
+                          // if decPart == 0.5, round to nearest even integer:
+                          // result is: to_int(n/2 + .5) * 2
                           MK_EXPR(kind::MULT,
                                   MK_EXPR(kind::TO_INTEGER,
                                           MK_EXPR(kind::PLUS,
