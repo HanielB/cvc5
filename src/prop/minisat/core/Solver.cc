@@ -428,11 +428,6 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
             lemmas_cnf_assertion.push_back(std::make_pair(assertion, def));
             id = ClauseIdUndef;
         );
-      // does it have to always be a lemma?
-      // PROOF(id = ProofManager::getSatProof()->registerUnitClause(ps[0], THEORY_LEMMA););
-      // PROOF(id = ProofManager::getSatProof()->registerTheoryLemma(ps););
-      // Debug("cores") << "lemma push " << proof_id << " " << (proof_id & 0xffffffff) << std::endl;
-      // lemmas_proof_id.push(proof_id);
     } else {
       assert(decisionLevel() == 0);
 
