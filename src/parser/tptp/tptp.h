@@ -103,9 +103,6 @@ class Tptp : public Parser {
    */
   void addTheory(Theory theory);
 
-  void makeApplication(Expr& expr, std::string& name, std::vector<Expr>& args,
-                       bool term);
-
   /** creates a lambda abstraction around expression
    *
    * Given an expression expr of type argType = t1...tn -> t, creates a lambda
