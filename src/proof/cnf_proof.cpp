@@ -19,6 +19,7 @@
 
 #include "proof/clause_id.h"
 #include "proof/proof_manager.h"
+#include "proof/new_proof_manager.h"
 #include "proof/proof_utils.h"
 #include "proof/theory_proof.h"
 #include "prop/cnf_stream.h"
@@ -102,6 +103,10 @@ void CnfProof::registerConvertedClause(ClauseId clause, bool explanation) {
 
   setClauseAssertion(clause, current_assertion);
   setClauseDefinition(clause, current_expr);
+  NEWPROOF({
+    NewProofManager* pm = NewProofManager::currentPM();
+    pm->addSatDef(clause, current_assertion, current_expr);
+  })
 }
 
 void CnfProof::registerTrueUnitClause(ClauseId clauseId)

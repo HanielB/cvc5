@@ -106,6 +106,12 @@ public:
     return reason == theory::MERGED_THROUGH_EQUALITY;
   }
 
+  /* ------------ BEGIN Defining maps between SAT / solver info ------------ */
+
+  void addSatDef(ClauseId clause, Node clauseNode, Node clauseNodeDef);
+
+  /* ------------ END Defining maps between SAT / solver info ------------ */
+
   /* ------------ BEGIN Registering proof steps ------------ */
 
   /** Add input **/
@@ -131,6 +137,10 @@ public:
   SkolemizationManager d_skolemizationManager;
 
   std::unique_ptr<NewProof> d_proof;
+
+  /** maps clauses to the nodes they correspond to */
+  std::map<ClauseId, Node> d_clauseToNode;
+  std::map<ClauseId, Node> d_clauseToNodeDef;
 
   ProofFormat d_format;
 

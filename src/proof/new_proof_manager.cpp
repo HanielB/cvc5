@@ -72,7 +72,7 @@ SkolemizationManager* NewProofManager::getSkolemizationManager() {
 
 void NewProofManager::addAssertion(Node formula)
 {
-  Debug("newproof::pm") << "assert: " << formula << std::endl;
+  Debug("newproof::pm") << "NewProofManager::addAssertion: " << formula << std::endl;
   d_proof.get()->addProofStep(RULE_INPUT);
   if (d_format == VERIT)
   {
@@ -84,6 +84,36 @@ void NewProofManager::addAssertion(Node formula)
 void NewProofManager::addAssertionWeird(Node formula) {}
 
 void NewProofManager::addUnknown(Node formula) {}
+
+void NewProofManager::addSatDef(ClauseId clause,
+                                Node clauseNode,
+                                Node clauseNodeDef)
+{
+  Debug("newproof::sat") << "NewProofManager::addSatDef: clause/assertion/def: "
+                         << clause << " / " << clauseNode << " / "
+                         << clauseNodeDef << "\n";
+  // I guess they have to be synched
+  Assert(d_clauseToNode.find(clause) == d_clauseToNode.end()
+         || d_clauseToNodeDef.find(clause) != d_clauseToNodeDef.end());
+
+  // We can add the same clause from different assertions.  In this
+  // case we keep the first assertion. For example asserting a /\ b
+  // and then b /\ c where b is an atom, would assert b twice (note
+  // that since b is top level, it is not cached by the CnfStream)
+  //
+  // For definitions the first is kept
+  //
+  // HB Need to grok the above
+  if (d_clauseToNodeDef.find(clause) != d_clauseToNodeDef.end())
+  {
+    Debug("newproof::sat") << "NewProofManager::addSatDef: clause " << clause
+                           << " already had node  " << d_clauseToNode[clause]
+                           << " and def  " << d_clauseToNodeDef[clause] << "\n";
+    return;
+  }
+  d_clauseToNode[clause] = clauseNode;
+  d_clauseToNodeDef[clause] = clauseNodeDef;
+}
 
 void NewProofManager::addTheoryProof(theory::EqProof *proof)
 {
