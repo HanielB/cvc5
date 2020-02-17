@@ -23,51 +23,56 @@
 #include <unordered_set>
 
 #include "expr/node.h"
+#include "new_proof.h"
 #include "proof/clause_id.h"
 #include "proof/proof.h"
 #include "proof/proof_utils.h"
+#include "proof/sat_proof.h"
 #include "proof/skolemization_manager.h"
+#include "prop/minisat/core/Solver.h"
+#include "prop/sat_solver_types.h"
 #include "theory/logic_info.h"
 #include "theory/substitutions.h"
 #include "theory/theory.h"
-#include "new_proof.h"
 #include "util/statistics_registry.h"
 
 namespace CVC4 {
 
 // forward declarations
 namespace Minisat {
-  class Solver;
-}/* Minisat namespace */
+class Solver;
+}  // namespace Minisat
 
 namespace BVMinisat {
-  class Solver;
-}/* BVMinisat namespace */
+class Solver;
+}  // namespace BVMinisat
 
 namespace prop {
-  class CnfStream;
-}/* CVC4::prop namespace */
+class CnfStream;
+}  // namespace prop
 
 class SmtEngine;
 
 namespace prop {
-  typedef uint64_t SatVariable;
-  class SatLiteral;
-  typedef std::vector<SatLiteral> SatClause;
-}/* CVC4::prop namespace */
+typedef uint64_t SatVariable;
+class SatLiteral;
+typedef std::vector<SatLiteral> SatClause;
+}  // namespace prop
 
 typedef std::unordered_map<ClauseId, prop::SatClause*> IdToSatClause;
-typedef std::unordered_map<Node, std::vector<Node>, NodeHashFunction> NodeToNodes;
+typedef std::unordered_map<Node, std::vector<Node>, NodeHashFunction>
+    NodeToNodes;
 typedef std::unordered_set<ClauseId> IdHashSet;
 
 // TODO There should be a proof manager for each proof format. Many of the
 // things that were part of the old proof manager are totally only LFSC
 // dependent
-class NewProofManager {
-protected:
+class NewProofManager
+{
+ protected:
   LogicInfo d_logic;
 
-public:
+ public:
   NewProofManager(ProofFormat format = VERIT);
   ~NewProofManager();
 
@@ -76,7 +81,7 @@ public:
   // getting proof
   static NewProof& getProof();
 
-  static SkolemizationManager *getSkolemizationManager();
+  static SkolemizationManager* getSkolemizationManager();
 
   static NewProofRule convert(theory::MergeReasonType reason)
   {
@@ -108,7 +113,26 @@ public:
 
   /* ------------ BEGIN Defining maps between SAT / solver info ------------ */
 
-  void addSatDef(ClauseId clause, Node clauseNode, Node clauseNodeDef);
+  void addLitDef(prop::SatLiteral lit, Node litNode);
+  void addClauseDef(ClauseId clause, Node clauseNodeDef);
+  void addClauseDef(ClauseId clause, Node clauseNode, Node clauseNodeDef);
+
+  ClauseId registerClause(Minisat::Solver::TLit lit,
+                          Node litNodeDef = Node::null());
+  ClauseId registerClause(Minisat::Solver::TClause clause,
+                          Node clauseNodeDef = Node::null());
+
+  ClauseId getClauseIdForClause(Minisat::Solver::TClause clause);
+  // void updateCRef(Minisat::Solver::TCRef oldref, Minisat::Solver::TCRef newref);
+
+  void startResChain(Minisat::Solver::TClause start);
+  void addResolutionStep(Minisat::Solver::TLit lit,
+                         Minisat::Solver::TClause clause,
+                         bool sign);
+  void endResChain(Minisat::Solver::TLit lit);
+  void endResChain(ClauseId id);
+
+  void finalizeProof(Minisat::Solver::TClause conflict_ref);
 
   /* ------------ END Defining maps between SAT / solver info ------------ */
 
@@ -125,11 +149,13 @@ public:
 
   /* ------------ END Registering proof steps ------------ */
 
+  unsigned nextId() { return d_nextId++; }
+
   void setLogic(const LogicInfo& logic);
 
   const std::string getLogic() const { return d_logic.getLogicString(); }
 
-  LogicInfo & getLogicInfo() { return d_logic; }
+  LogicInfo& getLogicInfo() { return d_logic; }
 
   TimerStat* getProofProductionTime() { return &d_stats.d_proofProductionTime; }
 
@@ -138,11 +164,26 @@ public:
 
   std::unique_ptr<NewProof> d_proof;
 
+  /** maps SAT literals to the nodes they correspond to */
+  std::map<prop::SatLiteral, Node> d_satLitToNode;
+
   /** maps clauses to the nodes they correspond to */
   std::map<ClauseId, Node> d_clauseToNode;
   std::map<ClauseId, Node> d_clauseToNodeDef;
 
+  std::map<Minisat::Solver::TClause, ClauseId> d_clauseToClauseId;
+  // std::map<ClauseId, Minisat::Solver::TClause&> d_clauseIdToClause;
+
+  std::map<int, ClauseId> d_litToClauseId;
+  std::map<ClauseId, int> d_clauseIdToLit;
+
+  std::vector<ResStep<Minisat::Solver>> d_resolution;
+
+  std::vector<std::vector<ResStep<Minisat::Solver>>> d_resolutions;
+
   ProofFormat d_format;
+
+  unsigned d_nextId;
 
   struct NewProofManagerStatistics
   {
@@ -158,8 +199,8 @@ public:
 
   NewProofManagerStatistics d_stats;
 
-};/* class ProofManager */
+}; /* class ProofManager */
 
-}/* CVC4 namespace */
+}  // namespace CVC4
 
 #endif /* CVC4__NEW_PROOF_MANAGER_H */

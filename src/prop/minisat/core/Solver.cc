@@ -31,6 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "options/smt_options.h"
 #include "proof/clause_id.h"
 #include "proof/proof_manager.h"
+#include "proof/new_proof_manager.h"
 #include "proof/sat_proof.h"
 #include "proof/sat_proof_implementation.h"
 #include "prop/minisat/minisat.h"
@@ -352,6 +353,10 @@ CRef Solver::reason(Var x) {
           // lead to a wrong assertion being associated with the clause being
           // added (see issue #2137).
           ProofManager::getCnfProof()->popCurrentAssertion(););
+    NEWPROOF({
+      NewProofManager* pm = NewProofManager::currentPM();
+      pm->registerClause(ca[real_reason], Node::null());
+    });
     vardata[x] = VarData(real_reason, level(x), user_level(x), intro_level(x), trail_index(x));
     clauses_removable.push(real_reason);
     attachClause(real_reason);
@@ -463,8 +468,16 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           PROOF(
                 id = ProofManager::getSatProof()->registerClause(cr, INPUT);
                 )
+          NEWPROOF({
+            NewProofManager* pm = NewProofManager::currentPM();
+            pm->registerClause(ca[cr], Node::null());
+          });
           if(ps.size() == falseLiteralsCount) {
             PROOF( ProofManager::getSatProof()->finalizeProof(cr); )
+            NEWPROOF({
+              NewProofManager* pm = NewProofManager::currentPM();
+              pm->finalizeProof(ca[cr]);
+            });
             return ok = false;
           }
         }
@@ -772,6 +785,7 @@ int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     int max_resolution_level = 0; // Maximal level of the resolved clauses
 
     PROOF( ProofManager::getSatProof()->startResChain(confl); )
+    NEWPROOF(NewProofManager::currentPM()->startResChain(ca[confl]););
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
 
@@ -828,6 +842,9 @@ int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         if ( pathC > 0 && confl != CRef_Undef ) {
           PROOF( ProofManager::getSatProof()->addResolutionStep(p, confl, sign(p)); )
+          NEWPROOF({
+            NewProofManager::currentPM()->addResolutionStep(p, ca[confl], sign(p));
+          });
         }
 
     }while (pathC > 0);
@@ -1337,6 +1354,7 @@ lbool Solver::search(int nof_conflicts)
 
             if (decisionLevel() == 0) {
                 PROOF( ProofManager::getSatProof()->finalizeProof(confl); )
+                NEWPROOF(NewProofManager::currentPM()->finalizeProof(ca[confl]););
                 return l_False;
             }
 
@@ -1350,7 +1368,10 @@ lbool Solver::search(int nof_conflicts)
                 uncheckedEnqueue(learnt_clause[0]);
 
                 PROOF( ProofManager::getSatProof()->endResChain(learnt_clause[0]); )
-
+                NEWPROOF({
+                  NewProofManager* pm = NewProofManager::currentPM();
+                  pm->endResChain(learnt_clause[0]);
+                });
             } else {
               CRef cr =
                   ca.alloc(assertionLevelOnly() ? assertionLevel : max_level,
@@ -1369,6 +1390,11 @@ lbool Solver::search(int nof_conflicts)
                                ->storeClauseGlue(id, cl_levels.size());)
                         ProofManager::getSatProof()
                             ->endResChain(id););
+              NEWPROOF({
+                NewProofManager* pm = NewProofManager::currentPM();
+                ClauseId id = pm->registerClause(ca[cr]);
+                pm->endResChain(id);
+              });
             }
 
             varDecayActivity();
@@ -1894,6 +1920,7 @@ CRef Solver::updateLemmas() {
             Debug("minisat::lemmas") << "Solver::updateLemmas(): unit conflict or empty clause" << std::endl;
             conflict = CRef_Lazy;
             PROOF( ProofManager::getSatProof()->storeUnitConflict(lemma[0], LEARNT); );
+            NEWPROOF(Assert(false);)
           }
         } else {
           Debug("minisat::lemmas") << "lemma size is " << lemma.size() << std::endl;

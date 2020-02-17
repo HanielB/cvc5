@@ -28,6 +28,7 @@
 #include "context/cdinsert_hashmap.h"
 #include "context/cdlist.h"
 #include "expr/node.h"
+#include "proof/new_proof_manager.h"
 #include "proof/proof_manager.h"
 #include "prop/registrar.h"
 #include "prop/theory_proxy.h"

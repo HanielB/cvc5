@@ -95,6 +95,10 @@ void CnfStream::assertClause(TNode node, SatClause& c) {
     }
     d_cnfProof->popCurrentDefinition();
   };
+  NEWPROOF({
+    NewProofManager* pm = NewProofManager::currentPM();
+    pm->addClauseDef(clause_id, node);
+  })
 }
 
 void CnfStream::assertClause(TNode node, SatLiteral a) {
@@ -194,6 +198,11 @@ SatLiteral CnfStream::newLiteral(TNode node, bool isTheoryAtom, bool preRegister
     }
     d_nodeToLiteralMap.insert(node, lit);
     d_nodeToLiteralMap.insert(node.notNode(), ~lit);
+    NEWPROOF({
+      NewProofManager* pm = NewProofManager::currentPM();
+      pm->addLitDef(lit, node);
+      pm->addLitDef(~lit, node.notNode());
+    })
   } else {
     lit = getLiteral(node);
   }
