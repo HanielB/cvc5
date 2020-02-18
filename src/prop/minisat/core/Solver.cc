@@ -462,7 +462,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
 
         cr = ca.alloc(clauseLevel, ps, false);
         clauses_persistent.push(cr);
-  attachClause(cr);
+        attachClause(cr);
 
         if(PROOF_ON()) {
           PROOF(
