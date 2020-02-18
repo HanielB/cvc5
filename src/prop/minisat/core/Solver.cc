@@ -476,7 +476,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
             PROOF( ProofManager::getSatProof()->finalizeProof(cr); )
             NEWPROOF({
               NewProofManager* pm = NewProofManager::currentPM();
-              pm->finalizeProof(ca[cr]);
+              pm->finalizeProof();
             });
             return ok = false;
           }
@@ -494,6 +494,12 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
                   id = ProofManager::getSatProof()->registerUnitClause(ps[0], INPUT);
                 }
                 );
+          NEWPROOF({
+            if (ps.size() == 1)
+            {
+              NewProofManager::currentPM()->registerClause(ps[0]);
+            }
+          });
           CRef confl = propagate(CHECK_WITHOUT_THEORY);
           if(! (ok = (confl == CRef_Undef)) ) {
             if (PROOF_ON())
@@ -1354,7 +1360,7 @@ lbool Solver::search(int nof_conflicts)
 
             if (decisionLevel() == 0) {
               PROOF(ProofManager::getSatProof()->finalizeProof(confl);)
-              NEWPROOF(NewProofManager::currentPM()->finalizeProof(ca[confl]);)
+              NEWPROOF(NewProofManager::currentPM()->finalizeProof();)
               return l_False;
             }
 
@@ -1891,7 +1897,7 @@ CRef Solver::updateLemmas() {
          );
       NEWPROOF({
         NewProofManager* pm = NewProofManager::currentPM();
-        pm->registerClause(ca[real_reason], Node::null());
+        pm->registerClause(ca[lemma_ref], Node::null());
       });
       if (removable) {
         clauses_removable.push(lemma_ref);
@@ -1910,6 +1916,7 @@ CRef Solver::updateLemmas() {
          ProofManager::getCnfProof()->setClauseAssertion(id, cnf_assertion);
          ProofManager::getCnfProof()->setClauseDefinition(id, cnf_def);
          );
+      NEWPROOF({ NewProofManager::currentPM()->registerClause(lemma[0]); });
     }
 
     // If the lemma is propagating enqueue its literal (or set the conflict)

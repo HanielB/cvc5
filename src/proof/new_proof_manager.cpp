@@ -26,6 +26,7 @@
 #include "proof/sat_proof_implementation.h"
 #include "proof/theory_proof.h"
 #include "proof/verit_proof.h"
+#include "prop/minisat/core/Solver.h"
 #include "smt/smt_engine.h"
 #include "smt/smt_engine_scope.h"
 #include "smt/smt_statistics_registry.h"
@@ -38,8 +39,6 @@
 #include "theory/valuation.h"
 #include "util/hash.h"
 #include "util/proof.h"
-
-#include "prop/minisat/core/Solver.h"
 
 namespace CVC4 {
 
@@ -86,7 +85,13 @@ void NewProofManager::addAssertionWeird(Node formula) {}
 
 void NewProofManager::addUnknown(Node formula) {}
 
-void NewProofManager::printClause(Minisat::Solver::TClause& clause)
+inline void NewProofManager::printLit(const Minisat::Solver::TLit lit)
+{
+  Debug("newproof::sat") << (Minisat::sign(lit) ? "-" : "")
+                         << Minisat::var(lit) + 1 << " ";
+}
+
+inline void NewProofManager::printClause(const Minisat::Solver::TClause& clause)
 {
   for (unsigned i = 0, size = clause.size(); i < size; ++i)
   {
@@ -94,10 +99,7 @@ void NewProofManager::printClause(Minisat::Solver::TClause& clause)
                            << Minisat::var(clause[i]) + 1 << " ";
     if (Debug.isOn("newproof::sat::cnf"))
     {
-      // prop::SatLiteral satLit = prop::SatLiteral(
-      //     prop::SatVariable(Minisat::var(clause[i]), Minisat::sign(clause[i])));
       prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(clause[i]);
-
       Assert(d_satLitToNode.find(satLit) != d_satLitToNode.end());
       Debug("newproof::sat::cnf") << "[" << d_satLitToNode[satLit] << "] ";
     }
@@ -165,9 +167,9 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
   if (it != d_litToClauseId.end())
   {
     id = it->second;
-    Debug("newproof::sat") << "NewProofManager::registerClause: TLit: "
-                           << intLit << " already registered to id: " << id
-                           << "\n";
+    Debug("newproof::sat") << "NewProofManager::registerClause: TLit: ";
+    printLit(lit);
+    Debug("newproof::sat") << " already registered to id: " << id << "\n";
   }
   else
   {
@@ -175,12 +177,22 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     id = nextId();
     d_litToClauseId[intLit] = id;
     d_clauseIdToLit[id] = intLit;
-    Debug("newproof::sat") << "NewProofManager::registerClause: TLit: "
-                           << intLit << " id: " << id << "\n";
+    Debug("newproof::sat") << "NewProofManager::registerClause: TLit: ";
+    printLit(lit);
+    Debug("newproof::sat") << " id: " << id << "\n";
   }
   if (!litNodeDef.isNull())
   {
     addClauseDef(id, litNodeDef);
+  }
+  else
+  {
+    // if I'm not giving a definition I must have saved this at some previous
+    // point
+    prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(lit);
+    Assert(d_satLitToNode.find(satLit) != d_satLitToNode.end());
+    Debug("newproof::sat::cnf") << "NewProofManager::registerClause: TLit def "
+                                << d_satLitToNode[satLit] << "\n";
   }
   return id;
 }
@@ -188,12 +200,12 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
 ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
                                          Node clauseNodeDef)
 {
-  // Assert(clause != Minisat::Solver::TClause_Undef);
   ClauseId id;
-  auto it = d_clauseToClauseId.find(clause);
-  if (it != d_clauseToClauseId.end())
+  if (clause.proofId() != 0)
   {
-    id = it->second;
+    id = clause.proofId();
+    Assert(d_clauseIdToClause.find(id) != d_clauseIdToClause.end());
+
     Debug("newproof::sat") << "NewProofManager::registerClause: Clause: ";
     printClause(clause);
     Debug("newproof::sat") << "already registered to id: " << id << "\n";
@@ -201,8 +213,9 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
   else
   {
     id = nextId();
-    d_clauseToClauseId[clause] = id;
-    // d_clauseIdToClause[id] = clause;
+    clause.setProofId(id);
+    d_clauseIdToClause[id] = &clause;
+
     Debug("newproof::sat") << "NewProofManager::registerClause: Clause: ";
     printClause(clause);
     Debug("newproof::sat") << "id: " << id << "\n";
@@ -214,25 +227,10 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
   return id;
 }
 
-ClauseId NewProofManager::getClauseIdForClause(Minisat::Solver::TClause& clause)
-{
-  Assert(d_clauseToClauseId.find(clause) != d_clauseToClauseId.end());
-  return d_clauseToClauseId[clause];
-}
-
-// void NewProofManager::updateCRef(Minisat::Solver::TCRef oldref,
-//                                  Minisat::Solver::TCRef newref)
-// {
-//   ClauseId id = getClauseIdForClause(oldref);
-//   d_clauseIdToClause[id] = newref;
-//   d_clauseToClauseId[newref] = id;
-//   // delete old reference from map
-//   d_clauseToClauseId.erase(oldref);
-// }
-
 void NewProofManager::startResChain(Minisat::Solver::TClause& start)
 {
-  ClauseId id = getClauseIdForClause(start);
+  Assert(start.proofId() != 0);
+  ClauseId id = start.proofId();
   Debug("newproof::sat") << "NewProofManager::startResChain " << id << "\n";
   // TODO what should I add here? Who is "start"???
 }
@@ -279,7 +277,7 @@ void NewProofManager::endResChain(ClauseId id)
   d_resolution.clear();
 }
 
-void NewProofManager::finalizeProof(Minisat::Solver::TClause& conflict_clause)
+void NewProofManager::finalizeProof()
 {
   // TODO dunno why
   // Assert(conflict_clause != Minisat::Solver::TCRef_Undef);
@@ -288,12 +286,27 @@ void NewProofManager::finalizeProof(Minisat::Solver::TClause& conflict_clause)
   // by finalizeProof
   // Assert(conflict_clause != Minisat::Solver::TCRef_Lazy);
 
-  ClauseId conflict_id = registerClause(conflict_clause);
+  // last added clause is the conflicting one
+  ClauseId conflict_id = d_nextId - 1;
+  std::vector<Minisat::Solver::TLit> conflict_clause;
+  auto it = d_clauseIdToClause.find(conflict_id);
+  if (it != d_clauseIdToClause.end())
+  {
+    for (unsigned i = 0, size = it->second->size(); i < size; ++i)
+    {
+      conflict_clause.push_back((*it->second)[i]);
+    }
+  }
+  else
+  {
+    Assert(d_clauseIdToLit.find(conflict_id) != d_clauseIdToLit.end());
+    conflict_clause.push_back(Minisat::toLit(d_clauseIdToLit[conflict_id]));
+  }
   Debug("newproof::sat") << "NewProofManager::finalizeProof: conflict_id: "
                          << conflict_id << "\n";
-  for (int i = 0; i < conflict_clause.size(); ++i)
+  for (unsigned i = 0, size = conflict_clause.size(); i < size; ++i)
   {
-    Minisat::Solver::TLit lit = conflict_clause[i];
+    Minisat::Solver::TLit lit = ~conflict_clause[i];
     // get justification for ~lit
     if (d_litToClauseId.find(toInt(lit)) != d_litToClauseId.end())
     {

@@ -59,11 +59,6 @@ class SatLiteral;
 typedef std::vector<SatLiteral> SatClause;
 }  // namespace prop
 
-typedef std::unordered_map<ClauseId, prop::SatClause*> IdToSatClause;
-typedef std::unordered_map<Node, std::vector<Node>, NodeHashFunction>
-    NodeToNodes;
-typedef std::unordered_set<ClauseId> IdHashSet;
-
 // TODO There should be a proof manager for each proof format. Many of the
 // things that were part of the old proof manager are totally only LFSC
 // dependent
@@ -122,9 +117,6 @@ class NewProofManager
   ClauseId registerClause(Minisat::Solver::TClause& clause,
                           Node clauseNodeDef = Node::null());
 
-  ClauseId getClauseIdForClause(Minisat::Solver::TClause& clause);
-  // void updateCRef(Minisat::Solver::TCRef oldref, Minisat::Solver::TCRef newref);
-
   void startResChain(Minisat::Solver::TClause& start);
   void addResolutionStep(Minisat::Solver::TLit lit,
                          Minisat::Solver::TClause& clause,
@@ -132,9 +124,10 @@ class NewProofManager
   void endResChain(Minisat::Solver::TLit lit);
   void endResChain(ClauseId id);
 
-  void finalizeProof(Minisat::Solver::TClause& conflict_ref);
+  void finalizeProof();
 
-  void printClause(Minisat::Solver::TClause& clause);
+  inline void printLit(const Minisat::Solver::TLit lit);
+  inline void printClause(const Minisat::Solver::TClause& clause);
 
   /* ------------ END Defining maps between SAT / solver info ------------ */
 
@@ -173,8 +166,7 @@ class NewProofManager
   std::map<ClauseId, Node> d_clauseToNode;
   std::map<ClauseId, Node> d_clauseToNodeDef;
 
-  std::map<Minisat::Solver::TClause, ClauseId> d_clauseToClauseId;
-  // std::map<ClauseId, Minisat::Solver::TClause&> d_clauseIdToClause;
+  std::map<ClauseId, Minisat::Solver::TClause*> d_clauseIdToClause;
 
   std::map<int, ClauseId> d_litToClauseId;
   std::map<ClauseId, int> d_clauseIdToLit;
