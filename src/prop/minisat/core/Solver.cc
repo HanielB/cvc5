@@ -1353,9 +1353,9 @@ lbool Solver::search(int nof_conflicts)
             conflicts++; conflictC++;
 
             if (decisionLevel() == 0) {
-                PROOF( ProofManager::getSatProof()->finalizeProof(confl); )
-                NEWPROOF(NewProofManager::currentPM()->finalizeProof(ca[confl]););
-                return l_False;
+              PROOF(ProofManager::getSatProof()->finalizeProof(confl);)
+              NEWPROOF(NewProofManager::currentPM()->finalizeProof(ca[confl]);)
+              return l_False;
             }
 
             // Analyze the conflict
@@ -1889,6 +1889,10 @@ CRef Solver::updateLemmas() {
          ProofManager::getCnfProof()->setClauseAssertion(id, cnf_assertion);
          ProofManager::getCnfProof()->setClauseDefinition(id, cnf_def);
          );
+      NEWPROOF({
+        NewProofManager* pm = NewProofManager::currentPM();
+        pm->registerClause(ca[real_reason], Node::null());
+      });
       if (removable) {
         clauses_removable.push(lemma_ref);
       } else {

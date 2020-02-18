@@ -119,20 +119,22 @@ class NewProofManager
 
   ClauseId registerClause(Minisat::Solver::TLit lit,
                           Node litNodeDef = Node::null());
-  ClauseId registerClause(Minisat::Solver::TClause clause,
+  ClauseId registerClause(Minisat::Solver::TClause& clause,
                           Node clauseNodeDef = Node::null());
 
-  ClauseId getClauseIdForClause(Minisat::Solver::TClause clause);
+  ClauseId getClauseIdForClause(Minisat::Solver::TClause& clause);
   // void updateCRef(Minisat::Solver::TCRef oldref, Minisat::Solver::TCRef newref);
 
-  void startResChain(Minisat::Solver::TClause start);
+  void startResChain(Minisat::Solver::TClause& start);
   void addResolutionStep(Minisat::Solver::TLit lit,
-                         Minisat::Solver::TClause clause,
+                         Minisat::Solver::TClause& clause,
                          bool sign);
   void endResChain(Minisat::Solver::TLit lit);
   void endResChain(ClauseId id);
 
-  void finalizeProof(Minisat::Solver::TClause conflict_ref);
+  void finalizeProof(Minisat::Solver::TClause& conflict_ref);
+
+  void printClause(Minisat::Solver::TClause& clause);
 
   /* ------------ END Defining maps between SAT / solver info ------------ */
 
