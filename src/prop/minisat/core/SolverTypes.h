@@ -191,11 +191,11 @@ class Clause {
 #if CVC4_PROOF
     unsigned proofId;
 #endif
-        unsigned mark      : 2;
-        unsigned removable : 1;
-        unsigned has_extra : 1;
-        unsigned reloced   : 1;
-        unsigned size      : 27;
+    unsigned mark      : 2;
+    unsigned removable : 1;
+    unsigned has_extra : 1;
+    unsigned reloced   : 1;
+    unsigned size      : 27;
     unsigned level : 32;
   } header;
   union
@@ -228,7 +228,7 @@ class Clause {
                 calcAbstraction(); }
     }
 #if CVC4_PROOF
-    header.proofId = 0;
+        header.proofId = 0;
 #endif
     }
 

@@ -3650,7 +3650,7 @@ void SmtEnginePrivate::addFormula(
   }
 
   // Give it to proof manager
-  PROOF({
+  PROOF(
     if (inInput)
     {
       // n is an input assertion
