@@ -1879,11 +1879,11 @@ theory::LemmaStatus TheoryEngine::lemma(TNode node,
 
   if(Dump.isOn("t-lemmas")) {
     Node n = node;
-    if (negated) {
+    if (!negated) {
       n = node.negate();
     }
     Dump("t-lemmas") << CommentCommand("theory lemma: expect valid")
-                     << QueryCommand(n.toExpr());
+                     << CheckSatCommand(n.toExpr());
   }
 
   // Share with other portfolio threads
