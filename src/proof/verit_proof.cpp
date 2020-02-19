@@ -69,8 +69,9 @@ void VeritProof::toStream(std::ostream& out) const
   }
 }
 
-void VeritProof::addProofStep(NewProofRule rule)
+ClauseId VeritProof::addProofStep(NewProofRule rule)
 {
+  ClauseId id;
   switch (rule)
   {
     case RULE_INPUT:
@@ -78,9 +79,8 @@ void VeritProof::addProofStep(NewProofRule rule)
     case RULE_REFLEXIVITY:
     case RULE_SYMMETRY:
     case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE:
-    {
-      unsigned id = getNextId();
+    case RULE_CONGRUENCE: {
+      id = getNextId();
       Debug("newproof::pm")
           << "VeritProof::addProfStep: adding proof step with id/rule: " << id
           << " / " << rule << "\n";
@@ -90,11 +90,14 @@ void VeritProof::addProofStep(NewProofRule rule)
     default:
       Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
                                "non-simple rule)\n";
+      Assert(false);
   }
+  return id;
 }
 
-void VeritProof::addProofStep(NewProofRule rule, Node conclusion)
+ClauseId VeritProof::addProofStep(NewProofRule rule, Node conclusion)
 {
+  ClauseId id;
   switch (rule)
   {
     case RULE_INPUT:
@@ -102,9 +105,8 @@ void VeritProof::addProofStep(NewProofRule rule, Node conclusion)
     case RULE_REFLEXIVITY:
     case RULE_SYMMETRY:
     case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE:
-    {
-      unsigned id = getNextId();
+    case RULE_CONGRUENCE: {
+      id = getNextId();
       Debug("newproof::pm")
           << "VeritProof::addProfStep: adding proof step with id/rule: " << id
           << " / " << rule << " " << conclusion << "\n";
@@ -116,13 +118,16 @@ void VeritProof::addProofStep(NewProofRule rule, Node conclusion)
     default:
       Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
                                "non-simple rule)\n";
+      Assert(false);
   }
+  return id;
 }
 
-void VeritProof::addProofStep(NewProofRule rule,
-                              std::vector<unsigned>& reasons,
-                              Node conclusion)
+ClauseId VeritProof::addProofStep(NewProofRule rule,
+                                  std::vector<unsigned>& reasons,
+                                  Node conclusion)
 {
+  ClauseId id;
   switch (rule)
   {
     case RULE_INPUT:
@@ -131,8 +136,8 @@ void VeritProof::addProofStep(NewProofRule rule,
     case RULE_SYMMETRY:
     case RULE_TRANSITIVITY:
     case RULE_CONGRUENCE:
-    {
-      unsigned id = getNextId();
+    case RULE_PREPROCESSING: {
+      id = getNextId();
       Debug("newproof::pm")
           << "VeritProof::addProfStep: adding proof step with id/rule: " << id
           << " / " << rule << " "  //<< reasons << " "
@@ -146,7 +151,9 @@ void VeritProof::addProofStep(NewProofRule rule,
     default:
       Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
                                "non-simple rule)\n";
+      Assert(false);
   }
+  return id;
 }
 
 void VeritProof::addToLastProofStep(Node conclusion)
@@ -177,7 +184,8 @@ void flattenBinCongs2(theory::EqProof* proof,
 {
   if (Debug.isOn("newproof::pm-flattening"))
   {
-    Debug("newproof::pm-flattening") << "flattenBinCongs2::\tFlattenning proof:\n";
+    Debug("newproof::pm-flattening")
+        << "flattenBinCongs2::\tFlattenning proof:\n";
     proof->debug_print("newproof::pm-flattening");
     Debug("newproof::pm-flattening") << "===\n";
   }
@@ -208,7 +216,8 @@ void flattenBinCongs(theory::EqProof* proof)
 {
   if (Debug.isOn("newproof::pm-flattening"))
   {
-    Debug("newproof::pm-flattening") << "flattenBinCongs::\tFlattenning proof:\n";
+    Debug("newproof::pm-flattening")
+        << "flattenBinCongs::\tFlattenning proof:\n";
     proof->debug_print("newproof::pm-flattening");
     Debug("newproof::pm-flattening") << "===\n";
   }
@@ -260,7 +269,7 @@ void flattenBinCongs(theory::EqProof* proof)
   Assert(false);
 }
 
-unsigned VeritProof::processTheoryProof(theory::EqProof* proof)
+ClauseId VeritProof::processTheoryProof(theory::EqProof* proof)
 {
   // add proof step for valid clause
   unsigned current_id = getNextId();
@@ -313,7 +322,7 @@ unsigned VeritProof::processTheoryProof(theory::EqProof* proof)
   return current_id;
 }
 
-void VeritProof::addTheoryProof(theory::EqProof* proof)
+ClauseId VeritProof::addTheoryProof(theory::EqProof* proof)
 {
   Debug("newproof::pm") << "VeritProof::addTheoryProof:\n";
   if (Debug.isOn("newproof::pm"))
@@ -332,7 +341,7 @@ void VeritProof::addTheoryProof(theory::EqProof* proof)
     proof->debug_print("newproof::pm", 1);
     Debug("newproof::pm") << "===\n";
   }
-  processTheoryProof(proof);
+  return processTheoryProof(proof);
 }
 
 void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
@@ -353,6 +362,10 @@ void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
   out << " :conclusion (";
   for (unsigned i = 0, size = conclusion.size(); i < size; ++i)
   {
+    if (conclusion[i].isNull())
+    {
+      continue;
+    }
     if (i < size - 1)
     {
       out << "(not " << conclusion[i] << ") ";
@@ -362,7 +375,7 @@ void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
       out << conclusion[i];
     }
   }
-  out << ")\n";
+  out << ")))\n";
 }
 
 }  // namespace CVC4

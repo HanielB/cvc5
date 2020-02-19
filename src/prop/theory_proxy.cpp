@@ -106,9 +106,17 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
   Node theoryExplanation = d_theoryEngine->getExplanationAndRecipe(lNode, proofRecipe);
 
   NEWPROOF({
-      theory::EqProof* proof = new theory::EqProof();
-      d_theoryEngine->getExplanationAndProof(lNode, proof);
-    })
+    theory::EqProof* proof = new theory::EqProof();
+    d_theoryEngine->getExplanationAndProof(lNode, proof);
+    if (Debug.isOn("theory::explain"))
+    {
+      Debug("theory::explain") << "TheoryEngine::getExplanation: Proof: \n";
+      proof->debug_print("theory::explain");
+    }
+    // Register in proof module
+    NewProofManager* pm = NewProofManager::currentPM();
+    pm->queueTheoryProof(l, proof);
+  });
 
   PROOF({
       ProofManager::getCnfProof()->pushCurrentAssertion(theoryExplanation);

@@ -3686,16 +3686,6 @@ void SmtEnginePrivate::addFormula(
       ProofManager::currentPM()->addUnsatCore(n.toExpr());
     }
   });
-  NEWPROOF({
-    if (inInput)
-    {
-      NewProofManager::currentPM()->addAssertionWeird(n);
-    }
-    else
-    {
-      NewProofManager::currentPM()->addUnknown(n);
-    }
-  });
 
   // Add the normalized formula to the queue
   d_assertions.push_back(n, isAssumption);

@@ -1665,22 +1665,7 @@ Node TheoryEngine::getExplanationAndProof(TNode node, EqProof* proof) {
   Node explanation = theoryOf(atom)->explain(node, proof);
   Debug("theory::explain") << "TheoryEngine::getExplanation(" << node << ") => "
                            << explanation << endl;
-  NEWPROOF({
-    if (proof)
-    {
-      if (Debug.isOn("theory::explain"))
-      {
-        Debug("theory::explain") << "TheoryEngine::getExplanation: Proof: \n";
-        proof->debug_print("theory::explain");
-      }
-      // Register in proof module
-      NewProofManager* pm = NewProofManager::currentPM();
-      pm->addTheoryProof(proof);
-    }
-  });
-
   return explanation;
-
 }
 
 Node TheoryEngine::getExplanationAndRecipe(TNode node, LemmaProofRecipe* proofRecipe) {

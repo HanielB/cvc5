@@ -13,7 +13,6 @@
  **/
 
 #include "cvc4_private.h"
-
 #include "expr/node.h"
 #include "proof/new_proof.h"
 #include "theory/theory.h"
@@ -38,8 +37,8 @@ class VeritProofStep : public ProofStep
   const std::vector<unsigned>& getPremises() const;
 
  private:
-  // invariant: given n + 1 nodes, the first are to be negated in a cluase, while
-  // the last one is not
+  // invariant: given n + 1 nodes, the first are to be negated in a cluase,
+  // while the last one is not
   std::vector<Node> d_conclusion;
   std::vector<unsigned> d_premises;
 };
@@ -49,26 +48,27 @@ class VeritProof : public NewProof
  public:
   ~VeritProof() override {}
   void toStream(std::ostream& out) const override;
-  void addProofStep(NewProofRule rule) override;
+  ClauseId addProofStep(NewProofRule rule) override;
 
-  void addProofStep(NewProofRule rule,
-                    std::vector<unsigned>& reasons,
-                    Node conclusion);
+  ClauseId addProofStep(NewProofRule rule,
+                        std::vector<unsigned>& reasons,
+                        Node conclusion);
 
-  void addProofStep(NewProofRule rule,
-                    Node conclusion);
+  ClauseId addProofStep(NewProofRule rule, Node conclusion);
 
   void addToLastProofStep(Node conclusion);
   void addToLastProofStep(std::vector<unsigned>& reasons, Node conclusion);
 
-  void addTheoryProof(theory::EqProof* proof);
+  ClauseId addTheoryProof(theory::EqProof* proof);
 
   const std::vector<VeritProofStep>& getProofSteps() const;
+
+  ClauseId getId() { return d_nextId; }
 
  private:
   unsigned getNextId() { return d_nextId++; }
 
-  unsigned processTheoryProof(theory::EqProof* proof);
+  ClauseId processTheoryProof(theory::EqProof* proof);
   /** traverse proof recursively and for every congruence rule with a non-null
    * conclusion, flatten all congruence application in children with nullary
    * conclusions */
@@ -78,7 +78,6 @@ class VeritProof : public NewProof
   void printStep(std::ostream& out, VeritProofStep* s) const;
 
   std::vector<VeritProofStep> d_proofSteps;
-
 };
 
 }  // namespace CVC4

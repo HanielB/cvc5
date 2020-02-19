@@ -355,7 +355,7 @@ CRef Solver::reason(Var x) {
           ProofManager::getCnfProof()->popCurrentAssertion(););
     NEWPROOF({
       NewProofManager* pm = NewProofManager::currentPM();
-      pm->registerClause(ca[real_reason], Node::null());
+      pm->registerClause(ca[real_reason], RULE_THEORY_LEMMA);
     });
     vardata[x] = VarData(real_reason, level(x), user_level(x), intro_level(x), trail_index(x));
     clauses_removable.push(real_reason);
@@ -470,7 +470,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
                 )
           NEWPROOF({
             NewProofManager* pm = NewProofManager::currentPM();
-            pm->registerClause(ca[cr], Node::null());
+            pm->registerClause(ca[cr], RULE_INPUT);
           });
           if(ps.size() == falseLiteralsCount) {
             PROOF( ProofManager::getSatProof()->finalizeProof(cr); )
@@ -497,7 +497,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           NEWPROOF({
             if (ps.size() == 1)
             {
-              NewProofManager::currentPM()->registerClause(ps[0]);
+              NewProofManager::currentPM()->registerClause(ps[0], RULE_INPUT);
             }
           });
           CRef confl = propagate(CHECK_WITHOUT_THEORY);
@@ -1897,7 +1897,7 @@ CRef Solver::updateLemmas() {
          );
       NEWPROOF({
         NewProofManager* pm = NewProofManager::currentPM();
-        pm->registerClause(ca[lemma_ref], Node::null());
+        pm->registerClause(ca[lemma_ref], RULE_THEORY_LEMMA);
       });
       if (removable) {
         clauses_removable.push(lemma_ref);
@@ -1916,7 +1916,10 @@ CRef Solver::updateLemmas() {
          ProofManager::getCnfProof()->setClauseAssertion(id, cnf_assertion);
          ProofManager::getCnfProof()->setClauseDefinition(id, cnf_def);
          );
-      NEWPROOF({ NewProofManager::currentPM()->registerClause(lemma[0]); });
+      NEWPROOF({
+        NewProofManager::currentPM()->registerClause(lemma[0],
+                                                     RULE_THEORY_LEMMA);
+      });
     }
 
     // If the lemma is propagating enqueue its literal (or set the conflict)

@@ -73,17 +73,14 @@ void NewProofManager::addAssertion(Node formula)
 {
   Debug("newproof::pm") << "NewProofManager::addAssertion: " << formula
                         << std::endl;
-  d_proof.get()->addProofStep(RULE_INPUT);
+  ClauseId id = d_proof.get()->addProofStep(RULE_INPUT);
   if (d_format == VERIT)
   {
     VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
     vtproof->addToLastProofStep(formula);
   }
+  d_assertionToClauseId[formula] = id;
 }
-
-void NewProofManager::addAssertionWeird(Node formula) {}
-
-void NewProofManager::addUnknown(Node formula) {}
 
 inline void NewProofManager::printLit(const Minisat::Solver::TLit lit)
 {
@@ -108,7 +105,7 @@ inline void NewProofManager::printClause(const Minisat::Solver::TClause& clause)
 
 void NewProofManager::addLitDef(prop::SatLiteral lit, Node litNode)
 {
-  Debug("newproof::sat") << "NewProofManager::addLittDef: lit/def: " << lit
+  Debug("newproof::sat") << "NewProofManager::addLitDef: lit/def: " << lit
                          << " / " << litNode << "\n";
   d_satLitToNode[lit] = litNode;
 }
@@ -159,6 +156,7 @@ void NewProofManager::addClauseDef(ClauseId clause, Node clauseNodeDef)
 }
 
 ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
+                                         NewProofRule reason,
                                          Node litNodeDef)
 {
   ClauseId id;
@@ -166,24 +164,19 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
   auto it = d_litToClauseId.find(intLit);
   if (it != d_litToClauseId.end())
   {
-    id = it->second;
-    Debug("newproof::sat") << "NewProofManager::registerClause: TLit: ";
-    printLit(lit);
-    Debug("newproof::sat") << " already registered to id: " << id << "\n";
+    if (Debug.isOn("newproof::sat"))
+    {
+      Debug("newproof::sat")
+          << "NewProofManager::registerClause: id " << it->second << ", TLit: ";
+      printLit(lit);
+      Debug("newproof::sat") << " already registered\n";
+    }
+    return it->second;
   }
-  else
-  {
-    Assert(d_clauseIdToLit.find(intLit) == d_clauseIdToLit.end());
-    id = nextId();
-    d_litToClauseId[intLit] = id;
-    d_clauseIdToLit[id] = intLit;
-    Debug("newproof::sat") << "NewProofManager::registerClause: TLit: ";
-    printLit(lit);
-    Debug("newproof::sat") << " id: " << id << "\n";
-  }
+  Assert(d_clauseIdToLit.find(intLit) == d_clauseIdToLit.end());
   if (!litNodeDef.isNull())
   {
-    addClauseDef(id, litNodeDef);
+    addLitDef(toSatLiteral<Minisat::Solver>(lit), litNodeDef);
   }
   else
   {
@@ -191,13 +184,57 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     // point
     prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(lit);
     Assert(d_satLitToNode.find(satLit) != d_satLitToNode.end());
-    Debug("newproof::sat::cnf") << "NewProofManager::registerClause: TLit def "
-                                << d_satLitToNode[satLit] << "\n";
+    litNodeDef = d_satLitToNode[satLit];
+    Debug("newproof::sat::cnf")
+        << "NewProofManager::registerClause: TLit def " << litNodeDef << "\n";
+  }
+  // create connection step between original assertion and result of
+  // preprocessing
+  if (reason == RULE_INPUT)
+  {
+    Assert(d_assertionToClauseId.find(litNodeDef)
+           != d_assertionToClauseId.end());
+    Assert(d_format == VERIT);
+    std::vector<ClauseId> reasons{d_assertionToClauseId[litNodeDef]};
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    id = vtproof->addProofStep(RULE_PREPROCESSING, reasons, litNodeDef);
+  }
+  else if (reason == RULE_THEORY_LEMMA)
+  {
+    Assert(d_format == VERIT);
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    // since this is a theory lemma I may already have a proof for it, in which
+    // case it will now be built
+    auto itt = d_satLitToTheoryProof.find(toSatLiteral<Minisat::Solver>(lit));
+    if (itt != d_satLitToTheoryProof.end())
+    {
+      id = vtproof->addTheoryProof(itt->second);
+    }
+    else
+    {
+      id = vtproof->addProofStep(UNDEF, litNodeDef);
+    }
+  }
+  else
+  {
+    // placeholder
+    id = nextId();
+  }
+  d_litToClauseId[intLit] = id;
+  d_clauseIdToLit[id] = intLit;
+
+  if (Debug.isOn("newproof::sat"))
+  {
+    Debug("newproof::sat") << "NewProofManager::registerClause: id " << id
+                           << ", TLit: ";
+    printLit(lit);
+    Debug("newproof::sat") << "\n";
   }
   return id;
 }
 
 ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
+                                         NewProofRule reason,
                                          Node clauseNodeDef)
 {
   ClauseId id;
@@ -205,24 +242,65 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
   {
     id = clause.proofId();
     Assert(d_clauseIdToClause.find(id) != d_clauseIdToClause.end());
-
-    Debug("newproof::sat") << "NewProofManager::registerClause: Clause: ";
-    printClause(clause);
-    Debug("newproof::sat") << "already registered to id: " << id << "\n";
+    if (Debug.isOn("newproof::sat"))
+    {
+      Debug("newproof::sat")
+          << "NewProofManager::registerClause: id " << id << ", TClause: ";
+      printClause(clause);
+      Debug("newproof::sat") << " already registered\n";
+    }
+    return id;
+  }
+  if (clauseNodeDef.isNull())
+  {
+    // if I'm not giving a definition then all literals must have been previous
+    // defined. Use that to build a definition
+    std::vector<Node> children;
+    for (unsigned i = 0, size = clause.size(); i < size; ++i)
+    {
+      prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(clause[i]);
+      Assert(d_satLitToNode.find(satLit) != d_satLitToNode.end());
+      children.push_back(d_satLitToNode[satLit]);
+    }
+    clauseNodeDef = NodeManager::currentNM()->mkNode(kind::OR, children);
+  }
+  if (reason == RULE_THEORY_LEMMA)
+  {
+    Assert(d_format == VERIT);
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    // the propagated literal is always at the first position in the clause
+    // TODO HB How to assert this?
+    prop::SatLiteral lit = toSatLiteral<Minisat::Solver>(clause[0]);
+    // since this is a theory lemma I may already have a proof for it, in which
+    // case it will now be built
+    auto itt = d_satLitToTheoryProof.find(lit);
+    if (itt != d_satLitToTheoryProof.end())
+    {
+      id = vtproof->addTheoryProof(itt->second);
+    }
+    else
+    {
+      // build clause if need be
+      id = vtproof->addProofStep(UNDEF, clauseNodeDef);
+    }
   }
   else
   {
+    // placeholder
     id = nextId();
-    clause.setProofId(id);
-    d_clauseIdToClause[id] = &clause;
-
-    Debug("newproof::sat") << "NewProofManager::registerClause: Clause: ";
-    printClause(clause);
-    Debug("newproof::sat") << "id: " << id << "\n";
+    Assert(false) << "NewProofManager::registerClause can't handle non-unit "
+                     "clause - RULE_LEMMA yet\n";
   }
-  if (!clauseNodeDef.isNull())
+  clause.setProofId(id);
+  d_clauseIdToClause[id] = &clause;
+  // now define it
+  addClauseDef(id, clauseNodeDef);
+  if (Debug.isOn("newproof::sat"))
   {
-    addClauseDef(id, clauseNodeDef);
+    Debug("newproof::sat") << "NewProofManager::registerClause: id " << id
+                           << ", TClause: ";
+    printClause(clause);
+    Debug("newproof::sat") << "\n";
   }
   return id;
 }
@@ -242,8 +320,7 @@ void NewProofManager::addResolutionStep(Minisat::Solver::TLit lit,
   ClauseId id = registerClause(clause);
   Debug("newproof::sat") << "NewProofManager::addResolutionStep: (" << id
                          << ", " << toInt(lit) << ", " << sign << ")\n";
-  d_resolution.push_back(
-      ResStep<Minisat::Solver>(lit, registerClause(clause), sign));
+  d_resolution.push_back(Resolution(registerClause(clause), lit, sign));
 }
 
 void NewProofManager::endResChain(Minisat::Solver::TLit lit)
@@ -261,7 +338,7 @@ void NewProofManager::endResChain(ClauseId id)
                          << "set .c" << id << "(resolution :clauses (";
   for (unsigned i = 0, size = d_resolution.size(); i < size; ++i)
   {
-    Debug("newproof::sat") << ".c" << d_resolution[i].id;
+    Debug("newproof::sat") << ".c" << d_resolution[i].d_id;
     if (i < size - 1)
     {
       Debug("newproof::sat") << " ";
@@ -270,7 +347,7 @@ void NewProofManager::endResChain(ClauseId id)
   Debug("newproof::sat") << "========\n";
 
   // saving for later printing
-  d_resolutions.push_back(std::vector<ResStep<Minisat::Solver>>());
+  d_resolutions.push_back(std::vector<Resolution>());
   d_resolutions.back().insert(
       d_resolutions.back().end(), d_resolution.begin(), d_resolution.end());
   // clearing
@@ -287,7 +364,12 @@ void NewProofManager::finalizeProof()
   // Assert(conflict_clause != Minisat::Solver::TCRef_Lazy);
 
   // last added clause is the conflicting one
-  ClauseId conflict_id = d_nextId - 1;
+
+  Assert(d_format == VERIT);
+  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+  ClauseId conflict_id = vtproof->getId() - 1;
+  d_resolution.push_back(Resolution(conflict_id));
+  // retrive clause
   std::vector<Minisat::Solver::TLit> conflict_clause;
   auto it = d_clauseIdToClause.find(conflict_id);
   if (it != d_clauseIdToClause.end())
@@ -306,6 +388,9 @@ void NewProofManager::finalizeProof()
                          << conflict_id << "\n";
   for (unsigned i = 0, size = conflict_clause.size(); i < size; ++i)
   {
+    // since this clause is conflicting, I must be able to resolve away each of
+    // its literal. The negation of each literal must then have been previously
+    // derived
     Minisat::Solver::TLit lit = ~conflict_clause[i];
     // get justification for ~lit
     if (d_litToClauseId.find(toInt(lit)) != d_litToClauseId.end())
@@ -314,7 +399,7 @@ void NewProofManager::finalizeProof()
       for (unsigned j = 0, size = d_resolutions.size(); j < size; ++j)
       {
         // this is the conclusion I think???
-        if (id == d_resolutions[j].back().id)
+        if (id == d_resolutions[j].back().d_id)
         {
           Debug("newproof::sat")
               << "NewProofManager::finalizeProof:\t lit "
@@ -324,40 +409,32 @@ void NewProofManager::finalizeProof()
         }
       }
       // ClauseId res_id = resolveUnit(~lit);
-      d_resolution.push_back(
-          ResStep<Minisat::Solver>(lit, id, !Minisat::sign(lit)));
+      d_resolution.push_back(Resolution(id, lit, !Minisat::sign(lit)));
     }
     else
     {
-      Debug("newproof::sat")
-          << "NewProofManager::finalizeProof:\t lit "
-          << (Minisat::sign(lit) ? "-" : "") << Minisat::var(lit) + 1
-          << " must be input or lemma\n";
+      Debug("newproof::sat") << "NewProofManager::finalizeProof:\t lit ";
+      printLit(lit);
+      Debug("newproof::sat") << " is unknown\n";
+      Assert(false);
     }
   }
 
-  Debug("newproof::sat") << "========\n"
-                         << "(set .c" << nextId() << " (resolution :clauses (";
+  std::vector<ClauseId> reasons;
   for (unsigned i = 0, size = d_resolution.size(); i < size; ++i)
   {
-    Debug("newproof::sat") << ".c" << d_resolution[i].id;
-    if (i < size - 1)
-    {
-      Debug("newproof::sat") << " ";
-    }
+    reasons.push_back(d_resolution[i].d_id);
   }
-  Debug("newproof::sat") << ") :conclusion ())\n";
-  Debug("newproof::sat") << "========\n";
+  vtproof->addProofStep(RULE_RESOLUTION, reasons, Node::null());
+
   d_resolution.clear();
 }
 
-void NewProofManager::addTheoryProof(theory::EqProof* proof)
+void NewProofManager::queueTheoryProof(prop::SatLiteral lit,
+                                       theory::EqProof* proof)
 {
-  if (d_format == VERIT)
-  {
-    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-    vtproof->addTheoryProof(proof);
-  }
+  Assert(d_satLitToTheoryProof.find(lit) == d_satLitToTheoryProof.end());
+  d_satLitToTheoryProof[lit] = proof;
 }
 
 void NewProofManager::setLogic(const LogicInfo& logic) { d_logic = logic; }

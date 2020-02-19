@@ -30,7 +30,10 @@ enum NewProofRule
   RULE_TRANSITIVITY,
   RULE_CONGRUENCE,
   RULE_PURE_EQ,
-  RULE_CONSTANTS
+  RULE_CONSTANTS,
+  RULE_PREPROCESSING,
+  RULE_THEORY_LEMMA,
+  UNDEF
 }; /* enum ProofRules */
 
 class ProofStep
@@ -52,10 +55,10 @@ class CVC4_PUBLIC NewProof
  public:
   virtual ~NewProof() {}
   virtual void toStream(std::ostream& out) const = 0;
-  virtual void addProofStep(NewProofRule rule) = 0;
+  virtual unsigned addProofStep(NewProofRule rule) = 0;
 
  protected:
-  int d_nextId;
+  unsigned d_nextId;
   // int getNextId();
 }; /* class NewProof */
 
@@ -71,13 +74,13 @@ inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
     case RULE_CONGRUENCE: out << "congruence"; break;
     case RULE_PURE_EQ: out << "pure_eq"; break;
     case RULE_CONSTANTS: out << "constants"; break;
+    case RULE_PREPROCESSING: out << "preprocessing"; break;
 
     default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
   }
 
   return out;
 }
-
 
 }  // namespace CVC4
 
