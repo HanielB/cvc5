@@ -69,7 +69,7 @@ SkolemizationManager* NewProofManager::getSkolemizationManager()
   return &(currentPM()->d_skolemizationManager);
 }
 
-void NewProofManager::addAssertion(Node formula)
+void NewProofManager::addInputAssertion(Node formula)
 {
   Debug("newproof::pm") << "NewProofManager::addAssertion: " << formula
                         << std::endl;
@@ -80,6 +80,21 @@ void NewProofManager::addAssertion(Node formula)
     vtproof->addToLastProofStep(formula);
   }
   d_assertionToClauseId[formula] = id;
+}
+
+void NewProofManager::addAssertionProofStep(Node src,
+                                            Node dest,
+                                            NewProofRule rule)
+{
+  Debug("newproof::pm") << "NewProofManager::addProofStep: [" << rule
+                        << "] from " << src << " to " << dest << std::endl;
+  Assert(d_assertionToClauseId.find(src) != d_assertionToClauseId.end());
+  Assert(d_format == VERIT);
+  std::vector<ClauseId> reasons{d_assertionToClauseId[src]};
+  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+  ClauseId id = vtproof->addProofStep(rule, reasons, dest);
+  // update id of assertion
+  d_assertionToClauseId[dest] = id;
 }
 
 inline void NewProofManager::printLit(const Minisat::Solver::TLit lit)
@@ -173,7 +188,6 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     }
     return it->second;
   }
-  Assert(d_clauseIdToLit.find(intLit) == d_clauseIdToLit.end());
   if (!litNodeDef.isNull())
   {
     addLitDef(toSatLiteral<Minisat::Solver>(lit), litNodeDef);
@@ -188,16 +202,11 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     Debug("newproof::sat::cnf")
         << "NewProofManager::registerClause: TLit def " << litNodeDef << "\n";
   }
-  // create connection step between original assertion and result of
-  // preprocessing
   if (reason == RULE_INPUT)
   {
     Assert(d_assertionToClauseId.find(litNodeDef)
            != d_assertionToClauseId.end());
-    Assert(d_format == VERIT);
-    std::vector<ClauseId> reasons{d_assertionToClauseId[litNodeDef]};
-    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-    id = vtproof->addProofStep(RULE_PREPROCESSING, reasons, litNodeDef);
+    id = d_assertionToClauseId[litNodeDef];
   }
   else if (reason == RULE_THEORY_LEMMA)
   {

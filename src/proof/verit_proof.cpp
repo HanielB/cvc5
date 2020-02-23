@@ -136,7 +136,10 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
     case RULE_SYMMETRY:
     case RULE_TRANSITIVITY:
     case RULE_CONGRUENCE:
-    case RULE_PREPROCESSING: {
+    case RULE_PREPROCESSING:
+    case RULE_PREPROCESSING_REWRITE:
+    case RULE_PREPROCESSING_THEORY:
+    case RULE_PREPROCESSING_ITE_REMOVAL: {
       id = getNextId();
       Debug("newproof::pm")
           << "VeritProof::addProfStep: adding proof step with id/rule: " << id

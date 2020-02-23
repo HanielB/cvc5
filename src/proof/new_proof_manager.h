@@ -143,7 +143,10 @@ class NewProofManager
   /* ------------ BEGIN Registering proof steps ------------ */
 
   /** Add input **/
-  void addAssertion(Node formula);
+  void addInputAssertion(Node formula);
+
+  /* General proof step. For now used for preprocessing only */
+  void addAssertionProofStep(Node src, Node dest, NewProofRule rule);
 
   void queueTheoryProof(prop::SatLiteral lit, theory::EqProof* proof);
 

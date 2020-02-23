@@ -32,8 +32,18 @@ Rewrite::Rewrite(PreprocessingPassContext* preprocContext)
 PreprocessingPassResult Rewrite::applyInternal(
   AssertionPipeline* assertionsToPreprocess)
 {	
-  for (unsigned i = 0; i < assertionsToPreprocess->size(); ++i) {
-    assertionsToPreprocess->replace(i, Rewriter::rewrite((*assertionsToPreprocess)[i]));
+  for (unsigned i = 0; i < assertionsToPreprocess->size(); ++i)
+  {
+    TNode a = (*assertionsToPreprocess)[i];
+    assertionsToPreprocess->replace(
+        i, Rewriter::rewrite((*assertionsToPreprocess)[i]));
+    NEWPROOF({
+      if (a != (*assertionsToPreprocess)[i])
+      {
+        NewProofManager::currentPM()->addAssertionProofStep(
+            a, (*assertionsToPreprocess)[i], RULE_PREPROCESSING_REWRITE);
+      }
+    });
   }
 
   return PreprocessingPassResult::NO_CONFLICT;

@@ -39,7 +39,15 @@ PreprocessingPassResult IteRemoval::applyInternal(AssertionPipeline* assertions)
       assertions->ref(), assertions->getIteSkolemMap(), true);
   for (unsigned i = 0, size = assertions->size(); i < size; ++i)
   {
+    TNode a = (*assertions)[i];
     assertions->replace(i, Rewriter::rewrite((*assertions)[i]));
+    NEWPROOF({
+      if (a != (*assertions)[i])
+      {
+        NewProofManager::currentPM()->addAssertionProofStep(
+            a, (*assertions)[i], RULE_PREPROCESSING_REWRITE);
+      }
+    });
   }
 
   return PreprocessingPassResult::NO_CONFLICT;

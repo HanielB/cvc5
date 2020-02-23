@@ -10,7 +10,6 @@
 (declare-fun f (U U) U)
 (declare-fun g (U) U)
 
-(assert (= a b))
 (assert (= (g c) d))
 (assert (= a d))
 (assert (not (= (f a b) (f (g c) b))))

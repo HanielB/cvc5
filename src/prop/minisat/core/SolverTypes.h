@@ -226,7 +226,6 @@ class Clause {
                 data[header.size].act = 0; 
             else 
                 calcAbstraction(); }
-    }
 #if CVC4_PROOF
         header.proofId = 0;
 #endif

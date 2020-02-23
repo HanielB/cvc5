@@ -3290,7 +3290,7 @@ void SmtEnginePrivate::processAssertions() {
   NEWPROOF({
     for (unsigned i = 0, size = d_assertions.size(); i < size; ++i)
     {
-      NewProofManager::currentPM()->addAssertion(d_assertions[i]);
+      NewProofManager::currentPM()->addInputAssertion(d_assertions[i]);
     }
   });
 

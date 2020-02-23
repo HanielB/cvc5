@@ -32,6 +32,9 @@ enum NewProofRule
   RULE_PURE_EQ,
   RULE_CONSTANTS,
   RULE_PREPROCESSING,
+  RULE_PREPROCESSING_REWRITE,
+  RULE_PREPROCESSING_THEORY,
+  RULE_PREPROCESSING_ITE_REMOVAL,
   RULE_THEORY_LEMMA,
   UNDEF
 }; /* enum ProofRules */
@@ -75,6 +78,11 @@ inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
     case RULE_PURE_EQ: out << "pure_eq"; break;
     case RULE_CONSTANTS: out << "constants"; break;
     case RULE_PREPROCESSING: out << "preprocessing"; break;
+    case RULE_PREPROCESSING_REWRITE: out << "preprocessing_rewrite"; break;
+    case RULE_PREPROCESSING_THEORY: out << "preprocessing_theory"; break;
+    case RULE_PREPROCESSING_ITE_REMOVAL:
+      out << "preprocessing_ite_removal";
+      break;
 
     default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
   }
