@@ -71,7 +71,10 @@ class VeritProof : public NewProof
   void addToProofStep(ClauseId id,
                       NewProofRule rule,
                       std::vector<Node>& conclusion);
-
+  void addToProofStep(ClauseId id,
+                      NewProofRule rule,
+                      std::vector<ClauseId>& reasons,
+                      std::vector<Node>& conclusion);
   ClauseId addTheoryProof(theory::EqProof* proof);
 
   const std::vector<VeritProofStep>& getProofSteps() const;

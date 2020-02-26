@@ -360,6 +360,19 @@ void VeritProof::addToProofStep(ClauseId id,
   d_proofSteps[id].addConclusion(conclusion);
 }
 
+void VeritProof::addToProofStep(ClauseId id,
+                                NewProofRule rule,
+                                std::vector<ClauseId>& reasons,
+                                std::vector<Node>& conclusion)
+{
+  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " [" << rule
+                        << "], reasons, conclusion " << conclusion << "\n";
+  Assert(id >= 0 && id < d_proofSteps.size());
+  d_proofSteps[id].addRule(rule);
+  d_proofSteps[id].addPremises(reasons);
+  d_proofSteps[id].addConclusion(conclusion);
+}
+
 // recursive call for building the proof
 void flattenBinCongs(theory::EqProof* proof);
 

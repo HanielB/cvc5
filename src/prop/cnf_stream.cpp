@@ -874,7 +874,7 @@ void TseitinCnfStream::convertAndAssert(TNode node, bool negated) {
       Debug("newproof::sat::cnf")
           << "TseitinCnfStream::convertAndAssert: Assertion " << node
           << " is a literal, id: " << id << ", pol: " << negated << "\n";
-      NewProofManager::currentPM()->addCnfProofStep(lit);
+      NewProofManager::currentPM()->addCnfProofStep(lit, id);
     });
   }
     break;

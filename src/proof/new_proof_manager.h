@@ -158,7 +158,7 @@ class NewProofManager
   /* General proof step. For now used for preprocessing only */
   void addAssertionProofStep(Node src, Node dest, NewProofRule rule);
 
-  void addCnfProofStep(prop::SatLiteral lit);
+  void addCnfProofStep(prop::SatLiteral lit, ClauseId id);
 
   void addCnfProofStep(NewProofRule rule,
                        Node src,

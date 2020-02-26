@@ -120,10 +120,10 @@ void NewProofManager::addCnfProofStep(NewProofRule rule,
   }
   Assert(d_format == VERIT);
   VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  vtproof->addProofStep(rule, reasons, clauseNodes);
+  vtproof->addToProofStep(id_dest, rule, reasons, clauseNodes);
 }
 
-void NewProofManager::addCnfProofStep(prop::SatLiteral lit)
+void NewProofManager::addCnfProofStep(prop::SatLiteral lit, ClauseId id)
 {
   Debug("newproof::pm") << "NewProofManager::addCnfProofStep: SatLit " << lit
                         << std::endl;
@@ -140,9 +140,9 @@ void NewProofManager::addCnfProofStep(prop::SatLiteral lit)
     return;
   }
   // Associate input literal with his respective clause id
-  ClauseId id = d_assertionToClauseId[litDef];
-  d_litToClauseId[lit] = id;
-  d_clauseIdToLit[id] = lit;
+  ClauseId previous_id = d_assertionToClauseId[litDef];
+  d_litToClauseId[lit] = previous_id;
+  d_clauseIdToLit[previous_id] = lit;
 }
 
 void NewProofManager::addDefCnfProofStep(NewProofRule rule,
