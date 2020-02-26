@@ -653,9 +653,10 @@ class SmtEnginePrivate : public NodeManagerListener {
   void cleanupPreprocessingPasses() { d_passes.clear(); }
 
   ResourceManager* getResourceManager() { return d_resourceManager; }
-  void spendResource(unsigned amount)
+
+  void spendResource(ResourceManager::Resource r)
   {
-    d_resourceManager->spendResource(amount);
+    d_resourceManager->spendResource(r);
   }
 
   void nmNotifyNewSort(TypeNode tn, uint32_t flags) override
@@ -879,8 +880,7 @@ SmtEngine::SmtEngine(ExprManager* em)
       d_replayStream(NULL),
       d_private(NULL),
       d_statisticsRegistry(NULL),
-      d_stats(NULL),
-      d_channels(new LemmaChannels())
+      d_stats(NULL)
 {
   SmtScope smts(this);
   d_originalOptions.copyValues(em->getOptions());
@@ -916,8 +916,7 @@ void SmtEngine::finishInit()
   d_theoryEngine = new TheoryEngine(d_context,
                                     d_userContext,
                                     d_private->d_iteRemover,
-                                    const_cast<const LogicInfo&>(d_logic),
-                                    d_channels);
+                                    const_cast<const LogicInfo&>(d_logic));
 
   // Add the theories
   for(TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST; ++id) {
@@ -944,9 +943,12 @@ void SmtEngine::finishInit()
   d_decisionEngine->init();   // enable appropriate strategies
 
   Trace("smt-debug") << "Making prop engine..." << std::endl;
-  d_propEngine = new PropEngine(d_theoryEngine, d_decisionEngine, d_context,
-                                d_userContext, d_private->getReplayLog(),
-                                d_replayStream, d_channels);
+  d_propEngine = new PropEngine(d_theoryEngine,
+                                d_decisionEngine,
+                                d_context,
+                                d_userContext,
+                                d_private->getReplayLog(),
+                                d_replayStream);
 
   Trace("smt-debug") << "Setting up theory engine..." << std::endl;
   d_theoryEngine->setPropEngine(d_propEngine);
@@ -966,16 +968,18 @@ void SmtEngine::finishInit()
     d_assertionList = new(true) AssertionList(d_userContext);
   }
 
-  // dump out a set-logic command
-  if(Dump.isOn("benchmark")) {
-    if (Dump.isOn("raw-benchmark")) {
-      Dump("raw-benchmark") << SetBenchmarkLogicCommand(d_logic.getLogicString());
-    } else {
+  // dump out a set-logic command only when raw-benchmark is disabled to avoid
+  // dumping the command twice.
+  if (Dump.isOn("benchmark") && !Dump.isOn("raw-benchmark"))
+  {
       LogicInfo everything;
       everything.lock();
-      Dump("benchmark") << CommentCommand("CVC4 always dumps the most general, all-supported logic (below), as some internals might require the use of a logic more general than the input.")
-                        << SetBenchmarkLogicCommand(everything.getLogicString());
-    }
+      Dump("benchmark") << CommentCommand(
+          "CVC4 always dumps the most general, all-supported logic (below), as "
+          "some internals might require the use of a logic more general than "
+          "the input.")
+                        << SetBenchmarkLogicCommand(
+                               everything.getLogicString());
   }
 
   Trace("smt-debug") << "Dump declaration commands..." << std::endl;
@@ -1115,9 +1119,6 @@ SmtEngine::~SmtEngine()
     delete d_context;
     d_context = NULL;
 
-    delete d_channels;
-    d_channels = NULL;
-
   } catch(Exception& e) {
     Warning() << "CVC4 threw an exception during cleanup." << endl
               << e << endl;
@@ -1138,9 +1139,18 @@ void SmtEngine::setLogic(const LogicInfo& logic)
 void SmtEngine::setLogic(const std::string& s)
 {
   SmtScope smts(this);
-  try {
+  try
+  {
     setLogic(LogicInfo(s));
-  } catch(IllegalArgumentException& e) {
+    // dump out a set-logic command
+    if (Dump.isOn("raw-benchmark"))
+    {
+      Dump("raw-benchmark")
+          << SetBenchmarkLogicCommand(d_logic.getLogicString());
+    }
+  }
+  catch (IllegalArgumentException& e)
+  {
     throw LogicException(e.what());
   }
 }
@@ -1214,9 +1224,17 @@ void SmtEngine::setDefaults() {
     }
     d_logic = LogicInfo("QF_BV");
   }
-  else if (d_logic.getLogicString() == "QF_NRA" && options::solveRealAsInt())
+
+  if (options::solveBVAsInt() > 0)
   {
-    d_logic = LogicInfo("QF_NIA");
+    if (d_logic.isTheoryEnabled(THEORY_BV))
+    {
+      d_logic = d_logic.getUnlockedCopy();
+      d_logic.disableTheory(THEORY_BV);
+      d_logic.enableTheory(THEORY_ARITH);
+      d_logic.arithNonLinear();
+      d_logic.lock();
+    }
   }
 
   // set options about ackermannization
@@ -1306,11 +1324,16 @@ void SmtEngine::setDefaults() {
     {
       // since we are trying to recast as sygus, we assume the input is sygus
       is_sygus = true;
-      // we change the logic to incorporate sygus immediately
-      d_logic = d_logic.getUnlockedCopy();
-      d_logic.enableSygus();
-      d_logic.lock();
     }
+  }
+
+  // We now know whether the input is sygus. Update the logic to incorporate
+  // the theories we need internally for handling sygus problems.
+  if (is_sygus)
+  {
+    d_logic = d_logic.getUnlockedCopy();
+    d_logic.enableSygus();
+    d_logic.lock();
   }
 
   // sygus core connective requires unsat cores
@@ -1438,6 +1461,17 @@ void SmtEngine::setDefaults() {
                   "cores/proofs"
                << endl;
       options::preSkolemQuant.set(false);
+    }
+
+    if (options::solveBVAsInt() > 0)
+    {
+      /**
+       * Operations on 1 bits are better handled as Boolean operations
+       * than as integer operations.
+       * Therefore, we enable bv-to-bool, which runs before
+       * the translation to integers.
+       */
+      options::bitvectorToBool.set(true);
     }
 
     if (options::bitvectorToBool())
@@ -2764,7 +2798,7 @@ Node SmtEnginePrivate::expandDefinitions(TNode n, unordered_map<Node, Node, Node
   // or upward pass).
 
   do {
-    spendResource(options::preprocessStep());
+    spendResource(ResourceManager::Resource::PreprocessStep);
 
     // n is the input / original
     // node is the output / result
@@ -2955,7 +2989,7 @@ static void dumpAssertions(const char* key,
 // returns false if simplification led to "false"
 bool SmtEnginePrivate::simplifyAssertions()
 {
-  spendResource(options::preprocessStep());
+  spendResource(ResourceManager::Resource::PreprocessStep);
   Assert(d_smt.d_pendingPops == 0);
   try {
     ScopeCounter depth(d_simplifyAssertionsDepth);
@@ -3213,7 +3247,7 @@ bool SmtEnginePrivate::checkForBadSkolems(TNode n, TNode skolem, unordered_map<N
 
 void SmtEnginePrivate::processAssertions() {
   TimerStat::CodeTimer paTimer(d_smt.d_stats->d_processAssertionsTime);
-  spendResource(options::preprocessStep());
+  spendResource(ResourceManager::Resource::PreprocessStep);
   Assert(d_smt.d_fullyInited);
   Assert(d_smt.d_pendingPops == 0);
   SubstitutionMap& top_level_substs =
@@ -3310,7 +3344,7 @@ void SmtEnginePrivate::processAssertions() {
   if (options::solveRealAsInt()) {
     d_passes["real-to-int"]->apply(&d_assertions);
   }
-
+  
   if (options::solveIntAsBV() > 0)
   {
     d_passes["int-to-bv"]->apply(&d_assertions);
@@ -3371,6 +3405,34 @@ void SmtEnginePrivate::processAssertions() {
   {
     d_passes["bv-to-bool"]->apply(&d_assertions);
   }
+  if (options::solveBVAsInt() > 0)
+  {
+    if (options::incrementalSolving())
+    {
+      throw ModalException(
+          "solving bitvectors as integers is currently not supported "
+          "when solving incrementally.");
+    } else if (options::boolToBitvector() != options::BoolToBVMode::OFF) {
+      throw ModalException(
+          "solving bitvectors as integers is incompatible with --bool-to-bv.");
+    }
+    else if (options::solveBVAsInt() > 8)
+    {
+      /**
+       * The granularity sets the size of the ITE in each element
+       * of the sum that is generated for bitwise operators.
+       * The size of the ITE is 2^{2*granularity}.
+       * Since we don't want to introduce ITEs with unbounded size,
+       * we bound the granularity.
+       */
+      throw ModalException("solve-bv-as-int accepts values from 0 to 8.");
+    }
+    else
+    {
+      d_passes["bv-to-int"]->apply(&d_assertions);
+    }
+  }
+
   // Convert non-top-level Booleans to bit-vectors of size 1
   if (options::boolToBitvector() != options::BoolToBVMode::OFF)
   {
@@ -3962,6 +4024,8 @@ Result SmtEngine::assertFormula(const Expr& ex, bool inUnsatCore)
 
 void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
 {
+  SmtScope smts(this);
+  finalOptionsAreSet();
   d_private->d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusVar: " << var << "\n";
   Dump("raw-benchmark") << DeclareSygusVarCommand(id, var, type);
@@ -3970,9 +4034,10 @@ void SmtEngine::declareSygusVar(const std::string& id, Expr var, Type type)
 
 void SmtEngine::declareSygusPrimedVar(const std::string& id, Type type)
 {
+  SmtScope smts(this);
+  finalOptionsAreSet();
   // do nothing (the command is spurious)
   Trace("smt") << "SmtEngine::declareSygusPrimedVar: " << id << "\n";
-  Dump("raw-benchmark") << DeclareSygusPrimedVarCommand(id, type);
   // don't need to set that the conjecture is stale
 }
 
@@ -3980,9 +4045,12 @@ void SmtEngine::declareSygusFunctionVar(const std::string& id,
                                         Expr var,
                                         Type type)
 {
+  SmtScope smts(this);
+  finalOptionsAreSet();
   d_private->d_sygusVars.push_back(Node::fromExpr(var));
   Trace("smt") << "SmtEngine::declareSygusFunctionVar: " << var << "\n";
-  Dump("raw-benchmark") << DeclareSygusFunctionCommand(id, var, type);
+  Dump("raw-benchmark") << DeclareSygusVarCommand(id, var, type);
+
   // don't need to set that the conjecture is stale
 }
 
@@ -4023,6 +4091,7 @@ void SmtEngine::declareSynthFun(const std::string& id,
 void SmtEngine::assertSygusConstraint(Expr constraint)
 {
   SmtScope smts(this);
+  finalOptionsAreSet();
   d_private->d_sygusConstraints.push_back(constraint);
 
   Trace("smt") << "SmtEngine::assertSygusConstrant: " << constraint << "\n";
@@ -4037,6 +4106,7 @@ void SmtEngine::assertSygusInvConstraint(const Expr& inv,
                                          const Expr& post)
 {
   SmtScope smts(this);
+  finalOptionsAreSet();
   // build invariant constraint
 
   // get variables (regular and their respective primed versions)
@@ -4216,7 +4286,7 @@ Expr SmtEngine::simplify(const Expr& ex)
 
 Expr SmtEngine::expandDefinitions(const Expr& ex)
 {
-  d_private->spendResource(options::preprocessStep());
+  d_private->spendResource(ResourceManager::Resource::PreprocessStep);
 
   Assert(ex.getExprManager() == d_exprManager);
   SmtScope smts(this);

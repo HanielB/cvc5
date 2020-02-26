@@ -32,7 +32,6 @@
 #include "proof/proof_manager.h"
 #include "prop/registrar.h"
 #include "prop/theory_proxy.h"
-#include "smt_util/lemma_channels.h"
 
 namespace CVC4 {
 
