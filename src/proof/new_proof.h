@@ -36,6 +36,26 @@ enum NewProofRule
   RULE_PREPROCESSING_THEORY,
   RULE_PREPROCESSING_ITE_REMOVAL,
   RULE_THEORY_LEMMA,
+  RULE_CNF_AND_POS,
+  RULE_CNF_AND_NEG,
+  RULE_CNF_OR_POS,
+  RULE_CNF_OR_NEG,
+  RULE_CNF_XOR_POS1,
+  RULE_CNF_XOR_POS2,
+  RULE_CNF_XOR_NEG1,
+  RULE_CNF_XOR_NEG2,
+  RULE_CNF_IMPLIES,
+  RULE_CNF_IMPLIES_POS,
+  RULE_CNF_IMPLIES_NEG1,
+  RULE_CNF_IMPLIES_NEG2,
+  RULE_CNF_EQUIV_POS1,
+  RULE_CNF_EQUIV_POS2,
+  RULE_CNF_EQUIV_NEG1,
+  RULE_CNF_EQUIV_NEG2,
+  RULE_CNF_ITE_POS1,
+  RULE_CNF_ITE_POS2,
+  RULE_CNF_ITE_NEG1,
+  RULE_CNF_ITE_NEG2,
   UNDEF
 }; /* enum ProofRules */
 
@@ -83,6 +103,26 @@ inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
     case RULE_PREPROCESSING_ITE_REMOVAL:
       out << "preprocessing_ite_removal";
       break;
+    case RULE_CNF_AND_POS: out << "cnf_and_pos"; break;
+    case RULE_CNF_AND_NEG: out << "cnf_and_neg"; break;
+    case RULE_CNF_OR_POS: out << "cnf_or_pos"; break;
+    case RULE_CNF_OR_NEG: out << "cnf_or_neg"; break;
+    case RULE_CNF_XOR_POS1: out << "cnf_xor_pos1"; break;
+    case RULE_CNF_XOR_POS2: out << "cnf_xor_pos2"; break;
+    case RULE_CNF_XOR_NEG1: out << "cnf_xor_neg1"; break;
+    case RULE_CNF_XOR_NEG2: out << "cnf_xor_neg2"; break;
+    case RULE_CNF_IMPLIES: out << "cnf_implies"; break;
+    case RULE_CNF_IMPLIES_POS: out << "cnf_implies_pos"; break;
+    case RULE_CNF_IMPLIES_NEG1: out << "cnf_implies_neg1"; break;
+    case RULE_CNF_IMPLIES_NEG2: out << "cnf_implies_neg2"; break;
+    case RULE_CNF_EQUIV_POS1: out << "cnf_equiv_pos1"; break;
+    case RULE_CNF_EQUIV_POS2: out << "cnf_equiv_pos2"; break;
+    case RULE_CNF_EQUIV_NEG1: out << "cnf_equiv_neg1"; break;
+    case RULE_CNF_EQUIV_NEG2: out << "cnf_equiv_neg2"; break;
+    case RULE_CNF_ITE_POS1: out << "cnf_ite_pos1"; break;
+    case RULE_CNF_ITE_POS2: out << "cnf_ite_pos2"; break;
+    case RULE_CNF_ITE_NEG1: out << "cnf_ite_neg1"; break;
+    case RULE_CNF_ITE_NEG2: out << "cnf_ite_neg2"; break;
 
     default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
   }

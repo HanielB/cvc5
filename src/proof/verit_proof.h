@@ -25,9 +25,11 @@ namespace CVC4 {
 class VeritProofStep : public ProofStep
 {
  public:
+  VeritProofStep(unsigned id);
   VeritProofStep(unsigned id, NewProofRule rule);
   ~VeritProofStep() override {}
 
+  void addRule(NewProofRule rule);
   void addPremises(std::vector<unsigned>& reasons);
   void addPremises(unsigned reason);
   void addConclusion(Node conclusion);
@@ -49,15 +51,26 @@ class VeritProof : public NewProof
   ~VeritProof() override {}
   void toStream(std::ostream& out) const override;
   ClauseId addProofStep(NewProofRule rule) override;
+  ClauseId addProofStep();
 
   ClauseId addProofStep(NewProofRule rule,
                         std::vector<unsigned>& reasons,
                         Node conclusion);
+  ClauseId addProofStep(NewProofRule rule,
+                        std::vector<unsigned>& reasons,
+                        std::vector<Node>& conclusion);
 
   ClauseId addProofStep(NewProofRule rule, Node conclusion);
-
+  // add to last created proof step
   void addToLastProofStep(Node conclusion);
   void addToLastProofStep(std::vector<unsigned>& reasons, Node conclusion);
+
+  // add to proof step of the given id
+  void addToProofStep(ClauseId id, Node conclusion);
+  void addToProofStep(ClauseId id, NewProofRule rule, Node conclusion);
+  void addToProofStep(ClauseId id,
+                      NewProofRule rule,
+                      std::vector<Node>& conclusion);
 
   ClauseId addTheoryProof(theory::EqProof* proof);
 

@@ -109,23 +109,26 @@ class CnfStream {
    * Asserts the given clause to the sat solver.
    * @param node the node giving rise to this clause
    * @param clause the clause to assert
+   * @return the clause identifier. Proof-specific information.
    */
-  void assertClause(TNode node, SatClause& clause);
+  ClauseId assertClause(TNode node, SatClause& clause);
 
   /**
    * Asserts the unit clause to the sat solver.
    * @param node the node giving rise to this clause
    * @param a the unit literal of the clause
+   * @return the clause identifier. Proof-specific information.
    */
-  void assertClause(TNode node, SatLiteral a);
+  ClauseId assertClause(TNode node, SatLiteral a);
 
   /**
    * Asserts the binary clause to the sat solver.
    * @param node the node giving rise to this clause
    * @param a the first literal in the clause
    * @param b the second literal in the clause
+   * @return the clause identifier. Proof-specific information.
    */
-  void assertClause(TNode node, SatLiteral a, SatLiteral b);
+  ClauseId assertClause(TNode node, SatLiteral a, SatLiteral b);
 
   /**
    * Asserts the ternary clause to the sat solver.
@@ -133,8 +136,9 @@ class CnfStream {
    * @param a the first literal in the clause
    * @param b the second literal in the clause
    * @param c the thirs literal in the clause
+   * @return the clause identifier. Proof-specific information.
    */
-  void assertClause(TNode node, SatLiteral a, SatLiteral b, SatLiteral c);
+  ClauseId assertClause(TNode node, SatLiteral a, SatLiteral b, SatLiteral c);
 
   /**
    * Acquires a new variable from the SAT solver to represent the node

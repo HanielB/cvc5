@@ -173,6 +173,7 @@ Solver::Solver(CVC4::prop::TheoryProxy* proxy, CVC4::context::Context* context, 
   , asynch_interrupt   (false)
 {
   PROOF(ProofManager::currentPM()->initSatProof(this);)
+  NEWPROOF(NewProofManager::currentPM()->setSatSolver(this);)
 
   // Create the constant variables
   varTrue = newVar(true, false, false);
@@ -438,16 +439,23 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
 
       // If all false, we're in conflict
       if (ps.size() == falseLiteralsCount) {
-        if(PROOF_ON()) {
+        if (PROOF_ON())
+        {
           // Take care of false units here; otherwise, we need to
           // construct the clause below to give to the proof manager
           // as the final conflict.
           if(falseLiteralsCount == 1) {
             PROOF( id = ProofManager::getSatProof()->storeUnitConflict(ps[0], INPUT); )
             PROOF( ProofManager::getSatProof()->finalizeProof(CVC4::Minisat::CRef_Lazy); )
+            NEWPROOF({
+              NewProofManager* pm = NewProofManager::currentPM();
+              pm->finalizeProof(ps[0]);
+            });
             return ok = false;
           }
-        } else {
+        }
+        else
+        {
           return ok = false;
         }
       }
@@ -468,10 +476,8 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           PROOF(
                 id = ProofManager::getSatProof()->registerClause(cr, INPUT);
                 )
-          NEWPROOF({
-            NewProofManager* pm = NewProofManager::currentPM();
-            pm->registerClause(ca[cr], RULE_INPUT);
-          });
+          NEWPROOF(
+              { id = NewProofManager::currentPM()->registerClause(ca[cr]); });
           if(ps.size() == falseLiteralsCount) {
             PROOF( ProofManager::getSatProof()->finalizeProof(cr); )
             NEWPROOF({
@@ -495,10 +501,10 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
                 }
                 );
           NEWPROOF({
-            if (ps.size() == 1)
-            {
-              NewProofManager::currentPM()->registerClause(ps[0], RULE_INPUT);
-            }
+            // if (ps.size() == 1)
+            // {
+            //   id = NewProofManager::currentPM()->registerClause(ps[0]);
+            // }
           });
           CRef confl = propagate(CHECK_WITHOUT_THEORY);
           if(! (ok = (confl == CRef_Undef)) ) {

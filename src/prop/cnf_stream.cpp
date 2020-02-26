@@ -63,7 +63,8 @@ TseitinCnfStream::TseitinCnfStream(SatSolver* satSolver, Registrar* registrar,
   : CnfStream(satSolver, registrar, context, fullLitToNodeMap, name)
 {}
 
-void CnfStream::assertClause(TNode node, SatClause& c) {
+ClauseId CnfStream::assertClause(TNode node, SatClause& c)
+{
   Debug("cnf") << "Inserting into stream " << c << " node = " << node << endl;
   if(Dump.isOn("clauses")) {
     if(c.size() == 1) {
@@ -85,7 +86,11 @@ void CnfStream::assertClause(TNode node, SatClause& c) {
   }
 
   ClauseId clause_id = d_satSolver->addClause(c, d_removable);
-  if (clause_id == ClauseIdUndef) return; // nothing to store (no clause was added)
+  // nothing to store (no clause was added)
+  if (clause_id == ClauseIdUndef)
+  {
+    return clause_id;
+  }
 
   if (PROOF_ON() && d_cnfProof)
   {
@@ -95,31 +100,33 @@ void CnfStream::assertClause(TNode node, SatClause& c) {
     }
     d_cnfProof->popCurrentDefinition();
   };
-  NEWPROOF({
-    NewProofManager* pm = NewProofManager::currentPM();
-    pm->addClauseDef(clause_id, node);
-  })
+  return clause_id;
 }
 
-void CnfStream::assertClause(TNode node, SatLiteral a) {
+ClauseId CnfStream::assertClause(TNode node, SatLiteral a) {
   SatClause clause(1);
   clause[0] = a;
-  assertClause(node, clause);
+  return assertClause(node, clause);
 }
 
-void CnfStream::assertClause(TNode node, SatLiteral a, SatLiteral b) {
+ClauseId CnfStream::assertClause(TNode node, SatLiteral a, SatLiteral b)
+{
   SatClause clause(2);
   clause[0] = a;
   clause[1] = b;
-  assertClause(node, clause);
+  return assertClause(node, clause);
 }
 
-void CnfStream::assertClause(TNode node, SatLiteral a, SatLiteral b, SatLiteral c) {
+ClauseId CnfStream::assertClause(TNode node,
+                                 SatLiteral a,
+                                 SatLiteral b,
+                                 SatLiteral c)
+{
   SatClause clause(3);
   clause[0] = a;
   clause[1] = b;
   clause[2] = c;
-  assertClause(node, clause);
+  return assertClause(node, clause);
 }
 
 bool CnfStream::hasLiteral(TNode n) const {
@@ -320,18 +327,47 @@ SatLiteral TseitinCnfStream::handleOr(TNode orNode) {
   // Get the literal for this node
   SatLiteral orLit = newLiteral(orNode);
 
+  ClauseId id;
   // lit <- (a_1 | a_2 | a_3 | ... | a_n)
   // lit | ~(a_1 | a_2 | a_3 | ... | a_n)
   // (lit | ~a_1) & (lit | ~a_2) & (lit & ~a_3) & ... & (lit & ~a_n)
-  for(unsigned i = 0; i < n_children; ++i) {
-    assertClause(orNode, orLit, ~clause[i]);
+  for (unsigned i = 0; i < n_children; ++i)
+  {
+    id = assertClause(orNode, orLit, ~clause[i]);
+    NEWPROOF({
+      if (id != ClauseIdUndef)
+      {
+        Debug("newproof::sat::cnf") << "TseitinCnfStream::handleOr: Subexpr "
+                                    << orNode << ", id: " << id << "\n";
+        SatClause proof_clause(2);
+        proof_clause[0] = orLit;
+        proof_clause[1] = ~clause[i];
+        NewProofManager::currentPM()->addDefCnfProofStep(
+            RULE_CNF_OR_NEG, id, proof_clause);
+      }
+    });
   }
 
   // lit -> (a_1 | a_2 | a_3 | ... | a_n)
   // ~lit | a_1 | a_2 | a_3 | ... | a_n
   clause[n_children] = ~orLit;
   // This needs to go last, as the clause might get modified by the SAT solver
-  assertClause(orNode.negate(), clause);
+  id = assertClause(orNode.negate(), clause);
+  NEWPROOF({
+    if (id != ClauseIdUndef)
+    {
+      Debug("newproof::sat::cnf") << "TseitinCnfStream::handleOr: Subexpr "
+                                  << orNode << ", id: " << id << "\n";
+      SatClause proof_clause(n_children + 1);
+      proof_clause[0] = ~orLit;
+      for (unsigned i = 0; i < n_children; ++i)
+      {
+        proof_clause[i + 1] = clause[i];
+      }
+      NewProofManager::currentPM()->addDefCnfProofStep(
+          RULE_CNF_OR_POS, id, proof_clause);
+    }
+  });
 
   // Return the literal
   return orLit;
@@ -357,11 +393,25 @@ SatLiteral TseitinCnfStream::handleAnd(TNode andNode) {
   // Get the literal for this node
   SatLiteral andLit = newLiteral(andNode);
 
+  ClauseId id;
   // lit -> (a_1 & a_2 & a_3 & ... & a_n)
   // ~lit | (a_1 & a_2 & a_3 & ... & a_n)
   // (~lit | a_1) & (~lit | a_2) & ... & (~lit | a_n)
-  for(unsigned i = 0; i < n_children; ++i) {
-    assertClause(andNode.negate(), ~andLit, ~clause[i]);
+  for (unsigned i = 0; i < n_children; ++i)
+  {
+    id = assertClause(andNode.negate(), ~andLit, ~clause[i]);
+    NEWPROOF({
+      if (id != ClauseIdUndef)
+      {
+        Debug("newproof::sat::cnf") << "TseitinCnfStream::handleAnd: Subexpr "
+                                    << andNode << ", id: " << id << "\n";
+        SatClause proof_clause(2);
+        proof_clause[0] = ~andLit;
+        proof_clause[1] = clause[i];
+        NewProofManager::currentPM()->addDefCnfProofStep(
+            RULE_CNF_AND_POS, id, proof_clause);
+      }
+    });
   }
 
   // lit <- (a_1 & a_2 & a_3 & ... a_n)
@@ -369,7 +419,22 @@ SatLiteral TseitinCnfStream::handleAnd(TNode andNode) {
   // lit | ~a_1 | ~a_2 | ~a_3 | ... | ~a_n
   clause[n_children] = andLit;
   // This needs to go last, as the clause might get modified by the SAT solver
-  assertClause(andNode, clause);
+  id = assertClause(andNode, clause);
+  NEWPROOF({
+    if (id != ClauseIdUndef)
+    {
+      Debug("newproof::sat::cnf") << "TseitinCnfStream::And: Subexpr "
+                                  << andNode << ", id: " << id << "\n";
+      SatClause proof_clause(n_children + 1);
+      proof_clause[0] = andLit;
+      for (unsigned i = 0; i < n_children; ++i)
+      {
+        proof_clause[i+1] = clause[i];
+      }
+      NewProofManager::currentPM()->addDefCnfProofStep(
+          RULE_CNF_AND_NEG, id, proof_clause);
+    }
+  });
 
   return andLit;
 }
@@ -389,14 +454,52 @@ SatLiteral TseitinCnfStream::handleImplies(TNode impliesNode) {
 
   // lit -> (a->b)
   // ~lit | ~ a | b
-  assertClause(impliesNode.negate(), ~impliesLit, ~a, b);
+  ClauseId id = assertClause(impliesNode.negate(), ~impliesLit, ~a, b);
+  NEWPROOF({
+    if (id != ClauseIdUndef)
+    {
+      Debug("newproof::sat::cnf") << "TseitinCnfStream::handleImplies: Subexpr "
+                                  << impliesNode << ", id: " << id << "\n";
+      SatClause clause(3);
+      clause[0] = ~impliesLit;
+      clause[1] = ~a;
+      clause[2] = b;
+      NewProofManager::currentPM()->addDefCnfProofStep(
+          RULE_CNF_IMPLIES_POS, id, clause);
+    }
+  });
 
   // (a->b) -> lit
   // ~(~a | b) | lit
   // (a | l) & (~b | l)
-  assertClause(impliesNode, a, impliesLit);
-  assertClause(impliesNode, ~b, impliesLit);
-
+  id = assertClause(impliesNode, a, impliesLit);
+  NEWPROOF({
+    if (id != ClauseIdUndef)
+    {
+      Debug("newproof::sat::cnf")
+          << "TseitinCnfStream::convertAndAssertImplies: Subexpr "
+          << impliesNode << ", id: " << id << "\n";
+      SatClause clause(2);
+      clause[0] = impliesLit;
+      clause[1] = a;
+      NewProofManager::currentPM()->addDefCnfProofStep(
+          RULE_CNF_IMPLIES_NEG1, id, clause);
+    }
+  });
+  id = assertClause(impliesNode, ~b, impliesLit);
+  NEWPROOF({
+    if (id != ClauseIdUndef)
+    {
+      Debug("newproof::sat::cnf")
+          << "TseitinCnfStream::convertAndAssertImplies: Subexpr "
+          << impliesNode << ", id: " << id << "\n";
+      SatClause clause(2);
+      clause[0] = impliesLit;
+      clause[1] = ~b;
+      NewProofManager::currentPM()->addDefCnfProofStep(
+          RULE_CNF_IMPLIES_NEG2, id, clause);
+    }
+  });
   return impliesLit;
 }
 
@@ -650,7 +753,15 @@ void TseitinCnfStream::convertAndAssertImplies(TNode node, bool negated) {
     SatClause clause(2);
     clause[0] = ~p;
     clause[1] = q;
-    assertClause(node, clause);
+    ClauseId id = assertClause(node, clause);
+    NEWPROOF({
+      Assert(id != ClauseIdUndef);
+      Debug("newproof::sat::cnf")
+          << "TseitinCnfStream::convertAndAssertImplies: Assertion " << node
+          << ", id: " << id << ", pol: " << negated << "\n";
+      NewProofManager::currentPM()->addCnfProofStep(
+          RULE_CNF_IMPLIES, node, id, clause);
+    });
   } else {// Construct the
     PROOF(if (d_cnfProof) d_cnfProof->setCnfDependence(node[0], node.negate()););
     PROOF(if (d_cnfProof) d_cnfProof->setCnfDependence(node[1].negate(), node.negate()););
@@ -757,7 +868,14 @@ void TseitinCnfStream::convertAndAssert(TNode node, bool negated) {
       nnode = node.negate();
     }
     // Literals to clauses, atoms and polarity to the SAT solver
-    assertClause(nnode, toCNF(node, negated));
+    SatLiteral lit = toCNF(node, negated);
+    ClauseId id = assertClause(nnode, lit);
+    NEWPROOF({
+      Debug("newproof::sat::cnf")
+          << "TseitinCnfStream::convertAndAssert: Assertion " << node
+          << " is a literal, id: " << id << ", pol: " << negated << "\n";
+      NewProofManager::currentPM()->addCnfProofStep(lit);
+    });
   }
     break;
   }

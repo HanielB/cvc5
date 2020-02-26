@@ -19,11 +19,15 @@
 
 namespace CVC4 {
 
+VeritProofStep::VeritProofStep(unsigned id) { d_id = id; }
+
 VeritProofStep::VeritProofStep(unsigned id, NewProofRule rule)
 {
   d_id = id;
   d_rule = rule;
 }
+
+void VeritProofStep::addRule(NewProofRule rule) { d_rule = rule; }
 
 void VeritProofStep::addPremises(std::vector<unsigned>& reasons)
 {
@@ -69,6 +73,14 @@ void VeritProof::toStream(std::ostream& out) const
   }
 }
 
+ClauseId VeritProof::addProofStep()
+{
+  ClauseId id;
+  id = getNextId();
+  d_proofSteps.push_back(VeritProofStep(id));
+  return id;
+}
+
 ClauseId VeritProof::addProofStep(NewProofRule rule)
 {
   ClauseId id;
@@ -79,17 +91,45 @@ ClauseId VeritProof::addProofStep(NewProofRule rule)
     case RULE_REFLEXIVITY:
     case RULE_SYMMETRY:
     case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE: {
+    case RULE_CONGRUENCE:
+    case RULE_PURE_EQ:
+    case RULE_CONSTANTS:
+    case RULE_PREPROCESSING:
+    case RULE_PREPROCESSING_REWRITE:
+    case RULE_PREPROCESSING_THEORY:
+    case RULE_PREPROCESSING_ITE_REMOVAL:
+    case RULE_THEORY_LEMMA:
+    case RULE_CNF_AND_POS:
+    case RULE_CNF_AND_NEG:
+    case RULE_CNF_OR_POS:
+    case RULE_CNF_OR_NEG:
+    case RULE_CNF_XOR_POS1:
+    case RULE_CNF_XOR_POS2:
+    case RULE_CNF_XOR_NEG1:
+    case RULE_CNF_XOR_NEG2:
+    case RULE_CNF_IMPLIES:
+    case RULE_CNF_IMPLIES_POS:
+    case RULE_CNF_IMPLIES_NEG1:
+    case RULE_CNF_IMPLIES_NEG2:
+    case RULE_CNF_EQUIV_POS1:
+    case RULE_CNF_EQUIV_POS2:
+    case RULE_CNF_EQUIV_NEG1:
+    case RULE_CNF_EQUIV_NEG2:
+    case RULE_CNF_ITE_POS1:
+    case RULE_CNF_ITE_POS2:
+    case RULE_CNF_ITE_NEG1:
+    case RULE_CNF_ITE_NEG2: {
       id = getNextId();
       Debug("newproof::pm")
-          << "VeritProof::addProfStep: adding proof step with id/rule: " << id
+          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
           << " / " << rule << "\n";
       d_proofSteps.push_back(VeritProofStep(id, rule));
       break;
     }
     default:
-      Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
-                               "non-simple rule)\n";
+      Debug("newproof::pm")
+          << "VeritProof::addProofStep: unrecognized rule (or "
+             "non-simple rule)\n";
       Assert(false);
   }
   return id;
@@ -105,10 +145,37 @@ ClauseId VeritProof::addProofStep(NewProofRule rule, Node conclusion)
     case RULE_REFLEXIVITY:
     case RULE_SYMMETRY:
     case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE: {
+    case RULE_CONGRUENCE:
+    case RULE_PURE_EQ:
+    case RULE_CONSTANTS:
+    case RULE_PREPROCESSING:
+    case RULE_PREPROCESSING_REWRITE:
+    case RULE_PREPROCESSING_THEORY:
+    case RULE_PREPROCESSING_ITE_REMOVAL:
+    case RULE_THEORY_LEMMA:
+    case RULE_CNF_AND_POS:
+    case RULE_CNF_AND_NEG:
+    case RULE_CNF_OR_POS:
+    case RULE_CNF_OR_NEG:
+    case RULE_CNF_XOR_POS1:
+    case RULE_CNF_XOR_POS2:
+    case RULE_CNF_XOR_NEG1:
+    case RULE_CNF_XOR_NEG2:
+    case RULE_CNF_IMPLIES:
+    case RULE_CNF_IMPLIES_POS:
+    case RULE_CNF_IMPLIES_NEG1:
+    case RULE_CNF_IMPLIES_NEG2:
+    case RULE_CNF_EQUIV_POS1:
+    case RULE_CNF_EQUIV_POS2:
+    case RULE_CNF_EQUIV_NEG1:
+    case RULE_CNF_EQUIV_NEG2:
+    case RULE_CNF_ITE_POS1:
+    case RULE_CNF_ITE_POS2:
+    case RULE_CNF_ITE_NEG1:
+    case RULE_CNF_ITE_NEG2: {
       id = getNextId();
       Debug("newproof::pm")
-          << "VeritProof::addProfStep: adding proof step with id/rule: " << id
+          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
           << " / " << rule << " " << conclusion << "\n";
       VeritProofStep vtproofstep = VeritProofStep(id, rule);
       vtproofstep.addConclusion(conclusion);
@@ -116,8 +183,9 @@ ClauseId VeritProof::addProofStep(NewProofRule rule, Node conclusion)
       break;
     }
     default:
-      Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
-                               "non-simple rule)\n";
+      Debug("newproof::pm")
+          << "VeritProof::addProofStep: unrecognized rule (or "
+             "non-simple rule)\n";
       Assert(false);
   }
   return id;
@@ -136,13 +204,36 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
     case RULE_SYMMETRY:
     case RULE_TRANSITIVITY:
     case RULE_CONGRUENCE:
+    case RULE_PURE_EQ:
+    case RULE_CONSTANTS:
     case RULE_PREPROCESSING:
     case RULE_PREPROCESSING_REWRITE:
     case RULE_PREPROCESSING_THEORY:
-    case RULE_PREPROCESSING_ITE_REMOVAL: {
+    case RULE_PREPROCESSING_ITE_REMOVAL:
+    case RULE_THEORY_LEMMA:
+    case RULE_CNF_AND_POS:
+    case RULE_CNF_AND_NEG:
+    case RULE_CNF_OR_POS:
+    case RULE_CNF_OR_NEG:
+    case RULE_CNF_XOR_POS1:
+    case RULE_CNF_XOR_POS2:
+    case RULE_CNF_XOR_NEG1:
+    case RULE_CNF_XOR_NEG2:
+    case RULE_CNF_IMPLIES:
+    case RULE_CNF_IMPLIES_POS:
+    case RULE_CNF_IMPLIES_NEG1:
+    case RULE_CNF_IMPLIES_NEG2:
+    case RULE_CNF_EQUIV_POS1:
+    case RULE_CNF_EQUIV_POS2:
+    case RULE_CNF_EQUIV_NEG1:
+    case RULE_CNF_EQUIV_NEG2:
+    case RULE_CNF_ITE_POS1:
+    case RULE_CNF_ITE_POS2:
+    case RULE_CNF_ITE_NEG1:
+    case RULE_CNF_ITE_NEG2: {
       id = getNextId();
       Debug("newproof::pm")
-          << "VeritProof::addProfStep: adding proof step with id/rule: " << id
+          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
           << " / " << rule << " "  //<< reasons << " "
           << conclusion << "\n";
       VeritProofStep vtproofstep = VeritProofStep(id, rule);
@@ -152,8 +243,69 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
       break;
     }
     default:
-      Debug("newproof::pm") << "VeritProof::addProfStep: unrecognized rule (or "
-                               "non-simple rule)\n";
+      Debug("newproof::pm")
+          << "VeritProof::addProofStep: unrecognized rule (or "
+             "non-simple rule)\n";
+      Assert(false);
+  }
+  return id;
+}
+
+ClauseId VeritProof::addProofStep(NewProofRule rule,
+                                  std::vector<unsigned>& reasons,
+                                  std::vector<Node>& conclusion)
+{
+  ClauseId id;
+  switch (rule)
+  {
+    case RULE_INPUT:
+    case RULE_RESOLUTION:
+    case RULE_REFLEXIVITY:
+    case RULE_SYMMETRY:
+    case RULE_TRANSITIVITY:
+    case RULE_CONGRUENCE:
+    case RULE_PURE_EQ:
+    case RULE_CONSTANTS:
+    case RULE_PREPROCESSING:
+    case RULE_PREPROCESSING_REWRITE:
+    case RULE_PREPROCESSING_THEORY:
+    case RULE_PREPROCESSING_ITE_REMOVAL:
+    case RULE_THEORY_LEMMA:
+    case RULE_CNF_AND_POS:
+    case RULE_CNF_AND_NEG:
+    case RULE_CNF_OR_POS:
+    case RULE_CNF_OR_NEG:
+    case RULE_CNF_XOR_POS1:
+    case RULE_CNF_XOR_POS2:
+    case RULE_CNF_XOR_NEG1:
+    case RULE_CNF_XOR_NEG2:
+    case RULE_CNF_IMPLIES:
+    case RULE_CNF_IMPLIES_POS:
+    case RULE_CNF_IMPLIES_NEG1:
+    case RULE_CNF_IMPLIES_NEG2:
+    case RULE_CNF_EQUIV_POS1:
+    case RULE_CNF_EQUIV_POS2:
+    case RULE_CNF_EQUIV_NEG1:
+    case RULE_CNF_EQUIV_NEG2:
+    case RULE_CNF_ITE_POS1:
+    case RULE_CNF_ITE_POS2:
+    case RULE_CNF_ITE_NEG1:
+    case RULE_CNF_ITE_NEG2: {
+      id = getNextId();
+      Debug("newproof::pm")
+          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
+          << " / " << rule << " "  //<< reasons << " "
+          << conclusion << "\n";
+      VeritProofStep vtproofstep = VeritProofStep(id, rule);
+      vtproofstep.addPremises(reasons);
+      vtproofstep.addConclusion(conclusion);
+      d_proofSteps.push_back(vtproofstep);
+      break;
+    }
+    default:
+      Debug("newproof::pm")
+          << "VeritProof::addProofStep: unrecognized rule (or "
+             "non-simple rule)\n";
       Assert(false);
   }
   return id;
@@ -161,22 +313,51 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
 
 void VeritProof::addToLastProofStep(Node conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToLastProfStep: adding to last "
-                           "proof step with id/rule: "
-                        << d_proofSteps.back().getId() << " / "
-                        << d_proofSteps.back().getRule() << "\n";
+  Debug("newproof::pm") << "VeritProof::addToLastProofStep "
+                        << d_proofSteps.back().getId() << " ["
+                        << d_proofSteps.back().getRule() << "] conclusion "
+                        << conclusion << "\n";
   d_proofSteps.back().addConclusion(conclusion);
 }
 
 void VeritProof::addToLastProofStep(std::vector<unsigned>& reasons,
                                     Node conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToLastProfStep: adding to last "
-                           "proof step with id/rule: "
-                        << d_proofSteps.back().getId() << " / "
-                        << d_proofSteps.back().getRule() << "\n";
+  Debug("newproof::pm") << "VeritProof::addToLastProofStep "
+                        << d_proofSteps.back().getId() << " ["
+                        << d_proofSteps.back().getRule()
+                        << "] reasons, and conclusion " << conclusion << "\n";
   d_proofSteps.back().addPremises(reasons);
   d_proofSteps.back().addConclusion(conclusion);
+}
+
+void VeritProof::addToProofStep(ClauseId id, Node conclusion)
+{
+  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " ["
+                        << d_proofSteps[id].getRule() << "] conclusion "
+                        << conclusion << "\n";
+  Assert(id >= 0 && id < d_proofSteps.size());
+  d_proofSteps[id].addConclusion(conclusion);
+}
+
+void VeritProof::addToProofStep(ClauseId id, NewProofRule rule, Node conclusion)
+{
+  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " [" << rule
+                        << "] conclusion " << conclusion << "\n";
+  Assert(id >= 0 && id < d_proofSteps.size());
+  d_proofSteps[id].addRule(rule);
+  d_proofSteps[id].addConclusion(conclusion);
+}
+
+void VeritProof::addToProofStep(ClauseId id,
+                                NewProofRule rule,
+                                std::vector<Node>& conclusion)
+{
+  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " [" << rule
+                        << "] conclusion " << conclusion << "\n";
+  Assert(id >= 0 && id < d_proofSteps.size());
+  d_proofSteps[id].addRule(rule);
+  d_proofSteps[id].addConclusion(conclusion);
 }
 
 // recursive call for building the proof
@@ -361,7 +542,11 @@ void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
     out << ")";
   }
   const std::vector<Node>& conclusion = s->getConclusion();
-  Assert(!conclusion.empty());
+  if (conclusion.empty())
+  {
+    out << " :no_conclusion))\n";
+    return;
+  }
   out << " :conclusion (";
   for (unsigned i = 0, size = conclusion.size(); i < size; ++i)
   {
@@ -369,14 +554,7 @@ void VeritProof::printStep(std::ostream& out, VeritProofStep* s) const
     {
       continue;
     }
-    if (i < size - 1)
-    {
-      out << "(not " << conclusion[i] << ") ";
-    }
-    else
-    {
-      out << conclusion[i];
-    }
+    out << conclusion[i] << (i < size - 1 ? " " : "");
   }
   out << ")))\n";
 }

@@ -119,11 +119,16 @@ class NewProofManager
   void addClauseDef(ClauseId clause, Node clauseNodeDef);
   void addClauseDef(ClauseId clause, Node clauseNode, Node clauseNodeDef);
 
+  ClauseId registerClause(Minisat::Solver::TLit lit);
+
   ClauseId registerClause(Minisat::Solver::TLit lit,
-                          NewProofRule reason = UNDEF,
+                          NewProofRule reason,
                           Node litNodeDef = Node::null());
+
+  ClauseId registerClause(Minisat::Solver::TClause& clause);
+
   ClauseId registerClause(Minisat::Solver::TClause& clause,
-                          NewProofRule reason = UNDEF,
+                          NewProofRule reason,
                           Node clauseNodeDef = Node::null());
 
   void startResChain(Minisat::Solver::TClause& start);
@@ -133,7 +138,12 @@ class NewProofManager
   void endResChain(Minisat::Solver::TLit lit);
   void endResChain(ClauseId id);
 
+  /** The id of the proof step that explains this literal */
+  ClauseId justifyLit(Minisat::Solver::TLit lit);
+
+  void finalizeProof(ClauseId conflict_id);
   void finalizeProof();
+  void finalizeProof(Minisat::Solver::TLit lit);
 
   inline void printLit(const Minisat::Solver::TLit lit);
   inline void printClause(const Minisat::Solver::TClause& clause);
@@ -147,6 +157,17 @@ class NewProofManager
 
   /* General proof step. For now used for preprocessing only */
   void addAssertionProofStep(Node src, Node dest, NewProofRule rule);
+
+  void addCnfProofStep(prop::SatLiteral lit);
+
+  void addCnfProofStep(NewProofRule rule,
+                       Node src,
+                       ClauseId id_dest,
+                       prop::SatClause clause_dest);
+
+  void addDefCnfProofStep(NewProofRule rule,
+                          ClauseId id,
+                          prop::SatClause clause);
 
   void queueTheoryProof(prop::SatLiteral lit, theory::EqProof* proof);
 
@@ -162,17 +183,22 @@ class NewProofManager
 
   TimerStat* getProofProductionTime() { return &d_stats.d_proofProductionTime; }
 
+  void setSatSolver(Minisat::Solver* solver) { d_solver = solver; }
+
  private:
   SkolemizationManager d_skolemizationManager;
+
+  /* pointer to core SAT solver */
+  Minisat::Solver* d_solver;
 
   std::unique_ptr<NewProof> d_proof;
 
   /** maps SAT literals to the nodes they correspond to */
-  std::map<prop::SatLiteral, Node> d_satLitToNode;
+  std::map<prop::SatLiteral, Node> d_litToNode;
 
   /** maps SAT literals that have been propagated by theories to the proof of
    * why they could have been propagated */
-  std::map<prop::SatLiteral, theory::EqProof*> d_satLitToTheoryProof;
+  std::map<prop::SatLiteral, theory::EqProof*> d_litToTheoryProof;
 
   /** maps clauses to the nodes they correspond to */
   std::map<Node, ClauseId> d_assertionToClauseId;
@@ -182,8 +208,8 @@ class NewProofManager
 
   std::map<ClauseId, Minisat::Solver::TClause*> d_clauseIdToClause;
 
-  std::map<int, ClauseId> d_litToClauseId;
-  std::map<ClauseId, int> d_clauseIdToLit;
+  std::map<prop::SatLiteral, ClauseId> d_litToClauseId;
+  std::map<ClauseId, prop::SatLiteral> d_clauseIdToLit;
 
   std::vector<Resolution> d_resolution;
 
