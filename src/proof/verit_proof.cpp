@@ -84,110 +84,23 @@ ClauseId VeritProof::addProofStep()
 ClauseId VeritProof::addProofStep(NewProofRule rule)
 {
   ClauseId id;
-  switch (rule)
-  {
-    case RULE_INPUT:
-    case RULE_RESOLUTION:
-    case RULE_REFLEXIVITY:
-    case RULE_SYMMETRY:
-    case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE:
-    case RULE_PURE_EQ:
-    case RULE_CONSTANTS:
-    case RULE_PREPROCESSING:
-    case RULE_PREPROCESSING_REWRITE:
-    case RULE_PREPROCESSING_THEORY:
-    case RULE_PREPROCESSING_ITE_REMOVAL:
-    case RULE_THEORY_LEMMA:
-    case RULE_CNF_AND_POS:
-    case RULE_CNF_AND_NEG:
-    case RULE_CNF_OR_POS:
-    case RULE_CNF_OR_NEG:
-    case RULE_CNF_XOR_POS1:
-    case RULE_CNF_XOR_POS2:
-    case RULE_CNF_XOR_NEG1:
-    case RULE_CNF_XOR_NEG2:
-    case RULE_CNF_IMPLIES:
-    case RULE_CNF_IMPLIES_POS:
-    case RULE_CNF_IMPLIES_NEG1:
-    case RULE_CNF_IMPLIES_NEG2:
-    case RULE_CNF_EQUIV_POS1:
-    case RULE_CNF_EQUIV_POS2:
-    case RULE_CNF_EQUIV_NEG1:
-    case RULE_CNF_EQUIV_NEG2:
-    case RULE_CNF_ITE_POS1:
-    case RULE_CNF_ITE_POS2:
-    case RULE_CNF_ITE_NEG1:
-    case RULE_CNF_ITE_NEG2: {
-      id = getNextId();
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
-          << " / " << rule << "\n";
-      d_proofSteps.push_back(VeritProofStep(id, rule));
-      break;
-    }
-    default:
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: unrecognized rule (or "
-             "non-simple rule)\n";
-      Assert(false);
-  }
+  id = getNextId();
+  Debug("newproof::pm")
+      << "VeritProof::addProofStep: adding proof step with id/rule: " << id
+      << " / " << rule << "\n";
+  d_proofSteps.push_back(VeritProofStep(id, rule));
   return id;
 }
 
 ClauseId VeritProof::addProofStep(NewProofRule rule, Node conclusion)
 {
   ClauseId id;
-  switch (rule)
-  {
-    case RULE_INPUT:
-    case RULE_RESOLUTION:
-    case RULE_REFLEXIVITY:
-    case RULE_SYMMETRY:
-    case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE:
-    case RULE_PURE_EQ:
-    case RULE_CONSTANTS:
-    case RULE_PREPROCESSING:
-    case RULE_PREPROCESSING_REWRITE:
-    case RULE_PREPROCESSING_THEORY:
-    case RULE_PREPROCESSING_ITE_REMOVAL:
-    case RULE_THEORY_LEMMA:
-    case RULE_CNF_AND_POS:
-    case RULE_CNF_AND_NEG:
-    case RULE_CNF_OR_POS:
-    case RULE_CNF_OR_NEG:
-    case RULE_CNF_XOR_POS1:
-    case RULE_CNF_XOR_POS2:
-    case RULE_CNF_XOR_NEG1:
-    case RULE_CNF_XOR_NEG2:
-    case RULE_CNF_IMPLIES:
-    case RULE_CNF_IMPLIES_POS:
-    case RULE_CNF_IMPLIES_NEG1:
-    case RULE_CNF_IMPLIES_NEG2:
-    case RULE_CNF_EQUIV_POS1:
-    case RULE_CNF_EQUIV_POS2:
-    case RULE_CNF_EQUIV_NEG1:
-    case RULE_CNF_EQUIV_NEG2:
-    case RULE_CNF_ITE_POS1:
-    case RULE_CNF_ITE_POS2:
-    case RULE_CNF_ITE_NEG1:
-    case RULE_CNF_ITE_NEG2: {
-      id = getNextId();
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
-          << " / " << rule << " " << conclusion << "\n";
-      VeritProofStep vtproofstep = VeritProofStep(id, rule);
-      vtproofstep.addConclusion(conclusion);
-      d_proofSteps.push_back(vtproofstep);
-      break;
-    }
-    default:
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: unrecognized rule (or "
-             "non-simple rule)\n";
-      Assert(false);
-  }
+  Debug("newproof::pm")
+      << "VeritProof::addProofStep: adding proof step with id/rule: " << id
+      << " / " << rule << " " << conclusion << "\n";
+  VeritProofStep vtproofstep = VeritProofStep(id, rule);
+  vtproofstep.addConclusion(conclusion);
+  d_proofSteps.push_back(vtproofstep);
   return id;
 }
 
@@ -196,58 +109,15 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
                                   Node conclusion)
 {
   ClauseId id;
-  switch (rule)
-  {
-    case RULE_INPUT:
-    case RULE_RESOLUTION:
-    case RULE_REFLEXIVITY:
-    case RULE_SYMMETRY:
-    case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE:
-    case RULE_PURE_EQ:
-    case RULE_CONSTANTS:
-    case RULE_PREPROCESSING:
-    case RULE_PREPROCESSING_REWRITE:
-    case RULE_PREPROCESSING_THEORY:
-    case RULE_PREPROCESSING_ITE_REMOVAL:
-    case RULE_THEORY_LEMMA:
-    case RULE_CNF_AND_POS:
-    case RULE_CNF_AND_NEG:
-    case RULE_CNF_OR_POS:
-    case RULE_CNF_OR_NEG:
-    case RULE_CNF_XOR_POS1:
-    case RULE_CNF_XOR_POS2:
-    case RULE_CNF_XOR_NEG1:
-    case RULE_CNF_XOR_NEG2:
-    case RULE_CNF_IMPLIES:
-    case RULE_CNF_IMPLIES_POS:
-    case RULE_CNF_IMPLIES_NEG1:
-    case RULE_CNF_IMPLIES_NEG2:
-    case RULE_CNF_EQUIV_POS1:
-    case RULE_CNF_EQUIV_POS2:
-    case RULE_CNF_EQUIV_NEG1:
-    case RULE_CNF_EQUIV_NEG2:
-    case RULE_CNF_ITE_POS1:
-    case RULE_CNF_ITE_POS2:
-    case RULE_CNF_ITE_NEG1:
-    case RULE_CNF_ITE_NEG2: {
-      id = getNextId();
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
-          << " / " << rule << " "  //<< reasons << " "
-          << conclusion << "\n";
-      VeritProofStep vtproofstep = VeritProofStep(id, rule);
-      vtproofstep.addPremises(reasons);
-      vtproofstep.addConclusion(conclusion);
-      d_proofSteps.push_back(vtproofstep);
-      break;
-    }
-    default:
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: unrecognized rule (or "
-             "non-simple rule)\n";
-      Assert(false);
-  }
+  id = getNextId();
+  Debug("newproof::pm")
+      << "VeritProof::addProofStep: adding proof step with id/rule: " << id
+      << " / " << rule << " "  //<< reasons << " "
+      << conclusion << "\n";
+  VeritProofStep vtproofstep = VeritProofStep(id, rule);
+  vtproofstep.addPremises(reasons);
+  vtproofstep.addConclusion(conclusion);
+  d_proofSteps.push_back(vtproofstep);
   return id;
 }
 
@@ -256,58 +126,15 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
                                   std::vector<Node>& conclusion)
 {
   ClauseId id;
-  switch (rule)
-  {
-    case RULE_INPUT:
-    case RULE_RESOLUTION:
-    case RULE_REFLEXIVITY:
-    case RULE_SYMMETRY:
-    case RULE_TRANSITIVITY:
-    case RULE_CONGRUENCE:
-    case RULE_PURE_EQ:
-    case RULE_CONSTANTS:
-    case RULE_PREPROCESSING:
-    case RULE_PREPROCESSING_REWRITE:
-    case RULE_PREPROCESSING_THEORY:
-    case RULE_PREPROCESSING_ITE_REMOVAL:
-    case RULE_THEORY_LEMMA:
-    case RULE_CNF_AND_POS:
-    case RULE_CNF_AND_NEG:
-    case RULE_CNF_OR_POS:
-    case RULE_CNF_OR_NEG:
-    case RULE_CNF_XOR_POS1:
-    case RULE_CNF_XOR_POS2:
-    case RULE_CNF_XOR_NEG1:
-    case RULE_CNF_XOR_NEG2:
-    case RULE_CNF_IMPLIES:
-    case RULE_CNF_IMPLIES_POS:
-    case RULE_CNF_IMPLIES_NEG1:
-    case RULE_CNF_IMPLIES_NEG2:
-    case RULE_CNF_EQUIV_POS1:
-    case RULE_CNF_EQUIV_POS2:
-    case RULE_CNF_EQUIV_NEG1:
-    case RULE_CNF_EQUIV_NEG2:
-    case RULE_CNF_ITE_POS1:
-    case RULE_CNF_ITE_POS2:
-    case RULE_CNF_ITE_NEG1:
-    case RULE_CNF_ITE_NEG2: {
-      id = getNextId();
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: adding proof step with id/rule: " << id
-          << " / " << rule << " "  //<< reasons << " "
-          << conclusion << "\n";
-      VeritProofStep vtproofstep = VeritProofStep(id, rule);
-      vtproofstep.addPremises(reasons);
-      vtproofstep.addConclusion(conclusion);
-      d_proofSteps.push_back(vtproofstep);
-      break;
-    }
-    default:
-      Debug("newproof::pm")
-          << "VeritProof::addProofStep: unrecognized rule (or "
-             "non-simple rule)\n";
-      Assert(false);
-  }
+  id = getNextId();
+  Debug("newproof::pm")
+      << "VeritProof::addProofStep: adding proof step with id/rule: " << id
+      << " / " << rule << " "  //<< reasons << " "
+      << conclusion << "\n";
+  VeritProofStep vtproofstep = VeritProofStep(id, rule);
+  vtproofstep.addPremises(reasons);
+  vtproofstep.addConclusion(conclusion);
+  d_proofSteps.push_back(vtproofstep);
   return id;
 }
 
