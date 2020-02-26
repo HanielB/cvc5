@@ -83,6 +83,25 @@ void NewProofManager::addInputAssertion(Node formula)
   d_assertionToClauseId[formula] = id;
 }
 
+void NewProofManager::addInputSubAssertion(Node formula, ClauseId id)
+{
+  // We can add the same formula from different assertions.  In this
+  // case we keep the first assertion. For example asserting a /\ b
+  // and then b /\ c where b is an atom, would assert b twice (note
+  // that since b is top level, it is not cached by the CnfStream)
+  auto it = d_assertionToClauseId.find(formula);
+  if (it != d_assertionToClauseId.end())
+  {
+    Debug("newproof::sat::cnf")
+        << "NewProofManager::addINputSubAssertion: formula " << formula
+        << " already saved under id " << it->second << "\n";
+  }
+  Debug("newproof::sat::cnf")
+      << "NewProofManager::addINputSubAssertion: formula " << formula
+      << " assigned id " << id << "\n";
+  it->second = id;
+}
+
 void NewProofManager::addAssertionProofStep(Node src,
                                             Node dest,
                                             NewProofRule rule)
@@ -98,32 +117,50 @@ void NewProofManager::addAssertionProofStep(Node src,
   d_assertionToClauseId[dest] = id;
 }
 
-void NewProofManager::addCnfProofStep(NewProofRule rule,
+ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
+                                      ClauseId id,
                                       Node src,
-                                      ClauseId id_dest,
-                                      prop::SatClause clause_dest)
+                                      prop::SatClause clause)
+{
+  std::vector<Node> clauseNodes;
+  for (unsigned i = 0, size = clause.size(); i < size; ++i)
+  {
+    Assert(d_litToNode.find(clause[i]) != d_litToNode.end());
+    // premises in conclusion are already negated in this case...
+    clauseNodes.push_back(d_litToNode[clause[i]]);
+  }
+  return addCnfProofStep(rule, id, src, clauseNodes);
+}
+
+ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
+                                          ClauseId id,
+                                          Node src,
+                                          std::vector<Node>& clauseNodes)
 {
   Debug("newproof::pm") << "NewProofManager::addCnfProofStep: [" << rule
-                        << "], src " << src << ", [id: " << id_dest
-                        << "] clause: " << clause_dest << std::endl;
-  // retrieve justificatino for src, which must have one, since it is an input
+                        << "], src " << src << ", [id: " << id
+                        << "] clauseNodes: " << clauseNodes << std::endl;
+  // retrieve justification for src, which must have one, since it is an input
   Assert(d_assertionToClauseId.find(src) != d_assertionToClauseId.end())
       << "NewProofManager::addCnfProofStep: node " << src
       << " is not input or it is and was already processed in a conlfict\n";
   std::vector<ClauseId> reasons{d_assertionToClauseId[src]};
-  std::vector<Node> clauseNodes;
-  for (unsigned i = 0, size = clause_dest.size(); i < size; ++i)
-  {
-    Assert(d_litToNode.find(clause_dest[i]) != d_litToNode.end());
-    // premises in conclusion are already negated in this case...
-    clauseNodes.push_back(d_litToNode[clause_dest[i]]);
-  }
+
   Assert(d_format == VERIT);
   VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  vtproof->addToProofStep(id_dest, rule, reasons, clauseNodes);
+  // if id is not defined then create a new proof step
+  if (id == ClauseIdUndef)
+  {
+    id = vtproof->addProofStep(rule, reasons, clauseNodes);
+  }
+  else
+  {
+    vtproof->addToProofStep(id, rule, reasons, clauseNodes);
+  }
+  return id;
 }
 
-void NewProofManager::addCnfProofStep(prop::SatLiteral lit, ClauseId id)
+ClauseId NewProofManager::addCnfProofStep(prop::SatLiteral lit, ClauseId id)
 {
   Debug("newproof::pm") << "NewProofManager::addCnfProofStep: SatLit " << lit
                         << std::endl;
@@ -136,13 +173,15 @@ void NewProofManager::addCnfProofStep(prop::SatLiteral lit, ClauseId id)
   {
     Debug("newproof::pm") << "NewProofManager::addCnfProofStep: node " << litDef
                           << " is not input or it is and was already processed "
-                             "in a conlfict, I guess\n";
-    return;
+                             "in a conlfict, I guess. It has id "
+                          << id << "\n";
+    return id;
   }
   // Associate input literal with his respective clause id
   ClauseId previous_id = d_assertionToClauseId[litDef];
   d_litToClauseId[lit] = previous_id;
   d_clauseIdToLit[previous_id] = lit;
+  return previous_id;
 }
 
 void NewProofManager::addDefCnfProofStep(NewProofRule rule,
@@ -318,7 +357,7 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     }
     else
     {
-      id = vtproof->addProofStep(UNDEF, litNodeDef);
+      id = vtproof->addProofStep(RULE_UNDEF, litNodeDef);
     }
   }
   else
@@ -420,7 +459,7 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
     else
     {
       // build clause if need be
-      id = vtproof->addProofStep(UNDEF, clauseNodeDef);
+      id = vtproof->addProofStep(RULE_UNDEF, clauseNodeDef);
     }
   }
   else

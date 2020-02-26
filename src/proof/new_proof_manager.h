@@ -155,15 +155,31 @@ class NewProofManager
   /** Add input **/
   void addInputAssertion(Node formula);
 
+  /** Associate subformula of input assertion which is directly derived from CNF
+   * transformat with the ID of its justification
+   *
+   * This is used for example with stuff like A ^ B being an input, then
+   *   A ^ B -> A
+   *   A ^ B -> ¬B
+   * being added during CNF transformation without intermediary definitions
+   * being added (not yet, at least) added for A, ¬B.
+   */
+  void addInputSubAssertion(Node formula, ClauseId id);
+
   /* General proof step. For now used for preprocessing only */
   void addAssertionProofStep(Node src, Node dest, NewProofRule rule);
 
-  void addCnfProofStep(prop::SatLiteral lit, ClauseId id);
+  ClauseId addCnfProofStep(prop::SatLiteral lit, ClauseId id);
 
-  void addCnfProofStep(NewProofRule rule,
-                       Node src,
-                       ClauseId id_dest,
-                       prop::SatClause clause_dest);
+  ClauseId addCnfProofStep(NewProofRule rule,
+                           ClauseId id,
+                           Node src,
+                           prop::SatClause clause);
+
+  ClauseId addCnfProofStep(NewProofRule rule,
+                           ClauseId id,
+                           Node src,
+                           std::vector<Node>& clauseNodes);
 
   void addDefCnfProofStep(NewProofRule rule,
                           ClauseId id,

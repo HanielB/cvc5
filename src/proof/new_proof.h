@@ -36,27 +36,49 @@ enum NewProofRule
   RULE_PREPROCESSING_THEORY,
   RULE_PREPROCESSING_ITE_REMOVAL,
   RULE_THEORY_LEMMA,
+  RULE_CNF_AND,
+  RULE_CNF_NOT_OR,
   RULE_CNF_AND_POS,
   RULE_CNF_AND_NEG,
+  RULE_CNF_OR,
+  RULE_CNF_NOT_AND,
   RULE_CNF_OR_POS,
   RULE_CNF_OR_NEG,
+  RULE_CNF_XOR1,
+  RULE_CNF_XOR2,
+  RULE_CNF_NOT_XOR1,
+  RULE_CNF_NOT_XOR2,
   RULE_CNF_XOR_POS1,
   RULE_CNF_XOR_POS2,
   RULE_CNF_XOR_NEG1,
   RULE_CNF_XOR_NEG2,
   RULE_CNF_IMPLIES,
+  RULE_CNF_NOT_IMPLIES1,
+  RULE_CNF_NOT_IMPLIES2,
   RULE_CNF_IMPLIES_POS,
   RULE_CNF_IMPLIES_NEG1,
   RULE_CNF_IMPLIES_NEG2,
+  RULE_CNF_EQUIV1,
+  RULE_CNF_EQUIV2,
+  RULE_CNF_NOT_EQUIV1,
+  RULE_CNF_NOT_EQUIV2,
   RULE_CNF_EQUIV_POS1,
   RULE_CNF_EQUIV_POS2,
   RULE_CNF_EQUIV_NEG1,
   RULE_CNF_EQUIV_NEG2,
+  RULE_CNF_ITE1,
+  RULE_CNF_ITE2,
+  RULE_CNF_NOT_ITE1,
+  RULE_CNF_NOT_ITE2,
   RULE_CNF_ITE_POS1,
   RULE_CNF_ITE_POS2,
+  /* NOT [IF A THEN B ELSE C] OR B OR C */
+  RULE_CNF_ITE_POS3,
   RULE_CNF_ITE_NEG1,
   RULE_CNF_ITE_NEG2,
-  UNDEF
+  /* [IF A THEN B ELSE C] OR NOT B OR NOT C */
+  RULE_CNF_ITE_NEG3,
+  RULE_UNDEF
 }; /* enum ProofRules */
 
 class ProofStep
@@ -103,26 +125,46 @@ inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
     case RULE_PREPROCESSING_ITE_REMOVAL:
       out << "preprocessing_ite_removal";
       break;
+    case RULE_CNF_AND: out << "cnf_and"; break;
+    case RULE_CNF_NOT_OR: out << "cnf_not_or"; break;
     case RULE_CNF_AND_POS: out << "cnf_and_pos"; break;
     case RULE_CNF_AND_NEG: out << "cnf_and_neg"; break;
+  case RULE_CNF_OR:  out << "cnf_or"; break;
+  case RULE_CNF_NOT_AND:  out << "cnf_not_and"; break;
     case RULE_CNF_OR_POS: out << "cnf_or_pos"; break;
     case RULE_CNF_OR_NEG: out << "cnf_or_neg"; break;
+  case RULE_CNF_XOR1: out << "cnf_xor1"; break;
+  case RULE_CNF_XOR2: out << "cnf_xor2"; break;
+  case RULE_CNF_NOT_XOR1: out << "cnf_not_xor1"; break;
+  case RULE_CNF_NOT_XOR2: out << "cnf_not_xor2"; break;
     case RULE_CNF_XOR_POS1: out << "cnf_xor_pos1"; break;
     case RULE_CNF_XOR_POS2: out << "cnf_xor_pos2"; break;
     case RULE_CNF_XOR_NEG1: out << "cnf_xor_neg1"; break;
     case RULE_CNF_XOR_NEG2: out << "cnf_xor_neg2"; break;
     case RULE_CNF_IMPLIES: out << "cnf_implies"; break;
+    case RULE_CNF_NOT_IMPLIES1: out << "cnf_not_implies1"; break;
+    case RULE_CNF_NOT_IMPLIES2: out << "cnf_not_implies2"; break;
     case RULE_CNF_IMPLIES_POS: out << "cnf_implies_pos"; break;
     case RULE_CNF_IMPLIES_NEG1: out << "cnf_implies_neg1"; break;
     case RULE_CNF_IMPLIES_NEG2: out << "cnf_implies_neg2"; break;
+  case RULE_CNF_EQUIV1: out << "cnf_equiv1"; break;
+  case RULE_CNF_EQUIV2: out << "cnf_equiv2"; break;
+  case RULE_CNF_NOT_EQUIV1: out << "cnf_not_equiv1"; break;
+  case RULE_CNF_NOT_EQUIV2: out << "cnf_not_equiv2"; break;
     case RULE_CNF_EQUIV_POS1: out << "cnf_equiv_pos1"; break;
     case RULE_CNF_EQUIV_POS2: out << "cnf_equiv_pos2"; break;
     case RULE_CNF_EQUIV_NEG1: out << "cnf_equiv_neg1"; break;
     case RULE_CNF_EQUIV_NEG2: out << "cnf_equiv_neg2"; break;
+  case RULE_CNF_ITE1: out << "cnf_ite1"; break;
+  case RULE_CNF_ITE2: out << "cnf_ite2"; break;
+  case RULE_CNF_NOT_ITE1: out << "cnf_not_ite1"; break;
+  case RULE_CNF_NOT_ITE2: out << "cnf_not_ite2"; break;
     case RULE_CNF_ITE_POS1: out << "cnf_ite_pos1"; break;
     case RULE_CNF_ITE_POS2: out << "cnf_ite_pos2"; break;
+    case RULE_CNF_ITE_POS3: out << "cnf_ite_pos3"; break;
     case RULE_CNF_ITE_NEG1: out << "cnf_ite_neg1"; break;
     case RULE_CNF_ITE_NEG2: out << "cnf_ite_neg2"; break;
+    case RULE_CNF_ITE_NEG3: out << "cnf_ite_neg3"; break;
 
     default: out << "ProofRule Unknown! [" << unsigned(r) << "]";
   }
