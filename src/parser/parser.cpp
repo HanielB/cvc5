@@ -138,11 +138,6 @@ Expr Parser::getExpressionForNameAndType(const std::string& name, Type t) {
 }
 
 Kind Parser::getKindForFunction(Expr fun) {
-  Kind k = getExprManager()->operatorToKind(fun);
-  if (k != UNDEFINED_KIND)
-  {
-    return k;
-  }
   Type t = fun.getType();
   if (t.isFunction())
   {
@@ -541,7 +536,6 @@ api::Term Parser::applyTypeAscription(api::Term t, api::Sort s)
   api::Sort etype = t.getSort();
   if (etype.isConstructor())
   {
-    api::Sort etype = t.getSort();
     // get the datatype that t belongs to
     api::Sort etyped = etype.getConstructorCodomainSort();
     api::Datatype d = etyped.getDatatype();

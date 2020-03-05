@@ -332,7 +332,6 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
   {
     // if I'm not giving a definition I must have saved this at some previous
     // point
-    prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(lit);
     Assert(d_litToNode.find(satLit) != d_litToNode.end());
     litNodeDef = d_litToNode[satLit];
     Debug("newproof::sat::cnf")

@@ -138,15 +138,16 @@ void CvcPrinter::toStream(
   if(n.getMetaKind() == kind::metakind::CONSTANT) {
     switch(n.getKind()) {
     case kind::BITVECTOR_TYPE:
-      out << "BITVECTOR(" << n.getConst<BitVectorSize>().size << ")";
+      out << "BITVECTOR(" << n.getConst<BitVectorSize>().d_size << ")";
       break;
     case kind::CONST_BITVECTOR: {
       const BitVector& bv = n.getConst<BitVector>();
       const Integer& x = bv.getValue();
       out << "0bin";
-      unsigned n = bv.getSize();
-      while(n-- > 0) {
-        out << (x.testBit(n) ? '1' : '0');
+      unsigned size = bv.getSize();
+      while (size-- > 0)
+      {
+        out << (x.testBit(size) ? '1' : '0');
       }
       break;
     }
@@ -1495,12 +1496,16 @@ static void toStream(std::ostream& out,
           out << " | ";
         }
         firstConstructor = false;
-        const DatatypeConstructor& c = *j;
-        out << c.getName();
-        if(c.getNumArgs() > 0) {
+        const DatatypeConstructor& cons = *j;
+        out << cons.getName();
+        if (cons.getNumArgs() > 0)
+        {
           out << '(';
           bool firstSelector = true;
-          for(DatatypeConstructor::const_iterator k = c.begin(); k != c.end(); ++k) {
+          for (DatatypeConstructor::const_iterator k = cons.begin();
+               k != cons.end();
+               ++k)
+          {
             if(! firstSelector) {
               out << ", ";
             }

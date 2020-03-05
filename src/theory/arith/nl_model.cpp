@@ -45,9 +45,9 @@ void NlModel::reset(TheoryModel* m, std::map<Node, Node>& arithModel)
   d_arithVal.clear();
   // process arithModel
   std::map<Node, Node>::iterator it;
-  for (const std::pair<const Node, Node>& m : arithModel)
+  for (const std::pair<const Node, Node>& m2 : arithModel)
   {
-    d_arithVal[m.first] = m.second;
+    d_arithVal[m2.first] = m2.second;
   }
 }
 
@@ -278,6 +278,11 @@ bool NlModel::checkModel(const std::vector<Node>& assertions,
   std::vector<Node> check_assertions;
   for (const Node& a : assertions)
   {
+    // don't have to check tautological literals
+    if (d_tautology.find(a) != d_tautology.end())
+    {
+      continue;
+    }
     if (d_check_model_solved.find(a) == d_check_model_solved.end())
     {
       Node av = a;
@@ -423,6 +428,52 @@ bool NlModel::hasCheckModelAssignment(Node v) const
 void NlModel::setUsedApproximate() { d_used_approx = true; }
 
 bool NlModel::usedApproximate() const { return d_used_approx; }
+
+void NlModel::addTautology(Node n)
+{
+  // ensure rewritten
+  n = Rewriter::rewrite(n);
+  std::unordered_set<TNode, TNodeHashFunction> visited;
+  std::vector<TNode> visit;
+  TNode cur;
+  visit.push_back(n);
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    if (visited.find(cur) == visited.end())
+    {
+      visited.insert(cur);
+      if (cur.getKind() == AND)
+      {
+        // children of AND are also implied
+        for (const Node& cn : cur)
+        {
+          visit.push_back(cn);
+        }
+      }
+      else
+      {
+        // is this an arithmetic literal?
+        Node atom = cur.getKind() == NOT ? cur[0] : cur;
+        if ((atom.getKind() == EQUAL && atom[0].getType().isReal())
+            || atom.getKind() == LEQ)
+        {
+          // Add to tautological literals if it does not contain
+          // non-linear multiplication. We cannot consider literals
+          // with non-linear multiplication to be tautological since this
+          // model object is responsible for checking whether they hold.
+          // (TODO, cvc4-projects #113: revisit this).
+          if (!expr::hasSubtermKind(NONLINEAR_MULT, atom))
+          {
+            Trace("nl-taut") << "Tautological literal: " << atom << std::endl;
+            d_tautology.insert(cur);
+          }
+        }
+      }
+    }
+  } while (!visit.empty());
+}
 
 bool NlModel::solveEqualitySimple(Node eq,
                                   unsigned d,
@@ -649,14 +700,14 @@ bool NlModel::solveEqualitySimple(Node eq,
   Assert(m_var.isConst());
   for (unsigned r = 0; r < 2; r++)
   {
-    for (unsigned b = 0; b < 2; b++)
+    for (unsigned b2 = 0; b2 < 2; b2++)
     {
-      Node val = b == 0 ? l : u;
+      Node val = b2 == 0 ? l : u;
       // (-b +- approx_sqrt( b^2 - 4ac ))/2a
       Node approx = nm->mkNode(
           MULT, coeffa, nm->mkNode(r == 0 ? MINUS : PLUS, negb, val));
       approx = Rewriter::rewrite(approx);
-      bounds[r][b] = approx;
+      bounds[r][b2] = approx;
       Assert(approx.isConst());
     }
     if (bounds[r][0].getConst<Rational>() > bounds[r][1].getConst<Rational>())
@@ -725,13 +776,13 @@ bool NlModel::simpleCheckModelLit(Node lit)
     // x = a is ( x >= a ^ x <= a )
     for (unsigned i = 0; i < 2; i++)
     {
-      Node lit = nm->mkNode(GEQ, atom[i], atom[1 - i]);
+      Node lit2 = nm->mkNode(GEQ, atom[i], atom[1 - i]);
       if (!pol)
       {
-        lit = lit.negate();
+        lit2 = lit2.negate();
       }
-      lit = Rewriter::rewrite(lit);
-      bool success = simpleCheckModelLit(lit);
+      lit2 = Rewriter::rewrite(lit2);
+      bool success = simpleCheckModelLit(lit2);
       if (success != pol)
       {
         // false != true -> one conjunct of equality is false, we fail
@@ -1116,7 +1167,7 @@ bool NlModel::simpleCheckModelMsum(const std::map<Node, Node>& msum, bool pol)
         }
         // must over/under approximate based on vc_set_lower, computed above
         Node vb = vc_set_lower ? l : u;
-        for (unsigned i = 0; i < vcfact; i++)
+        for (unsigned i2 = 0; i2 < vcfact; i2++)
         {
           vbs.push_back(vb);
         }
@@ -1266,7 +1317,7 @@ void NlModel::getModelValueRepair(
     Node v = cb.first;
     if (l != u)
     {
-      Node pred = nm->mkNode(AND, nm->mkNode(GEQ, v, l), nm->mkNode(GEQ, u, v));
+      pred = nm->mkNode(AND, nm->mkNode(GEQ, v, l), nm->mkNode(GEQ, u, v));
       Trace("nl-model") << v << " approximated as " << pred << std::endl;
       Node witness;
       if (options::modelWitnessChoice())

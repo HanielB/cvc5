@@ -138,9 +138,9 @@ void Smt2Printer::toStream(std::ostream& out,
       break;
     case kind::BITVECTOR_TYPE:
       if(d_variant == sygus_variant ){
-        out << "(BitVec " << n.getConst<BitVectorSize>().size << ")";
+        out << "(BitVec " << n.getConst<BitVectorSize>().d_size << ")";
       }else{
-        out << "(_ BitVec " << n.getConst<BitVectorSize>().size << ")";
+        out << "(_ BitVec " << n.getConst<BitVectorSize>().d_size << ")";
       }
       break;
     case kind::FLOATINGPOINT_TYPE:
@@ -152,7 +152,7 @@ void Smt2Printer::toStream(std::ostream& out,
     case kind::CONST_BITVECTOR: {
       const BitVector& bv = n.getConst<BitVector>();
       const Integer& x = bv.getValue();
-      unsigned n = bv.getSize();
+      unsigned width = bv.getSize();
       if (d_variant == sygus_variant || options::bvPrintConstsInBinary())
       {
         out << "#b" << bv.toString();
@@ -160,7 +160,7 @@ void Smt2Printer::toStream(std::ostream& out,
       else
       {
         out << "(_ ";
-        out << "bv" << x << " " << n;
+        out << "bv" << x << " " << width;
         out << ")";
       }
 
@@ -202,11 +202,9 @@ void Smt2Printer::toStream(std::ostream& out,
     }
 
     case kind::CONST_STRING: {
-      //const std::vector<unsigned int>& s = n.getConst<String>().getVec();
       std::string s = n.getConst<String>().toString(true);
       out << '"';
       for(size_t i = 0; i < s.size(); ++i) {
-        //char c = String::convertUnsignedIntToChar(s[i]);
         char c = s[i];
         if(c == '"') {
           if(d_variant == smt2_0_variant) {
@@ -234,15 +232,15 @@ void Smt2Printer::toStream(std::ostream& out,
           n.getConst<DatatypeIndexConstant>().getIndex()));
       if (dt.isTuple())
       {
-        unsigned int n = dt[0].getNumArgs();
-        if (n == 0)
+        unsigned int nargs = dt[0].getNumArgs();
+        if (nargs == 0)
         {
           out << "Tuple";
         }
         else
         {
           out << "(Tuple";
-          for (unsigned int i = 0; i < n; i++)
+          for (unsigned int i = 0; i < nargs; i++)
           {
             out << " " << dt[0][i].getRangeType();
           }
@@ -270,30 +268,31 @@ void Smt2Printer::toStream(std::ostream& out,
     case kind::BITVECTOR_EXTRACT_OP:
     {
       BitVectorExtract p = n.getConst<BitVectorExtract>();
-      out << "(_ extract " << p.high << ' ' << p.low << ")";
+      out << "(_ extract " << p.d_high << ' ' << p.d_low << ")";
       break;
     }
     case kind::BITVECTOR_REPEAT_OP:
-      out << "(_ repeat " << n.getConst<BitVectorRepeat>().repeatAmount << ")";
+      out << "(_ repeat " << n.getConst<BitVectorRepeat>().d_repeatAmount
+          << ")";
       break;
     case kind::BITVECTOR_ZERO_EXTEND_OP:
       out << "(_ zero_extend "
-          << n.getConst<BitVectorZeroExtend>().zeroExtendAmount << ")";
+          << n.getConst<BitVectorZeroExtend>().d_zeroExtendAmount << ")";
       break;
     case kind::BITVECTOR_SIGN_EXTEND_OP:
       out << "(_ sign_extend "
-          << n.getConst<BitVectorSignExtend>().signExtendAmount << ")";
+          << n.getConst<BitVectorSignExtend>().d_signExtendAmount << ")";
       break;
     case kind::BITVECTOR_ROTATE_LEFT_OP:
       out << "(_ rotate_left "
-          << n.getConst<BitVectorRotateLeft>().rotateLeftAmount << ")";
+          << n.getConst<BitVectorRotateLeft>().d_rotateLeftAmount << ")";
       break;
     case kind::BITVECTOR_ROTATE_RIGHT_OP:
       out << "(_ rotate_right "
-          << n.getConst<BitVectorRotateRight>().rotateRightAmount << ")";
+          << n.getConst<BitVectorRotateRight>().d_rotateRightAmount << ")";
       break;
     case kind::INT_TO_BITVECTOR_OP:
-      out << "(_ int2bv " << n.getConst<IntToBitVector>().size << ")";
+      out << "(_ int2bv " << n.getConst<IntToBitVector>().d_size << ")";
       break;
     case kind::FLOATINGPOINT_TO_FP_IEEE_BITVECTOR_OP:
       // out << "to_fp_bv "
@@ -334,20 +333,20 @@ void Smt2Printer::toStream(std::ostream& out,
           << ")";
       break;
     case kind::FLOATINGPOINT_TO_UBV_OP:
-      out << "(_ fp.to_ubv " << n.getConst<FloatingPointToUBV>().bvs.size
+      out << "(_ fp.to_ubv " << n.getConst<FloatingPointToUBV>().bvs.d_size
           << ")";
       break;
     case kind::FLOATINGPOINT_TO_SBV_OP:
-      out << "(_ fp.to_sbv " << n.getConst<FloatingPointToSBV>().bvs.size
+      out << "(_ fp.to_sbv " << n.getConst<FloatingPointToSBV>().bvs.d_size
           << ")";
       break;
     case kind::FLOATINGPOINT_TO_UBV_TOTAL_OP:
       out << "(_ fp.to_ubv_total "
-          << n.getConst<FloatingPointToUBVTotal>().bvs.size << ")";
+          << n.getConst<FloatingPointToUBVTotal>().bvs.d_size << ")";
       break;
     case kind::FLOATINGPOINT_TO_SBV_TOTAL_OP:
       out << "(_ fp.to_sbv_total "
-          << n.getConst<FloatingPointToSBVTotal>().bvs.size << ")";
+          << n.getConst<FloatingPointToSBVTotal>().bvs.d_size << ")";
       break;
     default:
       // fall back on whatever operator<< does on underlying type; we
@@ -655,7 +654,8 @@ void Smt2Printer::toStream(std::ostream& out,
   case kind::STRING_LT:
   case kind::STRING_ITOS:
   case kind::STRING_STOI:
-  case kind::STRING_CODE:
+  case kind::STRING_FROM_CODE:
+  case kind::STRING_TO_CODE:
   case kind::STRING_TO_REGEXP:
   case kind::REGEXP_CONCAT:
   case kind::REGEXP_UNION:
@@ -1217,7 +1217,8 @@ static string smtKindString(Kind k, Variant v)
   case kind::STRING_SUFFIX: return "str.suffixof" ;
   case kind::STRING_LEQ: return "str.<=";
   case kind::STRING_LT: return "str.<";
-  case kind::STRING_CODE:
+  case kind::STRING_FROM_CODE: return "str.from_code";
+  case kind::STRING_TO_CODE:
     return v == smt2_6_1_variant ? "str.to_code" : "str.code";
   case kind::STRING_ITOS:
     return v == smt2_6_1_variant ? "str.from_int" : "int.to.str";
@@ -2026,9 +2027,9 @@ static void toStream(std::ostream& out,
          i != i_end;
          ++i)
     {
-      const Datatype& d = i->getDatatype();
-      out << "(" << CVC4::quoteSymbol(d.getName()) << " ";
-      toStream(out, d);
+      const Datatype& dt = i->getDatatype();
+      out << "(" << CVC4::quoteSymbol(dt.getName()) << " ";
+      toStream(out, dt);
       out << ")";
     }
     out << ")";
