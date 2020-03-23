@@ -25,6 +25,7 @@
 #include "expr/node.h"
 #include "expr/node_algorithm.h"
 #include "expr/node_builder.h"
+#include "expr/node_visitor.h"
 #include "options/bv_options.h"
 #include "options/options.h"
 #include "options/proof_options.h"
@@ -38,7 +39,6 @@
 #include "proof/theory_proof.h"
 #include "smt/logic_exception.h"
 #include "smt/term_formula_removal.h"
-#include "smt_util/node_visitor.h"
 #include "theory/arith/arith_ite_utils.h"
 #include "theory/bv/theory_bv_utils.h"
 #include "theory/care_graph.h"
@@ -316,7 +316,6 @@ TheoryEngine::TheoryEngine(context::Context* context,
                            RemoveTermFormulas& iteRemover,
                            const LogicInfo& logicInfo)
     : d_propEngine(nullptr),
-      d_decisionEngine(nullptr),
       d_context(context),
       d_userContext(userContext),
       d_logicInfo(logicInfo),
@@ -1949,8 +1948,9 @@ theory::LemmaStatus TheoryEngine::lemma(TNode node,
   }
 
   // assert to decision engine
-  if(!removable) {
-    d_decisionEngine->addAssertions(additionalLemmas);
+  if (!removable)
+  {
+    d_propEngine->addAssertionsToDecisionEngine(additionalLemmas);
   }
 
   // Mark that we added some lemmas

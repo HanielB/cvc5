@@ -2,7 +2,6 @@
 (set .c2 (input :conclusion ((=> (p f1) (or (= f1 f2) (distinct f3 f4 f2)) (p f3)))))
 (set .c3 (input :conclusion ((p f1))))
 (set .c4 (input :conclusion ((not (p f3)))))
-; preprocessing
 (set .c5 (connective_equiv :conclusion ((= (=> (p f1) (or (= f1 f2) (distinct f3 f4 f2)) (p f3)) (=> (p f1) (=> (or (= f1 f2) (distinct f3 f4 f2)) (p f3)))))))
 (set .c6 (equiv_pos2 :conclusion ((not (= (=> (p f1) (or (= f1 f2) (distinct f3 f4 f2)) (p f3)) (=> (p f1) (=> (or (= f1 f2) (distinct f3 f4 f2)) (p f3))))) (not (=> (p f1) (or (= f1 f2) (distinct f3 f4 f2)) (p f3))) (=> (p f1) (=> (or (= f1 f2) (distinct f3 f4 f2)) (p f3))))))
 (set .c7 (th_resolution :clauses (.c2 .c5 .c6) :conclusion ((=> (p f1) (=> (or (= f1 f2) (distinct f3 f4 f2)) (p f3))))))
@@ -15,14 +14,10 @@
 (set .c14 (connective_equiv :conclusion ((= (=> (p f1) (=> (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))) (p f3))) (=> (and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (p f3))))))
 (set .c15 (equiv_pos2 :conclusion ((not (= (=> (p f1) (=> (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))) (p f3))) (=> (and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (p f3)))) (not (=> (p f1) (=> (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))) (p f3)))) (=> (and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (p f3)))))
 (set .c16 (th_resolution :clauses (.c13 .c14 .c15) :conclusion ((=> (and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (p f3)))))
-; cnf
 (set .c17 (or_neg :conclusion ((or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))) (not (= f1 f2)))))
-(set .c18 (and_neg :conclusion ((and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))) (= f3 f4) (= f2 f3) (= f2 f4))))
-(set .c19 (or_neg :conclusion ((or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))) (not (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))))))
-(set .c20 (and_neg :conclusion ((and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (not (p f1)) (not (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))))))
-(set .c21 (implies :clauses (.c16) :conclusion ((not (and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))))) (p f3))))
-; resolution
-(set .c22 (resolution :clauses (.c17 .c1) :conclusion ((or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))))))
-(set .c23 (resolution :clauses (.c20 .c22) :conclusion ((and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (not (p f1)))))
-(set .c24 (resolution :clauses (.c23 .c3) :conclusion ((and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))))))
-(set .c25 (resolution :clauses (.c21 .c4 .c24) :conclusion ()))
+(set .c18 (and_neg :conclusion ((and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (not (p f1)) (not (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))))))
+(set .c19 (implies :clauses (.c16) :conclusion ((not (and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))))) (p f3))))
+(set .c20 (resolution :clauses (.c17 .c1) :conclusion ((or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4)))))))
+(set .c21 (resolution :clauses (.c18 .c20) :conclusion ((and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))) (not (p f1)))))
+(set .c22 (resolution :clauses (.c21 .c3) :conclusion ((and (p f1) (or (= f1 f2) (and (not (= f3 f4)) (not (= f2 f3)) (not (= f2 f4))))))))
+(set .c23 (resolution :clauses (.c19 .c4 .c22) :conclusion ()))
