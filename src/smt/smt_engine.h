@@ -1095,7 +1095,7 @@ class CVC4_PUBLIC SmtEngine
   /** The proof manager */
   std::unique_ptr<ProofManager> d_proofManager;
   /** The new proof manager */
-  std::unique_ptr<ProofManager> d_newProofManager;
+  std::unique_ptr<NewProofManager> d_newProofManager;
 
   /** An index of our defined functions */
   DefinedFunctionMap* d_definedFunctions;

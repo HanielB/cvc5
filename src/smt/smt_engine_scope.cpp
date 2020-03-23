@@ -50,7 +50,7 @@ NewProofManager* currentNewProofManager()
 {
 #if IS_PROOFS_BUILD
   Assert(s_smtEngine_current != NULL);
-  return s_smtEngine_current->d_newProofManager;
+  return s_smtEngine_current->d_newProofManager.get();
 #else  /* IS_PROOFS_BUILD */
   InternalError("proofs/unsat cores are not on, but ProofManager requested");
   return NULL;

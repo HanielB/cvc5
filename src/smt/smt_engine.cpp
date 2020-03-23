@@ -1092,7 +1092,7 @@ SmtEngine::~SmtEngine()
     // dependency should no longer apply.
 #ifdef CVC4_PROOF
     d_proofManager.reset(nullptr);
-    d_newProofManager.resert(nullptr);
+    d_newProofManager.reset(nullptr);
 #endif
 
     d_theoryEngine.reset(nullptr);
