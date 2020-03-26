@@ -133,6 +133,10 @@ public:
   void debug_print(std::ostream& os,
                    unsigned tb = 0,
                    PrettyPrinter* prettyPrinter = nullptr) const;
+
+  void flattenBinCongs();
+  void flattenBinCongs2(
+      std::vector<std::shared_ptr<theory::EqProof>>& premises);
 };/* class EqProof */
 
 

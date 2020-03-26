@@ -20,6 +20,7 @@
 #include "options/proof_options.h"
 #include "proof/clause_id.h"
 #include "proof/cnf_proof.h"
+#include "proof/lean_proof.h"
 #include "proof/lfsc_proof_printer.h"
 #include "proof/proof_utils.h"
 #include "proof/resolution_bitvector_proof.h"
@@ -41,15 +42,17 @@
 
 namespace CVC4 {
 
-NewProofManager::NewProofManager(ProofFormat format) : d_format(format)
+NewProofManager::NewProofManager(options::ProofFormatMode format)
+    : d_format(format)
 {
-  // TODO change
-  if (format == LFSC)
+  // TODO add LFSC
+  if (format == options::ProofFormatMode::LEAN)
   {
-    d_proof.reset(new VeritProof());
+    d_proof.reset(new LeanProof());
     return;
   }
   // default
+  Assert(format == options::ProofFormatMode::VERIT);
   d_proof.reset(new VeritProof());
 }
 
@@ -60,12 +63,11 @@ NewProofManager* NewProofManager::currentPM()
   return smt::currentNewProofManager();
 }
 
-NewProof& NewProofManager::getProof() { return *(currentPM()->d_proof); }
-
-SkolemizationManager* NewProofManager::getSkolemizationManager()
+NewProof& NewProofManager::getProof()
 {
-  Assert(options::proof() || options::unsatCores());
-  return &(currentPM()->d_skolemizationManager);
+  NewProof* proof = d_proof.get();
+  proof->finishProof();
+  return *proof;
 }
 
 void NewProofManager::addInputAssertion(Node formula)
@@ -74,10 +76,15 @@ void NewProofManager::addInputAssertion(Node formula)
   Debug("newproof::pm") << "NewProofManager::addInputAssertion [id: " << id
                         << "]: " << formula << std::endl;
 
-  if (d_format == VERIT)
+  if (d_format == options::ProofFormatMode::VERIT)
   {
     VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
     vtproof->addToLastProofStep(formula);
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    leanproof->addToLastProofStep(formula);
   }
   d_assertionToClauseId[formula] = id;
 }
@@ -109,26 +116,19 @@ void NewProofManager::addAssertionProofStep(Node src,
                         << "] from " << src << " to " << dest << std::endl;
   Assert(d_assertionToClauseId.find(src) != d_assertionToClauseId.end());
   std::vector<ClauseId> reasons{d_assertionToClauseId[src]};
-  Assert(d_format == VERIT);
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  ClauseId id = vtproof->addProofStep(rule, reasons, dest);
+  ClauseId id;
+  if (d_format == options::ProofFormatMode::VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    id = vtproof->addProofStep(rule, reasons, dest);
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    id = leanproof->addProofStep(rule, reasons, dest);
+  }
   // update id of assertion
   d_assertionToClauseId[dest] = id;
-}
-
-ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
-                                      ClauseId id,
-                                      Node src,
-                                      prop::SatClause clause)
-{
-  std::vector<Node> clauseNodes;
-  for (unsigned i = 0, size = clause.size(); i < size; ++i)
-  {
-    Assert(d_litToNode.find(clause[i]) != d_litToNode.end());
-    // premises in conclusion are already negated in this case...
-    clauseNodes.push_back(d_litToNode[clause[i]]);
-  }
-  return addCnfProofStep(rule, id, src, clauseNodes);
 }
 
 ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
@@ -145,18 +145,49 @@ ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
       << " is not input or it is and was already processed in a conlfict\n";
   std::vector<ClauseId> reasons{d_assertionToClauseId[src]};
 
-  Assert(d_format == VERIT);
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  // if id is not defined then create a new proof step
-  if (id == ClauseIdUndef)
+  if (d_format == options::ProofFormatMode::VERIT)
   {
-    id = vtproof->addProofStep(rule, reasons, clauseNodes);
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    // if id is not defined then create a new proof step
+    if (id == ClauseIdUndef)
+    {
+      id = vtproof->addProofStep(rule, reasons, clauseNodes);
+    }
+    else
+    {
+      vtproof->addToProofStep(id, rule, reasons, clauseNodes);
+    }
   }
-  else
+  else if (d_format == options::ProofFormatMode::LEAN)
   {
-    vtproof->addToProofStep(id, rule, reasons, clauseNodes);
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    // if id is not defined then create a new proof step
+    if (id == ClauseIdUndef)
+    {
+      id = leanproof->addProofStep(rule, reasons, clauseNodes);
+    }
+    else
+    {
+      leanproof->addToProofStep(id, rule, reasons, clauseNodes);
+    }
   }
+
   return id;
+}
+
+ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
+                                          ClauseId id,
+                                          Node src,
+                                          prop::SatClause clause)
+{
+  std::vector<Node> clauseNodes;
+  for (unsigned i = 0, size = clause.size(); i < size; ++i)
+  {
+    Assert(d_litToNode.find(clause[i]) != d_litToNode.end());
+    // premises in conclusion are already negated in this case...
+    clauseNodes.push_back(d_litToNode[clause[i]]);
+  }
+  return addCnfProofStep(rule, id, src, clauseNodes);
 }
 
 ClauseId NewProofManager::addCnfProofStep(prop::SatLiteral lit, ClauseId id)
@@ -185,7 +216,8 @@ ClauseId NewProofManager::addCnfProofStep(prop::SatLiteral lit, ClauseId id)
 
 void NewProofManager::addDefCnfProofStep(NewProofRule rule,
                                          ClauseId id,
-                                         prop::SatClause clause)
+                                         prop::SatClause clause,
+                                         unsigned ith)
 {
   Debug("newproof::pm") << "NewProofManager::addDefCnfProofStep: [" << rule
                         << "] clause: " << clause << std::endl;
@@ -196,9 +228,16 @@ void NewProofManager::addDefCnfProofStep(NewProofRule rule,
     // premises in conclusion are already negated in this case...
     clauseNodes.push_back(d_litToNode[clause[i]]);
   }
-  Assert(d_format == VERIT);
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  vtproof->addToProofStep(id, rule, clauseNodes);
+  if (d_format == options::ProofFormatMode::VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    vtproof->addToProofStep(id, rule, clauseNodes);
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    leanproof->addToCnfProofStep(id, rule, clauseNodes, ith);
+  }
 }
 
 inline void NewProofManager::printLit(const Minisat::Solver::TLit lit)
@@ -290,9 +329,16 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit)
     }
     return it->second;
   }
-  Assert(d_format == VERIT);
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  id = vtproof->addProofStep();
+  if (d_format == options::ProofFormatMode::VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    id = vtproof->addProofStep();
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    id = leanproof->addProofStep();
+  }
   d_litToClauseId[satLit] = id;
   d_clauseIdToLit[id] = satLit;
   if (Debug.isOn("newproof::sat"))
@@ -344,26 +390,48 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
   }
   else if (reason == RULE_THEORY_LEMMA)
   {
-    Assert(d_format == VERIT);
-    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
     // since this is a theory lemma I may already have a proof for it, in which
     // case it will now be built
     auto itt = d_litToTheoryProof.find(toSatLiteral<Minisat::Solver>(lit));
-    if (itt != d_litToTheoryProof.end())
+
+    if (d_format == options::ProofFormatMode::VERIT)
     {
-      id = vtproof->addTheoryProof(itt->second);
+      VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+      if (itt != d_litToTheoryProof.end())
+      {
+        id = vtproof->addTheoryProof(itt->second);
+      }
+      else
+      {
+        id = vtproof->addProofStep(RULE_UNDEF, litNodeDef);
+      }
     }
-    else
+    else if (d_format == options::ProofFormatMode::LEAN)
     {
-      id = vtproof->addProofStep(RULE_UNDEF, litNodeDef);
+      LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+      if (itt != d_litToTheoryProof.end())
+      {
+        id = leanproof->addTheoryProof(itt->second);
+      }
+      else
+      {
+        id = leanproof->addProofStep(RULE_UNDEF, litNodeDef);
+      }
     }
   }
   else
   {
     // placeholder
-    Assert(d_format == VERIT);
-    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-    id = vtproof->addProofStep();
+    if (d_format == options::ProofFormatMode::VERIT)
+    {
+      VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+      id = vtproof->addProofStep();
+    }
+    else if (d_format == options::ProofFormatMode::LEAN)
+    {
+      LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+      id = leanproof->addProofStep();
+    }
   }
   d_litToClauseId[satLit] = id;
   d_clauseIdToLit[id] = satLit;
@@ -394,9 +462,16 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause)
     }
     return id;
   }
-  Assert(d_format == VERIT);
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  id = vtproof->addProofStep();
+  if (d_format == options::ProofFormatMode::VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    id = vtproof->addProofStep();
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    id = leanproof->addProofStep();
+  }
   clause.setProofId(id);
   d_clauseIdToClause[id] = &clause;
   if (Debug.isOn("newproof::sat"))
@@ -442,30 +517,52 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
   }
   if (reason == RULE_THEORY_LEMMA)
   {
-    Assert(d_format == VERIT);
-    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
     // the propagated literal is always at the first position in the clause
     // TODO HB How to assert this?
     prop::SatLiteral lit = toSatLiteral<Minisat::Solver>(clause[0]);
     // since this is a theory lemma I may already have a proof for it, in which
     // case it will now be built
     auto itt = d_litToTheoryProof.find(lit);
-    if (itt != d_litToTheoryProof.end())
+    if (d_format == options::ProofFormatMode::VERIT)
     {
-      id = vtproof->addTheoryProof(itt->second);
+      VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+      if (itt != d_litToTheoryProof.end())
+      {
+        id = vtproof->addTheoryProof(itt->second);
+      }
+      else
+      {
+        // build clause if need be
+        id = vtproof->addProofStep(RULE_UNDEF, clauseNodeDef);
+      }
     }
-    else
+    else if (d_format == options::ProofFormatMode::LEAN)
     {
-      // build clause if need be
-      id = vtproof->addProofStep(RULE_UNDEF, clauseNodeDef);
+      LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+      if (itt != d_litToTheoryProof.end())
+      {
+        id = leanproof->addTheoryProof(itt->second);
+      }
+      else
+      {
+        // build clause if need be
+        id = leanproof->addProofStep(RULE_UNDEF, clauseNodeDef);
+      }
     }
   }
   else
   {
     // placeholder
-    Assert(d_format == VERIT);
-    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-    id = vtproof->addProofStep();
+    if (d_format == options::ProofFormatMode::VERIT)
+    {
+      VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+      id = vtproof->addProofStep();
+    }
+    else if (d_format == options::ProofFormatMode::LEAN)
+    {
+      LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+      id = leanproof->addProofStep();
+    }
     Assert(false) << "NewProofManager::registerClause can't handle non-unit "
                      "clause - RULE_LEMMA yet\n";
   }
@@ -500,7 +597,10 @@ void NewProofManager::addResolutionStep(Minisat::Solver::TLit lit,
                          << ", ";
   printLit(lit);
   Debug("newproof::sat") << "\n";
-  d_resolution.push_back(Resolution(registerClause(clause), lit, sign));
+  prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(lit);
+  Assert(d_litToNode.find(satLit) != d_litToNode.end());
+  d_resolution.push_back(
+      Resolution(registerClause(clause), d_litToNode[satLit], sign));
 }
 
 void NewProofManager::endResChain(Minisat::Solver::TLit lit)
@@ -577,21 +677,32 @@ ClauseId NewProofManager::justifyLit(Minisat::Solver::TLit lit)
     {
       continue;
     }
-    Resolution res(justifyLit(~curr_lit), curr_lit, !Minisat::sign(curr_lit));
+    prop::SatLiteral curr_satLit = toSatLiteral<Minisat::Solver>(curr_lit);
+    Assert(d_litToNode.find(curr_satLit) != d_litToNode.end());
+    Resolution res(justifyLit(~curr_lit),
+                   d_litToNode[curr_satLit],
+                   !Minisat::sign(curr_lit));
     reason_resolutions.push_back(res);
   }
   // retrieve lit's node definition
   Assert(d_litToNode.find(satLit) != d_litToNode.end());
   Node litDef = d_litToNode[satLit];
   // generate resolution step that allows the derivation of lit
-  Assert(d_format == VERIT);
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  std::vector<unsigned> reason_ids;
-  for (unsigned i = 0, size = reason_resolutions.size(); i < size; ++i)
+  if (d_format == options::ProofFormatMode::VERIT)
   {
-    reason_ids.push_back(reason_resolutions[i].d_id);
+    std::vector<unsigned> reason_ids;
+    for (unsigned i = 0, size = reason_resolutions.size(); i < size; ++i)
+    {
+      reason_ids.push_back(reason_resolutions[i].d_id);
+    }
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    id = vtproof->addProofStep(RULE_RESOLUTION, reason_ids, litDef);
   }
-  id = vtproof->addProofStep(RULE_RESOLUTION, reason_ids, litDef);
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    id = leanproof->addResSteps(reason_resolutions, litDef);
+  }
   d_litToClauseId[satLit] = id;
   d_clauseIdToLit[id] = satLit;
   return id;
@@ -630,19 +741,29 @@ void NewProofManager::finalizeProof(ClauseId conflict_id)
   // resolution steps will be saved in the given reasons vector.
   for (unsigned i = 0, size = conflict_clause.size(); i < size; ++i)
   {
+    prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(conflict_clause[i]);
+    Assert(d_litToNode.find(satLit) != d_litToNode.end());
     Resolution res(justifyLit(~conflict_clause[i]),
-                   conflict_clause[i],
+                   d_litToNode[satLit],
                    !Minisat::sign(conflict_clause[i]));
     reasons.push_back(res);
   }
-  Assert(d_format == VERIT);
-  std::vector<unsigned> reason_ids;
-  for (unsigned i = 0, size = reasons.size(); i < size; ++i)
+  if (d_format == options::ProofFormatMode::VERIT)
   {
-    reason_ids.push_back(reasons[i].d_id);
+    std::vector<unsigned> reason_ids;
+    for (unsigned i = 0, size = reasons.size(); i < size; ++i)
+    {
+      reason_ids.push_back(reasons[i].d_id);
+    }
+
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    vtproof->addProofStep(RULE_RESOLUTION, reason_ids, Node::null());
   }
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  vtproof->addProofStep(RULE_RESOLUTION, reason_ids, Node::null());
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    leanproof->addResSteps(reasons, Node::null());
+  }
 }
 
 // case in which I addded a false unit clause
@@ -673,9 +794,17 @@ void NewProofManager::finalizeProof(Minisat::Solver::TLit lit)
 void NewProofManager::finalizeProof()
 {
   // last added clause is the conflicting one
-  Assert(d_format == VERIT);
-  VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-  ClauseId conflict_id = vtproof->getId() - 1;
+  ClauseId conflict_id;
+  if (d_format == options::ProofFormatMode::VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    conflict_id = vtproof->getId() - 1;
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    conflict_id = leanproof->getId() - 1;
+  }
   finalizeProof(conflict_id);
 }
 

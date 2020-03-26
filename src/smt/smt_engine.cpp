@@ -900,7 +900,7 @@ SmtEngine::SmtEngine(ExprManager* em)
   // that options::proof() is set correctly yet.
 #ifdef CVC4_PROOF
   d_proofManager.reset(new ProofManager(getUserContext()));
-  d_newProofManager.reset(new NewProofManager());
+  d_newProofManager.reset(new NewProofManager(options::proofFormat()));
 #endif
 
   d_definedFunctions = new (true) DefinedFunctionMap(getUserContext());
@@ -5134,7 +5134,7 @@ const NewProof& SmtEngine::getNewProof()
         "Cannot get a proof unless immediately preceded by UNSAT/VALID "
         "response.");
   }
-  return NewProofManager::getProof();
+  return d_newProofManager.get()->getProof();
 #else  /* IS_PROOFS_BUILD */
   throw ModalException("This build of CVC4 doesn't have proof support.");
 #endif /* IS_PROOFS_BUILD */

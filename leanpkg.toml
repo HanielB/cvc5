@@ -1,0 +1,7 @@
+[package]
+name = "mylean"
+version = "0.1"
+lean_version = "3.4.2"
+path = "/home/hbarbosa/solvers/cvc4-lean/src/"
+
+[dependencies]

@@ -778,7 +778,7 @@ void LFSCProof::toStream(std::ostream& out) const
       d_cnfProof->printCnfProofForClause(
           cl_it->first, cl_it->second, out, paren);
     }
-  }
+   }
 
   {
     CodeTimer theoryLemmaTimer{

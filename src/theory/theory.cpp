@@ -34,6 +34,95 @@ using namespace std;
 namespace CVC4 {
 namespace theory {
 
+void EqProof::flattenBinCongs2(
+    std::vector<std::shared_ptr<theory::EqProof>>& premises)
+{
+  if (Debug.isOn("newproof::pm-flattening"))
+  {
+    Debug("newproof::pm-flattening")
+        << "flattenBinCongs2::\tFlattenning proof:\n";
+    debug_print("newproof::pm-flattening");
+    Debug("newproof::pm-flattening") << "===\n";
+  }
+  unsigned i, size = d_children.size();
+  if (d_id == theory::MERGED_THROUGH_CONGRUENCE
+      && d_node.isNull())
+  {
+    for (i = 0; i < size; ++i)
+    {
+      Debug("newproof::pm-flattening") << push;
+      d_children[i].get()->flattenBinCongs2(premises);
+      Debug("newproof::pm-flattening") << pop;
+    }
+    return;
+  }
+  Debug("newproof::pm-flattening")
+      << "flattenBinCongs2::\tNot flat-amenable proof, recurse\n";
+  std::shared_ptr<theory::EqProof> pb = std::make_shared<theory::EqProof>();
+  pb->d_node = d_node;
+  pb->d_id = d_id;
+  pb->d_children = d_children;
+
+  pb.get()->flattenBinCongs();
+  premises.push_back(pb);
+}
+
+void EqProof::flattenBinCongs()
+{
+  if (Debug.isOn("newproof::pm-flattening"))
+  {
+    Debug("newproof::pm-flattening")
+        << "flattenBinCongs::\tFlattenning proof:\n";
+    debug_print("newproof::pm-flattening");
+    Debug("newproof::pm-flattening") << "===\n";
+  }
+  unsigned i, size = d_children.size();
+  if (d_id == theory::MERGED_THROUGH_EQUALITY
+      || d_id == theory::MERGED_THROUGH_REFLEXIVITY
+      || d_id == theory::MERGED_THROUGH_CONSTANTS)
+  {
+    Debug("newproof::pm-flattening") << "flattenBinCongs::\treturn as is\n";
+    return;
+  }
+  if (d_id == theory::MERGED_THROUGH_TRANS)
+  {
+    for (i = 0; i < size; ++i)
+    {
+      Debug("newproof::pm-flattening") << push;
+      Debug("newproof::pm-flattening")
+          << "flattenBinCongs::\trecurse on child " << i << "\n";
+      d_children[i].get()->flattenBinCongs();
+      Debug("newproof::pm-flattening") << pop;
+    }
+    return;
+  }
+  if (d_id == theory::MERGED_THROUGH_CONGRUENCE)
+  {
+    Assert(!d_node.isNull());
+    std::vector<std::shared_ptr<theory::EqProof>> premises;
+    for (i = 0; i < size; ++i)
+    {
+      Debug("newproof::pm-flattening") << push;
+      Debug("newproof::pm-flattening")
+          << "flattenBinCongs::\trecurse on child " << i << "\n";
+      d_children[i].get()->flattenBinCongs2(premises);
+      Debug("newproof::pm-flattening") << pop;
+    }
+    Debug("newproof::pm-flattening")
+        << "flattenBinCongs::\trebuild proof from new premises\n";
+    d_children.clear();
+    d_children.insert(d_children.end(), premises.begin(), premises.end());
+    if (Debug.isOn("newproof::pm-flattening"))
+    {
+      debug_print("newproof::pm-flattening");
+      Debug("newproof::pm-flattening") << "===\n";
+    }
+    return;
+  }
+  // not sure what to do if thing is NUMBER_OF_MERGE_REASONS
+  Assert(false);
+}
+
 void EqProof::debug_print(const char* c,
                           unsigned tb,
                           PrettyPrinter* prettyPrinter) const

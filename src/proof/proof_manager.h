@@ -157,6 +157,7 @@ class ProofManager {
   std::unique_ptr<Proof> d_fullProof;
   ProofFormat d_format; // used for now only in debug builds
 
+  // HB used for unsat core, I think
   CDNodeToNodes d_deps;
 
   std::set<Type> d_printedTypes;

@@ -54,3 +54,21 @@ header = "options/proof_options.h"
   default    = "false"
   read_only  = true
   help       = "Use new proof module"
+
+[[option]]
+  name       = "proofFormat"
+  category   = "regular"
+  long       = "proof-format=MODE"
+  type       = "ProofFormatMode"
+  default    = "VERIT"
+  help       = "mode for proof format"
+  help_mode  = "Modes for proof formats."
+[[option.mode.VERIT]]
+  name = "verit"
+  help = "Use veriT's proof format."
+[[option.mode.LEAN]]
+  name = "lean"
+  help = "Use Lean's proof format."
+[[option.mode.LFSC]]
+  name = "lfsc"
+  help = "Use LFSC's proof format (UNSUPPORTED)."

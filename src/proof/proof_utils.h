@@ -99,6 +99,22 @@ struct LetOrderElement {
 
 typedef std::vector<LetOrderElement> Bindings;
 
+struct NewLetOrderElement {
+  Node d_n;
+  unsigned d_id;
+  NewLetOrderElement(Node n, unsigned id)
+    : d_n(n)
+    , d_id(id)
+  {}
+
+  NewLetOrderElement()
+    : d_n()
+    , d_id(-1)
+  {}
+};
+
+typedef std::vector<NewLetOrderElement> NewBindings;
+
 namespace utils {
 
 std::string toLFSCKind(Kind kind);

@@ -396,7 +396,7 @@ SatLiteral TseitinCnfStream::handleOr(TNode orNode) {
         proof_clause[0] = orLit;
         proof_clause[1] = ~clause[i];
         NewProofManager::currentPM()->addDefCnfProofStep(
-            RULE_CNF_OR_NEG, id, proof_clause);
+            RULE_CNF_OR_NEG, id, proof_clause, i);
       }
     });
   }
@@ -456,9 +456,9 @@ SatLiteral TseitinCnfStream::handleAnd(TNode andNode) {
       {
         SatClause proof_clause(2);
         proof_clause[0] = ~andLit;
-        proof_clause[1] = clause[i];
+        proof_clause[1] = ~clause[i];
         NewProofManager::currentPM()->addDefCnfProofStep(
-            RULE_CNF_AND_POS, id, proof_clause);
+            RULE_CNF_AND_POS, id, proof_clause, i);
       }
     });
   }

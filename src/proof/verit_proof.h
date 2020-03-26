@@ -39,8 +39,6 @@ class VeritProofStep : public ProofStep
   const std::vector<unsigned>& getPremises() const;
 
  private:
-  // invariant: given n + 1 nodes, the first are to be negated in a cluase,
-  // while the last one is not
   std::vector<Node> d_conclusion;
   std::vector<unsigned> d_premises;
 };
@@ -50,6 +48,7 @@ class VeritProof : public NewProof
  public:
   ~VeritProof() override {}
   void toStream(std::ostream& out) const override;
+  void finishProof() override {}
   ClauseId addProofStep(NewProofRule rule) override;
   ClauseId addProofStep();
 
@@ -91,6 +90,7 @@ class VeritProof : public NewProof
   // void flattenBinCongs(theory::EqProof* proof,
   //                      std::vector<theory::EqProof*>& premises);
 
+  void printRule(std::ostream& out, NewProofRule r) const;
   void printStep(std::ostream& out, VeritProofStep* s) const;
 
   std::vector<VeritProofStep> d_proofSteps;

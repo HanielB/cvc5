@@ -57,14 +57,14 @@ typedef std::vector<SatLiteral> SatClause;
 class Resolution
 {
  public:
+  // clause being resolved with another clause using the pivot with the given
+  // sign
   ClauseId d_id;
-  Minisat::Solver::TLit d_lit;
+  Node d_piv;
   bool d_sign;
 
-  Resolution(ClauseId id,
-             Minisat::Solver::TLit lit = Minisat::lit_Undef,
-             bool sign = false)
-      : d_id(id), d_lit(lit), d_sign(sign)
+  Resolution(ClauseId id, Node piv = Node::null(), bool sign = false)
+      : d_id(id), d_piv(piv), d_sign(sign)
   {
   }
 };
@@ -75,15 +75,13 @@ class NewProofManager
   LogicInfo d_logic;
 
  public:
-  NewProofManager(ProofFormat format = VERIT);
+  NewProofManager(options::ProofFormatMode format);
   ~NewProofManager();
 
   static NewProofManager* currentPM();
 
   // getting proof
-  static NewProof& getProof();
-
-  static SkolemizationManager* getSkolemizationManager();
+  NewProof& getProof();
 
   static NewProofRule convert(theory::MergeReasonType reason)
   {
@@ -169,21 +167,34 @@ class NewProofManager
   /* General proof step. For now used for preprocessing only */
   void addAssertionProofStep(Node src, Node dest, NewProofRule rule);
 
-  ClauseId addCnfProofStep(prop::SatLiteral lit, ClauseId id);
-
-  ClauseId addCnfProofStep(NewProofRule rule,
-                           ClauseId id,
-                           Node src,
-                           prop::SatClause clause);
-
+  // create conclusion in which clauseNodes are CNF-derived from src, according
+  // to rule. The id might be undefined (in which case a new proof step is
+  // created) or not (in which case the valid clause is added to the proofstep
+  // already created that has that id)
   ClauseId addCnfProofStep(NewProofRule rule,
                            ClauseId id,
                            Node src,
                            std::vector<Node>& clauseNodes);
 
+  // as above, but retrieves the clauseNodes from clause first
+  ClauseId addCnfProofStep(NewProofRule rule,
+                           ClauseId id,
+                           Node src,
+                           prop::SatClause clause);
+
+  // not sure what this is about. It does not create proof steps. It may update
+  // the clause id of a given literal.
+  ClauseId addCnfProofStep(prop::SatLiteral lit, ClauseId id);
+
+  // create a valid clause according to rule. The given id corresponds to a
+  // previously created proof step, therefore it's always defined
+  //
+  // the ith value, if given, will be position of the literal being derived from
+  // an n-ary transformation
   void addDefCnfProofStep(NewProofRule rule,
                           ClauseId id,
-                          prop::SatClause clause);
+                          prop::SatClause clause,
+                          unsigned ith = -1);
 
   void queueTheoryProof(prop::SatLiteral lit, theory::EqProof* proof);
 
@@ -202,8 +213,6 @@ class NewProofManager
   void setSatSolver(Minisat::Solver* solver) { d_solver = solver; }
 
  private:
-  SkolemizationManager d_skolemizationManager;
-
   /* pointer to core SAT solver */
   Minisat::Solver* d_solver;
 
@@ -231,7 +240,7 @@ class NewProofManager
 
   std::vector<std::vector<Resolution>> d_resolutions;
 
-  ProofFormat d_format;
+  options::ProofFormatMode d_format;
 
   unsigned d_nextId;
 
