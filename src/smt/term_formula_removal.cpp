@@ -20,6 +20,7 @@
 #include "expr/node_algorithm.h"
 #include "options/proof_options.h"
 #include "proof/proof_manager.h"
+#include "proof/new_proof_manager.h"
 
 using namespace std;
 
@@ -36,19 +37,26 @@ void RemoveTermFormulas::run(std::vector<Node>& output, IteSkolemMap& iteSkolemM
 {
   size_t n = output.size();
   for (unsigned i = 0, i_end = output.size(); i < i_end; ++ i) {
-    // Do this in two steps to avoid Node problems(?)
-    // Appears related to bug 512, splitting this into two lines
-    // fixes the bug on clang on Mac OS
     Node itesRemoved = run(output[i], output, iteSkolemMap, false, false);
-    // In some calling contexts, not necessary to report dependence information.
-    if (reportDeps &&
-        (options::unsatCores() || options::fewerPreprocessingHoles())) {
+    if (itesRemoved == output[i])
+    {
+      continue;
+    }
+    // Only necessary to report dependence information in some calling contexts.
+    if (reportDeps && output[i] != itesRemoved)
+    {
       // new assertions have a dependence on the node
-      PROOF( ProofManager::currentPM()->addDependence(itesRemoved, output[i]); )
-      while(n < output.size()) {
-        PROOF( ProofManager::currentPM()->addDependence(output[n], output[i]); )
-        ++n;
-      }
+      NEWPROOF({
+        NewProofManager* pm = NewProofManager::currentPM();
+        // justify assertion transformation
+        pm->addIteRemovalProofStep(output[i], itesRemoved);
+        // add ITE definitions
+        while (n < output.size())
+        {
+          pm->addIteDefProofStep(output[n]);
+          ++n;
+        }
+      });
     }
     output[i] = itesRemoved;
   }
@@ -105,6 +113,8 @@ Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
         // The new assertion
         newAssertion = nodeManager->mkNode(
             kind::ITE, node[0], skolem.eqNode(node[1]), skolem.eqNode(node[2]));
+
+        NEWPROOF({ NewProofManager::currentPM()->notifyIte(skolem, node); });
       }
     }
   }
@@ -274,7 +284,7 @@ Node RemoveTermFormulas::replace(TNode node, bool inQuant, bool inTerm) const {
   }else if( !inTerm && hasNestedTermChildren( node ) ){
     // Remember if we're inside a term
     inTerm = true;
-  }  
+  }
 
   vector<Node> newChildren;
   bool somethingChanged = false;
@@ -296,11 +306,11 @@ Node RemoveTermFormulas::replace(TNode node, bool inQuant, bool inTerm) const {
   }
 }
 
-// returns true if the children of node should be considered nested terms 
+// returns true if the children of node should be considered nested terms
 bool RemoveTermFormulas::hasNestedTermChildren( TNode node ) {
-  return theory::kindToTheoryId(node.getKind())!=theory::THEORY_BOOL && 
-         node.getKind()!=kind::EQUAL && node.getKind()!=kind::SEP_STAR && 
-         node.getKind()!=kind::SEP_WAND && node.getKind()!=kind::SEP_LABEL && 
+  return theory::kindToTheoryId(node.getKind())!=theory::THEORY_BOOL &&
+         node.getKind()!=kind::EQUAL && node.getKind()!=kind::SEP_STAR &&
+         node.getKind()!=kind::SEP_WAND && node.getKind()!=kind::SEP_LABEL &&
          node.getKind()!=kind::BITVECTOR_EAGER_ATOM;
          // dont' worry about FORALL or EXISTS (handled separately)
 }

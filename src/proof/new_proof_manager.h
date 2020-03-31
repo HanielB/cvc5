@@ -167,20 +167,37 @@ class NewProofManager
   /* General proof step. For now used for preprocessing only */
   void addAssertionProofStep(Node src, Node dest, NewProofRule rule);
 
+  // track the change from src to dest. Depending on the proof format this
+  // generates no proof steps (like in veriT or in Lean).
+  void addIteRemovalProofStep(Node src, Node dest);
+
+  // adds a proof step defining a functional ite via a boolean ITE and
+  // equalities
+  void addIteDefProofStep(Node def);
+
+  // let the proof manager know to which ITE term the skolem placeholder src
+  // corresponds to
+  void notifyIte(Node src, Node dest);
+
   // create conclusion in which clauseNodes are CNF-derived from src, according
   // to rule. The id might be undefined (in which case a new proof step is
   // created) or not (in which case the valid clause is added to the proofstep
   // already created that has that id)
+  //
+  // the ith value, if given, will be position of the literal being derived from
+  // an n-ary transformation
   ClauseId addCnfProofStep(NewProofRule rule,
                            ClauseId id,
                            Node src,
-                           std::vector<Node>& clauseNodes);
+                           std::vector<Node>& clauseNodes,
+                           unsigned ith = -1);
 
   // as above, but retrieves the clauseNodes from clause first
   ClauseId addCnfProofStep(NewProofRule rule,
                            ClauseId id,
                            Node src,
-                           prop::SatClause clause);
+                           prop::SatClause clause,
+                           unsigned ith = -1);
 
   // not sure what this is about. It does not create proof steps. It may update
   // the clause id of a given literal.

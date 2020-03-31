@@ -26,8 +26,7 @@ namespace CVC4 {
 class LeanProofStep : public ProofStep
 {
  public:
-  LeanProofStep(ClauseId id);
-  LeanProofStep(ClauseId id, NewProofRule rule);
+  LeanProofStep(ClauseId id, NewProofRule rule = RULE_UNDEF);
   ~LeanProofStep() override {}
 
   void addRule(NewProofRule rule);
@@ -71,11 +70,28 @@ class LeanProof : public NewProof
                         std::vector<Node>& conclusion);
   ClauseId addProofStep(NewProofRule rule,
                         std::vector<ClauseId>& reasons,
+                        std::vector<Node>& conclusion,
+                        unsigned u_arg);
+  ClauseId addProofStep(NewProofRule rule,
+                        std::vector<ClauseId>& reasons,
                         std::vector<Node>& args,
                         std::vector<Node>& conclusion);
   ClauseId addProofStep(NewProofRule rule, Node conclusion);
+  ClauseId addProofStep(NewProofRule rule, Node conclusion, Node arg);
 
   ClauseId addResSteps(std::vector<Resolution>& reasons, Node conclusion);
+
+  // Transform resolution chain into a series of binary resolutions with
+  // *explicit* conclusions
+  //
+  // This is problematic when we reach conflicts with clauses that have not had
+  // their proof steps defined yet
+  //
+  // Another issue for that is having to compute the intermediate clauses and
+  // this can be problematic with pivots for example containing ITE skolems
+  ClauseId addResStepsBin(std::vector<Resolution>& reasons, Node conclusion);
+
+  ClauseId addIteIntroProofStep(Node conclusion);
 
   // add to last created proof step
   void addToLastProofStep(Node conclusion);
@@ -116,12 +132,19 @@ class LeanProof : public NewProof
 
   ClauseId getId() { return d_nextId; }
 
+  // allows a node to me marked as an ITE place holder, so that it is not
+  // printed in the proof, with the ITE term it represens being printed instead
+  void notifyIte(Node src, Node dest);
+
  private:
   ClauseId getNextId() { return d_nextId++; }
 
   // adds a symmetry step if eq is t2 = t1, in which id is the justification for
   // t1 = t2 which will be resolved against. Otherwise returns undef id
   ClauseId maybeAddSymmStep(ClauseId id, Node eq, Node t1);
+
+  ClauseId maybeAddFactoringStep(ClauseId id);
+
   ClauseId processTheoryProof(theory::EqProof* proof);
 
   void printPremises(std::ostream& out, const std::vector<ClauseId>& premises) const;
@@ -149,6 +172,7 @@ class LeanProof : public NewProof
   std::unordered_map<TypeNode, std::string, TypeNodeHashFunction> d_sortDefs;
   std::unordered_map<Node, ProofLetCount, NodeHashFunction> d_letMap;
   NewBindings d_letOrder;
+  std::unordered_map<Node, Node, NodeHashFunction> d_IteConst;
 };
 
 }  // namespace CVC4

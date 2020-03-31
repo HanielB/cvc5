@@ -101,11 +101,12 @@ void NewProofManager::addInputSubAssertion(Node formula, ClauseId id)
     Debug("newproof::sat::cnf")
         << "NewProofManager::addINputSubAssertion: formula " << formula
         << " already saved under id " << it->second << "\n";
+    return;
   }
   Debug("newproof::sat::cnf")
       << "NewProofManager::addINputSubAssertion: formula " << formula
       << " assigned id " << id << "\n";
-  it->second = id;
+  d_assertionToClauseId[formula] = id;
 }
 
 void NewProofManager::addAssertionProofStep(Node src,
@@ -131,10 +132,63 @@ void NewProofManager::addAssertionProofStep(Node src,
   d_assertionToClauseId[dest] = id;
 }
 
+void NewProofManager::addIteRemovalProofStep(Node src, Node dest)
+{
+  Debug("newproof::pm") << "NewProofManager::addIteRemovalProofStep: ["
+                        << RULE_PREPROCESSING_ITE_REMOVAL << "] from " << src
+                        << " to " << dest << std::endl;
+  Assert(d_assertionToClauseId.find(src) != d_assertionToClauseId.end());
+  std::vector<ClauseId> reasons{d_assertionToClauseId[src]};
+  ClauseId id;
+  if (d_format == options::ProofFormatMode::VERIT
+      || d_format == options::ProofFormatMode::LEAN)
+  {
+    // nothing to be done
+    id = d_assertionToClauseId[src];
+  }
+  // update id of assertion
+  d_assertionToClauseId[dest] = id;
+}
+
+void NewProofManager::addIteDefProofStep(Node def)
+{
+  Debug("newproof::pm") << "NewProofManager::addItedDefProofStep: ["
+                        << RULE_ITE_INTRO << "] " << def << "\n";
+  ClauseId id;
+  if (d_format == options::ProofFormatMode::VERIT)
+  {
+    VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
+    id = vtproof->addProofStep(RULE_ITE_INTRO, def);
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    id = leanproof->addIteIntroProofStep(def);
+  }
+  // update id of assertion
+  d_assertionToClauseId[def] = id;
+}
+
+void NewProofManager::notifyIte(Node src, Node dest)
+{
+  Debug("newproof::pm") << "NewProofManager::notifyIte: from " << src << " to "
+                        << dest << "\n";
+  if (d_format == options::ProofFormatMode::VERIT)
+  {
+    // nothing for now
+  }
+  else if (d_format == options::ProofFormatMode::LEAN)
+  {
+    LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    leanproof->notifyIte(src, dest);
+  }
+}
+
 ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
                                           ClauseId id,
                                           Node src,
-                                          std::vector<Node>& clauseNodes)
+                                          std::vector<Node>& clauseNodes,
+                                          unsigned ith)
 {
   Debug("newproof::pm") << "NewProofManager::addCnfProofStep: [" << rule
                         << "], src " << src << ", [id: " << id
@@ -161,10 +215,13 @@ ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
   else if (d_format == options::ProofFormatMode::LEAN)
   {
     LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
+    // TODO HB add this logic to the proof itself, out of the PM
     // if id is not defined then create a new proof step
     if (id == ClauseIdUndef)
     {
-      id = leanproof->addProofStep(rule, reasons, clauseNodes);
+      id = ith == static_cast<unsigned>(-1)
+               ? leanproof->addProofStep(rule, reasons, clauseNodes)
+               : leanproof->addProofStep(rule, reasons, clauseNodes, ith);
     }
     else
     {
@@ -178,7 +235,8 @@ ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
 ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
                                           ClauseId id,
                                           Node src,
-                                          prop::SatClause clause)
+                                          prop::SatClause clause,
+                                          unsigned ith)
 {
   std::vector<Node> clauseNodes;
   for (unsigned i = 0, size = clause.size(); i < size; ++i)
@@ -187,7 +245,7 @@ ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
     // premises in conclusion are already negated in this case...
     clauseNodes.push_back(d_litToNode[clause[i]]);
   }
-  return addCnfProofStep(rule, id, src, clauseNodes);
+  return addCnfProofStep(rule, id, src, clauseNodes, ith);
 }
 
 ClauseId NewProofManager::addCnfProofStep(prop::SatLiteral lit, ClauseId id)
@@ -755,7 +813,6 @@ void NewProofManager::finalizeProof(ClauseId conflict_id)
     {
       reason_ids.push_back(reasons[i].d_id);
     }
-
     VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
     vtproof->addProofStep(RULE_RESOLUTION, reason_ids, Node::null());
   }

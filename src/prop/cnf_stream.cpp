@@ -789,6 +789,7 @@ void TseitinCnfStream::convertAndAssertAnd(TNode node, bool negated) {
   Assert(node.getKind() == AND);
   if (!negated) {
     // If the node is a conjunction, we handle each conjunct separately
+    unsigned index = 0;
     for (TNode::const_iterator conjunct = node.begin(), node_end = node.end();
          conjunct != node_end;
          ++conjunct)
@@ -802,8 +803,8 @@ void TseitinCnfStream::convertAndAssertAnd(TNode node, bool negated) {
       NEWPROOF({
         std::vector<Node> clauseNodes{*conjunct};
         NewProofManager* pm = NewProofManager::currentPM();
-        ClauseId id =
-            pm->addCnfProofStep(RULE_CNF_AND, ClauseIdUndef, node, clauseNodes);
+        ClauseId id = pm->addCnfProofStep(
+            RULE_CNF_AND, ClauseIdUndef, node, clauseNodes, index++);
         pm->addInputSubAssertion(*conjunct, id);
       });
       convertAndAssert(*conjunct, false);
@@ -850,6 +851,7 @@ void TseitinCnfStream::convertAndAssertOr(TNode node, bool negated) {
     });
   } else {
     // If the node is a conjunction, we handle each conjunct separately
+    unsigned index = 0;
     for (TNode::const_iterator conjunct = node.begin(), node_end = node.end();
          conjunct != node_end;
          ++conjunct)
@@ -866,7 +868,7 @@ void TseitinCnfStream::convertAndAssertOr(TNode node, bool negated) {
         std::vector<Node> clauseNodes{not_conjunct};
         NewProofManager* pm = NewProofManager::currentPM();
         ClauseId id = pm->addCnfProofStep(
-            RULE_CNF_NOT_OR, ClauseIdUndef, node, clauseNodes);
+            RULE_CNF_NOT_OR, ClauseIdUndef, node, clauseNodes, index++);
         pm->addInputSubAssertion(not_conjunct, id);
       });
       convertAndAssert(*conjunct, true);
@@ -1046,20 +1048,24 @@ void TseitinCnfStream::convertAndAssertIte(TNode node, bool negated) {
   SatClause clause1(2);
   clause1[0] = ~p;
   clause1[1] = q;
-  ClauseId id = assertClause(nnode, clause1);
+  ClauseId id1 = assertClause(nnode, clause1);
   NEWPROOF({
-    Assert(id != ClauseIdUndef);
-    NewProofManager::currentPM()->addCnfProofStep(
-        RULE_CNF_ITE2, id, node, clause1);
+    if (id1 != ClauseIdUndef)
+    {
+      NewProofManager::currentPM()->addCnfProofStep(
+          RULE_CNF_ITE1, id1, node, clause1);
+    }
   });
   SatClause clause2(2);
   clause2[0] = p;
   clause2[1] = r;
-  id = assertClause(nnode, clause2);
+  ClauseId id2 = assertClause(nnode, clause2);
   NEWPROOF({
-    Assert(id != ClauseIdUndef);
-    NewProofManager::currentPM()->addCnfProofStep(
-        RULE_CNF_ITE1, id, node, clause2);
+    if (id2 != ClauseIdUndef)
+    {
+      NewProofManager::currentPM()->addCnfProofStep(
+          RULE_CNF_ITE2, id2, node, clause2);
+    }
   });
 }
 

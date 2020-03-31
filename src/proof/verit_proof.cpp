@@ -19,8 +19,6 @@
 
 namespace CVC4 {
 
-VeritProofStep::VeritProofStep(unsigned id) { d_id = id; }
-
 VeritProofStep::VeritProofStep(unsigned id, NewProofRule rule)
 {
   d_id = id;
@@ -31,7 +29,7 @@ void VeritProofStep::addRule(NewProofRule rule) { d_rule = rule; }
 
 void VeritProofStep::addPremises(std::vector<unsigned>& reasons)
 {
-  d_premises = reasons;
+  d_premises.insert(d_premises.end(), reasons.begin(), reasons.end());
 }
 
 void VeritProofStep::addPremises(unsigned reason)
@@ -84,7 +82,7 @@ ClauseId VeritProof::addProofStep(NewProofRule rule)
 {
   ClauseId id;
   id = getNextId();
-  Debug("newproof::pm")
+  Debug("pm::vt")
       << "VeritProof::addProofStep: adding proof step with id/rule: " << id
       << " / " << rule << "\n";
   d_proofSteps.push_back(VeritProofStep(id, rule));
@@ -94,7 +92,8 @@ ClauseId VeritProof::addProofStep(NewProofRule rule)
 ClauseId VeritProof::addProofStep(NewProofRule rule, Node conclusion)
 {
   ClauseId id;
-  Debug("newproof::pm")
+  id = getNextId();
+  Debug("pm::vt")
       << "VeritProof::addProofStep: adding proof step with id/rule: " << id
       << " / " << rule << " " << conclusion << "\n";
   VeritProofStep vtproofstep = VeritProofStep(id, rule);
@@ -109,7 +108,7 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
 {
   ClauseId id;
   id = getNextId();
-  Debug("newproof::pm")
+  Debug("pm::vt")
       << "VeritProof::addProofStep: adding proof step with id/rule: " << id
       << " / " << rule << " "  //<< reasons << " "
       << conclusion << "\n";
@@ -126,7 +125,7 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
 {
   ClauseId id;
   id = getNextId();
-  Debug("newproof::pm")
+  Debug("pm::vt")
       << "VeritProof::addProofStep: adding proof step with id/rule: " << id
       << " / " << rule << " "  //<< reasons << " "
       << conclusion << "\n";
@@ -139,39 +138,40 @@ ClauseId VeritProof::addProofStep(NewProofRule rule,
 
 void VeritProof::addToLastProofStep(Node conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToLastProofStep "
-                        << d_proofSteps.back().getId()
-                        << " ["
-                        // << d_proofSteps.back().getRule() << "] conclusion "
-                        << "] conclusion " << conclusion << "\n";
+  Debug("pm::vt") << "VeritProof::addToLastProofStep "
+                  << d_proofSteps.back().getId()
+                  << " ["
+                  // << d_proofSteps.back().getRule() << "] conclusion "
+                  << "] conclusion " << conclusion << "\n";
   d_proofSteps.back().addConclusion(conclusion);
 }
 
 void VeritProof::addToLastProofStep(std::vector<unsigned>& reasons,
                                     Node conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToLastProofStep "
-                        << d_proofSteps.back().getId() << " ["
-                        // << d_proofSteps.back().getRule()
-                        << "] reasons, and conclusion " << conclusion << "\n";
+  Debug("pm::vt") << "VeritProof::addToLastProofStep "
+                  << d_proofSteps.back().getId()
+                  << " ["
+                  // << d_proofSteps.back().getRule()
+                  << "] reasons, and conclusion " << conclusion << "\n";
   d_proofSteps.back().addPremises(reasons);
   d_proofSteps.back().addConclusion(conclusion);
 }
 
 void VeritProof::addToProofStep(ClauseId id, Node conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " ["
-                        // << d_proofSteps[id].getRule() << "] conclusion "
-                        << "] conclusion "
-                        << conclusion << "\n";
+  Debug("pm::vt") << "VeritProof::addToProofStep " << id
+                  << " ["
+                  // << d_proofSteps[id].getRule() << "] conclusion "
+                  << "] conclusion " << conclusion << "\n";
   Assert(id >= 0 && id < d_proofSteps.size());
   d_proofSteps[id].addConclusion(conclusion);
 }
 
 void VeritProof::addToProofStep(ClauseId id, NewProofRule rule, Node conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " [" << rule
-                        << "] conclusion " << conclusion << "\n";
+  Debug("pm::vt") << "VeritProof::addToProofStep " << id << " [" << rule
+                  << "] conclusion " << conclusion << "\n";
   Assert(id >= 0 && id < d_proofSteps.size());
   d_proofSteps[id].addRule(rule);
   d_proofSteps[id].addConclusion(conclusion);
@@ -181,8 +181,8 @@ void VeritProof::addToProofStep(ClauseId id,
                                 NewProofRule rule,
                                 std::vector<Node>& conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " [" << rule
-                        << "] conclusion " << conclusion << "\n";
+  Debug("pm::vt") << "VeritProof::addToProofStep " << id << " [" << rule
+                  << "] conclusion " << conclusion << "\n";
   Assert(id >= 0 && id < d_proofSteps.size());
   d_proofSteps[id].addRule(rule);
   d_proofSteps[id].addConclusion(conclusion);
@@ -193,106 +193,13 @@ void VeritProof::addToProofStep(ClauseId id,
                                 std::vector<ClauseId>& reasons,
                                 std::vector<Node>& conclusion)
 {
-  Debug("newproof::pm") << "VeritProof::addToProofStep " << id << " [" << rule
-                        << "], reasons, conclusion " << conclusion << "\n";
+  Debug("pm::vt") << "VeritProof::addToProofStep " << id << " [" << rule
+                  << "], reasons, conclusion " << conclusion << "\n";
   Assert(id >= 0 && id < d_proofSteps.size());
   d_proofSteps[id].addRule(rule);
   d_proofSteps[id].addPremises(reasons);
   d_proofSteps[id].addConclusion(conclusion);
 }
-
-// // recursive call for building the proof
-// void flattenBinCongs(theory::EqProof* proof);
-
-// void flattenBinCongs2(theory::EqProof* proof,
-//                       std::vector<std::shared_ptr<theory::EqProof>>& premises)
-// {
-//   if (Debug.isOn("newproof::pm-flattening"))
-//   {
-//     Debug("newproof::pm-flattening")
-//         << "flattenBinCongs2::\tFlattenning proof:\n";
-//     proof->debug_print("newproof::pm-flattening");
-//     Debug("newproof::pm-flattening") << "===\n";
-//   }
-//   unsigned i, size = proof->d_children.size();
-//   if (proof->d_id == theory::MERGED_THROUGH_CONGRUENCE
-//       && proof->d_node.isNull())
-//   {
-//     for (i = 0; i < size; ++i)
-//     {
-//       Debug("newproof::pm-flattening") << push;
-//       flattenBinCongs2(proof->d_children[i].get(), premises);
-//       Debug("newproof::pm-flattening") << pop;
-//     }
-//     return;
-//   }
-//   Debug("newproof::pm-flattening")
-//       << "flattenBinCongs2::\tNot flat-amenable proof, recurse\n";
-//   std::shared_ptr<theory::EqProof> pb = std::make_shared<theory::EqProof>();
-//   pb->d_node = proof->d_node;
-//   pb->d_id = proof->d_id;
-//   pb->d_children = proof->d_children;
-
-//   flattenBinCongs(pb.get());
-//   premises.push_back(pb);
-// }
-
-// void flattenBinCongs(theory::EqProof* proof)
-// {
-//   if (Debug.isOn("newproof::pm-flattening"))
-//   {
-//     Debug("newproof::pm-flattening")
-//         << "flattenBinCongs::\tFlattenning proof:\n";
-//     proof->debug_print("newproof::pm-flattening");
-//     Debug("newproof::pm-flattening") << "===\n";
-//   }
-//   unsigned i, size = proof->d_children.size();
-//   if (proof->d_id == theory::MERGED_THROUGH_EQUALITY
-//       || proof->d_id == theory::MERGED_THROUGH_REFLEXIVITY
-//       || proof->d_id == theory::MERGED_THROUGH_CONSTANTS)
-//   {
-//     Debug("newproof::pm-flattening") << "flattenBinCongs::\treturn as is\n";
-//     return;
-//   }
-//   if (proof->d_id == theory::MERGED_THROUGH_TRANS)
-//   {
-//     for (i = 0; i < size; ++i)
-//     {
-//       Debug("newproof::pm-flattening") << push;
-//       Debug("newproof::pm-flattening")
-//           << "flattenBinCongs::\trecurse on child " << i << "\n";
-//       flattenBinCongs(proof->d_children[i].get());
-//       Debug("newproof::pm-flattening") << pop;
-//     }
-//     return;
-//   }
-//   if (proof->d_id == theory::MERGED_THROUGH_CONGRUENCE)
-//   {
-//     Assert(!proof->d_node.isNull());
-//     std::vector<std::shared_ptr<theory::EqProof>> premises;
-//     for (i = 0; i < size; ++i)
-//     {
-//       Debug("newproof::pm-flattening") << push;
-//       Debug("newproof::pm-flattening")
-//           << "flattenBinCongs::\trecurse on child " << i << "\n";
-//       flattenBinCongs2(proof->d_children[i].get(), premises);
-//       Debug("newproof::pm-flattening") << pop;
-//     }
-//     Debug("newproof::pm-flattening")
-//         << "flattenBinCongs::\trebuild proof from new premises\n";
-//     proof->d_children.clear();
-//     proof->d_children.insert(
-//         proof->d_children.end(), premises.begin(), premises.end());
-//     if (Debug.isOn("newproof::pm-flattening"))
-//     {
-//       proof->debug_print("newproof::pm-flattening");
-//       Debug("newproof::pm-flattening") << "===\n";
-//     }
-//     return;
-//   }
-//   // not sure what to do if thing is NUMBER_OF_MERGE_REASONS
-//   Assert(false);
-// }
 
 ClauseId VeritProof::processTheoryProof(theory::EqProof* proof)
 {
@@ -349,21 +256,21 @@ ClauseId VeritProof::processTheoryProof(theory::EqProof* proof)
 
 ClauseId VeritProof::addTheoryProof(theory::EqProof* proof)
 {
-  Debug("newproof::pm") << "VeritProof::addTheoryProof:\n";
-  if (Debug.isOn("newproof::pm"))
+  Debug("pm::vt") << "VeritProof::addTheoryProof:\n";
+  if (Debug.isOn("pm::vt"))
   {
-    proof->debug_print("newproof::pm", 1);
+    proof->debug_print("pm::vt", 1);
   }
   // TODO traverse the proof bottom up (just as it has been constructed).
   // Anything that has more than one level must be turned into a resolution of
   // clauses. The (valid) clauses are always the conclusion and the conclusions
   // of the premises.
   proof->flattenBinCongs();
-  if (Debug.isOn("newproof::pm"))
+  if (Debug.isOn("pm::vt"))
   {
-    Debug("newproof::pm") << "After flattenning:\n";
-    proof->debug_print("newproof::pm", 1);
-    Debug("newproof::pm") << "===\n";
+    Debug("pm::vt") << "After flattenning:\n";
+    proof->debug_print("pm::vt", 1);
+    Debug("pm::vt") << "===\n";
   }
   return processTheoryProof(proof);
 }
@@ -415,6 +322,7 @@ void VeritProof::printRule(std::ostream& out, NewProofRule r) const
     case RULE_PREPROCESSING: out << "preprocessing"; break;
     case RULE_PREPROCESSING_REWRITE: out << "preprocessing_rewrite"; break;
     case RULE_PREPROCESSING_THEORY: out << "preprocessing_theory"; break;
+    case RULE_ITE_INTRO: out << "ite_intro"; break;
     case RULE_PREPROCESSING_ITE_REMOVAL:
       out << "preprocessing_ite_removal";
       break;

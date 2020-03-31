@@ -25,8 +25,7 @@ namespace CVC4 {
 class VeritProofStep : public ProofStep
 {
  public:
-  VeritProofStep(unsigned id);
-  VeritProofStep(unsigned id, NewProofRule rule);
+  VeritProofStep(unsigned id, NewProofRule rule = RULE_UNDEF);
   ~VeritProofStep() override {}
 
   void addRule(NewProofRule rule);
