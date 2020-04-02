@@ -731,12 +731,12 @@ ClauseId LeanProof::addTheoryProof(theory::EqProof* proof)
 
 void LeanProof::bind(Node term)
 {
-  Debug("newproof::pm") << "Binding " << term << "\n";
+  Debug("leanpf::bind") << "Binding " << term << "\n";
   auto it = d_letMap.find(term);
   if (it != d_letMap.end())
   {
     it->second.increment();
-    Debug("newproof::pm") << "\t found in let map with id " << it->second.id
+    Debug("leanpf::bind") << "\t found in let map with id " << it->second.id
                           << "\n";
     return;
   }
@@ -744,7 +744,7 @@ void LeanProof::bind(Node term)
   auto it_iteconst = d_IteConst.find(term);
   if (it_iteconst != d_IteConst.end())
   {
-    Debug("newproof::pm") << "\t is ite const\n";
+    Debug("leanpf::bind") << "\t is ite const\n";
     // if the ite it stands for will has not been previously bound, bind it
     auto it_letmap = d_letMap.find(it_iteconst->second);
     if (it_letmap == d_letMap.end())
@@ -755,7 +755,7 @@ void LeanProof::bind(Node term)
     // make the ite const placeholder be printed as the let term of the ite it
     // stands for
     it_letmap->second.increment();
-    Debug("newproof::pm") << "\t mapping to id " << it_letmap->second.id << "\n";
+    Debug("leanpf::bind") << "\t mapping to id " << it_letmap->second.id << "\n";
     d_letMap[term] = it_letmap->second;
     return;
   }
@@ -810,7 +810,7 @@ void LeanProof::collectTerms(Node n)
   TypeNode tn = n.getType();
   // ignore interpreted constants
   // TODO HB will need to add cases for other theories
-  if (tn.isBoolean() && n.getNumChildren() == 0)
+  if (n.getKind() == kind::CONST_BOOLEAN)
   {
     return;
   }
@@ -1137,6 +1137,8 @@ void LeanProof::printSort(std::ostream& out, TypeNode sort) const
 
 void LeanProof::printConstant(std::ostream& out, Node n, bool decl) const
 {
+  Debug("leanpf::print") << "Printing constant " << (decl ? "[decl] " : "")
+                         << n << "\n";
   TypeNode tn = n.getType();
   // if not a declaration, we only get here if constant was not in the let map,
   // which means that it is interpreted
@@ -1144,6 +1146,7 @@ void LeanProof::printConstant(std::ostream& out, Node n, bool decl) const
   {
     if (tn.isBoolean())
     {
+      Assert(n.getKind() == kind::CONST_BOOLEAN);
       out << (n.getConst<bool>() ? "top" : "bot");
     }
     // TODO HB will need to add cases for other theories
@@ -1203,6 +1206,8 @@ inline void LeanProof::printTermList(std::ostream& out,
 
 void LeanProof::printTerm(std::ostream& out, Node n, bool decl) const
 {
+  Debug("leanpf::print") << "Printing term " << (decl ? "[decl] " : "") << n
+                         << "\n";
   std::unordered_map<Node, ProofLetCount, NodeHashFunction>::const_iterator it =
       d_letMap.find(n);
   if (!decl && it != d_letMap.end())
@@ -1211,6 +1216,7 @@ void LeanProof::printTerm(std::ostream& out, Node n, bool decl) const
     out << "let" << it->second.id;
     return;
   }
+  Debug("leanpf::print") << "Term not on letmap\n";
   unsigned n_args = n.getNumChildren();
   // printing constant symbol
   if (n_args == 0)
