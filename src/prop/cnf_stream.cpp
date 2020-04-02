@@ -821,9 +821,12 @@ void TseitinCnfStream::convertAndAssertAnd(TNode node, bool negated) {
     Assert(disjunct == node.end());
     ClauseId id = assertClause(node.negate(), clause);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_NOT_AND, id, node, clause);
+      if (id != ClauseIdUndef)
+      {
+        // we negate the node because we are in the negated case
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_NOT_AND, id, node.negate(), clause);
+      }
     });
   }
 }
@@ -845,9 +848,11 @@ void TseitinCnfStream::convertAndAssertOr(TNode node, bool negated) {
     Assert(disjunct == node.end());
     ClauseId id = assertClause(node, clause);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_OR, id, node, clause);
+      if (id != ClauseIdUndef)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_OR, id, node, clause);
+      }
     });
   } else {
     // If the node is a conjunction, we handle each conjunct separately
@@ -867,8 +872,12 @@ void TseitinCnfStream::convertAndAssertOr(TNode node, bool negated) {
         Node not_conjunct = (*conjunct).negate();
         std::vector<Node> clauseNodes{not_conjunct};
         NewProofManager* pm = NewProofManager::currentPM();
-        ClauseId id = pm->addCnfProofStep(
-            RULE_CNF_NOT_OR, ClauseIdUndef, node, clauseNodes, index++);
+        // we negate the node because we are in the negated case
+        ClauseId id = pm->addCnfProofStep(RULE_CNF_NOT_OR,
+                                          ClauseIdUndef,
+                                          node.negate(),
+                                          clauseNodes,
+                                          index++);
         pm->addInputSubAssertion(not_conjunct, id);
       });
       convertAndAssert(*conjunct, true);
@@ -890,18 +899,22 @@ void TseitinCnfStream::convertAndAssertXor(TNode node, bool negated) {
     clause1[1] = ~q;
     ClauseId id = assertClause(node, clause1);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_XOR2, id, node, clause1);
+      if (id != ClauseIdUndef)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_XOR2, id, node, clause1, 1);
+      }
     });
     SatClause clause2(2);
     clause2[0] = p;
     clause2[1] = q;
     id = assertClause(node, clause2);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_XOR1, id, node, clause2);
+      if (id != ClauseIdUndef)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_XOR1, id, node, clause2, 0);
+      }
     });
   } else {
     // !(p XOR q) is the same as p <=> q
@@ -913,18 +926,24 @@ void TseitinCnfStream::convertAndAssertXor(TNode node, bool negated) {
     clause1[1] = q;
     ClauseId id = assertClause(node.negate(), clause1);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_NOT_XOR2, id, node, clause1);
+      if (id != ClauseIdUndef)
+      {
+        // we negate the node because we are in the negated case
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_NOT_XOR2, id, node.negate(), clause1, 1);
+      }
     });
     SatClause clause2(2);
     clause2[0] = p;
     clause2[1] = ~q;
     id = assertClause(node.negate(), clause2);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_NOT_XOR1, id, node, clause2);
+      if (id != ClauseIdUndef)
+      {
+        // we negate the node because we are in the negated case
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_NOT_XOR1, id, node.negate(), clause2, 0);
+      }
     });
   }
 }
@@ -943,18 +962,22 @@ void TseitinCnfStream::convertAndAssertIff(TNode node, bool negated) {
     clause1[1] = q;
     ClauseId id = assertClause(node, clause1);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_EQUIV1, id, node, clause1);
+      if (id != ClauseIdUndef)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_EQUIV1, id, node, clause1, 0);
+      }
     });
     SatClause clause2(2);
     clause2[0] = p;
     clause2[1] = ~q;
     id = assertClause(node, clause2);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_EQUIV2, id, node, clause2);
+      if (id != ClauseIdUndef)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_EQUIV2, id, node, clause2, 1);
+      }
     });
   } else {
     // !(p <=> q) is the same as p XOR q
@@ -966,18 +989,24 @@ void TseitinCnfStream::convertAndAssertIff(TNode node, bool negated) {
     clause1[1] = ~q;
     ClauseId id = assertClause(node.negate(), clause1);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_NOT_EQUIV2, id, node, clause1);
+      if (id != ClauseIdUndef)
+      {
+        // we negate the node because we are in the negated case
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_NOT_EQUIV2, id, node.negate(), clause1, 1);
+      }
     });
     SatClause clause2(2);
     clause2[0] = p;
     clause2[1] = q;
     id = assertClause(node.negate(), clause2);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_EQUIV1, id, node, clause2);
+      if (id != ClauseIdUndef)
+      {
+        // we negate the node because we are in the negated case
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_NOT_EQUIV1, id, node.negate(), clause2, 0);
+      }
     });
   }
 }
@@ -996,9 +1025,11 @@ void TseitinCnfStream::convertAndAssertImplies(TNode node, bool negated) {
     clause[1] = q;
     ClauseId id = assertClause(node, clause);
     NEWPROOF({
-      Assert(id != ClauseIdUndef);
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_IMPLIES, id, node, clause);
+      if (id != ClauseIdUndef)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_IMPLIES, id, node, clause);
+      }
     });
   } else {// Construct the
     PROOF(if (d_cnfProof) d_cnfProof->setCnfDependence(node[0], node.negate()););
@@ -1010,8 +1041,9 @@ void TseitinCnfStream::convertAndAssertImplies(TNode node, bool negated) {
     NEWPROOF({
       std::vector<Node> clauseNodes{node[0]};
       NewProofManager* pm = NewProofManager::currentPM();
+      // we negate the node because we are in the negated case
       ClauseId id = pm->addCnfProofStep(
-          RULE_CNF_NOT_IMPLIES1, ClauseIdUndef, node, clauseNodes);
+          RULE_CNF_NOT_IMPLIES1, ClauseIdUndef, node.negate(), clauseNodes, 0);
       pm->addInputSubAssertion(node[0], id);
     });
     convertAndAssert(node[0], false);
@@ -1023,8 +1055,9 @@ void TseitinCnfStream::convertAndAssertImplies(TNode node, bool negated) {
       Node not_q = node[1].negate();
       std::vector<Node> clauseNodes{not_q};
       NewProofManager* pm = NewProofManager::currentPM();
+      // we negate the node because we are in the negated case
       ClauseId id = pm->addCnfProofStep(
-          RULE_CNF_NOT_IMPLIES2, ClauseIdUndef, node, clauseNodes);
+          RULE_CNF_NOT_IMPLIES2, ClauseIdUndef, node.negate(), clauseNodes, 1);
       pm->addInputSubAssertion(not_q, id);
     });
     convertAndAssert(node[1], true);
@@ -1052,8 +1085,16 @@ void TseitinCnfStream::convertAndAssertIte(TNode node, bool negated) {
   NEWPROOF({
     if (id1 != ClauseIdUndef)
     {
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_ITE1, id1, node, clause1);
+      if (!negated)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_ITE1, id1, nnode, clause1, 0);
+      }
+      else
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_NOT_ITE2, id1, nnode, clause1, 1);
+      }
     }
   });
   SatClause clause2(2);
@@ -1063,8 +1104,16 @@ void TseitinCnfStream::convertAndAssertIte(TNode node, bool negated) {
   NEWPROOF({
     if (id2 != ClauseIdUndef)
     {
-      NewProofManager::currentPM()->addCnfProofStep(
-          RULE_CNF_ITE2, id2, node, clause2);
+      if (!negated)
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_ITE2, id1, nnode, clause1, 1);
+      }
+      else
+      {
+        NewProofManager::currentPM()->addCnfProofStep(
+            RULE_CNF_NOT_ITE1, id1, nnode, clause1, 0);
+      }
     }
   });
 }

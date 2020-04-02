@@ -191,8 +191,8 @@ ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
                                           unsigned ith)
 {
   Debug("newproof::pm") << "NewProofManager::addCnfProofStep: [" << rule
-                        << "], src " << src << ", [id: " << id
-                        << "] clauseNodes: " << clauseNodes << std::endl;
+                        << "], src " << src << ", [id: " << id << "], "
+                        << " clauseNodes: " << clauseNodes << std::endl;
   // retrieve justification for src, which must have one, since it is an input
   Assert(d_assertionToClauseId.find(src) != d_assertionToClauseId.end())
       << "NewProofManager::addCnfProofStep: node " << src
@@ -225,7 +225,14 @@ ClauseId NewProofManager::addCnfProofStep(NewProofRule rule,
     }
     else
     {
-      leanproof->addToProofStep(id, rule, reasons, clauseNodes);
+      if (ith == static_cast<unsigned>(-1))
+      {
+        leanproof->addToProofStep(id, rule, reasons, clauseNodes);
+      }
+      else
+      {
+        leanproof->addToProofStep(id, rule, reasons, clauseNodes, ith);
+      }
     }
   }
 

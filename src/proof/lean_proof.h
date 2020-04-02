@@ -115,6 +115,11 @@ class LeanProof : public NewProof
                       std::vector<ClauseId>& reasons,
                       std::vector<Node>& args,
                       std::vector<Node>& conclusion);
+  void addToProofStep(ClauseId id,
+                      NewProofRule rule,
+                      std::vector<ClauseId>& reasons,
+                      std::vector<Node>& conclusion,
+                      unsigned ith);
 
   // as above but specific for CNF rules, in particular those that without
   // premises

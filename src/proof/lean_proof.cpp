@@ -443,6 +443,22 @@ void LeanProof::addToProofStep(ClauseId id,
   d_proofSteps[id].addConclusion(conclusion);
 }
 
+void LeanProof::addToProofStep(ClauseId id,
+                               NewProofRule rule,
+                               std::vector<ClauseId>& reasons,
+                               std::vector<Node>& conclusion,
+                               unsigned ith)
+{
+  Debug("newproof::pm") << "LeanProof::addToProofStep " << id << " [" << rule
+                        << "], reasons, ith " << ith << ", conclusion "
+                        << conclusion << "\n";
+  Assert(id >= 0 && id < d_proofSteps.size());
+  d_proofSteps[id].addRule(rule);
+  d_proofSteps[id].addPremises(reasons);
+  d_proofSteps[id].addConclusion(conclusion);
+  d_proofSteps[id].addUnsignedArg(ith);
+}
+
 void LeanProof::addToCnfProofStep(ClauseId id,
                                   NewProofRule rule,
                                   std::vector<Node>& conclusion,
@@ -1034,57 +1050,103 @@ void LeanProof::printRule(std::ostream& out, LeanProofStep* s) const
       printPremises(out, s->getPremises());
       break;
     }
-    case RULE_CNF_NOT_AND: out << "cnf_not_and"; break;
-    case RULE_CNF_OR_POS: out << "cnf_or_pos"; break;
-    case RULE_CNF_XOR1: out << "cnf_xor1"; break;
-    case RULE_CNF_XOR2: out << "cnf_xor2"; break;
-    case RULE_CNF_NOT_XOR1: out << "cnf_not_xor1"; break;
-    case RULE_CNF_NOT_XOR2: out << "cnf_not_xor2"; break;
-    case RULE_CNF_XOR_POS1: out << "cnf_xor_pos1"; break;
-    case RULE_CNF_XOR_POS2: out << "cnf_xor_pos2"; break;
-    case RULE_CNF_XOR_NEG1: out << "cnf_xor_neg1"; break;
-    case RULE_CNF_XOR_NEG2: out << "cnf_xor_neg2"; break;
+    case RULE_CNF_NOT_AND:
+    {
+      out << "cnf_not_and ";
+      printPremises(out, s->getPremises());
+      break;
+    }
+    case RULE_CNF_OR_POS:
+    {
+      out << "cnf_or_pos_n ";
+      break;
+    }
+    case RULE_CNF_XOR1:
+    case RULE_CNF_XOR2:
+    {
+      out << "cnf_xor ";
+      printPremises(out, s->getPremises());
+      Assert(!s->getUnsignedArgs().empty());
+      out << " " << s->getUnsignedArgs()[0];
+      break;
+    }
+    case RULE_CNF_NOT_XOR1:
+    case RULE_CNF_NOT_XOR2:
+    {
+      out << "cnf_not_xor ";
+      printPremises(out, s->getPremises());
+      Assert(!s->getUnsignedArgs().empty());
+      out << " " << s->getUnsignedArgs()[0];
+      break;
+    }
+    case RULE_CNF_XOR_POS1: out << "cnf_xor_pos_0"; break;
+    case RULE_CNF_XOR_POS2: out << "cnf_xor_pos_1"; break;
+    case RULE_CNF_XOR_NEG1: out << "cnf_xor_neg_0"; break;
+    case RULE_CNF_XOR_NEG2: out << "cnf_xor_neg_1"; break;
     case RULE_CNF_IMPLIES:
     {
       out << "cnf_implies ";
       printPremises(out, s->getPremises());
       break;
     }
-    case RULE_CNF_NOT_IMPLIES1: out << "cnf_not_implies_0"; break;
-    case RULE_CNF_NOT_IMPLIES2: out << "cnf_not_implies_1"; break;
+    case RULE_CNF_NOT_IMPLIES1:
+    case RULE_CNF_NOT_IMPLIES2:
+    {
+      out << "cnf_not_implies ";
+      printPremises(out, s->getPremises());
+      Assert(!s->getUnsignedArgs().empty());
+      out << " " << s->getUnsignedArgs()[0];
+      break;
+    }
     case RULE_CNF_IMPLIES_POS: out << "cnf_implies_pos"; break;
     case RULE_CNF_IMPLIES_NEG1: out << "cnf_implies_neg_0"; break;
     case RULE_CNF_IMPLIES_NEG2: out << "cnf_implies_neg_1"; break;
-    case RULE_CNF_EQUIV1: out << "cnf_equiv1"; break;
-    case RULE_CNF_EQUIV2: out << "cnf_equiv2"; break;
-    case RULE_CNF_NOT_EQUIV1: out << "cnf_not_equiv1"; break;
-    case RULE_CNF_NOT_EQUIV2: out << "cnf_not_equiv2"; break;
-    case RULE_CNF_EQUIV_POS1: out << "cnf_equiv_pos1"; break;
-    case RULE_CNF_EQUIV_POS2: out << "cnf_equiv_pos2"; break;
-    case RULE_CNF_EQUIV_NEG1: out << "cnf_equiv_neg1"; break;
-    case RULE_CNF_EQUIV_NEG2: out << "cnf_equiv_neg2"; break;
-    case RULE_CNF_ITE1:
+    case RULE_CNF_EQUIV1:
+    case RULE_CNF_EQUIV2:
     {
-      out << "cnf_ite ";
+      out << "cnf_iff ";
       printPremises(out, s->getPremises());
-      out << " 0";
+      Assert(!s->getUnsignedArgs().empty());
+      out << " " << s->getUnsignedArgs()[0];
       break;
     }
+    case RULE_CNF_NOT_EQUIV1:
+    case RULE_CNF_NOT_EQUIV2:
+    {
+      out << "cnf_not_iff ";
+      printPremises(out, s->getPremises());
+      Assert(!s->getUnsignedArgs().empty());
+      out << " " << s->getUnsignedArgs()[0];
+      break;
+    }
+    case RULE_CNF_EQUIV_POS1: out << "cnf_iff_pos_0"; break;
+    case RULE_CNF_EQUIV_POS2: out << "cnf_iff_pos_1"; break;
+    case RULE_CNF_EQUIV_NEG1: out << "cnf_iff_neg_0"; break;
+    case RULE_CNF_EQUIV_NEG2: out << "cnf_iff_neg_1"; break;
+    case RULE_CNF_ITE1:
     case RULE_CNF_ITE2:
     {
       out << "cnf_ite ";
       printPremises(out, s->getPremises());
-      out << " 1";
+      Assert(!s->getUnsignedArgs().empty());
+      out << " " << s->getUnsignedArgs()[0];
       break;
     }
-    case RULE_CNF_NOT_ITE1: out << "cnf_not_ite1"; break;
-    case RULE_CNF_NOT_ITE2: out << "cnf_not_ite2"; break;
-    case RULE_CNF_ITE_POS1: out << "cnf_ite_pos1"; break;
-    case RULE_CNF_ITE_POS2: out << "cnf_ite_pos2"; break;
-    case RULE_CNF_ITE_POS3: out << "cnf_ite_pos3"; break;
-    case RULE_CNF_ITE_NEG1: out << "cnf_ite_neg1"; break;
-    case RULE_CNF_ITE_NEG2: out << "cnf_ite_neg2"; break;
-    case RULE_CNF_ITE_NEG3: out << "cnf_ite_neg3"; break;
+    case RULE_CNF_NOT_ITE1:
+    case RULE_CNF_NOT_ITE2:
+    {
+      out << "cnf_not_ite ";
+      printPremises(out, s->getPremises());
+      Assert(!s->getUnsignedArgs().empty());
+      out << " " << s->getUnsignedArgs()[0];
+      break;
+    }
+    case RULE_CNF_ITE_POS1: out << "cnf_ite_pos_0"; break;
+    case RULE_CNF_ITE_POS2: out << "cnf_ite_pos_1"; break;
+    case RULE_CNF_ITE_POS3: out << "cnf_ite_pos_2"; break;
+    case RULE_CNF_ITE_NEG1: out << "cnf_ite_neg_0"; break;
+    case RULE_CNF_ITE_NEG2: out << "cnf_ite_neg_1"; break;
+    case RULE_CNF_ITE_NEG3: out << "cnf_ite_neg_2"; break;
 
     default:
       out << "ProofRule Unknown! [" << static_cast<unsigned>(s->getRule())
