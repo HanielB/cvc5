@@ -610,6 +610,8 @@ set(regress_0_tests
   regress0/parser/as.smt2
   regress0/parser/bv_arity_smt2.6.smt2
   regress0/parser/bv_nat.smt2
+  regress0/parser/choice.cvc
+  regress0/parser/choice.smt2
   regress0/parser/constraint.smt2
   regress0/parser/declarefun-emptyset-uf.smt2
   regress0/parser/force_logic_set_logic.smt2
@@ -916,6 +918,7 @@ set(regress_0_tests
   regress0/strings/bug002.smt2
   regress0/strings/bug612.smt2
   regress0/strings/bug613.smt2
+  regress0/strings/char-representations.smt2
   regress0/strings/code-eval.smt2
   regress0/strings/code-perf.smt2
   regress0/strings/code-sat-neg-one.smt2
@@ -940,6 +943,7 @@ set(regress_0_tests
   regress0/strings/large-model.smt2
   regress0/strings/leadingzero001.smt2
   regress0/strings/loop001.smt2
+  regress0/strings/loop-wrong-sem.smt2
   regress0/strings/model001.smt2
   regress0/strings/model-code-point.smt2
   regress0/strings/model-friendly.smt2

@@ -682,15 +682,6 @@ Lit Solver::pickBranchLit()
 {
     Lit nextLit;
 
-#ifdef CVC4_REPLAY
-
-    nextLit = MinisatSatSolver::toMinisatLit(d_proxy->getNextReplayDecision());
-
-    if (nextLit != lit_Undef) {
-      return nextLit;
-    }
-#endif /* CVC4_REPLAY */
-
     // Theory requests
     nextLit =
         MinisatSatSolver::toMinisatLit(d_proxy->getNextTheoryDecisionRequest());
@@ -1580,10 +1571,6 @@ lbool Solver::search(int nof_conflicts)
                     check_type = CHECK_FINAL;
                     continue;
                 }
-
-#ifdef CVC4_REPLAY
-                d_proxy->logDecision(MinisatSatSolver::toSatLiteral(next));
-#endif /* CVC4_REPLAY */
             }
 
             // Increase decision level and enqueue 'next'
