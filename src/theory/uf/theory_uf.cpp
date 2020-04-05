@@ -304,7 +304,14 @@ void TheoryUF::explain(TNode literal, std::vector<TNode>& assumptions, EqProof* 
           atom[0], atom[1], polarity, assumptions, pf);
     }
   } else {
-    d_equalityEngine.explainPredicate(atom, polarity, assumptions, pf);
+    if (pf && CVC4::options::newProofs())
+    {
+      d_equalityEngine.explainPredicateNonBin(atom, polarity, assumptions, pf);
+    }
+    else
+    {
+      d_equalityEngine.explainPredicate(atom, polarity, assumptions, pf);
+    }
   }
   if (Debug.isOn("pf::uf"))
   {

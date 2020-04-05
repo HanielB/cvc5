@@ -72,6 +72,12 @@ const std::vector<Node>& LeanProofStep::getConclusion() const
   return d_conclusion;
 }
 
+Node LeanProofStep::getLastConclusion() const
+{
+  return d_conclusion.empty() ? Node::null()
+                              : d_conclusion[d_conclusion.size() - 1];
+}
+
 const std::vector<Node>& LeanProofStep::getArgs() const { return d_args; }
 
 const std::vector<unsigned>& LeanProofStep::getUnsignedArgs() const
@@ -197,6 +203,13 @@ ClauseId LeanProof::addProofStep(NewProofRule rule,
 ClauseId LeanProof::addResSteps(std::vector<Resolution>& reasons,
                                 Node conclusion)
 {
+  std::vector<Node> conclusion_vector{conclusion};
+  return addResSteps(reasons, conclusion_vector);
+}
+
+ClauseId LeanProof::addResSteps(std::vector<Resolution>& reasons,
+                                std::vector<Node>& conclusion)
+{
   ClauseId id;
   id = getNextId();
   LeanProofStep leanproofstep = LeanProofStep(id, RULE_RESOLUTION);
@@ -220,7 +233,6 @@ ClauseId LeanProof::addResSteps(std::vector<Resolution>& reasons,
   {
     Assert(reasons[i].d_piv != Node::null());
     Node piv;
-    unsigned sign;
     // sign = 0 means "negative", otherwise "positive"
     //
     // the pivots are the literals of the clause in the left being resolved. The
@@ -228,19 +240,18 @@ ClauseId LeanProof::addResSteps(std::vector<Resolution>& reasons,
     if (!reasons[i].d_sign)
     {
       piv = reasons[i].d_piv.negate();
-      sign = 0;
     }
     else
     {
       piv = reasons[i].d_piv;
-      sign = 1;
     }
     Debug("leanpf::res") << "LeanProof::addResStep: adding res step from "
                          << reasons[i - 1].d_id << "/" << reasons[i].d_id
-                         << " and piv / sign: " << piv << " / " << sign << "\n";
+                         << " and piv / sign: " << piv << " / "
+                         << reasons[i].d_sign << "\n";
     leanproofstep.addPremise(reasons[i].d_id);
     leanproofstep.addArg(piv);
-    leanproofstep.addUnsignedArg(sign);
+    leanproofstep.addUnsignedArg(reasons[i].d_sign);
   }
   leanproofstep.addConclusion(conclusion);
   d_proofSteps.push_back(leanproofstep);
@@ -528,6 +539,46 @@ void LeanProof::addToCnfProofStep(ClauseId id,
   }
 }
 
+ClauseId LeanProof::maybeAddIffToEqStep(ClauseId id)
+{
+  // check if repated literals in conclusion. Does so by building a conclusion
+  // without repetitions (last copy is kept)
+  const std::vector<Node>& conclusion = d_proofSteps[id].getConclusion();
+  std::vector<Node> simp_iff_conclusion;
+  bool changed = false;
+  for (unsigned i = 0, size = conclusion.size(); i < size; ++i)
+  {
+    Assert(i == size - 1 || conclusion[i].getKind() == kind::NOT);
+    Node lit = i < size - 1 ? conclusion[i][0] : conclusion[i];
+    Assert(lit.getKind() == kind::EQUAL);
+    if (lit[0].getType().isBoolean())
+    {
+      changed = true;
+      unsigned j = lit[0].getKind() == kind::CONST_BOOLEAN ? 1 : 0;
+      // I wonder if I don't have to check if lit[1 - j] is not true or false...
+      simp_iff_conclusion.push_back(i < size - 1 ? lit[j].negate() : lit[j]);
+    }
+    else
+    {
+      simp_iff_conclusion.push_back(conclusion[i]);
+    }
+  }
+  // if no change, stop
+  if (!changed)
+  {
+    return id;
+  }
+  // create simp_iff step
+  ClauseId simp_iff_id = getNextId();
+  Debug("leanpf::th")
+      << "LeanProof::maybeAddIffToEqStep: adding simp_iff step from " << id
+      << " to " << simp_iff_id << "\n";
+  d_proofSteps.push_back(LeanProofStep(simp_iff_id, RULE_SIMP_IFF));
+  d_proofSteps[simp_iff_id].addPremise(id);
+  d_proofSteps[simp_iff_id].addConclusion(simp_iff_conclusion);
+  return simp_iff_id;
+}
+
 ClauseId LeanProof::maybeAddFactoringStep(ClauseId id)
 {
   // check if repated literals in conclusion. Does so by building a conclusion
@@ -559,7 +610,7 @@ ClauseId LeanProof::maybeAddFactoringStep(ClauseId id)
   // create factoring step
   ClauseId fact_id = getNextId();
   Debug("leanpf::th")
-      << "LeanProof::maybeAddSymmStep: adding factoing step from " << id
+      << "LeanProof::maybeAddFatoringStep: adding factoing step from " << id
       << " to " << fact_id << "\n";
   d_proofSteps.push_back(LeanProofStep(fact_id, RULE_FACTORING));
   d_proofSteps[fact_id].addPremise(id);
@@ -567,8 +618,64 @@ ClauseId LeanProof::maybeAddFactoringStep(ClauseId id)
   return fact_id;
 }
 
+void LeanProof::maybeRebuildConclusion(theory::EqProof* proof)
+{
+  Assert(proof->d_node.getKind() == kind::EQUAL);
+  unsigned n_premises = proof->d_children.size();
+  // first test if there is any SELF JUSTIFIED input premise so that
+  //  ti1 = ti2 and f ... ti2 ... = f ... ti1 ...
+  std::set<unsigned> wrong_order;
+  for (unsigned i = 0; i < n_premises; ++i)
+  {
+    Assert(proof->d_children[i]->d_node.getKind() == kind::EQUAL);
+    if (NewProofManager::isSelfJustified(proof->d_children[i]->d_id)
+        && proof->d_children[i]->d_node[0] != proof->d_node[0][i])
+    {
+      wrong_order.insert(i);
+    }
+  }
+  if (wrong_order.empty())
+  {
+    return;
+  }
+  // otherwise create f ... ti1 ... = f ... ti2 ... for each i in wrong_order
+  Debug("leanpf::th") << "LeanProof::maybeRebuild conclusion: reordering "
+                      << wrong_order.size() << " arguments in " << proof->d_node
+                      << "\n";
+  unsigned size = proof->d_node[0].getNumChildren();
+  Assert(size == proof->d_node[1].getNumChildren());
+  std::vector<Node> args0, args1;
+  Assert(proof->d_node[0].getKind() == kind::APPLY_UF);
+  Assert(proof->d_node[1].getKind() == kind::APPLY_UF);
+  args0.push_back(proof->d_node[0].getOperator());
+  args1.push_back(proof->d_node[1].getOperator());
+  for (unsigned i = 0; i < size; ++i)
+  {
+    // if index has to be ordered, add arguments in opposite order
+    if (wrong_order.count(i))
+    {
+      args0.push_back(proof->d_node[1][i]);
+      args1.push_back(proof->d_node[0][i]);
+    }
+    else
+    {
+      args0.push_back(proof->d_node[0][i]);
+      args1.push_back(proof->d_node[1][i]);
+    }
+  }
+  NodeManager* nm = NodeManager::currentNM();
+  proof->d_node = nm->mkNode(kind::EQUAL,
+                             nm->mkNode(kind::APPLY_UF, args0),
+                             nm->mkNode(kind::APPLY_UF, args1));
+  Debug("leanpf::th")
+      << "LeanProof::maybeRebuild conclusion: created new conclusion "
+      << proof->d_node << "\n";
+}
+
 ClauseId LeanProof::maybeAddSymmStep(ClauseId id, Node eq, Node t1)
 {
+  Debug("leanpf::th") << "LeanProof::maybeAddSymmStep: testing if equal: "
+                      << eq[0] << ", " << t1 << "\n";
   if (eq[0] == t1)
   {
     return ClauseIdUndef;
@@ -580,36 +687,44 @@ ClauseId LeanProof::maybeAddSymmStep(ClauseId id, Node eq, Node t1)
   // create symmetry step
   ClauseId symm_id = getNextId();
   d_proofSteps.push_back(LeanProofStep(symm_id, RULE_SYMMETRY));
-  Node symm_eq = nm->mkNode(kind::EQUAL, eq[0], eq[1]);
+  Node symm_eq = nm->mkNode(kind::EQUAL, eq[1], eq[0]);
   std::vector<Node> clause({eq.negate(), symm_eq});
   d_proofSteps[symm_id].addConclusion(clause);
   // add resolution step between eq's justification and symmetry step
   ClauseId res_id = getNextId();
   d_proofSteps.push_back(LeanProofStep(res_id, RULE_RESOLUTION));
-  d_proofSteps[res_id].addPremise(symm_id);
   d_proofSteps[res_id].addPremise(id);
+  d_proofSteps[res_id].addPremise(symm_id);
   // pivot is the original equality with positive sign
   d_proofSteps[res_id].addArg(eq);
   d_proofSteps[res_id].addUnsignedArg(1);
   // conclusion is the symm_eq
-  d_proofSteps[res_id].addConclusion(eq);
+  std::vector<Node> premises_of_id;
+  premises_of_id.insert(premises_of_id.end(),
+                        d_proofSteps[id].getConclusion().begin(),
+                        d_proofSteps[id].getConclusion().end() - 1);
+  d_proofSteps[res_id].addConclusion(premises_of_id);
+  d_proofSteps[res_id].addConclusion(nm->mkNode(kind::EQUAL, eq[1], eq[0]));
   return res_id;
 }
 
 ClauseId LeanProof::processTheoryProof(theory::EqProof* proof)
 {
-  Debug("leanpf::th") << "LeanProof::processTheoryProof: processing: ";
+  Debug("leanpf::th") << "LeanProof::processTheoryProof: processing:\n";
   proof->debug_print("leanpf::th", 1);
   // add proof step for valid clause
   unsigned current_id = getNextId();
   NewProofRule r = NewProofManager::convert(proof->d_id);
   d_proofSteps.push_back(LeanProofStep(current_id, r));
   unsigned i, size = proof->d_children.size();
-  std::vector<Node> child_proofs_conclusions, child_proofs_leafs;
-  // premises may be in wrong order, check and swap if necessary
+  std::vector<Node> original_proof_conclusion, original_proof_leafs;
+  // premises or conclusion may be in wrong order, check and swap if necessary
   if (r == RULE_TRANSITIVITY)
   {
     Assert(size == 2);
+    Debug("leanpf::th")
+        << "LeanProof::processTheoryProof: check transitive conclusion "
+        << proof->d_node << "\n";
     // first check is for not being in a weird a = b ^ b = a -> a = a case
     // other checks are for first term of conclusion not coming from first literal
     if (proof->d_node[0] != proof->d_node[1]
@@ -623,98 +738,102 @@ ClauseId LeanProof::processTheoryProof(theory::EqProof* proof)
       proof->d_children.clear();
       proof->d_children.insert(proof->d_children.end(), tmp.begin(), tmp.end());
       Debug("leanpf::th") << "LeanProof::processTheoryProof: reordering "
-                              "transitivity step, obtaining: ";
+                             "transitivity step, obtaining: ";
       proof->debug_print("leanpf::th", 1);
     }
   }
-  Debug("leanpf::th")
-      << "LeanProof::processTheoryProof: conclusions from child proofs: ";
-  for (i = 0; i < size; ++i)
-  {
-    Assert(!proof->d_children[i]->d_node.isNull());
-    child_proofs_conclusions.push_back(proof->d_children[i]->d_node.negate());
-    Debug("leanpf::th") << child_proofs_conclusions.back() << " ";
-  }
-  Debug("leanpf::th") << "\n";
-  d_proofSteps[current_id].addConclusion(child_proofs_conclusions);
-  d_proofSteps[current_id].addConclusion(proof->d_node);
-  // add extra information for printing: operator, arguments of first app (app
-  // is given) and argumenst of second app)
   if (r == RULE_CONGRUENCE)
   {
+    maybeRebuildConclusion(proof);
+    // add extra information for printing: operator, arguments of first app (app
+    // is given) and argumenst of second app)
     d_proofSteps[current_id].addArg(proof->d_node[0].getOperator());
     d_proofSteps[current_id].addArg(proof->d_node[0]);
     d_proofSteps[current_id].addArg(proof->d_node[1]);
   }
   // recursively process proofs that have premises
-  unsigned child_id, next_id;
+  std::vector<Resolution> resolutions;
+  resolutions.push_back(Resolution(current_id));
+  unsigned child_id;
   for (i = 0; i < size; ++i)
   {
     Debug("leanpf::th") << "LeanProof::processTheoryProof: recursively "
                             "processing child proofs with premises\n";
+    Debug("leanpf::th") << "LeanProof::processTheoryProof: premise ["
+                        << proof->d_children[i]->d_id
+                        << "], conclusion: " << proof->d_children[i]->d_node
+                        << "\n";
     // If premise is self justified, no step is required. As a rule of thumb
     // this only applies for inputs
     if (NewProofManager::isSelfJustified(proof->d_children[i]->d_id))
     {
       Assert(proof->d_children[i]->d_children.empty());
-      child_proofs_leafs.insert(child_proofs_leafs.begin(),
-                                child_proofs_conclusions[i]);
+      Debug("leanpf::th")
+          << "LeanProof::processTheoryProof: premise self justified\n";
+      original_proof_leafs.push_back(proof->d_children[i]->d_node.negate());
+      original_proof_conclusion.push_back(
+          proof->d_children[i]->d_node.negate());
       continue;
     }
     child_id = processTheoryProof(proof->d_children[i].get());
+    // leafs accumulate
+    original_proof_leafs.insert(
+        original_proof_leafs.begin(),
+        d_proofSteps[child_id].getConclusion().begin(),
+        d_proofSteps[child_id].getConclusion().end() - 1);
+    Debug("leanpf::th")
+        << "LeanProof::processTheoryProof: after processing; premise ["
+        << proof->d_children[i]->d_id
+        << "], conclusion: " << proof->d_children[i]->d_node << "\n";
+    Node piv, maybeSymmConclusion;
+    Debug("leanpf::th")
+        << "LeanProof::processTheoryProof: check if need symm steps\n";
     // add symmetry ordering steps if necessary
+    ClauseId maybeSymmId = ClauseIdUndef;
     if (r == RULE_CONGRUENCE)
     {
-      // child_proofs_conclusions[i][0] -> equality I'd add as premise
+      // piv                            -> equality I'd add as premise
       // proof->d_node[0][i]            -> ith arg of first cong application
-      ClauseId symm_subproof = maybeAddSymmStep(
-          child_id, child_proofs_conclusions[i][0], proof->d_node[0][i]);
-      child_id = symm_subproof != ClauseIdUndef ? symm_subproof : child_id;
+      maybeSymmId = maybeAddSymmStep(
+          child_id, proof->d_children[i]->d_node, proof->d_node[0][i]);
     }
     else if (r == RULE_TRANSITIVITY)
     {
-
+      // piv                            -> equality I'd add as premise
+      // proof->d_node[i]               -> ith arg of transitivity conclusion
+      maybeSymmId = maybeAddSymmStep(
+          child_id, proof->d_children[i]->d_node, proof->d_node[i]);
+    }
+    // update resolution and conclusion of proof step
+    if (maybeSymmId != ClauseIdUndef)
+    {
+      Assert(!d_proofSteps[maybeSymmId].getLastConclusion().isNull());
+      piv = d_proofSteps[maybeSymmId].getLastConclusion();
+      original_proof_conclusion.push_back(piv.negate());
+      child_id = maybeSymmId;
+    }
+    else
+    {
+      piv = proof->d_children[i]->d_node;
+      original_proof_conclusion.push_back(
+          proof->d_children[i]->d_node.negate());
     }
     // add resolution step between current proof step and resulting proof step
-    // from processing child proof
-    next_id = getNextId();
-    // TODO make sure the invariant that the id corresponds to the proof step
-    // in the table is always respected
-    child_proofs_leafs.insert(child_proofs_leafs.begin(),
-                              d_proofSteps[child_id].getConclusion().begin(),
-                              d_proofSteps[child_id].getConclusion().end() - 1);
-    d_proofSteps.push_back(LeanProofStep(next_id, RULE_RESOLUTION));
-    d_proofSteps[next_id].addPremise(child_id);
-    d_proofSteps[next_id].addPremise(current_id);
+    // from processing child proof. Pivot is always that conclusion (module
+    // symmetry) negated and is always negative
+    Resolution res(child_id, piv, 3);
+    resolutions.push_back(res);
     Debug("leanpf::th") << "LeanProof::proccessTheoryPRoof: add res step: "
-                         << child_id << " [" << child_proofs_conclusions[i][0]
-                         << "] " << current_id << "\n";
-    // pivot (equality atom) occurs positively in child_id and negatively in
-    // current_id
-    d_proofSteps[next_id].addArg(child_proofs_conclusions[i][0]);
-    d_proofSteps[next_id].addUnsignedArg(1);
-    // current leafs - child_conclusion i + child_conclusions i+1.. +
-    // proof->d_node
-    d_proofSteps[next_id].addConclusion(child_proofs_leafs);
-    if (Debug.isOn("leanpf::th"))
-    {
-      Debug("leanpf::th")
-          << "LeanProof::proccessTheoryPRoof: result is res step " << next_id
-          << ": [child_proof_leafs] ";
-      for (unsigned j = 0, size_j = child_proofs_leafs.size(); j < size_j; ++j)
-      {
-        Debug("leanpf::th") << child_proofs_leafs[j] << " ";
-      }
-        Debug("leanpf::th") << ": [child_proof_conclusions] ";
-    }
-    for (unsigned j = i + 1; j < size; ++j)
-    {
-      d_proofSteps[next_id].addConclusion(child_proofs_conclusions[j]);
-      Debug("leanpf::th") << child_proofs_conclusions[j] << " ";
-    }
-    d_proofSteps[next_id].addConclusion(proof->d_node);
-    Debug("leanpf::th") << "[proof conclusion] " << proof->d_node << "\n";
-    current_id = next_id;
+                        << child_id << " [" << piv << "]\n";
+  }
+  d_proofSteps[current_id].addConclusion(original_proof_conclusion);
+  d_proofSteps[current_id].addConclusion(proof->d_node);
+  // build resolution chain
+  if (resolutions.size() > 1)
+  {
+    Debug("leanpf::th") << "LeanProof::processTheoryProof: build res proof\n";
+    original_proof_leafs.push_back(proof->d_node);
+    current_id = addResSteps(resolutions, original_proof_leafs);
   }
   Debug("leanpf::th") << "LeanProof::processTheoryProof: id of proof "
                       << current_id << "\n";
@@ -742,7 +861,7 @@ ClauseId LeanProof::addTheoryProof(theory::EqProof* proof)
   }
   ClauseId id = processTheoryProof(proof);
   // if conclusion has repeated literals, factor it
-  return maybeAddFactoringStep(id);
+  return maybeAddIffToEqStep(maybeAddFactoringStep(id));
 }
 
 void LeanProof::bind(Node term)
@@ -819,8 +938,10 @@ void LeanProof::notifyIte(Node src, Node dest)
 
 void LeanProof::collectTerms(Node n)
 {
+  Debug("leanpf::collect") << "Collecting " << n << "\n";
   if (d_terms.count(n))
   {
+    Debug("leanpf::collect") << "\talrealdy collected\n";
     return;
   }
   TypeNode tn = n.getType();
@@ -828,16 +949,20 @@ void LeanProof::collectTerms(Node n)
   // TODO HB will need to add cases for other theories
   if (n.getKind() == kind::CONST_BOOLEAN)
   {
+    Debug("leanpf::collect") << "\tignoring Boolean constant\n";
     return;
   }
-  // collect uninterpreted sorts
-  if (tn.isSort())
+  // collect fresh uninterpreted sorts
+  if (tn.isSort() && !d_sorts.count(tn))
   {
+    Debug("leanpf::collect")
+        << "\tcollecting uninterpreted sort " << tn << "\n";
     d_sorts.insert(tn);
     std::stringstream ss;
     ss << "letSort" << d_sortDefs.size();
     d_sortDefs[tn] = ss.str();
   }
+  Debug("leanpf::collect") << "\tterm will be added\n";
   // if function application, collect the function
   if (n.getKind() == kind::APPLY_UF)
   {
@@ -940,13 +1065,27 @@ void LeanProof::printRule(std::ostream& out, LeanProofStep* s) const
       unsigned arg_i = 0;
       std::stringstream prev, next;
       prev << "s" << premises[0];
+      // uarg[i] = 0 -> r1 prev next
+      // uarg[i] = 1 -> r0 prev next
+      // uarg[i] = 2 -> r1 next prev
+      // uarg[i] = 3 -> r0 next prev
       for (unsigned i = 1, size = premises.size(); i < size; ++i)
       {
         // if sign is negative (0), then pivot occurs negatively in first clause
         // and positively in the second. If sign is positive (1) it's the other
         // way around. The resolution rule to be used is chosed accordingly
-        next << (!uargs[arg_i] ? "R1 " : "R0 ") << prev.str() << " s"
-             << premises[i] << " ";
+        // next << "uargs [" << arg_i << "] " << uargs[arg_i] << " ";
+        next << (uargs[arg_i] % 2 ? "R0 " : "R1 ");
+        if (uargs[arg_i] < 2)
+        {
+          // next << "first ";
+          next << prev.str() << " s" << premises[i] << " ";
+        }
+        else
+        {
+          // next << "second ";
+          next << "s" << premises[i] << " " << prev.str() << " ";
+        }
         printTerm(next, args[arg_i++]);
         if (i < size - 1)
         {
@@ -957,14 +1096,6 @@ void LeanProof::printRule(std::ostream& out, LeanProofStep* s) const
       }
       out << next.str();
       break;
-      // --------- printing for binary case
-      // out << "R ";
-      // printPremises(out, s->getPremises());
-      // out << " ";
-      // const std::vector<Node>& args = s->getArgs();
-      // Assert(args.size() == 1);
-      // printTerm(out, args[0]);
-      // break;
     }
     case RULE_FACTORING:
     {
@@ -972,12 +1103,32 @@ void LeanProof::printRule(std::ostream& out, LeanProofStep* s) const
       printPremises(out, s->getPremises());
       break;
     }
-    case RULE_REFLEXIVITY: out << "smtrefl"; break;
-    case RULE_SYMMETRY: out << "smtsymm"; break;
-    case RULE_TRANSITIVITY: out << "smttrans"; break;
+    case RULE_REFLEXIVITY:
+    {
+      out << "smtrefl";
+      Assert(!s->getLastConclusion().isNull());
+      out << (s->getLastConclusion()[0].getType().isBoolean() ? "_p" : "");
+      break;
+    }
+    case RULE_SYMMETRY:
+    {
+      out << "smtsymm";
+      Assert(!s->getLastConclusion().isNull());
+      out << (s->getLastConclusion()[0].getType().isBoolean() ? "_p" : "");
+      break;
+    }
+    case RULE_TRANSITIVITY:
+    {
+      out << "smttrans";
+      Assert(!s->getLastConclusion().isNull());
+      out << (s->getLastConclusion()[0].getType().isBoolean() ? "_p" : "");
+      break;
+    }
     case RULE_CONGRUENCE:
     {
-      out << "@smtcongn ";
+      out << "@smtcongn";
+      Assert(!s->getLastConclusion().isNull());
+      out << (s->getLastConclusion()[0].getType().isBoolean() ? "_p " : " ");
       const std::vector<Node>& args = s->getArgs();
       Assert(args.size() == 3);
       printTerm(out, args[0]);
@@ -985,6 +1136,12 @@ void LeanProof::printRule(std::ostream& out, LeanProofStep* s) const
       printTermList(out, args[1]);
       out << " ";
       printTermList(out, args[2]);
+      break;
+    }
+    case RULE_SIMP_IFF:
+    {
+      out << "simp_iff ";
+      printPremises(out, s->getPremises());
       break;
     }
     case RULE_PURE_EQ: out << "pure_eq"; break;
@@ -1202,14 +1359,11 @@ void LeanProof::printConstant(std::ostream& out, Node n, bool decl) const
   Debug("leanpf::print") << "Printing constant " << (decl ? "[decl] " : "")
                          << n << "\n";
   TypeNode tn = n.getType();
-  // if not a declaration, we only get here if constant was not in the let map,
-  // which means that it is interpreted
-  if (!decl)
+  if (n.getKind() == kind::CONST_BOOLEAN)
   {
     if (tn.isBoolean())
     {
-      Assert(n.getKind() == kind::CONST_BOOLEAN);
-      out << (n.getConst<bool>() ? "top" : "bot");
+      out << (n.getConst<bool>() ? "top" : "bot") << "\n";
     }
     // TODO HB will need to add cases for other theories
     else
@@ -1219,6 +1373,7 @@ void LeanProof::printConstant(std::ostream& out, Node n, bool decl) const
     }
     return;
   }
+  // if I got here then I'm declaring an uninterpreted constant
   out << "const \"" << n << "\" ";
   std::unordered_map<TypeNode, std::string, TypeNodeHashFunction>::
       const_iterator it = d_sortDefs.find(tn);

@@ -61,9 +61,9 @@ class Resolution
   // sign
   ClauseId d_id;
   Node d_piv;
-  bool d_sign;
+  unsigned d_sign;
 
-  Resolution(ClauseId id, Node piv = Node::null(), bool sign = false)
+  Resolution(ClauseId id, Node piv = Node::null(), unsigned sign = 0)
       : d_id(id), d_piv(piv), d_sign(sign)
   {
   }

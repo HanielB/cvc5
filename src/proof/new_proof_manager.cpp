@@ -746,7 +746,7 @@ ClauseId NewProofManager::justifyLit(Minisat::Solver::TLit lit)
     Assert(d_litToNode.find(curr_satLit) != d_litToNode.end());
     Resolution res(justifyLit(~curr_lit),
                    d_litToNode[curr_satLit],
-                   !Minisat::sign(curr_lit));
+                   Minisat::sign(curr_lit) ? 0 : 1);
     reason_resolutions.push_back(res);
   }
   // retrieve lit's node definition
@@ -810,7 +810,7 @@ void NewProofManager::finalizeProof(ClauseId conflict_id)
     Assert(d_litToNode.find(satLit) != d_litToNode.end());
     Resolution res(justifyLit(~conflict_clause[i]),
                    d_litToNode[satLit],
-                   !Minisat::sign(conflict_clause[i]));
+                   Minisat::sign(conflict_clause[i]) ? 0 : 1);
     reasons.push_back(res);
   }
   if (d_format == options::ProofFormatMode::VERIT)
@@ -875,6 +875,9 @@ void NewProofManager::finalizeProof()
 void NewProofManager::queueTheoryProof(prop::SatLiteral lit,
                                        theory::EqProof* proof)
 {
+  Debug("newproof::pm::th")
+      << "NewProofManager::queuing prood with satlit: " << lit << ":\n";
+  proof->debug_print("newproof::pm::th", 1);
   Assert(d_litToTheoryProof.find(lit) == d_litToTheoryProof.end());
   d_litToTheoryProof[lit] = proof;
 }

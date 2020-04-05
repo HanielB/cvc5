@@ -40,6 +40,7 @@ class LeanProofStep : public ProofStep
   void addConclusion(std::vector<Node>& conclusion);
 
   const std::vector<Node>& getConclusion() const;
+  Node getLastConclusion() const;
   const std::vector<Node>& getArgs() const;
   const std::vector<unsigned>& getUnsignedArgs() const;
   const std::vector<ClauseId>& getPremises() const;
@@ -79,6 +80,9 @@ class LeanProof : public NewProof
   ClauseId addProofStep(NewProofRule rule, Node conclusion);
   ClauseId addProofStep(NewProofRule rule, Node conclusion, Node arg);
 
+  ClauseId addResSteps(std::vector<Resolution>& reasons,
+                       std::vector<Node>& conclusion);
+  // as above but builds vector with node
   ClauseId addResSteps(std::vector<Resolution>& reasons, Node conclusion);
 
   // Transform resolution chain into a series of binary resolutions with
@@ -144,11 +148,14 @@ class LeanProof : public NewProof
  private:
   ClauseId getNextId() { return d_nextId++; }
 
+  void maybeRebuildConclusion(theory::EqProof* proof);
+
   // adds a symmetry step if eq is t2 = t1, in which id is the justification for
   // t1 = t2 which will be resolved against. Otherwise returns undef id
   ClauseId maybeAddSymmStep(ClauseId id, Node eq, Node t1);
 
   ClauseId maybeAddFactoringStep(ClauseId id);
+  ClauseId maybeAddIffToEqStep(ClauseId id);
 
   ClauseId processTheoryProof(theory::EqProof* proof);
 

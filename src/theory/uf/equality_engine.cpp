@@ -987,7 +987,6 @@ void EqualityEngine::explainEquality(TNode t1, TNode t2, bool polarity,
 
   // The terms must be there already
   Assert(hasTerm(t1) && hasTerm(t2));
-  ;
 
   // Get the ids
   EqualityNodeId t1Id = getNodeId(t1);
@@ -1103,6 +1102,21 @@ void EqualityEngine::explainPredicate(TNode p, bool polarity,
       getNodeId(p), polarity ? d_trueId : d_falseId, assertions, cache, eqp);
 }
 
+void EqualityEngine::explainPredicateNonBin(TNode p,
+                                            bool polarity,
+                                            std::vector<TNode>& assertions,
+                                            EqProof* eqp) const
+{
+  Debug("equality") << d_name << "::eq::explainPredicate(" << p << ")"
+                    << std::endl;
+  // Must have the term
+  Assert(hasTerm(p));
+  std::map<std::pair<EqualityNodeId, EqualityNodeId>, EqProof*> cache;
+  // Get the explanation
+  getNonBinExplanation(
+      getNodeId(p), polarity ? d_trueId : d_falseId, assertions, cache, eqp);
+}
+
 void EqualityEngine::explainEqualityNonBin(TNode t1,
                                            TNode t2,
                                            bool polarity,
@@ -1115,7 +1129,6 @@ void EqualityEngine::explainEqualityNonBin(TNode t1,
 
   // The terms must be there already
   Assert(hasTerm(t1) && hasTerm(t2));
-  ;
 
   // Get the ids
   EqualityNodeId t1Id = getNodeId(t1);
@@ -1538,6 +1551,8 @@ void EqualityEngine::getNonBinExplanation(
                 {
                   // apply proof reconstruction processing (when eqpc is
                   // non-null)
+                  //
+                  // HB This is for array stuff
                   if (d_pathReconstructionTriggers.find(reasonType)
                       != d_pathReconstructionTriggers.end())
                   {
@@ -1547,15 +1562,21 @@ void EqualityEngine::getNonBinExplanation(
                   }
                   if (reasonType == MERGED_THROUGH_EQUALITY)
                   {
-                    eqpc->d_node = reason;
+                    // if predicate, create equality with true / false
+                    eqpc->d_node =
+                        reason.getKind() == kind::EQUAL ? reason : a.eqNode(b);
+                    // Debug("equality")
+                    //     << d_name << "::eq::getNonBinExplanation(): ["
+                    //     << MERGED_THROUGH_EQUALITY << "] with reason " << reason
+                    //     << " and nodes " << a << ", " << b << std::endl;
                   }
                   else
                   {
-                    // The LFSC translator prefers (not (= a b)) over (= (= a b)
-                    // false)
-                    eqpc->d_node = a == d_false ? b.notNode()
-                                                : (b == d_false ? a.notNode()
-                                                                : b.eqNode(a));
+                    eqpc->d_node = a.eqNode(b);
+                    // Use (not (= a b)) over (= (= a b) false)
+                    // eqpc->d_node = a == d_false ? b.notNode()
+                    //                             : (b == d_false ? a.notNode()
+                    //                                             : b.eqNode(a));
                   }
                   eqpc->d_id = reasonType;
                 }
@@ -1582,8 +1603,18 @@ void EqualityEngine::getNonBinExplanation(
               eqp->d_id = MERGED_THROUGH_TRANS;
               eqp->d_children.insert(
                   eqp->d_children.end(), eqp_trans.begin(), eqp_trans.end());
-              eqp->d_node =
-                  nm->mkNode(kind::EQUAL, d_nodes[t1Id], d_nodes[t2Id]);
+              eqp->d_node = d_nodes[t1Id].eqNode(d_nodes[t2Id]);
+              // Use (not (= a b)) over (= (= a b) false) and (= a b) over (= (=
+              // a b) true)
+
+              // Debug("pf::ee")
+              //     << "building trans with conclusion as eq of " << d_nodes[t1Id]
+              //     << " and " << d_nodes[t2Id] << "\n";
+              // eqp->d_node = d_nodes[t1Id] == d_false
+              //                   ? d_nodes[t2Id].notNode()
+              //                   : (d_nodes[t2Id] == d_false
+              //                          ? d_nodes[t1Id].notNode()
+              //                          : d_nodes[t2Id].eqNode(d_nodes[t1Id]));
             }
             if (Debug.isOn("pf::ee"))
             {

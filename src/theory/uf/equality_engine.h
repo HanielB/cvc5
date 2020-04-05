@@ -880,6 +880,11 @@ public:
   void explainPredicate(TNode p, bool polarity, std::vector<TNode>& assertions,
                         EqProof* eqp = nullptr) const;
 
+  void explainPredicateNonBin(TNode p,
+                              bool polarity,
+                              std::vector<TNode>& assertions,
+                              EqProof* eqp) const;
+
   /**
    * Add term to the set of trigger terms with a corresponding tag. The notify class will get
    * notified when two trigger terms with the same tag become equal or dis-equal. The notification
