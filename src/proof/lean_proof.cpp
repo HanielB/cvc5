@@ -114,6 +114,21 @@ ClauseId LeanProof::addProofStep(NewProofRule rule)
   return id;
 }
 
+ClauseId LeanProof::addProofStep(NewProofRule rule,
+                                 std::vector<Node>& conclusion)
+{
+  ClauseId id;
+  id = getNextId();
+  Debug("newproof::pm")
+      << "LeanProof::addProofStep: adding proof step with id/rule: " << id
+      << " / " << rule << " " << conclusion << "\n";
+  LeanProofStep leanproofstep = LeanProofStep(id, rule);
+  leanproofstep.addConclusion(conclusion);
+  d_proofSteps.push_back(leanproofstep);
+  Assert(rule != RULE_INPUT);
+  return id;
+}
+
 ClauseId LeanProof::addProofStep(NewProofRule rule, Node conclusion)
 {
   ClauseId id;
@@ -1305,6 +1320,8 @@ void LeanProof::printRule(std::ostream& out, LeanProofStep* s) const
     case RULE_CNF_ITE_NEG2: out << "cnf_ite_neg_1"; break;
     case RULE_CNF_ITE_NEG3: out << "cnf_ite_neg_2"; break;
 
+    case RULE_UNDEF: out << "undef"; break;
+
     default:
       out << "ProofRule Unknown! [" << static_cast<unsigned>(s->getRule())
           << "]";
@@ -1363,7 +1380,7 @@ void LeanProof::printConstant(std::ostream& out, Node n, bool decl) const
   {
     if (tn.isBoolean())
     {
-      out << (n.getConst<bool>() ? "top" : "bot") << "\n";
+      out << (n.getConst<bool>() ? "top" : "bot") << (decl? "\n" : "");
     }
     // TODO HB will need to add cases for other theories
     else

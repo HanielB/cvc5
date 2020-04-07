@@ -59,6 +59,7 @@ class VeritProof : public NewProof
                         std::vector<Node>& conclusion);
 
   ClauseId addProofStep(NewProofRule rule, Node conclusion);
+  ClauseId addProofStep(NewProofRule rule, std::vector<Node>& conclusion);
   // add to last created proof step
   void addToLastProofStep(Node conclusion);
   void addToLastProofStep(std::vector<unsigned>& reasons, Node conclusion);

@@ -114,8 +114,6 @@ class NewProofManager
   /* ------------ BEGIN Defining maps between SAT / solver info ------------ */
 
   void addLitDef(prop::SatLiteral lit, Node litNode);
-  void addClauseDef(ClauseId clause, Node clauseNodeDef);
-  void addClauseDef(ClauseId clause, Node clauseNode, Node clauseNodeDef);
 
   ClauseId registerClause(Minisat::Solver::TLit lit);
 
@@ -126,8 +124,7 @@ class NewProofManager
   ClauseId registerClause(Minisat::Solver::TClause& clause);
 
   ClauseId registerClause(Minisat::Solver::TClause& clause,
-                          NewProofRule reason,
-                          Node clauseNodeDef = Node::null());
+                          NewProofRule reason);
 
   void startResChain(Minisat::Solver::TClause& start);
   void addResolutionStep(Minisat::Solver::TLit lit,
@@ -244,9 +241,6 @@ class NewProofManager
 
   /** maps clauses to the nodes they correspond to */
   std::map<Node, ClauseId> d_assertionToClauseId;
-
-  std::map<ClauseId, Node> d_clauseToNode;
-  std::map<ClauseId, Node> d_clauseToNodeDef;
 
   std::map<ClauseId, Minisat::Solver::TClause*> d_clauseIdToClause;
 

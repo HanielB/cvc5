@@ -103,6 +103,20 @@ ClauseId VeritProof::addProofStep(NewProofRule rule, Node conclusion)
 }
 
 ClauseId VeritProof::addProofStep(NewProofRule rule,
+                                  std::vector<Node>& conclusion)
+{
+  ClauseId id;
+  id = getNextId();
+  Debug("pm::vt")
+      << "VeritProof::addProofStep: adding proof step with id/rule: " << id
+      << " / " << rule << " " << conclusion << "\n";
+  VeritProofStep vtproofstep = VeritProofStep(id, rule);
+  vtproofstep.addConclusion(conclusion);
+  d_proofSteps.push_back(vtproofstep);
+  return id;
+}
+
+ClauseId VeritProof::addProofStep(NewProofRule rule,
                                   std::vector<unsigned>& reasons,
                                   Node conclusion)
 {

@@ -333,51 +333,6 @@ void NewProofManager::addLitDef(prop::SatLiteral lit, Node litNode)
   d_litToNode[lit] = litNode;
 }
 
-void NewProofManager::addClauseDef(ClauseId clause,
-                                   Node clauseNode,
-                                   Node clauseNodeDef)
-{
-  Debug("newproof::sat")
-      << "NewProofManager::addClauseDef: clause/assertion/def: " << clause
-      << " / " << clauseNode << " / " << clauseNodeDef << "\n";
-  // I guess they have to be synched
-  Assert(d_clauseToNode.find(clause) == d_clauseToNode.end()
-         || d_clauseToNodeDef.find(clause) != d_clauseToNodeDef.end());
-
-  // We can add the same clause from different assertions.  In this
-  // case we keep the first assertion. For example asserting a /\ b
-  // and then b /\ c where b is an atom, would assert b twice (note
-  // that since b is top level, it is not cached by the CnfStream)
-  //
-  // For definitions the first is kept
-  //
-  // HB Need to grok the above
-  if (d_clauseToNodeDef.find(clause) != d_clauseToNodeDef.end())
-  {
-    Debug("newproof::sat") << "NewProofManager::addClauseDef: clause " << clause
-                           << " already had node  " << d_clauseToNode[clause]
-                           << " and def  " << d_clauseToNodeDef[clause] << "\n";
-    return;
-  }
-  d_clauseToNode[clause] = clauseNode;
-  d_clauseToNodeDef[clause] = clauseNodeDef;
-}
-
-void NewProofManager::addClauseDef(ClauseId clause, Node clauseNodeDef)
-{
-  Debug("newproof::sat") << "NewProofManager::addClauseDef: clause/def: "
-                         << clause << " / " << clauseNodeDef << "\n";
-  // For definitions the first is kept
-  if (d_clauseToNodeDef.find(clause) != d_clauseToNodeDef.end())
-  {
-    Debug("newproof::sat") << "NewProofManager::addClauseDef: clause " << clause
-                           << " already had def " << d_clauseToNodeDef[clause]
-                           << "\n";
-    return;
-  }
-  d_clauseToNodeDef[clause] = clauseNodeDef;
-}
-
 ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit)
 {
   ClauseId id;
@@ -557,15 +512,13 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause)
 }
 
 ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
-                                         NewProofRule reason,
-                                         Node clauseNodeDef)
+                                         NewProofRule reason)
 {
   if (Debug.isOn("newproof::sat"))
   {
     Debug("newproof::sat") << "NewProofManager::registerClause: TClause: ";
     printClause(clause);
-    Debug("newproof::sat") << ", reason: " << reason
-                           << ", def: " << clauseNodeDef << "\n";
+    Debug("newproof::sat") << ", reason: " << reason << "\n";
   }
   ClauseId id;
   if (clause.proofId() != 0)
@@ -575,19 +528,6 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
     Debug("newproof::sat") << "NewProofManager::registerClause: id " << id
                            << " of clause already registered\n";
     return id;
-  }
-  if (clauseNodeDef.isNull())
-  {
-    // if I'm not giving a definition then all literals must have been previous
-    // defined. Use that to build a definition
-    std::vector<Node> children;
-    for (unsigned i = 0, size = clause.size(); i < size; ++i)
-    {
-      prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(clause[i]);
-      Assert(d_litToNode.find(satLit) != d_litToNode.end());
-      children.push_back(d_litToNode[satLit]);
-    }
-    clauseNodeDef = NodeManager::currentNM()->mkNode(kind::OR, children);
   }
   if (reason == RULE_THEORY_LEMMA)
   {
@@ -606,8 +546,20 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
       }
       else
       {
-        // build clause if need be
-        id = vtproof->addProofStep(RULE_UNDEF, clauseNodeDef);
+        // build clause if need be. All literals must have been
+        // previously defined. Use that to build a definition
+        Debug("newproof::sat")
+            << "NewProofManager::registerClause: clause nodes:\n";
+        std::vector<Node> clauseNodes;
+        for (unsigned i = 0, size = clause.size(); i < size; ++i)
+        {
+          prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(clause[i]);
+          Assert(d_litToNode.find(satLit) != d_litToNode.end());
+          clauseNodes.push_back(d_litToNode[satLit]);
+          Debug("newproof::sat") << "NewProofManager::registerClause:\t"
+                                 << clauseNodes.back() << "\n";
+        }
+        id = vtproof->addProofStep(RULE_UNDEF, clauseNodes);
       }
     }
     else if (d_format == options::ProofFormatMode::LEAN)
@@ -619,8 +571,20 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
       }
       else
       {
-        // build clause if need be
-        id = leanproof->addProofStep(RULE_UNDEF, clauseNodeDef);
+        // build clause if need be. All literals must have been
+        // previously defined. Use that to build a definition
+        Debug("newproof::sat")
+            << "NewProofManager::registerClause: clause nodes:\n";
+        std::vector<Node> clauseNodes;
+        for (unsigned i = 0, size = clause.size(); i < size; ++i)
+        {
+          prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(clause[i]);
+          Assert(d_litToNode.find(satLit) != d_litToNode.end());
+          clauseNodes.push_back(d_litToNode[satLit]);
+          Debug("newproof::sat") << "NewProofManager::registerClause:\t"
+                                 << clauseNodes.back() << "\n";
+        }
+        id = leanproof->addProofStep(RULE_UNDEF, clauseNodes);
       }
     }
   }
@@ -642,8 +606,6 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
   }
   clause.setProofId(id);
   d_clauseIdToClause[id] = &clause;
-  // now define it
-  addClauseDef(id, clauseNodeDef);
   if (Debug.isOn("newproof::sat"))
   {
     Debug("newproof::sat") << "NewProofManager::registerClause: id " << id

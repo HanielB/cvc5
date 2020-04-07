@@ -78,6 +78,7 @@ class LeanProof : public NewProof
                         std::vector<Node>& args,
                         std::vector<Node>& conclusion);
   ClauseId addProofStep(NewProofRule rule, Node conclusion);
+  ClauseId addProofStep(NewProofRule rule, std::vector<Node>& conclusion);
   ClauseId addProofStep(NewProofRule rule, Node conclusion, Node arg);
 
   ClauseId addResSteps(std::vector<Resolution>& reasons,
