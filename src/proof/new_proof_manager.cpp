@@ -531,9 +531,28 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
   }
   if (reason == RULE_THEORY_LEMMA)
   {
-    // the propagated literal is always at the first position in the clause
-    // TODO HB How to assert this?
-    prop::SatLiteral lit = toSatLiteral<Minisat::Solver>(clause[0]);
+#ifdef CVC4_ASSERTIONS
+    unsigned nb_pos = 0;
+    for (unsigned i = 0, size = clause.size(); i < size; ++i)
+    {
+      if (!Minisat::sign(clause[i]))
+      {
+        nb_pos++;
+      }
+    }
+    // only one occurring positively
+    Assert(nb_pos == 1);
+#endif
+    // find the propagated literal (the one occurring positively)
+    prop::SatLiteral lit;
+    for (unsigned i = 0, size = clause.size(); i < size; ++i)
+    {
+      if (!Minisat::sign(clause[i]))
+      {
+        lit = toSatLiteral<Minisat::Solver>(clause[i]);
+        break;
+      }
+    }
     // since this is a theory lemma I may already have a proof for it, in which
     // case it will now be built
     auto itt = d_litToTheoryProof.find(lit);
