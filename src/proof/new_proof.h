@@ -173,6 +173,8 @@ inline std::ostream& operator<<(std::ostream& out, NewProofRule r)
     case RULE_CNF_ITE_NEG2: out << "cnf_ite_neg2"; break;
     case RULE_CNF_ITE_NEG3: out << "cnf_ite_neg3"; break;
 
+    case RULE_UNDEF: out << "undef"; break;
+
     default: out << "ProofRule Unknown! [" << static_cast<unsigned>(r) << "]";
   }
   return out;

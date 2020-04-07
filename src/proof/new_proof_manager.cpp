@@ -420,18 +420,20 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
                                          NewProofRule reason,
                                          Node litNodeDef)
 {
+  if (Debug.isOn("newproof::sat"))
+  {
+    Debug("newproof::sat") << "NewProofManager::registerClause: Tlit: ";
+    printLit(lit);
+    Debug("newproof::sat") << ", reason: " << reason << ", def: " << litNodeDef
+                           << "\n";
+  }
   ClauseId id;
   prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(lit);
   auto it = d_litToClauseId.find(satLit);
   if (it != d_litToClauseId.end())
   {
-    if (Debug.isOn("newproof::sat"))
-    {
-      Debug("newproof::sat")
-          << "NewProofManager::registerClause: id " << it->second << ", TLit: ";
-      printLit(lit);
-      Debug("newproof::sat") << " already registered\n";
-    }
+    Debug("newproof::sat") << "NewProofManager::registerClause: id "
+                           << it->second << " of lit already registered\n";
     return it->second;
   }
   if (!litNodeDef.isNull())
@@ -444,8 +446,8 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     // point
     Assert(d_litToNode.find(satLit) != d_litToNode.end());
     litNodeDef = d_litToNode[satLit];
-    Debug("newproof::sat::cnf")
-        << "NewProofManager::registerClause: TLit def " << litNodeDef << "\n";
+    Debug("newproof::sat") << "NewProofManager::registerClause: TLit def "
+                           << litNodeDef << "\n";
   }
   if (reason == RULE_INPUT)
   {
@@ -458,7 +460,11 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     // since this is a theory lemma I may already have a proof for it, in which
     // case it will now be built
     auto itt = d_litToTheoryProof.find(toSatLiteral<Minisat::Solver>(lit));
-
+    if (Debug.isOn("newproof::sat") && itt == d_litToTheoryProof.end())
+    {
+      Debug("newproof::sat")
+          << "NewProofManager::registerClause: no proof yet for literal\n";
+    }
     if (d_format == options::ProofFormatMode::VERIT)
     {
       VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
@@ -513,18 +519,19 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
 
 ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause)
 {
+  if (Debug.isOn("newproof::sat"))
+  {
+    Debug("newproof::sat") << "NewProofManager::registerClause: TClause: ";
+    printClause(clause);
+    Debug("newproof::sat") << "\n";
+  }
   ClauseId id;
   if (clause.proofId() != 0)
   {
     id = clause.proofId();
     Assert(d_clauseIdToClause.find(id) != d_clauseIdToClause.end());
-    if (Debug.isOn("newproof::sat"))
-    {
-      Debug("newproof::sat")
-          << "NewProofManager::registerClause: id " << id << ", TClause: ";
-      printClause(clause);
-      Debug("newproof::sat") << " already registered\n";
-    }
+    Debug("newproof::sat") << "NewProofManager::registerClause: id " << id
+                           << " of clause already registered\n";
     return id;
   }
   if (d_format == options::ProofFormatMode::VERIT)
@@ -553,18 +560,20 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
                                          NewProofRule reason,
                                          Node clauseNodeDef)
 {
+  if (Debug.isOn("newproof::sat"))
+  {
+    Debug("newproof::sat") << "NewProofManager::registerClause: TClause: ";
+    printClause(clause);
+    Debug("newproof::sat") << ", reason: " << reason
+                           << ", def: " << clauseNodeDef << "\n";
+  }
   ClauseId id;
   if (clause.proofId() != 0)
   {
     id = clause.proofId();
     Assert(d_clauseIdToClause.find(id) != d_clauseIdToClause.end());
-    if (Debug.isOn("newproof::sat"))
-    {
-      Debug("newproof::sat")
-          << "NewProofManager::registerClause: id " << id << ", TClause: ";
-      printClause(clause);
-      Debug("newproof::sat") << " already registered\n";
-    }
+    Debug("newproof::sat") << "NewProofManager::registerClause: id " << id
+                           << " of clause already registered\n";
     return id;
   }
   if (clauseNodeDef.isNull())
@@ -875,10 +884,26 @@ void NewProofManager::finalizeProof()
 void NewProofManager::queueTheoryProof(prop::SatLiteral lit,
                                        theory::EqProof* proof)
 {
+  if (Debug.isOn("newproof::pm::th"))
+  {
+    Debug("newproof::pm::th")
+        << "NewProofManager::queueTheoryProof: queuing proof with satlit: "
+        << lit << ", TLit: ";
+    printLit(prop::MinisatSatSolver::toMinisatLit(lit));
+    Debug("newproof::pm::th") << ", proof: \n";
+    proof->debug_print("newproof::pm::th", 1);
+  }
+  if (Debug.isOn("newproof::pm::th")
+      && d_litToTheoryProof.find(lit) != d_litToTheoryProof.end())
+  {
+    Debug("newproof::pm::th") << "NewProofManager::queueTheoryProof: literal "
+                                 "already has registered proof:";
+    d_litToTheoryProof[lit]->debug_print("newproof::pm::th", 1);
+    // TODO HB probably need to delete the proof here, no? How is mem management
+    // hapenning here?
+  }
   Debug("newproof::pm::th")
-      << "NewProofManager::queuing prood with satlit: " << lit << ":\n";
-  proof->debug_print("newproof::pm::th", 1);
-  Assert(d_litToTheoryProof.find(lit) == d_litToTheoryProof.end());
+      << "NewProofManager::queueTheoryProof: updating proof of lit\n";
   d_litToTheoryProof[lit] = proof;
 }
 
