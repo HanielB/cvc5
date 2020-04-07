@@ -151,9 +151,10 @@ class LeanProof : public NewProof
 
   void maybeRebuildConclusion(theory::EqProof* proof);
 
-  // adds a symmetry step if eq is t2 = t1, in which id is the justification for
-  // t1 = t2 which will be resolved against. Otherwise returns undef id
-  ClauseId maybeAddSymmStep(ClauseId id, Node eq, Node t1);
+  // adds a symmetry step for eq, in which id is the justification for it.
+  // Returns the id of the symm equality obtained from a resolution of the symm
+  // step and eq.
+  ClauseId maybeAddSymmStep(ClauseId id, Node eq);
 
   ClauseId maybeAddFactoringStep(ClauseId id);
   ClauseId maybeAddIffToEqStep(ClauseId id);

@@ -687,17 +687,10 @@ void LeanProof::maybeRebuildConclusion(theory::EqProof* proof)
       << proof->d_node << "\n";
 }
 
-ClauseId LeanProof::maybeAddSymmStep(ClauseId id, Node eq, Node t1)
+ClauseId LeanProof::maybeAddSymmStep(ClauseId id, Node eq)
 {
-  Debug("leanpf::th") << "LeanProof::maybeAddSymmStep: testing if equal: "
-                      << eq[0] << ", " << t1 << "\n";
-  if (eq[0] == t1)
-  {
-    return ClauseIdUndef;
-  }
   Debug("leanpf::th")
-      << "LeanProof::maybeAddSymmStep: adding symmetry step to fixmismatch ("
-      << t1 << " should be first arg of " << eq << "\n";
+      << "LeanProof::maybeAddSymmStep: adding symmetry step for " << eq << "\n";
   NodeManager* nm = NodeManager::currentNM();
   // create symmetry step
   ClauseId symm_id = getNextId();
@@ -807,17 +800,36 @@ ClauseId LeanProof::processTheoryProof(theory::EqProof* proof)
     ClauseId maybeSymmId = ClauseIdUndef;
     if (r == RULE_CONGRUENCE)
     {
-      // piv                            -> equality I'd add as premise
+      // proof->d_children[i]->d_node   -> equality I'd add as ith premise
       // proof->d_node[0][i]            -> ith arg of first cong application
-      maybeSymmId = maybeAddSymmStep(
-          child_id, proof->d_children[i]->d_node, proof->d_node[0][i]);
+      if (proof->d_children[i]->d_node[0] == proof->d_node[0][i])
+      {
+        maybeSymmId = ClauseIdUndef;
+      }
+      else
+      {
+        Debug("leanpf::th") << "LeanProof::maybeAddSymmStep: not equal: "
+                            << proof->d_children[i]->d_node[0] << ", "
+                            << proof->d_node[0][i] << "\n";
+        maybeSymmId = maybeAddSymmStep(child_id, proof->d_children[i]->d_node);
+      }
     }
     else if (r == RULE_TRANSITIVITY)
     {
-      // piv                            -> equality I'd add as premise
+      // proof->d_children[i]->d_node   -> equality I'd add as ith premise
       // proof->d_node[i]               -> ith arg of transitivity conclusion
-      maybeSymmId = maybeAddSymmStep(
-          child_id, proof->d_children[i]->d_node, proof->d_node[i]);
+      Assert(i == 0 || i == 1);
+      if (proof->d_children[i]->d_node[i] == proof->d_node[i])
+      {
+        maybeSymmId = ClauseIdUndef;
+      }
+      else
+      {
+        Debug("leanpf::th") << "LeanProof::maybeAddSymmStep: not equal: "
+                            << proof->d_children[i]->d_node[i] << ", "
+                            << proof->d_node[i] << "\n";
+        maybeSymmId = maybeAddSymmStep(child_id, proof->d_children[i]->d_node);
+      }
     }
     // update resolution and conclusion of proof step
     if (maybeSymmId != ClauseIdUndef)
