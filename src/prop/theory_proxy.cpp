@@ -82,7 +82,14 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
 
   Node theoryExplanation = d_theoryEngine->getExplanationAndRecipe(lNode, proofRecipe);
 
-  NEWPROOF({
+  if (CVC4::options::newProofs())
+  {
+    if (Debug.isOn("theory::explain"))
+    {
+      Debug("theory::explain")
+          << "TheoryProxy::explainProgation: proof recipe built:\n";
+      proofRecipe->dump("theory::explain");
+    }
     theory::EqProof* proof = new theory::EqProof();
     d_theoryEngine->getExplanationAndProof(lNode, proof);
     if (Debug.isOn("theory::explain"))
@@ -93,7 +100,7 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
     // Register in proof module
     NewProofManager* pm = NewProofManager::currentPM();
     pm->queueTheoryProof(l, proof);
-  });
+  }
 
   PROOF({
       ProofManager::getCnfProof()->pushCurrentAssertion(theoryExplanation);

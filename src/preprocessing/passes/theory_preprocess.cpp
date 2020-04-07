@@ -42,13 +42,14 @@ PreprocessingPassResult TheoryPreprocess::applyInternal(
     Assert(Rewriter::rewrite(a) == a);
     assertionsToPreprocess->replace(i, te->preprocess(a));
     a = (*assertionsToPreprocess)[i];
-    NEWPROOF({
+    if (CVC4::options::newProofs())
+    {
       if (a != (*assertionsToPreprocess)[i])
       {
         NewProofManager::currentPM()->addAssertionProofStep(
             a, (*assertionsToPreprocess)[i], RULE_PREPROCESSING_THEORY);
       }
-    });
+    }
     Assert(Rewriter::rewrite(a) == a);
   }
   return PreprocessingPassResult::NO_CONFLICT;

@@ -941,7 +941,10 @@ void SmtEngine::finishInit()
           d_theoryEngine->theoryOf(id));
     }
   });
-  NEWPROOF(NewProofManager::currentPM()->setLogic(d_logic););
+  if (CVC4::options::newProofs())
+  {
+    NewProofManager::currentPM()->setLogic(d_logic);
+  }
   d_private->finishInit();
   Trace("smt-debug") << "SmtEngine::finishInit done" << std::endl;
 }
@@ -1980,12 +1983,13 @@ void SmtEnginePrivate::processAssertions() {
       ProofManager::currentPM()->addAssertion(d_assertions[i].toExpr());
     }
   });
-  NEWPROOF({
+  if (CVC4::options::newProofs())
+  {
     for (unsigned i = 0, size = d_assertions.size(); i < size; ++i)
     {
       NewProofManager::currentPM()->addInputAssertion(d_assertions[i]);
     }
-  });
+  }
 
   Debug("smt") << " d_assertions     : " << d_assertions.size() << endl;
 

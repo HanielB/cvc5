@@ -219,7 +219,10 @@ Solver::Solver(CVC4::prop::TheoryProxy* proxy,
       asynch_interrupt(false)
 {
   PROOF(ProofManager::currentPM()->initSatProof(this);)
-  NEWPROOF(NewProofManager::currentPM()->setSatSolver(this);)
+  if (CVC4::options::newProofs())
+  {
+    NewProofManager::currentPM()->setSatSolver(this);
+  }
 
   // Create the constant variables
   varTrue = newVar(true, false, false);
@@ -401,10 +404,11 @@ CRef Solver::reason(Var x) {
           // lead to a wrong assertion being associated with the clause being
           // added (see issue #2137).
           ProofManager::getCnfProof()->popCurrentAssertion(););
-    NEWPROOF({
+    if (CVC4::options::newProofs())
+    {
       NewProofManager* pm = NewProofManager::currentPM();
       pm->registerClause(ca[real_reason], RULE_THEORY_LEMMA);
-    });
+    }
     vardata[x] = VarData(real_reason, level(x), user_level(x), intro_level(x), trail_index(x));
     clauses_removable.push(real_reason);
     attachClause(real_reason);
@@ -494,10 +498,11 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           if(falseLiteralsCount == 1) {
             PROOF( id = ProofManager::getSatProof()->storeUnitConflict(ps[0], INPUT); )
             PROOF( ProofManager::getSatProof()->finalizeProof(CVC4::Minisat::CRef_Lazy); )
-            NEWPROOF({
+            if (CVC4::options::newProofs())
+            {
               NewProofManager* pm = NewProofManager::currentPM();
               pm->finalizeProof(ps[0]);
-            });
+            }
             return ok = false;
           }
         }
@@ -523,14 +528,17 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           PROOF(
                 id = ProofManager::getSatProof()->registerClause(cr, INPUT);
                 )
-          NEWPROOF(
-              { id = NewProofManager::currentPM()->registerClause(ca[cr]); });
+          if (CVC4::options::newProofs())
+          {
+            id = NewProofManager::currentPM()->registerClause(ca[cr]);
+          }
           if(ps.size() == falseLiteralsCount) {
             PROOF( ProofManager::getSatProof()->finalizeProof(cr); )
-            NEWPROOF({
+            if (CVC4::options::newProofs())
+            {
               NewProofManager* pm = NewProofManager::currentPM();
               pm->finalizeProof();
-            });
+            }
             return ok = false;
           }
         }
@@ -547,12 +555,13 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
                   id = ProofManager::getSatProof()->registerUnitClause(ps[0], INPUT);
                 }
                 );
-          NEWPROOF({
+          if (CVC4::options::newProofs())
+          {
             // if (ps.size() == 1)
             // {
             //   id = NewProofManager::currentPM()->registerClause(ps[0]);
             // }
-          });
+          }
           CRef confl = propagate(CHECK_WITHOUT_THEORY);
           if(! (ok = (confl == CRef_Undef)) ) {
             if (PROOF_ON())
@@ -847,7 +856,10 @@ int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     int max_resolution_level = 0; // Maximal level of the resolved clauses
 
     PROOF( ProofManager::getSatProof()->startResChain(confl); )
-    NEWPROOF(NewProofManager::currentPM()->startResChain(ca[confl]););
+    if (CVC4::options::newProofs())
+    {
+      NewProofManager::currentPM()->startResChain(ca[confl]);
+    }
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
 
@@ -904,9 +916,11 @@ int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         if ( pathC > 0 && confl != CRef_Undef ) {
           PROOF( ProofManager::getSatProof()->addResolutionStep(p, confl, sign(p)); )
-          NEWPROOF({
-            NewProofManager::currentPM()->addResolutionStep(p, ca[confl], sign(p));
-          });
+          if (CVC4::options::newProofs())
+          {
+            NewProofManager::currentPM()->addResolutionStep(
+                p, ca[confl], sign(p));
+          }
         }
 
     }while (pathC > 0);
@@ -1437,7 +1451,10 @@ lbool Solver::search(int nof_conflicts)
 
             if (decisionLevel() == 0) {
               PROOF(ProofManager::getSatProof()->finalizeProof(confl);)
-              NEWPROOF(NewProofManager::currentPM()->finalizeProof();)
+              if (CVC4::options::newProofs())
+              {
+                NewProofManager::currentPM()->finalizeProof();
+              }
               return l_False;
             }
 
@@ -1451,10 +1468,11 @@ lbool Solver::search(int nof_conflicts)
                 uncheckedEnqueue(learnt_clause[0]);
 
                 PROOF( ProofManager::getSatProof()->endResChain(learnt_clause[0]); )
-                NEWPROOF({
+                if (CVC4::options::newProofs())
+                {
                   NewProofManager* pm = NewProofManager::currentPM();
                   pm->endResChain(learnt_clause[0]);
-                });
+                }
             } else {
               CRef cr =
                   ca.alloc(assertionLevelOnly() ? assertionLevel : max_level,
@@ -1473,11 +1491,12 @@ lbool Solver::search(int nof_conflicts)
                                ->storeClauseGlue(id, cl_levels.size());)
                         ProofManager::getSatProof()
                             ->endResChain(id););
-              NEWPROOF({
+              if (CVC4::options::newProofs())
+              {
                 NewProofManager* pm = NewProofManager::currentPM();
                 ClauseId id = pm->registerClause(ca[cr]);
                 pm->endResChain(id);
-              });
+              }
             }
 
             varDecayActivity();
@@ -1970,10 +1989,11 @@ CRef Solver::updateLemmas() {
                 lemma_ref, THEORY_LEMMA);
             ProofManager::getCnfProof()->setClauseAssertion(id, cnf_assertion);
             ProofManager::getCnfProof()->setClauseDefinition(id, cnf_def););
-      NEWPROOF({
+      if (CVC4::options::newProofs())
+      {
         NewProofManager* pm = NewProofManager::currentPM();
         pm->registerClause(ca[lemma_ref], RULE_THEORY_LEMMA);
-      });
+      }
       if (removable) {
         clauses_removable.push(lemma_ref);
       } else {
@@ -2007,7 +2027,10 @@ CRef Solver::updateLemmas() {
             Debug("minisat::lemmas") << "Solver::updateLemmas(): unit conflict or empty clause" << std::endl;
             conflict = CRef_Lazy;
             PROOF( ProofManager::getSatProof()->storeUnitConflict(lemma[0], LEARNT); );
-            NEWPROOF(Assert(false);)
+            if (CVC4::options::newProofs())
+            {
+              Assert(false);
+            }
           }
         } else {
           Debug("minisat::lemmas") << "lemma size is " << lemma.size() << std::endl;

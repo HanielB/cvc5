@@ -41,13 +41,14 @@ PreprocessingPassResult IteRemoval::applyInternal(AssertionPipeline* assertions)
   {
     TNode a = (*assertions)[i];
     assertions->replace(i, Rewriter::rewrite((*assertions)[i]));
-    NEWPROOF({
+    if (CVC4::options::newProofs())
+    {
       if (a != (*assertions)[i])
       {
         NewProofManager::currentPM()->addAssertionProofStep(
             a, (*assertions)[i], RULE_PREPROCESSING_REWRITE);
       }
-    });
+    }
   }
 
   return PreprocessingPassResult::NO_CONFLICT;

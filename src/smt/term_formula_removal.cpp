@@ -46,7 +46,8 @@ void RemoveTermFormulas::run(std::vector<Node>& output, IteSkolemMap& iteSkolemM
     if (reportDeps && output[i] != itesRemoved)
     {
       // new assertions have a dependence on the node
-      NEWPROOF({
+      if (CVC4::options::newProofs())
+      {
         NewProofManager* pm = NewProofManager::currentPM();
         // justify assertion transformation
         pm->addIteRemovalProofStep(output[i], itesRemoved);
@@ -56,7 +57,7 @@ void RemoveTermFormulas::run(std::vector<Node>& output, IteSkolemMap& iteSkolemM
           pm->addIteDefProofStep(output[n]);
           ++n;
         }
-      });
+      }
     }
     output[i] = itesRemoved;
   }
@@ -114,7 +115,10 @@ Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
         newAssertion = nodeManager->mkNode(
             kind::ITE, node[0], skolem.eqNode(node[1]), skolem.eqNode(node[2]));
 
-        NEWPROOF({ NewProofManager::currentPM()->notifyIte(skolem, node); });
+        if (CVC4::options::newProofs())
+        {
+          NewProofManager::currentPM()->notifyIte(skolem, node);
+        }
       }
     }
   }
