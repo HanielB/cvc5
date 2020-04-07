@@ -10,9 +10,10 @@
 (declare-fun e () U)
 (declare-fun f (U U) U)
 
-(assert (= a (f b c)))
-(assert (not (= a (f d e))))
-(assert (= b d))
-(assert (= c e))
+(assert (not (= a (f d b))))
+(assert (= (f a a) (f d b)))
+(assert (= (f c b) (f a a)))
+
+(assert (= a (f c b)))
 
 (check-sat)
