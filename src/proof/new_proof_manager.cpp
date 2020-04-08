@@ -412,10 +412,12 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
   }
   else if (reason == RULE_THEORY_LEMMA)
   {
-    // since this is a theory lemma I may already have a proof for it, in which
-    // case it will now be built
+    // since this is a theory lemma I have registered this literal as the result
+    // of a propagation. If I already have a proof for it (i.e. itt->second !=
+    // nullptr), the internal representation will be built now.
     auto itt = d_litToTheoryProof.find(toSatLiteral<Minisat::Solver>(lit));
-    if (Debug.isOn("newproof::sat") && itt == d_litToTheoryProof.end())
+    Assert(itt != d_litToTheoryProof.end());
+    if (Debug.isOn("newproof::sat") && !itt->second)
     {
       Debug("newproof::sat")
           << "NewProofManager::registerClause: no proof yet for literal\n";
@@ -423,27 +425,30 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TLit lit,
     if (d_format == options::ProofFormatMode::VERIT)
     {
       VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-      if (itt != d_litToTheoryProof.end())
+      if (itt->second)
       {
         id = vtproof->addTheoryProof(itt->second);
       }
       else
       {
-        id = vtproof->addProofStep(RULE_UNDEF, litNodeDef);
+        // marks rule to be reconstructed later
+        id = vtproof->addProofStep(reason, litNodeDef);
       }
     }
     else if (d_format == options::ProofFormatMode::LEAN)
     {
       LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
-      if (itt != d_litToTheoryProof.end())
+      if (itt->second)
       {
         id = leanproof->addTheoryProof(itt->second);
       }
       else
       {
-        id = leanproof->addProofStep(RULE_UNDEF, litNodeDef);
+        // marks rule to be reconstructed later
+        id = leanproof->addProofStep(reason, litNodeDef);
       }
     }
+    d_litToTheoryProof.erase(itt);
   }
   else
   {
@@ -531,42 +536,48 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
   }
   if (reason == RULE_THEORY_LEMMA)
   {
+    // there will be one propagated literal at most in the clause,
+    // HOPEFULLY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11
 #ifdef CVC4_ASSERTIONS
-    unsigned nb_pos = 0;
+    unsigned nb_prop = 0;
     for (unsigned i = 0, size = clause.size(); i < size; ++i)
     {
-      if (!Minisat::sign(clause[i]))
+      if (d_litToTheoryProof.count(toSatLiteral<Minisat::Solver>(clause[i])))
       {
-        nb_pos++;
+        nb_prop++;
       }
     }
-    // only one occurring positively
-    Assert(nb_pos == 1);
+    // only one propagated lit
+    Assert(nb_prop == 1);
 #endif
     // find the propagated literal (the one occurring positively)
-    prop::SatLiteral lit;
+    std::map<prop::SatLiteral, theory::EqProof*>::iterator itt;
+    prop::SatLiteral propLit;
     for (unsigned i = 0, size = clause.size(); i < size; ++i)
     {
-      if (!Minisat::sign(clause[i]))
+      prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(clause[i]);
+      itt = d_litToTheoryProof.find(satLit);
+      if (itt != d_litToTheoryProof.end())
       {
-        lit = toSatLiteral<Minisat::Solver>(clause[i]);
+        propLit = satLit;
         break;
       }
     }
-    // since this is a theory lemma I may already have a proof for it, in which
-    // case it will now be built
-    auto itt = d_litToTheoryProof.find(lit);
+    Assert(propLit != prop::undefSatVariable);
+    // since this is a theory lemma I have registered this literal as the result
+    // of a propagation. If I already have a proof for it (i.e. itt->second !=
+    // nullptr), the internal representation will be built now.
     if (d_format == options::ProofFormatMode::VERIT)
     {
       VeritProof* vtproof = static_cast<VeritProof*>(d_proof.get());
-      if (itt != d_litToTheoryProof.end())
+      if (itt->second)
       {
         id = vtproof->addTheoryProof(itt->second);
       }
       else
       {
-        // build clause if need be. All literals must have been
-        // previously defined. Use that to build a definition
+        // build clause if need be, with the propagated literal as the
+        // conclusion
         Debug("newproof::sat")
             << "NewProofManager::registerClause: clause nodes:\n";
         std::vector<Node> clauseNodes;
@@ -574,17 +585,24 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
         {
           prop::SatLiteral satLit = toSatLiteral<Minisat::Solver>(clause[i]);
           Assert(d_litToNode.find(satLit) != d_litToNode.end());
+          if (satLit == propLit)
+          {
+            continue;
+          }
           clauseNodes.push_back(d_litToNode[satLit]);
           Debug("newproof::sat") << "NewProofManager::registerClause:\t"
                                  << clauseNodes.back() << "\n";
         }
-        id = vtproof->addProofStep(RULE_UNDEF, clauseNodes);
+        clauseNodes.push_back(d_litToNode[propLit]);
+        Debug("newproof::sat") << "NewProofManager::registerClause:\t[propLit] "
+                               << clauseNodes.back() << "\n";
+        id = vtproof->addProofStep(reason, clauseNodes);
       }
     }
     else if (d_format == options::ProofFormatMode::LEAN)
     {
       LeanProof* leanproof = static_cast<LeanProof*>(d_proof.get());
-      if (itt != d_litToTheoryProof.end())
+      if (itt->second)
       {
         id = leanproof->addTheoryProof(itt->second);
       }
@@ -606,6 +624,7 @@ ClauseId NewProofManager::registerClause(Minisat::Solver::TClause& clause,
         id = leanproof->addProofStep(RULE_UNDEF, clauseNodes);
       }
     }
+    d_litToTheoryProof.erase(itt);
   }
   else
   {
@@ -868,23 +887,18 @@ void NewProofManager::queueTheoryProof(prop::SatLiteral lit,
   if (Debug.isOn("newproof::pm::th"))
   {
     Debug("newproof::pm::th")
-        << "NewProofManager::queueTheoryProof: queuing proof with satlit: "
+        << "NewProofManager::queueTheoryProof: queuing proof for satlit: "
         << lit << ", TLit: ";
     printLit(prop::MinisatSatSolver::toMinisatLit(lit));
     Debug("newproof::pm::th") << ", proof: \n";
     proof->debug_print("newproof::pm::th", 1);
   }
-  if (Debug.isOn("newproof::pm::th")
-      && d_litToTheoryProof.find(lit) != d_litToTheoryProof.end())
-  {
-    Debug("newproof::pm::th") << "NewProofManager::queueTheoryProof: literal "
-                                 "already has registered proof:";
-    d_litToTheoryProof[lit]->debug_print("newproof::pm::th", 1);
-    // TODO HB probably need to delete the proof here, no? How is mem management
-    // hapenning here?
-  }
-  Debug("newproof::pm::th")
-      << "NewProofManager::queueTheoryProof: updating proof of lit\n";
+  // d_litToTheoryProof has a local behavior: proofs (if any) are enqueued when
+  // lit is being explained. This map is used to check which literals are the
+  // propagated ones when registering the lemmas, which is done right after
+  // propagation / explanation, therefore a literal only lives in this map in
+  // the meantime.
+  Assert(!d_litToTheoryProof.count(lit));
   d_litToTheoryProof[lit] = proof;
 }
 
