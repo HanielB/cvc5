@@ -327,10 +327,10 @@ void VeritProof::printRule(std::ostream& out, NewProofRule r) const
   {
     case RULE_INPUT: out << "input"; break;
     case RULE_RESOLUTION: out << "resolution"; break;
-    case RULE_REFLEXIVITY: out << "reflexivity"; break;
-    case RULE_SYMMETRY: out << "symmetry"; break;
-    case RULE_TRANSITIVITY: out << "transitivity"; break;
-    case RULE_CONGRUENCE: out << "congruence"; break;
+    case RULE_REFLEXIVITY: out << "eq_reflexive"; break;
+    case RULE_SYMMETRY: out << "eq_symmetric"; break;
+    case RULE_TRANSITIVITY: out << "eq_transitive"; break;
+    case RULE_CONGRUENCE: out << "eq_congruence"; break;
     case RULE_PURE_EQ: out << "pure_eq"; break;
     case RULE_CONSTANTS: out << "constants"; break;
     case RULE_PREPROCESSING: out << "preprocessing"; break;
