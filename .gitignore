@@ -13,3 +13,4 @@ generated/
 *.swp
 /debug/
 /antlr-3.4
+*-cvc4.lean
