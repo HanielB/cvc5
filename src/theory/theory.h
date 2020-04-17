@@ -56,6 +56,7 @@ class QuantifiersEngine;
 class TheoryModel;
 class SubstitutionMap;
 class ExtTheory;
+class TheoryRewriter;
 
 class EntailmentCheckParameters;
 class EntailmentCheckSideEffects;
@@ -152,9 +153,7 @@ public:
  * all calls to them.)
  */
 class Theory {
-
-private:
-
+ private:
   friend class ::CVC4::TheoryEngine;
 
   // Disallow default construction, copy, assignment.
@@ -212,7 +211,6 @@ private:
   ExtTheory* d_extTheory;
 
  protected:
-
 
   // === STATISTICS ===
   /** time spent in check calls */
@@ -391,9 +389,9 @@ public:
   virtual ~Theory();
 
   /**
-   * Creates a new theory rewriter for the theory.
+   * @return The theory rewriter associated with this theory.
    */
-  virtual std::unique_ptr<TheoryRewriter> mkTheoryRewriter() = 0;
+  virtual TheoryRewriter* getTheoryRewriter() = 0;
 
   /**
    * Subclasses of Theory may add additional efforts.  DO NOT CHECK
@@ -499,22 +497,21 @@ public:
   virtual void finishInit() { }
 
   /**
-   * Some theories have kinds that are effectively definitions and
-   * should be expanded before they are handled.  Definitions allow
-   * a much wider range of actions than the normal forms given by the
-   * rewriter; they can enable other theories and create new terms.
-   * However no assumptions can be made about subterms having been
-   * expanded or rewritten.  Where possible rewrite rules should be
-   * used, definitions should only be used when rewrites are not
-   * possible, for example in handling under-specified operations
-   * using partially defined functions.
+   * Some theories have kinds that are effectively definitions and should be
+   * expanded before they are handled.  Definitions allow a much wider range of
+   * actions than the normal forms given by the rewriter. However no
+   * assumptions can be made about subterms having been expanded or rewritten.
+   * Where possible rewrite rules should be used, definitions should only be
+   * used when rewrites are not possible, for example in handling
+   * under-specified operations using partially defined functions.
    *
    * Some theories like sets use expandDefinition as a "context
    * independent preRegisterTerm".  This is required for cases where
    * a theory wants to be notified about a term before preprocessing
    * and simplification but doesn't necessarily want to rewrite it.
    */
-  virtual Node expandDefinition(LogicRequest &logicRequest, Node node) {
+  virtual Node expandDefinition(Node node)
+  {
     // by default, do nothing
     return node;
   }

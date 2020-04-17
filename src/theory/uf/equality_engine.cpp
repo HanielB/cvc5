@@ -449,13 +449,11 @@ void EqualityEngine::assertPredicate(TNode t, bool polarity, TNode reason, Merge
   propagate();
 }
 
-void EqualityEngine::mergePredicates(TNode p, TNode q, TNode reason) {
-  Debug("equality") << d_name << "::eq::mergePredicates(" << p << "," << q << ")" << std::endl;
-  assertEqualityInternal(p, q, reason);
-  propagate();
-}
-
-void EqualityEngine::assertEquality(TNode eq, bool polarity, TNode reason, MergeReasonType pid) {
+void EqualityEngine::assertEquality(TNode eq,
+                                    bool polarity,
+                                    TNode reason,
+                                    MergeReasonType pid)
+{
   Debug("equality") << d_name << "::eq::addEquality(" << eq << "," << (polarity ? "true" : "false") << ")" << std::endl;
   if (polarity) {
     // If two terms are already equal, don't assert anything

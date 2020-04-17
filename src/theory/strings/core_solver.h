@@ -24,8 +24,8 @@
 #include "theory/strings/infer_info.h"
 #include "theory/strings/inference_manager.h"
 #include "theory/strings/normal_form.h"
-#include "theory/strings/skolem_cache.h"
 #include "theory/strings/solver_state.h"
+#include "theory/strings/term_registry.h"
 
 namespace CVC4 {
 namespace theory {
@@ -46,7 +46,7 @@ class CoreSolver
              context::UserContext* u,
              SolverState& s,
              InferenceManager& im,
-             SkolemCache& skc,
+             TermRegistry& tr,
              BaseSolver& bs);
   ~CoreSolver();
 
@@ -313,25 +313,65 @@ class CoreSolver
   //--------------------------end for checkNormalFormsEq with loops
 
   //--------------------------for checkNormalFormsDeq
+
+  /**
+   * Given a pair of disequal strings with the same length, checks whether the
+   * disequality holds. This may result in inferences or conflicts.
+   *
+   * @param n1 The first string in the disequality
+   * @param n2 The second string in the disequality
+   */
   void processDeq(Node n1, Node n2);
-  int processReverseDeq(std::vector<Node>& nfi,
+
+  /**
+   * Given a pair of disequal strings with the same length and their normal
+   * forms, checks whether the disequality holds. This may result in
+   * inferences.
+   *
+   * @param nfi The normal form for the first string in the disequality
+   * @param nfj The normal form for the second string in the disequality
+   * @param ni The first string in the disequality
+   * @param nj The second string in the disequality
+   * @return true if the disequality is satisfied, false otherwise
+   */
+  bool processReverseDeq(std::vector<Node>& nfi,
+                         std::vector<Node>& nfj,
+                         Node ni,
+                         Node nj);
+
+  /**
+   * Given a pair of disequal strings with the same length and their normal
+   * forms, performs some simple checks whether the disequality holds. The
+   * check is done starting from a given index and can either be performed on
+   * reversed normal forms or the original normal forms. If the function cannot
+   * show that a disequality holds, it updates the index to point to the first
+   * element in the normal forms for which the relationship is unclear.
+   *
+   * @param nfi The normal form for the first string in the disequality
+   * @param nfj The normal form for the second string in the disequality
+   * @param ni The first string in the disequality
+   * @param nj The second string in the disequality
+   * @param index The index to start at. If this function returns false, the
+   *              index points to the first index in the normal forms for which
+   *              it is not known whether they are equal or disequal
+   * @param isRev This should be true if the normal forms are reversed, false
+   *              otherwise
+   * @return true if the disequality is satisfied, false otherwise
+   */
+  bool processSimpleDeq(std::vector<Node>& nfi,
                         std::vector<Node>& nfj,
                         Node ni,
-                        Node nj);
-  int processSimpleDeq(std::vector<Node>& nfi,
-                       std::vector<Node>& nfj,
-                       Node ni,
-                       Node nj,
-                       unsigned& index,
-                       bool isRev);
+                        Node nj,
+                        size_t& index,
+                        bool isRev);
   //--------------------------end for checkNormalFormsDeq
 
   /** The solver state object */
   SolverState& d_state;
   /** The (custom) output channel of the theory of strings */
   InferenceManager& d_im;
-  /** cache of all skolems */
-  SkolemCache& d_skCache;
+  /** Reference to the term registry of theory of strings */
+  TermRegistry& d_termReg;
   /** reference to the base solver, used for certain queries */
   BaseSolver& d_bsolver;
   /** Commonly used constants */
