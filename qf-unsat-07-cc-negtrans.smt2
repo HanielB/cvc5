@@ -7,7 +7,6 @@
 (declare-fun b () U)
 (declare-fun c () U)
 (declare-fun d () U)
-(declare-fun e () U)
 (declare-fun f (U U) U)
 
 (assert (not (= a (f d b))))

@@ -1139,6 +1139,9 @@ void EqualityEngine::explainEqualityNonBin(TNode t1,
     // Get the explanation
     getNonBinExplanation(t1Id, t2Id, equalities, cache, eqp);
   } else {
+    // A negative literal to be explained NECESSARILY leads to a transitivety
+    // proof of which that literal is a PREMISE. So the explanation we get back
+    // must be rotated
     if (eqp) {
       eqp->d_id = MERGED_THROUGH_TRANS;
       eqp->d_node = d_nodes[t1Id].eqNode(d_nodes[t2Id]).notNode();
@@ -1155,7 +1158,8 @@ void EqualityEngine::explainEqualityNonBin(TNode t1,
       EqualityPair toExplain = d_deducedDisequalityReasons[i];
       std::shared_ptr<EqProof> eqpc;
 
-      // If we're constructing a (transitivity) proof, we don't need to include an explanation for x=x.
+      // If we're constructing a (transitivity) proof, we don't need to include
+      // an explanation for x=x.
       if (eqp && toExplain.first != toExplain.second) {
         eqpc = std::make_shared<EqProof>();
       }
@@ -1169,6 +1173,12 @@ void EqualityEngine::explainEqualityNonBin(TNode t1,
           Debug("pf::ee") << "Child proof is:" << std::endl;
           eqpc->debug_print("pf::ee", 1);
         }
+        // THERE MUST BE ONE OF THE PREMISES WHICH IS NEGATIVE, SO THAT THAT
+        // PREMISE WILL BECOME THE CONCLUSION AND THE NEGATIVE CONCLUSION WILL
+        // BECOME A PREMISE
+        //
+        // Shouldn't this be recursive?
+        if one of the arguments is a congruence with the equality predicate and another argument is a pure equality
         if (eqpc->d_id == MERGED_THROUGH_TRANS) {
           std::vector<std::shared_ptr<EqProof>> orderedChildren;
           bool nullCongruenceFound = false;
@@ -1177,7 +1187,8 @@ void EqualityEngine::explainEqualityNonBin(TNode t1,
                 eqpc->d_children[j]->d_node.isNull()) {
               nullCongruenceFound = true;
               Debug("pf::ee") << "Have congruence with empty d_node. Splitting..." << std::endl;
-              orderedChildren.insert(orderedChildren.begin(), eqpc->d_children[j]->d_children[0]);
+              orderedChildren.insert(orderedChildren.begin(),
+                                     eqpc->d_children[j]->d_children[0]);
               orderedChildren.push_back(eqpc->d_children[j]->d_children[1]);
             } else {
               orderedChildren.push_back(eqpc->d_children[j]);
@@ -1455,12 +1466,43 @@ void EqualityEngine::getNonBinExplanation(
                   {
                     Kind k = d_nodes[currentNode].getKind();
                     // second case accounts for parametric kinds
-                    // HB Are there others????
+                    // TODO HB Check whether there aren't any other parametric kinds
                     if (d_congruenceKinds[k]
                         || (k == kind::BUILTIN
                             && d_nodes[f1.d_a].getConst<Kind>() == kind::SELECT))
                     {
                       eqpc->d_node = d_nodes[currentNode].eqNode(d_nodes[edgeNode]);
+                    }
+                    // case of (= (= t1 t2) (= t3 t4)), with proofs of (= t1 t3)
+                    // and (= t2 t4), which will be turned into a transitivity
+                    // proof: t3 = t1 ^ t1 = t2 ^ t2 = t4 -> t3 = t4
+                    //
+                    // If any of the children proofs is a reflexivity proof it
+                    // can just be ignored
+                    else if (k == kind::EQUAL)
+                    {
+                      Assert(d_nodes[edgeNode].getKind() == kind::EQUAL);
+                      // eqpc->d_id = MERGED_THROUGH_TRANS;
+                      Debug("equality")
+                          << "Turning crazy cong into trans from "
+                          << d_nodes[currentNode] << ", " << eqpc1->d_node
+                          << ", " << eqpc2->d_node << " into "
+                          << d_nodes[edgeNode] << "\n";
+                      // need to justify (= t1 t2) (or (= t3 t4)?)
+                      // Debug("equality") << push;
+                      // Debug("equality") << "Now explain (positive?) equality ("
+                      //                   << d_nodes[currentNode] << ", "
+                      //                   << d_nodes[0] << ")\n";
+                      // std::shared_ptr<EqProof> eqpc3 =
+                      //     std::make_shared<EqProof>();
+                      // // TODO HB what about not having the cache?
+                      // getNonBinExplanation(getNodeId(d_nodes[currentNode]),
+                      //                      0,
+                      //                      equalities,
+                      //                      cache,
+                      //                      eqpc3.get());
+                      // Debug("equality") << pop;
+                      // Assert(false);
                     }
                   }
                 }
@@ -2336,7 +2378,9 @@ void EqualityEngine::debugPrintGraph() const {
     EqualityEdgeId edgeId = d_equalityGraph[nodeId];
     while (edgeId != null_edge) {
       const EqualityEdge& edge = d_equalityEdges[edgeId];
-      Debug("equality::graph") << " [" << edge.getNodeId() << "] " << d_nodes[edge.getNodeId()] << ":" << edge.getReason();
+      Debug("equality::graph")
+          << " [" << edge.getNodeId() << "] " << d_nodes[edge.getNodeId()]
+          << ":" << edge.getReason() << " {" << edge.getReasonType() << "}";
       edgeId = edge.getNext();
     }
 
