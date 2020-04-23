@@ -2473,6 +2473,311 @@ void EqProof::debug_print(std::ostream& os,
   os << ")" << std::endl;
 }
 
+void EqProof::maybeAddSymmOrTrueIntroToProof(unsigned i,
+                                             std::vector<Node>& premises,
+                                             bool first,
+                                             Node termInEq,
+                                             CDProof* p) const
+{
+  // nothing to do
+  if (premises[i][first ? 0 : 1] == termInEq)
+  {
+    return;
+  }
+  NodeManager* nm = NodeManager::currentNM();
+  Debug("eqproof::conv")
+      << "EqProof::maybeAddSymmOrTrueIntroToProof: seach for " << termInEq
+      << " as " << (first ? "fst" : "snd") << " term starting in index " << i
+      << " in " << premises << "\n";
+  // look for first premise with termInEq in it. If j != i, move that
+  // premise to the position i of the list
+  unsigned j, size = premises.size();
+  bool correctlyOrdered = false;
+  for (j = i; j < size; ++j)
+  {
+    bool occurs = false;
+    if (termInEq == premises[j][first ? 0 : 1])
+    {
+      occurs = correctlyOrdered = true;
+    }
+    else if (termInEq == premises[j][first ? 1 : 0])
+    {
+      occurs = true;
+    }
+    if (occurs)
+    {
+      Debug("eqproof::conv")
+          << "EqProof::maybeAddSymmOrTrueIntroToProof: found termInEq "
+          << termInEq << " in premise " << j << "\n";
+      if (j != i)
+      {
+        // move premise to position i.
+        Node premise = premises[j];
+        premises.erase(premises.begin() + j);
+        premises.insert(premises.begin() + i, premise);
+        Debug("eqproof::conv")
+            << "EqProof::maybeAddSymmOrTrueIntroToProof: reordering premises: "
+            << premises << "\n";
+      }
+      break;
+    }
+  }
+  // did not find it. It must be the case that termInEq is a boolean
+  // constant and a TRUE_INTRO step is applied
+  if (j == size)
+  {
+    Assert(termInEq.getKind() == kind::CONST_BOOLEAN
+           && termInEq.getConst<bool>())
+        << "EqProof::maybeAddSymmOrTrueIntroToProof: first term " << termInEq
+        << " is not True, so it should have been in a premise\n";
+    // add TRUE_INTRO step for first premise
+    Node conclusion = premises[i].eqNode(nm->mkConst<bool>(true));
+    Debug("eqproof::conv") << "EqProof::maybeAddSymmOrTrueIntroToProof: adding "
+                           << PfRule::TRUE_INTRO << " step for " << premises[i]
+                           << "\n";
+    if (!p->addStep(conclusion, PfRule::TRUE_INTRO, {premises[i]}, {}))
+    {
+      Assert(false) << "EqProof::maybeAddSymmOrTrueIntroToProof: couldn't add "
+                    << PfRule::TRUE_INTRO << " rule\n";
+    }
+    premises[i] = conclusion;
+    // not correctly ordered unless I'm looking for TRUE as the second argument
+    correctlyOrdered = !first;
+  }
+  // no need to reorder
+  if (correctlyOrdered)
+  {
+    return;
+  }
+  // reorder
+  std::vector<Node> symmChildren{premises[i]};
+  Debug("eqproof::conv") << "EqProof::maybeAddSymmOrTrueIntroToProof: adding "
+                         << PfRule::SYMM << " step for " << premises[i] << "\n";
+  Node symmChild = nm->mkNode(kind::EQUAL, premises[i][1], premises[i][0]);
+  if (!p->addStep(symmChild, PfRule::SYMM, symmChildren, {}))
+  {
+    Assert(false) << "EqProof::maybeAddSymmOrTrueIntroToProof: couldn't add "
+                  << PfRule::SYMM << " rule\n";
+  }
+  premises[i] = symmChild;
+}
+
+Node EqProof::addToProof(CDProof* p) const
+{
+  // assumption
+  if (d_id == MERGED_THROUGH_EQUALITY)
+  {
+    Debug("eqproof::conv") << "EqProof::addToProof: adding assumption step for "
+                           << d_node << "\n";
+    std::vector<Node> children;
+    std::vector<Node> args{d_node};
+    if (!p->addStep(d_node, PfRule::ASSUME, children, args))
+    {
+      Assert(false) << "EqProof::addToProof: couldn't add assupmtion\n";
+    }
+    // if non-equality predicate, turn into one via TRUE/FALSE intro
+    Node conclusion = d_node;
+    if (d_node.getKind() != kind::EQUAL)
+    {
+      Assert(children.empty());
+      children.push_back(d_node);
+      PfRule intro;
+      if (d_node.getKind() == kind::NOT)
+      {
+        conclusion =
+            d_node[0].eqNode(NodeManager::currentNM()->mkConst<bool>(false));
+        intro = PfRule::FALSE_INTRO;
+      }
+      else
+      {
+        intro = PfRule::TRUE_INTRO;
+        conclusion =
+            d_node.eqNode(NodeManager::currentNM()->mkConst<bool>(true));
+      }
+      Debug("eqproof::conv") << "EqProof::addToProof: adding " << intro
+                             << " step for " << d_node << "\n";
+      if (!p->addStep(conclusion, intro, children, {}))
+      {
+        Assert(false) << "EqProof::addToProof: couldn't add " << intro
+                      << " rule\n";
+      }
+    }
+    return conclusion;
+  }
+  // refl
+  if (d_id == MERGED_THROUGH_REFLEXIVITY)
+  {
+    Debug("eqproof::conv") << "EqProof::addToProof: adding refl step for "
+                           << d_node << "\n";
+    std::vector<Node> children;
+    Assert(d_node.getKind() == kind::EQUAL);
+    std::vector<Node> args{d_node[0]};
+    if (!p->addStep(d_node, PfRule::REFL, children, args))
+    {
+      Assert(false) << "EqProof::addToProof: couldn't add refl step\n";
+    }
+    return d_node;
+  }
+  // can support case of negative merged throgh constants, but not positive one
+  // yet
+  if (d_id == MERGED_THROUGH_CONSTANTS)
+  {
+    Assert(false) << "Unsupported rule: " << d_id << "\n";
+    return d_node;
+  }
+  if (d_id == MERGED_THROUGH_TRANS)
+  {
+    Debug("eqproof::conv") << "EqProof::addToProof: adding trans step for "
+                           << d_node << "\n";
+    std::vector<Node> children;
+    unsigned size = d_children.size();
+    for (unsigned i = 0; i < size; ++i)
+    {
+      Debug("eqproof::conv")
+          << "EqProof::addToProof: recurse on child " << i << "\n";
+      Debug("eqproof::conv") << push;
+      children.push_back(d_children[i].get()->addToProof(p));
+      Debug("eqproof::conv") << pop;
+    }
+    // conclusion is t1 = tn. Children MUST BE (= t1 t2), ..., (= t{n-1} tn). If
+    // t1 or tn are true or false, then premises may have to be amended with
+    // TRUE/FALSE intro rules. Process children to ensure this
+    maybeAddSymmOrTrueIntroToProof(0, children, true, d_node[0], p);
+    for (unsigned i = 1; i < size - 1; ++i)
+    {
+      Assert(children[i - 1].getKind() == kind::EQUAL);
+      maybeAddSymmOrTrueIntroToProof(i, children, true, children[i - 1][1], p);
+    }
+    maybeAddSymmOrTrueIntroToProof(size - 1, children, false, d_node[1], p);
+    // add step while making sure that all children have been added to the proof
+    if (!p->addStep(d_node, PfRule::TRANS, children, {}, true))
+    {
+      Assert(false) << "EqProof::addToProof: couldn't add trans step\n";
+    }
+    Node conclusion = d_node;
+    // If t1 = tn is of the form (= t true/false), in which t is not true/false,
+    // it must be turned into t or (not t) with TRUE/FALSE_ELIM.
+    if (d_node.getKind() == kind::EQUAL
+        && ((d_node[0].getKind() == kind::CONST_BOOLEAN
+             && d_node[1].getKind() != kind::CONST_BOOLEAN)
+            || (d_node[1].getKind() == kind::CONST_BOOLEAN
+                && d_node[0].getKind() != kind::CONST_BOOLEAN)))
+    {
+      std::vector<Node> elimChildren{d_node};
+      unsigned constIndex = d_node[0].getKind() == kind::CONST_BOOLEAN ? 0 : 1;
+      PfRule elim;
+      if (d_node[1 - constIndex].getConst<bool>())
+      {
+        elim = PfRule::TRUE_ELIM;
+      }
+      else
+      {
+        elim = PfRule::FALSE_ELIM;
+        conclusion = d_node[1 - constIndex].notNode();
+      }
+      Debug("eqproof::conv") << "EqProof::addToProof: adding " << elim
+                             << " step for " << d_node << "\n";
+      if (!p->addStep(conclusion, elim, elimChildren, {}))
+      {
+        Assert(false) << "EqProof::addToProof: couldn't add " << elim
+                      << " rule\n";
+      }
+    }
+    return conclusion;
+  }
+  Assert(d_id == MERGED_THROUGH_CONGRUENCE);
+  Debug("eqproof::conv") << "EqProof::addToProof: adding cong step for "
+                         << d_node << "\n";
+  // congruence steps must be flattened. Currently we are getting
+  //
+  // (CONG (... (CONG P0:(= f f) P1: (= t1 s1)), ...) P:(= tn sn))
+  //
+  // Children: (P1:(= t1 s1), ..., P:(= tn sn))
+  // Arguments: (f)
+  // ---------------------------------------------
+  // Conclusion: (= (f t1 ... tn) (f s1 ... sn))
+  //
+  // iterate over children proofs. first child proof is always bogus
+  NodeManager* nm = NodeManager::currentNM();
+  std::vector<Node> args;
+  Assert(d_node.getKind() == kind::APPLY_UF
+         || d_node.getKind() == kind::PARTIAL_APPLY_UF);
+  args.push_back(d_node.getOperator());
+  std::vector<Node> conclusionRhsArgs;
+  std::vector<Node> children;
+  const EqProof* childProof = this;
+  for (unsigned i = 0, arity = d_node.getNumChildren(); i < arity; ++i)
+  {
+    Assert(childProof->d_children.size() == 2);
+    Debug("eqproof::conv") << "EqProof::addToProof: recurse on second child of "
+                           << i << "-th cong\n";
+    Debug("eqproof::conv") << push;
+    children.insert(children.begin(),
+                    childProof->d_children[1].get()->addToProof(p));
+    // i-th child proof conclusion will be t1 = t2, of which t1 is the (arity -
+    // i)-th argument of d_node and t2 of the term it is congruent to
+    Assert(children[0].getKind() == kind::EQUAL);
+    if (children[0][0] != d_node[arity - (i + 1)])
+    {
+      Debug("eqproof::conv")
+          << "EqProof::addToProof: first argument of equality " << children[0]
+          << " is not the same as argument " << arity - (i + 1)
+          << " of original conclusion " << d_node << ". Add symm step.\n";
+      std::vector<Node> symmChildren{children[0]};
+      Debug("eqproof::conv") << "EqProof::addToProof: adding " << PfRule::SYMM
+                             << " step for " << children[0] << "\n";
+      Node symmChild = nm->mkNode(kind::EQUAL, children[0][1], children[0][0]);
+      if (!p->addStep(symmChild, PfRule::SYMM, symmChildren, {}))
+      {
+        Assert(false) << "EqProof::addToProof: couldn't add " << PfRule::SYMM
+                      << " rule\n";
+      }
+      children[0] = symmChild;
+    }
+    conclusionRhsArgs.insert(conclusionRhsArgs.begin(), children[0][1]);
+    Debug("eqproof::conv") << pop;
+    if (i < arity - 1)
+    {
+      Assert(childProof->d_children[0].get()->d_id
+             == MERGED_THROUGH_CONGRUENCE);
+      childProof = childProof->d_children[0].get();
+    }
+    else
+    {
+      // case of f = f
+      Assert(childProof->d_children[0].get()->d_id
+             == MERGED_THROUGH_REFLEXIVITY);
+    }
+  }
+  // clean d_node
+  Node originalConclusion = d_node;
+  if (d_node.getKind() == kind::PARTIAL_APPLY_UF)
+  {
+    Assert(d_node.getNumChildren() == 1);
+    std::vector<Node> appArgs{args[0], d_node[0]};
+    originalConclusion = nm->mkNode(kind::APPLY_UF, appArgs);
+  }
+  // add operator
+  conclusionRhsArgs.insert(conclusionRhsArgs.begin(), args[0]);
+  // build conclusion
+  Node conclusion = nm->mkNode(kind::EQUAL,
+                               originalConclusion,
+                               nm->mkNode(kind::APPLY_UF, conclusionRhsArgs));
+  if (!p->addStep(conclusion, PfRule::CONG, children, args, true))
+  {
+    Assert(false) << "EqProof::addToProof: couldn't add cong step\n";
+  }
+  if (Debug.isOn("eqproof::conv"))
+  {
+    Debug("eqproof::conv") << "EqProof::addToProof: proof node of "
+                           << conclusion << " is:\n";
+    std::stringstream out;
+    p->getProof(conclusion).get()->printDebug(out);
+    Debug("eqproof::conv") << out.str() << "\n";
+  }
+  return conclusion;
+}
+
 } // Namespace uf
 } // Namespace theory
 } // Namespace CVC4

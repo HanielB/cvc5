@@ -20,6 +20,7 @@
 #include <memory>
 
 #include "expr/node_algorithm.h"
+#include "expr/proof.h"
 #include "options/quantifiers_options.h"
 #include "options/smt_options.h"
 #include "options/theory_options.h"
@@ -293,8 +294,25 @@ void TheoryUF::explain(TNode literal, std::vector<TNode>& assumptions, eq::EqPro
     d_equalityEngine.explainPredicate(atom, polarity, assumptions, pf);
   }
   if( pf ){
-    Debug("pf::uf") << std::endl;
-    pf->debug_print("pf::uf");
+    if (Debug.isOn("pf::uf"))
+    {
+      Debug("pf::uf") << std::endl;
+      pf->debug_print("pf::uf");
+    }
+    // test conversion
+    ProofNodeManager pnm;
+    CDProof p(&pnm);
+    Debug("eqproof::conv") << "Original proof:\n";
+    pf->debug_print("eqproof::conv");
+    Node conclusion = pf->addToProof(&p);
+    Assert(p.getProof(conclusion));
+    if (Debug.isOn("eqproof::conv"))
+    {
+      Debug("eqproof::conv") << "Converted proof of " << conclusion << ":\n";
+      std::stringstream out;
+      p.getProof(conclusion).get()->printDebug(out);
+      Debug("eqproof::conv") << out.str() << "\n";
+    }
   }
 
   Debug("pf::uf") << "UF: explain( " << literal << " ):" << std::endl << "\t";

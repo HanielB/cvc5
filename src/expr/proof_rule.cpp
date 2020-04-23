@@ -25,7 +25,16 @@ const char* toString(PfRule id)
     //================================================= Core rules
     case PfRule::ASSUME: return "ASSUME";
     case PfRule::SCOPE: return "SCOPE";
-
+    //================================================= Equality rules
+    case PfRule::REFL: return "REFL";
+    case PfRule::SYMM: return "SYMM";
+    case PfRule::TRANS: return "TRANS";
+    case PfRule::CONG: return "CONG";
+    case PfRule::THEORY_DISEQUALITY: return "THEORY_DISEQUALITY";
+    case PfRule::TRUE_INTRO: return "TRUE_INTRO";
+    case PfRule::TRUE_ELIM: return "TRUE_ELIM";
+    case PfRule::FALSE_INTRO: return "FALSE_INTRO";
+    case PfRule::FALSE_ELIM: return "FALSE_ELIM";
     //================================================= Unknown rule
     case PfRule::UNKNOWN: return "UNKNOWN";
     default: return "?";

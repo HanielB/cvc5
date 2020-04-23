@@ -30,6 +30,7 @@
 #include "context/cdo.h"
 #include "expr/kind_map.h"
 #include "expr/node.h"
+#include "expr/proof.h"
 #include "theory/rewriter.h"
 #include "theory/theory.h"
 #include "theory/uf/equality_engine_types.h"
@@ -977,6 +978,25 @@ public:
   void debug_print(std::ostream& os,
                    unsigned tb = 0,
                    PrettyPrinter* prettyPrinter = nullptr) const;
+
+  /** Add to proof
+   *
+   * This method adds all of its steps to p via calls to CDProof::addStep.
+   *
+   * This method can be seen as a translation from EqProof to ProofNode. It is
+   * temporary until we update the EqualityEngine to the new proof
+   * infrastructure.
+   *
+   * It returns the node that is the conclusion of the proof as added to p.
+   */
+  Node addToProof(CDProof* p) const;
+
+  void maybeAddSymmOrTrueIntroToProof(unsigned i,
+                                      std::vector<Node>& premises,
+                                      bool first,
+                                      Node termInEq,
+                                      CDProof* p) const;
+
 };/* class EqProof */
 
 } // Namespace eq
