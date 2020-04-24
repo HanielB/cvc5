@@ -19,7 +19,10 @@ namespace CVC4 {
 namespace theory {
 namespace eq {
 
-void EqProof::debug_print(const char* c, unsigned tb, PrettyPrinter* prettyPrinter) const {
+void EqProof::debug_print(const char* c,
+                          unsigned tb,
+                          PrettyPrinter* prettyPrinter) const
+{
   std::stringstream ss;
   debug_print(ss, tb, prettyPrinter);
   Debug(c) << ss.str();
@@ -526,6 +529,6 @@ Node EqProof::addToProof(CDProof* p) const
   return conclusion;
 }
 
-} // Namespace uf
-} // Namespace theory
-} // Namespace CVC4
+}  // namespace eq
+}  // Namespace theory
+}  // Namespace CVC4
