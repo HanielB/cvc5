@@ -991,6 +991,10 @@ public:
    */
   Node addToProof(CDProof* p) const;
 
+ private:
+  void maybeFoldTransitivityChildren(std::vector<Node>& premises,
+                                     CDProof* p) const;
+
   void maybeAddSymmOrTrueIntroToProof(unsigned i,
                                       std::vector<Node>& premises,
                                       bool first,
