@@ -36,10 +36,10 @@ BV)
   finishwith --full-saturate-quant --decision=internal
   ;;
 LIA|LRA)
-  finishwith --full-saturate-quant --cbqi-nested-qe --decision=internal
+  finishwith --full-saturate-quant --cegqi-nested-qe --decision=internal
   ;;
 NIA|NRA)
-  finishwith --full-saturate-quant --cbqi-nested-qe --decision=internal
+  finishwith --full-saturate-quant --cegqi-nested-qe --decision=internal
   ;;
 QF_AUFBV)
   finishwith --decision=justification-stoponly --ite-simp
@@ -66,7 +66,7 @@ QF_ALIA)
   finishwith --decision=justification-stoponly --no-arrays-eager-index --arrays-eager-lemmas
   ;;
 QF_S|QF_SLIA)
-  finishwith --strings-exp --rewrite-divk --lang=smt2.6.1
+  finishwith --strings-exp --rewrite-divk
   ;;
 QF_ABVFP)
   finishwith --fp-exp
