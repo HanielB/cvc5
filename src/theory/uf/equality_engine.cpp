@@ -1176,24 +1176,56 @@ void EqualityEngine::explainEqualityNonBin(TNode t1,
         // BECOME A PREMISE
         //
         // Shouldn't this be recursive?
-        if one of the arguments is a congruence with the equality predicate and another argument is a pure equality
-        if (eqpc->d_id == MERGED_THROUGH_TRANS) {
+
+        // if one of the arguments is a congruence with the equality predicate
+        // and another argument is a pure equality
+        if (eqpc->d_id == MERGED_THROUGH_TRANS)
+        {
+          Node negative_premise = Node::null();
           std::vector<std::shared_ptr<EqProof>> orderedChildren;
           bool nullCongruenceFound = false;
-          for (unsigned j = 0; j < eqpc->d_children.size(); ++j) {
-            if (eqpc->d_children[j]->d_id==MERGED_THROUGH_CONGRUENCE &&
-                eqpc->d_children[j]->d_node.isNull()) {
+          for (unsigned j = 0; j < eqpc->d_children.size(); ++j)
+          {
+            if (eqpc->d_children[j]->d_id == MERGED_THROUGH_CONGRUENCE
+                && eqpc->d_children[j]->d_node.isNull())
+            {
               nullCongruenceFound = true;
-              Debug("pf::ee") << "Have congruence with empty d_node. Splitting..." << std::endl;
-              orderedChildren.insert(orderedChildren.begin(),
-                                     eqpc->d_children[j]->d_children[0]);
-              orderedChildren.push_back(eqpc->d_children[j]->d_children[1]);
-            } else {
+              Debug("pf::ee")
+                  << "Have congruence with empty d_node. Splitting..."
+                  << std::endl;
+              orderedChildren.push_back(orderedChildren.end(),
+                                        eqpc->d_children[j]->d_children.begin(),
+                                        eqpc->d_children[j]->d_children.end());
+            }
+            else
+            {
               orderedChildren.push_back(eqpc->d_children[j]);
             }
+            // check if negative premise (= equality false)
+            if (eqpc->d_children[j]->d_id == MERGED_THROUGH_EQUALITY
+                && eqpc->d_children[j]->d_node.getKind() == kind::EQUAL)
+            {
+              if (eqpc->d_children[j]->d_node[0] == d_false)
+              {
+                negative_premise = eqpc->d_children[j]->d_node[1];
+                Assert(negative_premise.getKind() == kind::EQUAL);
+              }
+              else if (eqpc->d_children[j]->d_node[1] == d_false)
+              {
+                negative_premise = eqpc->d_children[j]->d_node[0];
+                Assert(negative_premise.getKind() == kind::EQUAL);
+              }
+            }
           }
-
-          if (nullCongruenceFound) {
+          Assert(!nullCongruenceFound
+                 || d_nodes[toExplain.first].getKind() == kind::EQUAL);
+          Assert(!nullCongruenceFound || !negative_premise.isNull());
+          if (nullCongruenceFound)
+          {
+            // The negative premise goes to conclusion
+            eqpc->d_node = negative_premise;
+             conclusion goes to children, by its negation, i.e., the positive
+            // equality, being justified.
             eqpc->d_children = orderedChildren;
             if (Debug.isOn("pf::ee"))
             {

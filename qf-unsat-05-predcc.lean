@@ -19,7 +19,8 @@ open smt.sort smt.term
 @[simp] def let13 := mkNot let11
 @[simp] def let15 := mkNot let10
 
-#eval [let7, let15, let9]
+#eval [let13, let15, let9]
+#eval [let7, let5]
 #eval [let7, mkNot let2, let4]
 #eval [let12]
 noncomputable theorem main :
