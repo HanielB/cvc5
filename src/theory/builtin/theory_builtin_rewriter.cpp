@@ -105,7 +105,7 @@ RewriteResponse TheoryBuiltinRewriter::postRewrite(TNode node) {
       }
     }
     return RewriteResponse(REWRITE_DONE, node);
-  }else{ 
+  }else{
     return doRewrite(node);
   }
 }
@@ -138,7 +138,7 @@ TypeNode TheoryBuiltinRewriter::getArrayTypeForFunctionType(TypeNode ftn)
   return ret;
 }
 
-Node TheoryBuiltinRewriter::getLambdaForArrayRepresentationRec( TNode a, TNode bvl, unsigned bvlIndex, 
+Node TheoryBuiltinRewriter::getLambdaForArrayRepresentationRec( TNode a, TNode bvl, unsigned bvlIndex,
                                                                 std::unordered_map< TNode, Node, TNodeHashFunction >& visited ){
   std::unordered_map< TNode, Node, TNodeHashFunction >::iterator it = visited.find( a );
   if( it==visited.end() ){
@@ -249,16 +249,25 @@ Node TheoryBuiltinRewriter::getArrayRepresentationForLambdaRec(TNode n,
       //      lambda x. (ite (= x v1) true [...])
       //
       //  (2) lambda x. (not (= x v1)) ^ ... becomes
-      //      lambda x. (ite (= x v1) true [...])
+      //      lambda x. (ite (= x v1) false [...])
       //
-      // Note the negateg cases of the lhs of the OR/AND operators above are
+      // Note the negated cases of the lhs of the OR/AND operators above are
       // handled by pushing the recursion to the then-branch, with the
-      // else-branch being the constant value.
+      // else-branch being the constant value. For example, the negated (1)
+      // would be
+      //  (1') lambda x. (not (= x v1)) v ... becomes
+      //       lambda x. (ite (= x v1) [...] true)
+      // thus requiring the rest of the disjunction to be further processed in
+      // the then-branch as the current value.
       bool pol = curr[0].getKind() != kind::NOT;
       bool inverted = (pol && ck == kind::AND) || (!pol && ck == kind::OR);
       index_eq = pol ? curr[0] : curr[0][0];
+      // processed : the value that is determined by the first child of curr
+      // remainder : the remaining children of curr
       Node processed, remainder;
-      processed = nm->mkConst(pol && !inverted);
+      // the value is the polarity of the first child or its inverse if we are
+      // in the inverted case
+      processed = nm->mkConst(!inverted? pol : !pol);
       // build an OR/AND with the remaining components
       if (curr.getNumChildren() == 2)
       {
@@ -273,6 +282,9 @@ Node TheoryBuiltinRewriter::getArrayRepresentationForLambdaRec(TNode n,
       {
         curr_val = remainder;
         next = processed;
+        // If the lambda contains more variables than the one being currently
+        // processed, the current value can be non-constant, since it'll be
+        // processed recursively below. Otherwise we fail.
         if (rec_bvl.isNull() && !curr_val.isConst())
         {
           Trace("builtin-rewrite-debug2")
@@ -295,7 +307,7 @@ Node TheoryBuiltinRewriter::getArrayRepresentationForLambdaRec(TNode n,
           << "  process base : " << curr << std::endl;
       // Simple Boolean return cases, in which
       //  (1) lambda x. (= x v) becomes lambda x. (ite (= x v) true false)
-      //  (2) lambda x. v becomes lambda x. (ite (= v true) true false)
+      //  (2) lambda x. v becomes lambda x. (ite (= x v) true false)
       // Note the negateg cases of the bodies above are also handled.
       bool pol = ck != kind::NOT;
       index_eq = pol ? curr : curr[0];
@@ -397,7 +409,7 @@ Node TheoryBuiltinRewriter::getArrayRepresentationForLambdaRec(TNode n,
         << "  process remainder : " << curr << std::endl;
   }
   if( !rec_bvl.isNull() ){
-    curr = nm->mkNode( kind::LAMBDA, rec_bvl, curr );
+    curr = nm->mkNode(kind::LAMBDA, rec_bvl, curr);
     Trace("builtin-rewrite-debug") << push;
     Trace("builtin-rewrite-debug2") << push;
     curr = getArrayRepresentationForLambdaRec(curr, retType);
@@ -414,8 +426,8 @@ Node TheoryBuiltinRewriter::getArrayRepresentationForLambdaRec(TNode n,
     }
     Trace("builtin-rewrite-debug2") << "  make array store all " << curr.getType() << " annotated : " << array_type << std::endl;
     Assert(curr.getType().isSubtypeOf(array_type.getArrayConstituentType()));
-    curr = nm->mkConst(ArrayStoreAll(
-        (static_cast<ArrayType>(array_type.toType())), curr.toExpr()));
+    curr = nm->mkConst(
+        ArrayStoreAll((ArrayType(array_type.toType())), curr.toExpr()));
     Trace("builtin-rewrite-debug2") << "  build array..." << std::endl;
     // can only build if default value is constant (since array store all must be constant)
     Trace("builtin-rewrite-debug2") << "  got constant base " << curr << std::endl;
@@ -431,7 +443,7 @@ Node TheoryBuiltinRewriter::getArrayRepresentationForLambdaRec(TNode n,
     return curr;
   }else{
     Trace("builtin-rewrite-debug") << "...failed to get array (cannot get constant default value)" << std::endl;
-    return Node::null();    
+    return Node::null();
   }
 }
 
