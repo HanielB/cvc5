@@ -132,7 +132,7 @@ Node BVToBool::convertBvAtom(TNode node)
   Node a = convertBvTerm(node[0]);
   Node b = convertBvTerm(node[1]);
   Node result = NodeManager::currentNM()->mkNode(kind::EQUAL, a, b);
-  Debug("bv-to-bool") << "BVToBool::convertBvAtom " << node << " => " << result
+  Trace("bv-to-bool") << "BVToBool::convertBvAtom " << node << " => " << result
                       << "\n";
 
   ++(d_statistics.d_numAtomsLifted);
@@ -153,7 +153,7 @@ Node BVToBool::convertBvTerm(TNode node)
     ++(d_statistics.d_numTermsForcedLifted);
     Node result = nm->mkNode(kind::EQUAL, node, d_one);
     addToBoolCache(node, result);
-    Debug("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
+    Trace("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
                         << result << "\n";
     return result;
   }
@@ -163,7 +163,7 @@ Node BVToBool::convertBvTerm(TNode node)
     Assert(node.getKind() == kind::CONST_BITVECTOR);
     Node result = node == d_one ? bv::utils::mkTrue() : bv::utils::mkFalse();
     // addToCache(node, result);
-    Debug("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
+    Trace("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
                         << result << "\n";
     return result;
   }
@@ -178,7 +178,7 @@ Node BVToBool::convertBvTerm(TNode node)
     Node false_branch = convertBvTerm(node[2]);
     Node result = nm->mkNode(kind::ITE, cond, true_branch, false_branch);
     addToBoolCache(node, result);
-    Debug("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
+    Trace("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
                         << result << "\n";
     return result;
   }
@@ -195,7 +195,7 @@ Node BVToBool::convertBvTerm(TNode node)
       Node converted = convertBvTerm(node[i]);
       result = nm->mkNode(kind::XOR, result, converted);
     }
-    Debug("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
+    Trace("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
                         << result << "\n";
     return result;
   }
@@ -204,7 +204,7 @@ Node BVToBool::convertBvTerm(TNode node)
   {
     Node result = nm->mkNode(kind::EQUAL, node[0], node[1]);
     addToBoolCache(node, result);
-    Debug("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
+    Trace("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => "
                         << result << "\n";
     return result;
   }
@@ -225,7 +225,7 @@ Node BVToBool::convertBvTerm(TNode node)
 
   Node result = builder;
   addToBoolCache(node, result);
-  Debug("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => " << result
+  Trace("bv-to-bool") << "BVToBool::convertBvTerm " << node << " => " << result
                       << "\n";
   return result;
 }
@@ -269,7 +269,7 @@ Node BVToBool::liftNode(TNode current)
   }
   Assert(result != Node());
   Assert(result.getType() == current.getType());
-  Debug("bv-to-bool") << "BVToBool::liftNode " << current << " => \n"
+  Trace("bv-to-bool") << "BVToBool::liftNode " << current << " => \n"
                       << result << "\n";
   return result;
 }

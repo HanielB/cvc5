@@ -47,7 +47,7 @@ ${typerules}
 #line 48 "${template}"
 
   default:
-    Debug("getType") << "FAILURE" << std::endl;
+    Trace("getType") << "FAILURE" << std::endl;
     Unhandled() << n.getKind();
   }
 

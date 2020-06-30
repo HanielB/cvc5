@@ -77,7 +77,7 @@ theory::LemmaStatus EngineOutputChannel::lemma(TNode lemma,
                                                bool preprocess,
                                                bool sendAtoms)
 {
-  Debug("theory::lemma") << "EngineOutputChannel<" << d_theory << ">::lemma("
+  Trace("theory::lemma") << "EngineOutputChannel<" << d_theory << ">::lemma("
                          << lemma << ")"
                          << ", preprocess = " << preprocess << std::endl;
   ++d_statistics.lemmas;
@@ -228,12 +228,12 @@ void EngineOutputChannel::registerLemmaRecipe(Node lemma,
 
 theory::LemmaStatus EngineOutputChannel::splitLemma(TNode lemma, bool removable)
 {
-  Debug("theory::lemma") << "EngineOutputChannel<" << d_theory << ">::lemma("
+  Trace("theory::lemma") << "EngineOutputChannel<" << d_theory << ">::lemma("
                          << lemma << ")" << std::endl;
   ++d_statistics.lemmas;
   d_engine->d_outputChannelUsed = true;
 
-  Debug("pf::explain") << "EngineOutputChannel::splitLemma( " << lemma << " )"
+  Trace("pf::explain") << "EngineOutputChannel::splitLemma( " << lemma << " )"
                        << std::endl;
   TrustNode tlem = TrustNode::mkTrustLemma(lemma);
   theory::LemmaStatus result = d_engine->lemma(
@@ -243,7 +243,7 @@ theory::LemmaStatus EngineOutputChannel::splitLemma(TNode lemma, bool removable)
 
 bool EngineOutputChannel::propagate(TNode literal)
 {
-  Debug("theory::propagate") << "EngineOutputChannel<" << d_theory
+  Trace("theory::propagate") << "EngineOutputChannel<" << d_theory
                              << ">::propagate(" << literal << ")" << std::endl;
   ++d_statistics.propagations;
   d_engine->d_outputChannelUsed = true;
@@ -278,7 +278,7 @@ void EngineOutputChannel::demandRestart()
 
 void EngineOutputChannel::requirePhase(TNode n, bool phase)
 {
-  Debug("theory") << "EngineOutputChannel::requirePhase(" << n << ", " << phase
+  Trace("theory") << "EngineOutputChannel::requirePhase(" << n << ", " << phase
                   << ")" << std::endl;
   ++d_statistics.requirePhase;
   d_engine->getPropEngine()->requirePhase(n, phase);

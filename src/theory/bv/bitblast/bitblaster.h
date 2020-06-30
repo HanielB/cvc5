@@ -241,7 +241,7 @@ Node TBitblaster<T>::getTermModel(TNode node, bool fullModel)
   Node value = getModelFromSatSolver(node, false);
   if (!value.isNull())
   {
-    Debug("bv-equality-status")
+    Trace("bv-equality-status")
         << "TLazyBitblaster::getTermModel from SatSolver" << node << " => "
         << value << "\n";
     d_modelCache[node] = value;
@@ -253,7 +253,7 @@ Node TBitblaster<T>::getTermModel(TNode node, bool fullModel)
   {
     // if it is a leaf may ask for fullModel
     value = getModelFromSatSolver(node, true);
-    Debug("bv-equality-status") << "TLazyBitblaster::getTermModel from VarValue"
+    Trace("bv-equality-status") << "TLazyBitblaster::getTermModel from VarValue"
                                 << node << " => " << value << "\n";
     Assert((fullModel && !value.isNull() && value.isConst()) || !fullModel);
     if (!value.isNull())
@@ -278,7 +278,7 @@ Node TBitblaster<T>::getTermModel(TNode node, bool fullModel)
   value = Rewriter::rewrite(value);
   Assert(value.isConst());
   d_modelCache[node] = value;
-  Debug("bv-term-model") << "TLazyBitblaster::getTermModel Building Value"
+  Trace("bv-term-model") << "TLazyBitblaster::getTermModel Building Value"
                          << node << " => " << value << "\n";
   return value;
 }

@@ -49,7 +49,7 @@ class NormalForm {
   }
 
   static bool checkNormalConstant(TNode n) {
-    Debug("sets-checknormal") << "[sets-checknormal] checkNormal " << n << " :"
+    Trace("sets-checknormal") << "[sets-checknormal] checkNormal " << n << " :"
                               << std::endl;
     if (n.getKind() == kind::EMPTYSET) {
       return true;
@@ -62,7 +62,7 @@ class NormalForm {
       // store BiggestNodeId in prvs
       if (n[1].getKind() != kind::SINGLETON) return false;
       if (!n[1][0].isConst()) return false;
-      Debug("sets-checknormal")
+      Trace("sets-checknormal")
           << "[sets-checknormal]              frst element = " << n[1][0] << " "
           << n[1][0].getId() << std::endl;
       TNode prvs = n[1][0];
@@ -72,7 +72,7 @@ class NormalForm {
       while (n.getKind() == kind::UNION) {
         if (n[1].getKind() != kind::SINGLETON) return false;
         if (!n[1].isConst()) return false;
-        Debug("sets-checknormal")
+        Trace("sets-checknormal")
             << "[sets-checknormal]              element = " << n[1][0] << " "
             << n[1][0].getId() << std::endl;
         if (n[1][0] >= prvs) return false;
@@ -83,7 +83,7 @@ class NormalForm {
       // check SmallestNodeID is smallest
       if (n.getKind() != kind::SINGLETON) return false;
       if (!n[0].isConst()) return false;
-      Debug("sets-checknormal")
+      Trace("sets-checknormal")
           << "[sets-checknormal]              lst element = " << n[0] << " "
           << n[0].getId() << std::endl;
       if (n[0] >= prvs) return false;

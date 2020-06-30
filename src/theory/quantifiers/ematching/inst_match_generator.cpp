@@ -1099,7 +1099,7 @@ int InstMatchGeneratorSimple::addInstantiations(Node q,
       tat = nullptr;
     }
   }
-  Debug("simple-trigger-debug") << "Adding instantiations based on " << tat << " from " << d_op << " " << d_eqc << std::endl;
+  Trace("simple-trigger-debug") << "Adding instantiations based on " << tat << " from " << d_op << " " << d_eqc << std::endl;
   if (tat && !qe->inConflict())
   {
     InstMatch m( q );
@@ -1114,12 +1114,12 @@ void InstMatchGeneratorSimple::addInstantiations(InstMatch& m,
                                                  unsigned argIndex,
                                                  TNodeTrie* tat)
 {
-  Debug("simple-trigger-debug") << "Add inst " << argIndex << " " << d_match_pattern << std::endl;
+  Trace("simple-trigger-debug") << "Add inst " << argIndex << " " << d_match_pattern << std::endl;
   if (argIndex == d_match_pattern.getNumChildren())
   {
     Assert(!tat->d_data.empty());
     TNode t = tat->getData();
-    Debug("simple-trigger") << "Actual term is " << t << std::endl;
+    Trace("simple-trigger") << "Actual term is " << t << std::endl;
     //convert to actual used terms
     for (std::map<unsigned, int>::iterator it = d_var_num.begin();
          it != d_var_num.end();
@@ -1127,7 +1127,7 @@ void InstMatchGeneratorSimple::addInstantiations(InstMatch& m,
     {
       if( it->second>=0 ){
         Assert(it->first < t.getNumChildren());
-        Debug("simple-trigger") << "...set " << it->second << " " << t[it->first] << std::endl;
+        Trace("simple-trigger") << "...set " << it->second << " " << t[it->first] << std::endl;
         m.setValue( it->second, t[it->first] );
       }
     }
@@ -1136,7 +1136,7 @@ void InstMatchGeneratorSimple::addInstantiations(InstMatch& m,
     if (qe->getInstantiate()->addInstantiation(d_quant, m))
     {
       addedLemmas++;
-      Debug("simple-trigger") << "-> Produced instantiation " << m << std::endl;
+      Trace("simple-trigger") << "-> Produced instantiation " << m << std::endl;
     }
   }else{
     if( d_match_pattern[argIndex].getKind()==INST_CONSTANT ){

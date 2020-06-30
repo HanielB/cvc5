@@ -331,7 +331,7 @@ std::pair<ConstraintP, ConstraintP> ArithVariables::explainEqualBounds(ArithVar 
 }
 
 void ArithVariables::setAssignment(ArithVar x, const DeltaRational& r){
-  Debug("partial_model") << "pm: updating the assignment to" << x
+  Trace("partial_model") << "pm: updating the assignment to" << x
                          << " now " << r <<endl;
   VarInfo& vi = d_vars.get(x);
   if(!d_safeAssignment.isKey(x)){
@@ -346,7 +346,7 @@ void ArithVariables::setAssignment(ArithVar x, const DeltaRational& r){
 }
 
 void ArithVariables::setAssignment(ArithVar x, const DeltaRational& safe, const DeltaRational& r){
-  Debug("partial_model") << "pm: updating the assignment to" << x
+  Trace("partial_model") << "pm: updating the assignment to" << x
                          << " now " << r <<endl;
   if(safe == r){
     if(d_safeAssignment.isKey(x)){
@@ -436,7 +436,7 @@ void ArithVariables::setLowerBoundConstraint(ConstraintP c){
   AssertArgument(c->isEquality() || c->isLowerBound(),
                  "Constraint type must be set to an equality or UpperBound.");
   ArithVar x = c->getVariable();
-  Debug("partial_model") << "setLowerBoundConstraint(" << x << ":" << c << ")" << endl;
+  Trace("partial_model") << "setLowerBoundConstraint(" << x << ":" << c << ")" << endl;
   Assert(inMaps(x));
   Assert(greaterThanLowerBound(x, c->getValue()));
 
@@ -455,7 +455,7 @@ void ArithVariables::setUpperBoundConstraint(ConstraintP c){
                  "Constraint type must be set to an equality or UpperBound.");
 
   ArithVar x = c->getVariable();
-  Debug("partial_model") << "setUpperBoundConstraint(" << x << ":" << c << ")" << endl;
+  Trace("partial_model") << "setUpperBoundConstraint(" << x << ":" << c << ")" << endl;
   Assert(inMaps(x));
   Assert(lessThanUpperBound(x, c->getValue()));
 
@@ -588,7 +588,7 @@ void ArithVariables::printModel(ArithVar x, std::ostream& out) const{
 }
 
 void ArithVariables::printModel(ArithVar x) const{
-  printModel(x,  Debug("model"));
+  printModel(x,  Trace("model"));
 }
 
 void ArithVariables::pushUpperBound(VarInfo& vi){

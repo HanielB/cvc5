@@ -89,10 +89,10 @@ CryptoMinisatSolver::~CryptoMinisatSolver() {}
 ClauseId CryptoMinisatSolver::addXorClause(SatClause& clause,
 				       bool rhs,
 				       bool removable) {
-  Debug("sat::cryptominisat") << "Add xor clause " << clause <<" = " << rhs << "\n";
+  Trace("sat::cryptominisat") << "Add xor clause " << clause <<" = " << rhs << "\n";
 
   if (!d_okay) {
-    Debug("sat::cryptominisat") << "Solver unsat: not adding clause.\n";
+    Trace("sat::cryptominisat") << "Solver unsat: not adding clause.\n";
     return ClauseIdError;
   }
 
@@ -111,10 +111,10 @@ ClauseId CryptoMinisatSolver::addXorClause(SatClause& clause,
 }
 
 ClauseId CryptoMinisatSolver::addClause(SatClause& clause, bool removable){
-  Debug("sat::cryptominisat") << "Add clause " << clause <<"\n";
+  Trace("sat::cryptominisat") << "Add clause " << clause <<"\n";
 
   if (!d_okay) {
-    Debug("sat::cryptominisat") << "Solver unsat: not adding clause.\n";
+    Trace("sat::cryptominisat") << "Solver unsat: not adding clause.\n";
     return ClauseIdError;
   }
 

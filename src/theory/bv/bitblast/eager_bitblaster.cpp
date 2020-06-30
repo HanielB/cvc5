@@ -107,7 +107,7 @@ void EagerBitblaster::bbAtom(TNode node)
     return;
   }
 
-  Debug("bitvector-bitblast") << "Bitblasting node " << node << "\n";
+  Trace("bitvector-bitblast") << "Bitblasting node " << node << "\n";
 
   // the bitblasted definition of the atom
   Node normalized = Rewriter::rewrite(node);
@@ -158,7 +158,7 @@ void EagerBitblaster::bbTerm(TNode node, Bits& bits) {
   }
 
   d_bv->spendResource(ResourceManager::Resource::BitblastStep);
-  Debug("bitvector-bitblast") << "Bitblasting node " << node << "\n";
+  Trace("bitvector-bitblast") << "Bitblasting node " << node << "\n";
 
   d_termBBStrategies[node.getKind()](node, bits, this);
 
@@ -187,7 +187,7 @@ bool EagerBitblaster::solve() {
   if (Trace.isOn("bitvector")) {
     Trace("bitvector") << "EagerBitblaster::solve(). \n";
   }
-  Debug("bitvector") << "EagerBitblaster::solve(). \n";
+  Trace("bitvector") << "EagerBitblaster::solve(). \n";
   // TODO: clear some memory
   // if (something) {
   //   NodeManager* nm= NodeManager::currentNM();
@@ -260,7 +260,7 @@ bool EagerBitblaster::collectModelInfo(TheoryModel* m, bool fullModel)
       Node const_value = getModelFromSatSolver(var, true);
 
       if (const_value != Node()) {
-        Debug("bitvector-model")
+        Trace("bitvector-model")
             << "EagerBitblaster::collectModelInfo (assert (= " << var << " "
             << const_value << "))\n";
         if (!m->assertEquality(var, const_value, true))

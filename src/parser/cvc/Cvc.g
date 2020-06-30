@@ -412,14 +412,14 @@ unsigned findPivot(const std::vector<unsigned>& operators,
                    unsigned startIndex, unsigned stopIndex) {
   unsigned pivot = startIndex;
   unsigned pivotRank = getOperatorPrecedence(operators[pivot]);
-  /*Debug("prec") << "initial pivot at " << pivot
+  /*Trace("prec") << "initial pivot at " << pivot
                 << "(" << CvcParserTokenNames[operators[pivot]] << ") "
                 << "level " << pivotRank << std::endl;*/
   for(unsigned i = startIndex + 1; i <= stopIndex; ++i) {
     unsigned current = getOperatorPrecedence(operators[i]);
     bool rtl = isRightToLeft(operators[i]);
     if(current > pivotRank || (current == pivotRank && !rtl)) {
-      /*Debug("prec") << "new pivot at " << i
+      /*Trace("prec") << "new pivot at " << i
                     << "(" << CvcParserTokenNames[operators[i]] << ") "
                     << "level " << current << " rtl == " << rtl << std::endl;*/
       pivot = i;
@@ -443,7 +443,7 @@ CVC4::api::Term createPrecedenceTree(Parser* parser, api::Solver* solver,
   }
 
   unsigned pivot = findPivot(operators, startIndex, stopIndex - 1);
-  //Debug("prec") << "pivot[" << startIndex << "," << stopIndex - 1 << "] at " << pivot << std::endl;
+  //Trace("prec") << "pivot[" << startIndex << "," << stopIndex - 1 << "] at " << pivot << std::endl;
   bool negate;
   api::Kind k = getOperatorKind(operators[pivot], negate);
   CVC4::api::Term lhs = createPrecedenceTree(
@@ -478,21 +478,21 @@ CVC4::api::Term createPrecedenceTree(Parser* parser, api::Solver* solver,
 api::Term createPrecedenceTree(Parser* parser, api::Solver* s,
                           const std::vector<CVC4::api::Term>& expressions,
                           const std::vector<unsigned>& operators) {
-  if(Debug.isOn("prec") && operators.size() > 1) {
+  if(Trace.isOn("prec") && operators.size() > 1) {
     for(unsigned i = 0; i < expressions.size(); ++i) {
-      Debug("prec") << expressions[i];
+      Trace("prec") << expressions[i];
       if(operators.size() > i) {
-        Debug("prec") << ' ' << CvcParserTokenNames[operators[i]] << ' ';
+        Trace("prec") << ' ' << CvcParserTokenNames[operators[i]] << ' ';
       }
     }
-    Debug("prec") << std::endl;
+    Trace("prec") << std::endl;
   }
 
   api::Term e = createPrecedenceTree(
       parser, s, expressions, operators, 0, expressions.size() - 1);
-  if(Debug.isOn("prec") && operators.size() > 1) {
-    language::SetLanguage::Scope ls(Debug("prec"), language::output::LANG_AST);
-    Debug("prec") << "=> " << e << std::endl;
+  if(Trace.isOn("prec") && operators.size() > 1) {
+    language::SetLanguage::Scope ls(Trace("prec"), language::output::LANG_AST);
+    Trace("prec") << "=> " << e << std::endl;
   }
   return e;
 }/* createPrecedenceTree() base variant */
@@ -690,7 +690,7 @@ mainCommand[std::unique_ptr<CVC4::Command>* cmd]
   std::string id;
   api::Sort t;
   std::vector<CVC4::api::DatatypeDecl> dts;
-  Debug("parser-extra") << "command: " << AntlrInput::tokenText(LT(1)) << std::endl;
+  Trace("parser-extra") << "command: " << AntlrInput::tokenText(LT(1)) << std::endl;
   std::string s;
   api::Term func;
   std::vector<api::Term> bvs;
@@ -978,7 +978,7 @@ toplevelDeclaration[std::unique_ptr<CVC4::Command>* cmd]
 @init {
   std::vector<std::string> ids;
   api::Sort t;
-  Debug("parser-extra") << "declaration: " << AntlrInput::tokenText(LT(1))
+  Trace("parser-extra") << "declaration: " << AntlrInput::tokenText(LT(1))
                         << std::endl;
 }
   : identifierList[ids,CHECK_NONE,SYM_VARIABLE] COLON
@@ -1088,7 +1088,7 @@ declareVariables[std::unique_ptr<CVC4::Command>* cmd, CVC4::api::Sort& t,
                  const std::vector<std::string>& idList, bool topLevel]
 @init {
   api::Term f;
-  Debug("parser-extra") << "declType: " << AntlrInput::tokenText(LT(1)) << std::endl;
+  Trace("parser-extra") << "declType: " << AntlrInput::tokenText(LT(1)) << std::endl;
 }
     /* A variable declaration (or definition) */
   : type[t,CHECK_DECLARED] ( EQUAL_TOK formula[f] )?
@@ -1097,7 +1097,7 @@ declareVariables[std::unique_ptr<CVC4::Command>* cmd, CVC4::api::Sort& t,
         seq.reset(new DeclarationSequence());
       }
       if(f.isNull()) {
-        Debug("parser") << "working on " << idList.front() << " : " << t
+        Trace("parser") << "working on " << idList.front() << " : " << t
                         << std::endl;
         // CVC language allows redeclaration of variables if types are the same
         for(std::vector<std::string>::const_iterator i = idList.begin(),
@@ -1106,7 +1106,7 @@ declareVariables[std::unique_ptr<CVC4::Command>* cmd, CVC4::api::Sort& t,
             ++i) {
           if(PARSER_STATE->isDeclared(*i, SYM_VARIABLE)) {
             api::Sort oldType = PARSER_STATE->getVariable(*i).getSort();
-            Debug("parser") << "  " << *i << " was declared previously "
+            Trace("parser") << "  " << *i << " was declared previously "
                             << "with type " << oldType << std::endl;
             if(oldType != t) {
               std::stringstream ss;
@@ -1116,11 +1116,11 @@ declareVariables[std::unique_ptr<CVC4::Command>* cmd, CVC4::api::Sort& t,
                  << "  new type: " << t << std::endl;
               PARSER_STATE->parseError(ss.str());
             } else {
-              Debug("parser") << "  types " << t << " and " << oldType
+              Trace("parser") << "  types " << t << " and " << oldType
                               << " are compatible" << std::endl;
             }
           } else {
-            Debug("parser") << "  " << *i << " not declared" << std::endl;
+            Trace("parser") << "  " << *i << " not declared" << std::endl;
             if(topLevel) {
               api::Term func =
                   PARSER_STATE->bindVar(*i, t, ExprManager::VAR_FLAG_GLOBAL);
@@ -1148,7 +1148,7 @@ declareVariables[std::unique_ptr<CVC4::Command>* cmd, CVC4::api::Sort& t,
               i_end = idList.end();
             i != i_end;
             ++i) {
-          Debug("parser") << "making " << *i << " : " << t << " = " << f << std::endl;
+          Trace("parser") << "making " << *i << " : " << t << " = " << f << std::endl;
           PARSER_STATE->checkDeclaration(*i, CHECK_UNDECLARED, SYM_VARIABLE);
           api::Term func = PARSER_STATE->mkVar(
               *i,
@@ -1282,7 +1282,7 @@ restrictedTypePossiblyFunctionLHS[CVC4::api::Sort& t,
     {
       if(check == CHECK_DECLARED ||
          PARSER_STATE->isDeclared(id, SYM_SORT)) {
-        Debug("parser-param") << "param: getSort " << id << " " << types.size() << " " << PARSER_STATE->getArity( id )
+        Trace("parser-param") << "param: getSort " << id << " " << types.size() << " " << PARSER_STATE->getArity( id )
                               << " " << PARSER_STATE->isDeclared(id, SYM_SORT) << std::endl;
         if(types.size() != PARSER_STATE->getArity(id)) {
           std::stringstream ss;
@@ -1299,11 +1299,11 @@ restrictedTypePossiblyFunctionLHS[CVC4::api::Sort& t,
       } else {
         if(types.empty()) {
           t = PARSER_STATE->mkUnresolvedType(id);
-          Debug("parser-param") << "param: make unres type " << id << std::endl;
+          Trace("parser-param") << "param: make unres type " << id << std::endl;
         }else{
           t = PARSER_STATE->mkUnresolvedTypeConstructor(id,types);
           t = t.instantiate( types );
-          Debug("parser-param") << "param: make unres param type " << id << " " << types.size() << " "
+          Trace("parser-param") << "param: make unres param type " << id << " " << types.size() << " "
                                 << PARSER_STATE->getArity( id ) << std::endl;
         }
       }
@@ -1380,8 +1380,8 @@ parameterization[CVC4::parser::DeclarationCheck check,
 @init {
   api::Sort t;
 }
-  : LBRACKET restrictedType[t,check] { Debug("parser-param") << "t = " << t << std::endl; params.push_back( t ); }
-    ( COMMA restrictedType[t,check] { Debug("parser-param") << "t = " << t << std::endl; params.push_back( t ); } )* RBRACKET
+  : LBRACKET restrictedType[t,check] { Trace("parser-param") << "t = " << t << std::endl; params.push_back( t ); }
+    ( COMMA restrictedType[t,check] { Trace("parser-param") << "t = " << t << std::endl; params.push_back( t ); } )* RBRACKET
   ;
 
 bound
@@ -1407,7 +1407,7 @@ typeLetDecl[CVC4::parser::DeclarationCheck check]
  */
 formula[CVC4::api::Term& f]
 @init {
-  Debug("parser-extra") << "formula: " << AntlrInput::tokenText(LT(1)) << std::endl;
+  Trace("parser-extra") << "formula: " << AntlrInput::tokenText(LT(1)) << std::endl;
   api::Term f2;
   std::vector<CVC4::api::Term> expressions;
   std::vector<unsigned> operators;
@@ -1531,10 +1531,10 @@ letDecl
 }
   : identifier[name,CHECK_NONE,SYM_VARIABLE] EQUAL_TOK formula[e]
     {
-      Debug("parser") << language::SetLanguage(language::output::LANG_CVC4)
+      Trace("parser") << language::SetLanguage(language::output::LANG_CVC4)
                       << e.getSort() << std::endl;
       PARSER_STATE->defineVar(name, e);
-      Debug("parser") << "LET[" << PARSER_STATE->scopeLevel() << "]: "
+      Trace("parser") << "LET[" << PARSER_STATE->scopeLevel() << "]: "
                       << name << std::endl
                       << " ==>" << " " << e << std::endl;
     }
@@ -1807,8 +1807,8 @@ postfixTerm[CVC4::api::Term& f]
       {
         PARSER_STATE->checkFunctionLike(args.front());
         api::Kind kind = PARSER_STATE->getKindForFunction(args.front());
-        Debug("parser") << "expr is " << args.front() << std::endl;
-        Debug("parser") << "kind is " << kind << std::endl;
+        Trace("parser") << "expr is " << args.front() << std::endl;
+        Trace("parser") << "kind is " << kind << std::endl;
         f = SOLVER->mkTerm(kind,args);
       }
 
@@ -2111,7 +2111,7 @@ simpleTerm[CVC4::api::Term& f]
   std::vector<api::Term> args;
   std::vector<std::string> names;
   api::Term e;
-  Debug("parser-extra") << "term: " << AntlrInput::tokenText(LT(1)) << std::endl;
+  Trace("parser-extra") << "term: " << AntlrInput::tokenText(LT(1)) << std::endl;
   api::Sort t, t2;
 }
     /* if-then-else */
@@ -2292,7 +2292,7 @@ recordEntry[std::string& name, CVC4::api::Term& ex]
 iteTerm[CVC4::api::Term& f]
 @init {
   std::vector<api::Term> args;
-  Debug("parser-extra") << "ite: " << AntlrInput::tokenText(LT(1)) << std::endl;
+  Trace("parser-extra") << "ite: " << AntlrInput::tokenText(LT(1)) << std::endl;
 }
   : IF_TOK formula[f] { args.push_back(f); }
     THEN_TOK formula[f] { args.push_back(f); }
@@ -2307,7 +2307,7 @@ iteTerm[CVC4::api::Term& f]
 iteElseTerm[CVC4::api::Term& f]
 @init {
   std::vector<api::Term> args;
-  Debug("parser-extra") << "else: " << AntlrInput::tokenText(LT(1)) << std::endl;
+  Trace("parser-extra") << "else: " << AntlrInput::tokenText(LT(1)) << std::endl;
 }
   : ELSE_TOK formula[f]
   | ELSEIF_TOK iteCondition = formula[f] { args.push_back(f); }
@@ -2371,7 +2371,7 @@ constructorDef[CVC4::api::DatatypeDecl& type]
     )?
     { // make the constructor
       type.addConstructor(*ctor.get());
-      Debug("parser-idt") << "constructor: " << id.c_str() << std::endl;
+      Trace("parser-idt") << "constructor: " << id.c_str() << std::endl;
     }
   ;
 
@@ -2383,7 +2383,7 @@ selector[std::unique_ptr<CVC4::api::DatatypeConstructorDecl>* ctor]
   : identifier[id,CHECK_UNDECLARED,SYM_SORT] COLON type[t,CHECK_NONE]
     {
       (*ctor)->addSelector(id, t);
-      Debug("parser-idt") << "selector: " << id.c_str() << std::endl;
+      Trace("parser-idt") << "selector: " << id.c_str() << std::endl;
     }
   ;
 

@@ -95,14 +95,14 @@ void ClausalBitVectorProof::calculateAtomsInBitblastingProof()
   optimizeDratProof();
 
   // Debug dump of DRAT Proof
-  if (Debug.isOn("bv::clausal"))
+  if (Trace.isOn("bv::clausal"))
   {
     std::string serializedDratProof = d_binaryDratProof.str();
-    Debug("bv::clausal") << "option: " << options::bvOptimizeSatProof()
+    Trace("bv::clausal") << "option: " << options::bvOptimizeSatProof()
                          << std::endl;
-    Debug("bv::clausal") << "binary DRAT proof byte count: "
+    Trace("bv::clausal") << "binary DRAT proof byte count: "
                          << serializedDratProof.size() << std::endl;
-    Debug("bv::clausal") << "clause count: " << d_coreClauseIndices.size()
+    Trace("bv::clausal") << "clause count: " << d_coreClauseIndices.size()
                          << std::endl;
   }
 
@@ -134,7 +134,7 @@ void ClausalBitVectorProof::optimizeDratProof()
   if (options::bvOptimizeSatProof() == options::BvOptimizeSatProof::PROOF
       || options::bvOptimizeSatProof() == options::BvOptimizeSatProof::FORMULA)
   {
-    Debug("bv::clausal") << "Optimizing DRAT" << std::endl;
+    Trace("bv::clausal") << "Optimizing DRAT" << std::endl;
     std::string formulaFilename("cvc4-dimacs-XXXXXX");
     std::string dratFilename("cvc4-drat-XXXXXX");
     std::string optDratFilename("cvc4-optimized-drat-XXXXXX");
@@ -227,12 +227,12 @@ void ClausalBitVectorProof::optimizeDratProof()
         d_coreClauseIndices.push_back(
             cannonicalClausesToIndices.at(&coreClause));
       }
-      Debug("bv::clausal") << "Optimizing the DRAT proof and the formula"
+      Trace("bv::clausal") << "Optimizing the DRAT proof and the formula"
                            << std::endl;
     }
     else
     {
-      Debug("bv::clausal") << "Optimizing the DRAT proof but not the formula"
+      Trace("bv::clausal") << "Optimizing the DRAT proof but not the formula"
                            << std::endl;
       d_coreClauseIndices = d_originalClauseIndices;
     }
@@ -244,11 +244,11 @@ void ClausalBitVectorProof::optimizeDratProof()
     remove(dratFilename.c_str());
     remove(optDratFilename.c_str());
     remove(optFormulaFilename.c_str());
-    Debug("bv::clausal") << "Optimized DRAT" << std::endl;
+    Trace("bv::clausal") << "Optimized DRAT" << std::endl;
   }
   else
   {
-    Debug("bv::clausal") << "Not optimizing the formula or the DRAT proof"
+    Trace("bv::clausal") << "Not optimizing the formula or the DRAT proof"
                          << std::endl;
     d_coreClauseIndices = d_originalClauseIndices;
   }

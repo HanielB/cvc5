@@ -37,7 +37,7 @@ bool RewriteRule<EvalAnd>::applies(TNode node) {
 template<> inline
 Node RewriteRule<EvalAnd>::apply(TNode node) {
   Unreachable();
-  Debug("bv-rewrite") << "RewriteRule<EvalAnd>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalAnd>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   BitVector res = a & b;
@@ -56,7 +56,7 @@ bool RewriteRule<EvalOr>::applies(TNode node) {
 template<> inline
 Node RewriteRule<EvalOr>::apply(TNode node) {
   Unreachable();
-  Debug("bv-rewrite") << "RewriteRule<EvalOr>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalOr>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   BitVector res = a | b;
@@ -75,7 +75,7 @@ bool RewriteRule<EvalXor>::applies(TNode node) {
 template<> inline
 Node RewriteRule<EvalXor>::apply(TNode node) {
   Unreachable();
-  Debug("bv-rewrite") << "RewriteRule<EvalXor>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalXor>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   BitVector res = a ^ b;
@@ -91,7 +91,7 @@ Node RewriteRule<EvalXor>::apply(TNode node) {
 
 // template<> inline
 // Node RewriteRule<EvalXnor>::apply(TNode node) {
-//   Debug("bv-rewrite") << "RewriteRule<EvalXnor>(" << node << ")" << std::endl;
+//   Trace("bv-rewrite") << "RewriteRule<EvalXnor>(" << node << ")" << std::endl;
 //   BitVector a = node[0].getConst<BitVector>();
 //   BitVector b = node[1].getConst<BitVector>();
 //   BitVector res = ~ (a ^ b);
@@ -106,7 +106,7 @@ bool RewriteRule<EvalNot>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalNot>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalNot>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalNot>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector res = ~ a;
   return utils::mkConst(res);
@@ -120,7 +120,7 @@ Node RewriteRule<EvalNot>::apply(TNode node) {
 
 // template<> inline
 // Node RewriteRule<EvalComp>::apply(TNode node) {
-//   Debug("bv-rewrite") << "RewriteRule<EvalComp>(" << node << ")" << std::endl;
+//   Trace("bv-rewrite") << "RewriteRule<EvalComp>(" << node << ")" << std::endl;
 //   BitVector a = node[0].getConst<BitVector>();
 //   BitVector b = node[1].getConst<BitVector>();
 //   BitVector res;
@@ -141,7 +141,7 @@ bool RewriteRule<EvalMult>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalMult>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalMult>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalMult>(" << node << ")" << std::endl;
   TNode::iterator child_it = node.begin();
   BitVector res = (*child_it).getConst<BitVector>();
   for(++child_it; child_it != node.end(); ++child_it) {
@@ -158,7 +158,7 @@ bool RewriteRule<EvalPlus>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalPlus>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalPlus>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalPlus>(" << node << ")" << std::endl;
   TNode::iterator child_it = node.begin();
   BitVector res = (*child_it).getConst<BitVector>();
   for(++child_it; child_it != node.end(); ++child_it) {
@@ -175,7 +175,7 @@ Node RewriteRule<EvalPlus>::apply(TNode node) {
 
 // template<> inline
 // Node RewriteRule<EvalSub>::apply(TNode node) {
-//   Debug("bv-rewrite") << "RewriteRule<EvalSub>(" << node << ")" << std::endl;
+//   Trace("bv-rewrite") << "RewriteRule<EvalSub>(" << node << ")" << std::endl;
 //   BitVector a = node[0].getConst<BitVector>();
 //   BitVector b = node[1].getConst<BitVector>();
 //   BitVector res = a - b;
@@ -190,7 +190,7 @@ bool RewriteRule<EvalNeg>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalNeg>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalNeg>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalNeg>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector res = - a;
   
@@ -205,7 +205,7 @@ bool RewriteRule<EvalUdiv>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalUdiv>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalUdiv>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalUdiv>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   BitVector res = a.unsignedDivTotal(b);
@@ -221,7 +221,7 @@ bool RewriteRule<EvalUrem>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalUrem>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalUrem>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalUrem>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   BitVector res = a.unsignedRemTotal(b);
@@ -236,7 +236,7 @@ bool RewriteRule<EvalShl>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalShl>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalShl>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalShl>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -252,7 +252,7 @@ bool RewriteRule<EvalLshr>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalLshr>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalLshr>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalLshr>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   
@@ -268,7 +268,7 @@ bool RewriteRule<EvalAshr>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalAshr>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalAshr>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalAshr>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -284,7 +284,7 @@ bool RewriteRule<EvalUlt>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalUlt>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalUlt>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalUlt>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -302,7 +302,7 @@ bool RewriteRule<EvalUltBv>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalUltBv>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalUltBv>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalUltBv>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -320,7 +320,7 @@ bool RewriteRule<EvalSlt>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalSlt>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalSlt>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalSlt>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -339,7 +339,7 @@ bool RewriteRule<EvalSltBv>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalSltBv>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalSltBv>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalSltBv>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -352,14 +352,14 @@ Node RewriteRule<EvalSltBv>::apply(TNode node) {
 
 template<> inline
 bool RewriteRule<EvalITEBv>::applies(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalITEBv>::applies(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalITEBv>::applies(" << node << ")" << std::endl;
   return (node.getKind() == kind::BITVECTOR_ITE &&
           utils::isBvConstTerm(node));
 }
 
 template<> inline
 Node RewriteRule<EvalITEBv>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalITEBv>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalITEBv>(" << node << ")" << std::endl;
   BitVector cond = node[0].getConst<BitVector>();
 
   if (node[0] == utils::mkConst(1, 1)) {
@@ -378,7 +378,7 @@ bool RewriteRule<EvalUle>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalUle>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalUle>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalUle>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -396,7 +396,7 @@ bool RewriteRule<EvalSle>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalSle>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalSle>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalSle>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
 
@@ -414,7 +414,7 @@ bool RewriteRule<EvalExtract>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalExtract>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalExtract>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalExtract>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   unsigned lo = utils::getExtractLow(node);
   unsigned hi = utils::getExtractHigh(node);
@@ -432,7 +432,7 @@ bool RewriteRule<EvalConcat>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalConcat>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalConcat>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalConcat>(" << node << ")" << std::endl;
   unsigned num = node.getNumChildren();
   BitVector res = node[0].getConst<BitVector>();
   for(unsigned i = 1; i < num; ++i ) {  
@@ -450,7 +450,7 @@ bool RewriteRule<EvalSignExtend>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalSignExtend>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalSignExtend>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalSignExtend>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   unsigned amount =
       node.getOperator().getConst<BitVectorSignExtend>().d_signExtendAmount;
@@ -467,7 +467,7 @@ bool RewriteRule<EvalEquals>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalEquals>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalEquals>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalEquals>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   if (a == b) {
@@ -485,7 +485,7 @@ bool RewriteRule<EvalComp>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalComp>::apply(TNode node) {
-  Debug("bv-rewrite") << "RewriteRule<EvalComp>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalComp>(" << node << ")" << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   BitVector b = node[1].getConst<BitVector>();
   if (a == b) {

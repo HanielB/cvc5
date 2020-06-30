@@ -57,7 +57,7 @@ void RemoveTermFormulas::run(std::vector<Node>& output, IteSkolemMap& iteSkolemM
 Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
                     IteSkolemMap& iteSkolemMap, bool inQuant, bool inTerm) {
   // Current node
-  Debug("ite") << "removeITEs(" << node << ")" << " " << inQuant << " " << inTerm << endl;
+  Trace("ite") << "removeITEs(" << node << ")" << " " << inQuant << " " << inTerm << endl;
 
   //if(node.isVar() || node.isConst()){
   //   (options::biasedITERemoval() && !containsTermITE(node))){
@@ -76,7 +76,7 @@ Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
   if (i != d_tfCache.end())
   {
     Node cached = (*i).second;
-    Debug("ite") << "removeITEs: in-cache: " << cached << endl;
+    Trace("ite") << "removeITEs: in-cache: " << cached << endl;
     return cached.isNull() ? Node(node) : cached;
   }
 
@@ -192,7 +192,7 @@ Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
     // if the skolem was introduced in this call
     if (!newAssertion.isNull())
     {
-      Debug("ite") << "*** term formula removal introduced " << skolem
+      Trace("ite") << "*** term formula removal introduced " << skolem
                    << " for " << node << std::endl;
 
       // Remove ITEs from the new assertion, rewrite it and push it to the
@@ -213,7 +213,7 @@ Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
     inQuant = true;
   }else if( !inTerm && hasNestedTermChildren( node ) ){
     // Remember if we're inside a term
-    Debug("ite") << "In term because of " << node << " " << node.getKind() << std::endl;
+    Trace("ite") << "In term because of " << node << " " << node.getKind() << std::endl;
     inTerm = true;
   }
 

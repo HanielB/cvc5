@@ -448,14 +448,14 @@ void SymbolTable::Implementation::bindType(const string& name, Type t,
 void SymbolTable::Implementation::bindType(const string& name,
                                            const vector<Type>& params, Type t,
                                            bool levelZero) {
-  if (Debug.isOn("sort")) {
-    Debug("sort") << "bindType(" << name << ", [";
+  if (Trace.isOn("sort")) {
+    Trace("sort") << "bindType(" << name << ", [";
     if (params.size() > 0) {
       copy(params.begin(), params.end() - 1,
-           ostream_iterator<Type>(Debug("sort"), ", "));
-      Debug("sort") << params.back();
+           ostream_iterator<Type>(Trace("sort"), ", "));
+      Trace("sort") << params.back();
     }
-    Debug("sort") << "], " << t << ")" << endl;
+    Trace("sort") << "], " << t << ")" << endl;
   }
   if (levelZero) {
     d_typeMap->insertAtContextLevelZero(name, make_pair(params, t));
@@ -489,22 +489,22 @@ Type SymbolTable::Implementation::lookupType(const string& name,
     return p.second;
   }
   if (p.second.isSortConstructor()) {
-    if (Debug.isOn("sort")) {
-      Debug("sort") << "instantiating using a sort constructor" << endl;
-      Debug("sort") << "have formals [";
+    if (Trace.isOn("sort")) {
+      Trace("sort") << "instantiating using a sort constructor" << endl;
+      Trace("sort") << "have formals [";
       copy(p.first.begin(), p.first.end() - 1,
-           ostream_iterator<Type>(Debug("sort"), ", "));
-      Debug("sort") << p.first.back() << "]" << endl << "parameters   [";
+           ostream_iterator<Type>(Trace("sort"), ", "));
+      Trace("sort") << p.first.back() << "]" << endl << "parameters   [";
       copy(params.begin(), params.end() - 1,
-           ostream_iterator<Type>(Debug("sort"), ", "));
-      Debug("sort") << params.back() << "]" << endl
+           ostream_iterator<Type>(Trace("sort"), ", "));
+      Trace("sort") << params.back() << "]" << endl
                     << "type ctor    " << name << endl
                     << "type is      " << p.second << endl;
     }
 
     Type instantiation = SortConstructorType(p.second).instantiate(params);
 
-    Debug("sort") << "instance is  " << instantiation << endl;
+    Trace("sort") << "instance is  " << instantiation << endl;
 
     return instantiation;
   } else if (p.second.isDatatype()) {
@@ -512,22 +512,22 @@ Type SymbolTable::Implementation::lookupType(const string& name,
                         "expected parametric datatype");
     return DatatypeType(p.second).instantiate(params);
   } else {
-    if (Debug.isOn("sort")) {
-      Debug("sort") << "instantiating using a sort substitution" << endl;
-      Debug("sort") << "have formals [";
+    if (Trace.isOn("sort")) {
+      Trace("sort") << "instantiating using a sort substitution" << endl;
+      Trace("sort") << "have formals [";
       copy(p.first.begin(), p.first.end() - 1,
-           ostream_iterator<Type>(Debug("sort"), ", "));
-      Debug("sort") << p.first.back() << "]" << endl << "parameters   [";
+           ostream_iterator<Type>(Trace("sort"), ", "));
+      Trace("sort") << p.first.back() << "]" << endl << "parameters   [";
       copy(params.begin(), params.end() - 1,
-           ostream_iterator<Type>(Debug("sort"), ", "));
-      Debug("sort") << params.back() << "]" << endl
+           ostream_iterator<Type>(Trace("sort"), ", "));
+      Trace("sort") << params.back() << "]" << endl
                     << "type ctor    " << name << endl
                     << "type is      " << p.second << endl;
     }
 
     Type instantiation = p.second.substitute(p.first, params);
 
-    Debug("sort") << "instance is  " << instantiation << endl;
+    Trace("sort") << "instance is  " << instantiation << endl;
 
     return instantiation;
   }

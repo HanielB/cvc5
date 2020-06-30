@@ -449,16 +449,16 @@ void RepSetIterator::getCurrentTerms(std::vector<Node>& terms) const
 
 void RepSetIterator::debugPrint( const char* c ){
   for( unsigned v=0; v<d_index.size(); v++ ){
-    Debug( c ) << v << " : " << getCurrentTerm( v ) << std::endl;
+    Trace( c ) << v << " : " << getCurrentTerm( v ) << std::endl;
   }
 }
 
 void RepSetIterator::debugPrintSmall( const char* c ){
-  Debug( c ) << "RI: ";
+  Trace( c ) << "RI: ";
   for( unsigned v=0; v<d_index.size(); v++ ){
-    Debug( c ) << v << ": " << getCurrentTerm( v ) << " ";
+    Trace( c ) << v << ": " << getCurrentTerm( v ) << " ";
   }
-  Debug( c ) << std::endl;
+  Trace( c ) << std::endl;
 }
 
 } /* CVC4::theory namespace */

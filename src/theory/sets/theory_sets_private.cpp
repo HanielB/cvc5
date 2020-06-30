@@ -1003,7 +1003,7 @@ void TheorySetsPrivate::check(Theory::Effort level)
 
 void TheorySetsPrivate::addSharedTerm(TNode n)
 {
-  Debug("sets") << "[sets] TheorySetsPrivate::addSharedTerm( " << n << ")"
+  Trace("sets") << "[sets] TheorySetsPrivate::addSharedTerm( " << n << ")"
                 << std::endl;
   d_equalityEngine.addTriggerTerm(n, THEORY_SETS);
 }
@@ -1402,12 +1402,12 @@ void TheorySetsPrivate::propagate(Theory::Effort effort) {}
 
 bool TheorySetsPrivate::propagate(TNode literal)
 {
-  Debug("sets-prop") << " propagate(" << literal << ")" << std::endl;
+  Trace("sets-prop") << " propagate(" << literal << ")" << std::endl;
 
   // If already in conflict, no more propagation
   if (d_state.isInConflict())
   {
-    Debug("sets-prop") << "TheoryUF::propagate(" << literal
+    Trace("sets-prop") << "TheoryUF::propagate(" << literal
                        << "): already in conflict" << std::endl;
     return false;
   }
@@ -1438,14 +1438,14 @@ void TheorySetsPrivate::conflict(TNode a, TNode b)
 {
   Node conf = explain(a.eqNode(b));
   d_state.setConflict(conf);
-  Debug("sets") << "[sets] conflict: " << a << " iff " << b << ", explanation "
+  Trace("sets") << "[sets] conflict: " << a << " iff " << b << ", explanation "
                 << conf << std::endl;
   Trace("sets-lemma") << "Equality Conflict : " << conf << std::endl;
 }
 
 Node TheorySetsPrivate::explain(TNode literal)
 {
-  Debug("sets") << "TheorySetsPrivate::explain(" << literal << ")" << std::endl;
+  Trace("sets") << "TheorySetsPrivate::explain(" << literal << ")" << std::endl;
 
   bool polarity = literal.getKind() != kind::NOT;
   TNode atom = polarity ? literal : literal[0];
@@ -1461,7 +1461,7 @@ Node TheorySetsPrivate::explain(TNode literal)
   }
   else
   {
-    Debug("sets") << "unhandled: " << literal << "; (" << atom << ", "
+    Trace("sets") << "unhandled: " << literal << "; (" << atom << ", "
                   << polarity << "); kind" << atom.getKind() << std::endl;
     Unhandled();
   }
@@ -1471,7 +1471,7 @@ Node TheorySetsPrivate::explain(TNode literal)
 
 void TheorySetsPrivate::preRegisterTerm(TNode node)
 {
-  Debug("sets") << "TheorySetsPrivate::preRegisterTerm(" << node << ")"
+  Trace("sets") << "TheorySetsPrivate::preRegisterTerm(" << node << ")"
                 << std::endl;
   switch (node.getKind())
   {
@@ -1484,7 +1484,7 @@ void TheorySetsPrivate::preRegisterTerm(TNode node)
 
 Node TheorySetsPrivate::expandDefinition(Node node)
 {
-  Debug("sets-proc") << "expandDefinition : " << node << std::endl;
+  Trace("sets-proc") << "expandDefinition : " << node << std::endl;
 
   if (node.getKind() == kind::CHOOSE)
   {
@@ -1545,7 +1545,7 @@ void TheorySetsPrivate::presolve() { d_state.reset(); }
 bool TheorySetsPrivate::NotifyClass::eqNotifyTriggerEquality(TNode equality,
                                                              bool value)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyTriggerEquality: equality = "
+  Trace("sets-eq") << "[sets-eq] eqNotifyTriggerEquality: equality = "
                    << equality << " value = " << value << std::endl;
   if (value)
   {
@@ -1561,7 +1561,7 @@ bool TheorySetsPrivate::NotifyClass::eqNotifyTriggerEquality(TNode equality,
 bool TheorySetsPrivate::NotifyClass::eqNotifyTriggerPredicate(TNode predicate,
                                                               bool value)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyTriggerPredicate: predicate = "
+  Trace("sets-eq") << "[sets-eq] eqNotifyTriggerPredicate: predicate = "
                    << predicate << " value = " << value << std::endl;
   if (value)
   {
@@ -1578,7 +1578,7 @@ bool TheorySetsPrivate::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag,
                                                                  TNode t2,
                                                                  bool value)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyTriggerTermEquality: tag = " << tag
+  Trace("sets-eq") << "[sets-eq] eqNotifyTriggerTermEquality: tag = " << tag
                    << " t1 = " << t1 << "  t2 = " << t2 << "  value = " << value
                    << std::endl;
   d_theory.propagate(value ? t1.eqNode(t2) : t1.eqNode(t2).negate());
@@ -1588,28 +1588,28 @@ bool TheorySetsPrivate::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag,
 void TheorySetsPrivate::NotifyClass::eqNotifyConstantTermMerge(TNode t1,
                                                                TNode t2)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyConstantTermMerge "
+  Trace("sets-eq") << "[sets-eq] eqNotifyConstantTermMerge "
                    << " t1 = " << t1 << " t2 = " << t2 << std::endl;
   d_theory.conflict(t1, t2);
 }
 
 void TheorySetsPrivate::NotifyClass::eqNotifyNewClass(TNode t)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyNewClass:"
+  Trace("sets-eq") << "[sets-eq] eqNotifyNewClass:"
                    << " t = " << t << std::endl;
   d_theory.eqNotifyNewClass(t);
 }
 
 void TheorySetsPrivate::NotifyClass::eqNotifyPreMerge(TNode t1, TNode t2)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyPreMerge:"
+  Trace("sets-eq") << "[sets-eq] eqNotifyPreMerge:"
                    << " t1 = " << t1 << " t2 = " << t2 << std::endl;
   d_theory.eqNotifyPreMerge(t1, t2);
 }
 
 void TheorySetsPrivate::NotifyClass::eqNotifyPostMerge(TNode t1, TNode t2)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyPostMerge:"
+  Trace("sets-eq") << "[sets-eq] eqNotifyPostMerge:"
                    << " t1 = " << t1 << " t2 = " << t2 << std::endl;
   d_theory.eqNotifyPostMerge(t1, t2);
 }
@@ -1618,7 +1618,7 @@ void TheorySetsPrivate::NotifyClass::eqNotifyDisequal(TNode t1,
                                                       TNode t2,
                                                       TNode reason)
 {
-  Debug("sets-eq") << "[sets-eq] eqNotifyDisequal:"
+  Trace("sets-eq") << "[sets-eq] eqNotifyDisequal:"
                    << " t1 = " << t1 << " t2 = " << t2 << " reason = " << reason
                    << std::endl;
   d_theory.eqNotifyDisequal(t1, t2, reason);

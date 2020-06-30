@@ -119,12 +119,12 @@ Node CoreSolver::getBaseDecomposition(TNode a) {
   std::vector<Node> a_decomp;
   d_slicer->getBaseDecomposition(a, a_decomp);
   Node new_a = utils::mkConcat(a_decomp);
-  Debug("bv-slicer") << "CoreSolver::getBaseDecomposition " << a <<" => " << new_a << "\n";
+  Trace("bv-slicer") << "CoreSolver::getBaseDecomposition " << a <<" => " << new_a << "\n";
   return new_a;
 }
 
 bool CoreSolver::decomposeFact(TNode fact) {
-  Debug("bv-slicer") << "CoreSolver::decomposeFact fact=" << fact << endl;
+  Trace("bv-slicer") << "CoreSolver::decomposeFact fact=" << fact << endl;
   // FIXME: are this the right things to assert?
   // assert decompositions since the equality engine does not know the semantics of
   // concat:
@@ -212,7 +212,7 @@ bool CoreSolver::check(Theory::Effort e) {
 
 void CoreSolver::buildModel()
 {
-  Debug("bv-core") << "CoreSolver::buildModel() \n";
+  Trace("bv-core") << "CoreSolver::buildModel() \n";
   NodeManager* nm = NodeManager::currentNM();
   d_modelValues.clear();
   TNodeSet constants;
@@ -252,7 +252,7 @@ void CoreSolver::buildModel()
     TypeNode type = repr.getType();
     if (type.isBitVector() && repr.getKind() != kind::CONST_BITVECTOR)
     {
-      Debug("bv-core-model") << "   processing " << repr << "\n";
+      Trace("bv-core-model") << "   processing " << repr << "\n";
       // we need to assign a value for it
       TypeEnumerator te(type);
       Node val;
@@ -260,9 +260,9 @@ void CoreSolver::buildModel()
       {
         val = *te;
         ++te;
-        // Debug("bv-core-model") << "  trying value " << val << "\n";
-        // Debug("bv-core-model") << "  is in set? " << constants.count(val) <<
-        // "\n"; Debug("bv-core-model") << "  enumerator done? " <<
+        // Trace("bv-core-model") << "  trying value " << val << "\n";
+        // Trace("bv-core-model") << "  is in set? " << constants.count(val) <<
+        // "\n"; Trace("bv-core-model") << "  enumerator done? " <<
         // te.isFinished() << "\n";
       } while (constants.count(val) != 0 && !(te.isFinished()));
 
@@ -317,18 +317,18 @@ void CoreSolver::buildModel()
 
         if (equalities.size() == 0)
         {
-          Debug("bv-core") << "  lemma: true (no equalities)" << std::endl;
+          Trace("bv-core") << "  lemma: true (no equalities)" << std::endl;
         }
         else
         {
           Node lemma = utils::mkOr(equalities);
           d_bv->lemma(lemma);
-          Debug("bv-core") << "  lemma: " << lemma << std::endl;
+          Trace("bv-core") << "  lemma: " << lemma << std::endl;
         }
         return;
       }
 
-      Debug("bv-core-model") << "   " << repr << " => " << val << "\n";
+      Trace("bv-core-model") << "   " << repr << " => " << val << "\n";
       constants.insert(val);
       d_modelValues[repr] = val;
     }
@@ -338,8 +338,8 @@ void CoreSolver::buildModel()
 bool CoreSolver::assertFactToEqualityEngine(TNode fact, TNode reason) {
   // Notify the equality engine
   if (!d_bv->inConflict() && (!d_bv->wasPropagatedBySubtheory(fact) || d_bv->getPropagatingSubtheory(fact) != SUB_CORE)) {
-    Debug("bv-slicer-eq") << "CoreSolver::assertFactToEqualityEngine fact=" << fact << endl;
-    // Debug("bv-slicer-eq") << "                     reason=" << reason << endl;
+    Trace("bv-slicer-eq") << "CoreSolver::assertFactToEqualityEngine fact=" << fact << endl;
+    // Trace("bv-slicer-eq") << "                     reason=" << reason << endl;
     bool negated = fact.getKind() == kind::NOT;
     TNode predicate = negated ? fact[0] : fact;
     if (predicate.getKind() == kind::EQUAL) {
@@ -366,7 +366,7 @@ bool CoreSolver::assertFactToEqualityEngine(TNode fact, TNode reason) {
 }
 
 bool CoreSolver::NotifyClass::eqNotifyTriggerEquality(TNode equality, bool value) {
-  Debug("bitvector::core") << "NotifyClass::eqNotifyTriggerEquality(" << equality << ", " << (value ? "true" : "false" )<< ")" << std::endl;
+  Trace("bitvector::core") << "NotifyClass::eqNotifyTriggerEquality(" << equality << ", " << (value ? "true" : "false" )<< ")" << std::endl;
   if (value) {
     return d_solver.storePropagation(equality);
   } else {
@@ -375,7 +375,7 @@ bool CoreSolver::NotifyClass::eqNotifyTriggerEquality(TNode equality, bool value
 }
 
 bool CoreSolver::NotifyClass::eqNotifyTriggerPredicate(TNode predicate, bool value) {
-  Debug("bitvector::core") << "NotifyClass::eqNotifyTriggerPredicate(" << predicate << ", " << (value ? "true" : "false" ) << ")" << std::endl;
+  Trace("bitvector::core") << "NotifyClass::eqNotifyTriggerPredicate(" << predicate << ", " << (value ? "true" : "false" ) << ")" << std::endl;
   if (value) {
     return d_solver.storePropagation(predicate);
   } else {
@@ -384,7 +384,7 @@ bool CoreSolver::NotifyClass::eqNotifyTriggerPredicate(TNode predicate, bool val
 }
 
 bool CoreSolver::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value) {
-  Debug("bitvector::core") << "NotifyClass::eqNotifyTriggerTermMerge(" << t1 << ", " << t2 << ")" << std::endl;
+  Trace("bitvector::core") << "NotifyClass::eqNotifyTriggerTermMerge(" << t1 << ", " << t2 << ")" << std::endl;
   if (value) {
     return d_solver.storePropagation(t1.eqNode(t2));
   } else {
@@ -428,10 +428,10 @@ bool CoreSolver::collectModelInfo(TheoryModel* m, bool fullModel)
   if (d_useSlicer) {
     Unreachable(); 
   }
-  if (Debug.isOn("bitvector-model")) {
+  if (Trace.isOn("bitvector-model")) {
     context::CDQueue<Node>::const_iterator it = d_assertionQueue.begin();
     for (; it!= d_assertionQueue.end(); ++it) {
-      Debug("bitvector-model") << "CoreSolver::collectModelInfo (assert "
+      Trace("bitvector-model") << "CoreSolver::collectModelInfo (assert "
                                << *it << ")\n";
     }
   }
@@ -442,11 +442,11 @@ bool CoreSolver::collectModelInfo(TheoryModel* m, bool fullModel)
     return false;
   }
   if (isComplete()) {
-    Debug("bitvector-model") << "CoreSolver::collectModelInfo complete.";
+    Trace("bitvector-model") << "CoreSolver::collectModelInfo complete.";
     for (ModelValue::const_iterator it = d_modelValues.begin(); it != d_modelValues.end(); ++it) {
       Node a = it->first;
       Node b = it->second;
-      Debug("bitvector-model") << "CoreSolver::collectModelInfo modelValues "
+      Trace("bitvector-model") << "CoreSolver::collectModelInfo modelValues "
                                << a << " => " << b <<")\n";
       if (!m->assertEquality(a, b, true))
       {
@@ -458,7 +458,7 @@ bool CoreSolver::collectModelInfo(TheoryModel* m, bool fullModel)
 }
 
 Node CoreSolver::getModelValue(TNode var) {
-  Debug("bitvector-model") << "CoreSolver::getModelValue (" << var <<")";
+  Trace("bitvector-model") << "CoreSolver::getModelValue (" << var <<")";
   Assert(isComplete());
   TNode repr = d_equalityEngine.getRepresentative(var);
   Node result = Node();
@@ -471,7 +471,7 @@ Node CoreSolver::getModelValue(TNode var) {
   } else {
     result = d_modelValues[repr];
   }
-  Debug("bitvector-model") << " => " << result <<"\n";
+  Trace("bitvector-model") << " => " << result <<"\n";
   return result;
 }
 

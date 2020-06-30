@@ -263,7 +263,7 @@ void TermRegistry::registerTerm(Node n, int effort)
   d_registeredTerms.insert(n);
   // ensure the type is registered
   registerType(tn);
-  Debug("strings-register") << "TheoryStrings::registerTerm() " << n
+  Trace("strings-register") << "TheoryStrings::registerTerm() " << n
                             << ", effort = " << effort << std::endl;
   Node regTermLem;
   if (tn.isStringLike())

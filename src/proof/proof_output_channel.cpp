@@ -67,12 +67,12 @@ theory::LemmaStatus ProofOutputChannel::splitLemma(TNode, bool) {
 }
 
 void ProofOutputChannel::requirePhase(TNode n, bool b) {
-  Debug("pf::tp") << "ProofOutputChannel::requirePhase called" << std::endl;
+  Trace("pf::tp") << "ProofOutputChannel::requirePhase called" << std::endl;
   Trace("pf::tp") << "requirePhase " << n << " " << b << std::endl;
 }
 
 void ProofOutputChannel::setIncomplete() {
-  Debug("pf::tp") << "ProofOutputChannel::setIncomplete called" << std::endl;
+  Trace("pf::tp") << "ProofOutputChannel::setIncomplete called" << std::endl;
   AlwaysAssert(false);
 }
 

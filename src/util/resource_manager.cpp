@@ -79,23 +79,23 @@ bool Timer::expired() const {
   if (d_wall_time) {
     timeval tv;
     gettimeofday(&tv, NULL);
-    Debug("limit") << "Timer::expired(): current wall time is " << tv.tv_sec << "," << tv.tv_usec << std::endl;
-    Debug("limit") << "Timer::expired(): limit wall time is " << d_wall_limit.tv_sec << "," << d_wall_limit.tv_usec << std::endl;
+    Trace("limit") << "Timer::expired(): current wall time is " << tv.tv_sec << "," << tv.tv_usec << std::endl;
+    Trace("limit") << "Timer::expired(): limit wall time is " << d_wall_limit.tv_sec << "," << d_wall_limit.tv_usec << std::endl;
     if(d_wall_limit.tv_sec < tv.tv_sec ||
        (d_wall_limit.tv_sec == tv.tv_sec && d_wall_limit.tv_usec <= tv.tv_usec)) {
-      Debug("limit") << "Timer::expired(): OVER LIMIT!" << std::endl;
+      Trace("limit") << "Timer::expired(): OVER LIMIT!" << std::endl;
       return true;
     }
-    Debug("limit") << "Timer::expired(): within limit" << std::endl;
+    Trace("limit") << "Timer::expired(): within limit" << std::endl;
     return false;
   }
 
   // cpu time
   double current = ((double)clock())/(CLOCKS_PER_SEC*0.001);
-  Debug("limit") << "Timer::expired(): current cpu time is " << current <<  std::endl;
-  Debug("limit") << "Timer::expired(): limit cpu time is " << d_cpu_limit <<  std::endl;
+  Trace("limit") << "Timer::expired(): current cpu time is " << current <<  std::endl;
+  Trace("limit") << "Timer::expired(): limit cpu time is " << d_cpu_limit <<  std::endl;
   if (current >= d_cpu_limit) {
-    Debug("limit") << "Timer::expired(): OVER LIMIT!" << current <<  std::endl;
+    Trace("limit") << "Timer::expired(): OVER LIMIT!" << current <<  std::endl;
     return true;
   }
   return false;
@@ -262,7 +262,7 @@ void ResourceManager::spendResource(unsigned amount)
   d_cumulativeResourceUsed += amount;
   if (!d_on) return;
 
-  Debug("limit") << "ResourceManager::spendResource()" << std::endl;
+  Trace("limit") << "ResourceManager::spendResource()" << std::endl;
   d_thisCallResourceUsed += amount;
   if(out()) {
     Trace("limit") << "ResourceManager::spendResource: interrupt!" << std::endl;

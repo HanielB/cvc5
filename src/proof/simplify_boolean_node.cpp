@@ -175,7 +175,7 @@ Node simplifyBooleanNode(const Node &n) {
   }
 
   if (simplified != n)
-    Debug("pf::simplify") << "simplifyBooleanNode: " << n << " --> " << simplified << std::endl;
+    Trace("pf::simplify") << "simplifyBooleanNode: " << n << " --> " << simplified << std::endl;
 
   return simplified;
 }

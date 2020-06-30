@@ -112,7 +112,7 @@ class AbstractionModule {
       , d_conflict(conflict)
       , d_lemmas()
     {
-      Debug("bv-abstraction-gen") << "LemmaInstantiator conflict:" << conflict << "\n";
+      Trace("bv-abstraction-gen") << "LemmaInstantiator conflict:" << conflict << "\n";
       // initializing the search space
       for (unsigned i = 0; i < functions.size(); ++i) {
         TNode func_op = functions[i].getOperator();

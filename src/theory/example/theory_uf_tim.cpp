@@ -43,13 +43,13 @@ TheoryUFTim::~TheoryUFTim() {
 }
 
 void TheoryUFTim::preRegisterTerm(TNode n) {
-  Debug("uf") << "uf: begin preRegisterTerm(" << n << ")" << std::endl;
-  Debug("uf") << "uf: end preRegisterTerm(" << n << ")" << std::endl;
+  Trace("uf") << "uf: begin preRegisterTerm(" << n << ")" << std::endl;
+  Trace("uf") << "uf: end preRegisterTerm(" << n << ")" << std::endl;
 }
 
 void TheoryUFTim::registerTerm(TNode n) {
 
-  Debug("uf") << "uf: begin registerTerm(" << n << ")" << std::endl;
+  Trace("uf") << "uf: begin registerTerm(" << n << ")" << std::endl;
 
   d_registered.push_back(n);
 
@@ -135,7 +135,7 @@ void TheoryUFTim::registerTerm(TNode n) {
       ecChild->addPredecessor(n);
     }
   }
-  Debug("uf") << "uf: end registerTerm(" << n << ")" << std::endl;
+  Trace("uf") << "uf: end registerTerm(" << n << ")" << std::endl;
 
 }
 
@@ -242,17 +242,17 @@ void TheoryUFTim::merge() {
     if(ecX == ecY)
       continue;
 
-    Debug("uf") << "merging equivalence classes for " << std::endl;
-    Debug("uf") << "left equivalence class :" << (ecX->getRep()) << std::endl;
-    Debug("uf") << "right equivalence class :" << (ecY->getRep()) << std::endl;
-    Debug("uf") << std::endl;
+    Trace("uf") << "merging equivalence classes for " << std::endl;
+    Trace("uf") << "left equivalence class :" << (ecX->getRep()) << std::endl;
+    Trace("uf") << "right equivalence class :" << (ecY->getRep()) << std::endl;
+    Trace("uf") << std::endl;
 
     ccUnion(ecX, ecY);
   }
 }
 
 Node TheoryUFTim::constructConflict(TNode diseq) {
-  Debug("uf") << "uf: begin constructConflict()" << std::endl;
+  Trace("uf") << "uf: begin constructConflict()" << std::endl;
 
   NodeBuilder<> nb(kind::AND);
   nb << diseq;
@@ -263,9 +263,9 @@ Node TheoryUFTim::constructConflict(TNode diseq) {
   Assert(nb.getNumChildren() > 0);
   Node conflict = nb.getNumChildren() == 1 ? nb[0] : nb;
 
-  Debug("uf") << "conflict constructed : " << conflict << std::endl;
+  Trace("uf") << "conflict constructed : " << conflict << std::endl;
 
-  Debug("uf") << "uf: ending constructConflict()" << std::endl;
+  Trace("uf") << "uf: ending constructConflict()" << std::endl;
 
   return conflict;
 }
@@ -277,11 +277,11 @@ void TheoryUFTim::check(Effort level) {
 
   TimerStat::CodeTimer checkTimer(d_checkTime);
 
-  Debug("uf") << "uf: begin check(" << level << ")" << std::endl;
+  Trace("uf") << "uf: begin check(" << level << ")" << std::endl;
 
   while(!done()) {
     Node assertion = get();
-    Debug("uf") << "TheoryUFTim::check(): " << assertion << std::endl;
+    Trace("uf") << "TheoryUFTim::check(): " << assertion << std::endl;
 
     switch(assertion.getKind()) {
     case EQUAL:
@@ -299,7 +299,7 @@ void TheoryUFTim::check(Effort level) {
     default: Unhandled() << assertion.getKind();
     }
 
-    Debug("uf") << "TheoryUFTim::check(): done = " << (done() ? "true" : "false") << std::endl;
+    Trace("uf") << "TheoryUFTim::check(): done = " << (done() ? "true" : "false") << std::endl;
   }
 
   //Make sure all outstanding merges are completed.
@@ -323,5 +323,5 @@ void TheoryUFTim::check(Effort level) {
     }
   }
 
-  Debug("uf") << "uf: end check(" << level << ")" << std::endl;
+  Trace("uf") << "uf: end check(" << level << ")" << std::endl;
 }

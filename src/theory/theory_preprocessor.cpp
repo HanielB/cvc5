@@ -50,18 +50,18 @@ void TheoryPreprocessor::preprocess(TNode node,
   d_tfr.run(lemmas.ref(), lemmas.getIteSkolemMap());
   Trace("te-tform-rm") << "..done " << lemmas[0] << std::endl;
 
-  if (Debug.isOn("lemma-ites"))
+  if (Trace.isOn("lemma-ites"))
   {
-    Debug("lemma-ites") << "removed ITEs from lemma: " << ppNode << endl;
-    Debug("lemma-ites") << " + now have the following " << lemmas.size()
+    Trace("lemma-ites") << "removed ITEs from lemma: " << ppNode << endl;
+    Trace("lemma-ites") << " + now have the following " << lemmas.size()
                         << " lemma(s):" << endl;
     for (std::vector<Node>::const_iterator i = lemmas.begin();
          i != lemmas.end();
          ++i)
     {
-      Debug("lemma-ites") << " + " << *i << endl;
+      Trace("lemma-ites") << " + " << *i << endl;
     }
-    Debug("lemma-ites") << endl;
+    Trace("lemma-ites") << endl;
   }
 
   // now, rewrite the lemmas
@@ -96,7 +96,7 @@ Node TheoryPreprocessor::theoryPreprocess(TNode assertion)
     preprocess_stack_element& stackHead = toVisit.back();
     TNode current = stackHead.node;
 
-    Debug("theory::internal")
+    Trace("theory::internal")
         << "TheoryPreprocessor::theoryPreprocess(" << assertion
         << "): processing " << current << endl;
 
@@ -149,7 +149,7 @@ Node TheoryPreprocessor::theoryPreprocess(TNode assertion)
       {
         result = Rewriter::rewrite(result);
       }
-      Debug("theory::internal")
+      Trace("theory::internal")
           << "TheoryPreprocessor::theoryPreprocess(" << assertion
           << "): setting " << current << " -> " << result << endl;
       d_ppCache[current] = result;
@@ -177,7 +177,7 @@ Node TheoryPreprocessor::theoryPreprocess(TNode assertion)
       else
       {
         // No children, so we're done
-        Debug("substitution::internal")
+        Trace("substitution::internal")
             << "SubstitutionMap::internalSubstitute(" << assertion
             << "): setting " << current << " -> " << current << endl;
         d_ppCache[current] = current;

@@ -912,7 +912,7 @@ Expr ExprManager::mkVar(const std::string& name, Type type, uint32_t flags) {
          "within CVC4 code.  Please use mkSkolem().";
   NodeManagerScope nms(d_nodeManager);
   Node* n = d_nodeManager->mkVarPtr(name, *type.d_typeNode, flags);
-  Debug("nm") << "set " << name << " on " << *n << std::endl;
+  Trace("nm") << "set " << name << " on " << *n << std::endl;
   INC_STAT_VAR(type, false);
   return Expr(this, n);
 }
@@ -929,7 +929,7 @@ Expr ExprManager::mkVar(Type type, uint32_t flags) {
 Expr ExprManager::mkBoundVar(const std::string& name, Type type) {
   NodeManagerScope nms(d_nodeManager);
   Node* n = d_nodeManager->mkBoundVarPtr(name, *type.d_typeNode);
-  Debug("nm") << "set " << name << " on " << *n << std::endl;
+  Trace("nm") << "set " << name << " on " << *n << std::endl;
   INC_STAT_VAR(type, true);
   return Expr(this, n);
 }
@@ -1070,7 +1070,7 @@ namespace expr {
 Node exportInternal(TNode n, ExprManager* from, ExprManager* to, ExprManagerMapCollection& vmap);
 
 TypeNode exportTypeInternal(TypeNode n, NodeManager* from, NodeManager* to, ExprManagerMapCollection& vmap) {
-  Debug("export") << "type: " << n << " " << n.getId() << std::endl;
+  Trace("export") << "type: " << n << " " << n.getId() << std::endl;
   if(theory::kindToTheoryId(n.getKind()) == theory::THEORY_DATATYPES) {
     throw ExportUnsupportedException
       ("export of types belonging to theory of DATATYPES kinds unsupported");
@@ -1098,18 +1098,18 @@ TypeNode exportTypeInternal(TypeNode n, NodeManager* from, NodeManager* to, Expr
   Type from_t = from->toType(n);
   Type& to_t = vmap.d_typeMap[from_t];
   if(! to_t.isNull()) {
-    Debug("export") << "+ mapped `" << from_t << "' to `" << to_t << "'" << std::endl;
+    Trace("export") << "+ mapped `" << from_t << "' to `" << to_t << "'" << std::endl;
     return *Type::getTypeNode(to_t);
   }
   NodeBuilder<> children(to, n.getKind());
   if(n.getKind() == kind::SORT_TYPE) {
-    Debug("export") << "type: operator: " << n.getOperator() << std::endl;
+    Trace("export") << "type: operator: " << n.getOperator() << std::endl;
     // make a new sort tag in target node manager
     Node sortTag = NodeBuilder<0>(to, kind::SORT_TAG);
     children << sortTag;
   }
   for(TypeNode::iterator i = n.begin(), i_end = n.end(); i != i_end; ++i) {
-    Debug("export") << "type: child: " << *i << std::endl;
+    Trace("export") << "type: child: " << *i << std::endl;
     children << exportTypeInternal(*i, from, to, vmap);
   }
   TypeNode out = children.constructTypeNode();// FIXME thread safety

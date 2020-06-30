@@ -719,7 +719,7 @@ Node DType::computeGroundTerm(TypeNode t,
 {
   if (std::find(processing.begin(), processing.end(), t) != processing.end())
   {
-    Debug("datatypes-gt") << "...already processing " << t << " " << d_self
+    Trace("datatypes-gt") << "...already processing " << t << " " << d_self
                           << std::endl;
     return Node();
   }

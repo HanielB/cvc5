@@ -108,15 +108,15 @@ int Trigger::addInstantiations()
 {
   int addedLemmas = d_mg->addInstantiations(d_quant, d_quantEngine, this);
   if( addedLemmas>0 ){
-    if (Debug.isOn("inst-trigger"))
+    if (Trace.isOn("inst-trigger"))
     {
-      Debug("inst-trigger") << "Added " << addedLemmas
+      Trace("inst-trigger") << "Added " << addedLemmas
                             << " lemmas, trigger was ";
       for (unsigned i = 0; i < d_nodes.size(); i++)
       {
-        Debug("inst-trigger") << d_nodes[i] << " ";
+        Trace("inst-trigger") << d_nodes[i] << " ";
       }
-      Debug("inst-trigger") << std::endl;
+      Trace("inst-trigger") << std::endl;
     }
   }
   return addedLemmas;

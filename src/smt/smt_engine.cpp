@@ -1234,7 +1234,7 @@ void SmtEngine::defineFunction(Expr func,
   // Permit (check-sat) (define-fun ...) (get-value ...) sequences.
   // Otherwise, (check-sat) (get-value ((! foo :named bar))) breaks
   // d_haveAdditions = true;
-  Debug("smt") << "definedFunctions insert " << funcNode << " " << formNode << endl;
+  Trace("smt") << "definedFunctions insert " << funcNode << " " << formNode << endl;
 
   if (global)
   {
@@ -1361,7 +1361,7 @@ void SmtEngine::defineFunctionRec(Expr func,
 
 bool SmtEngine::isDefinedFunction( Expr func ){
   Node nf = Node::fromExpr( func );
-  Debug("smt") << "isDefined function " << nf << "?" << std::endl;
+  Trace("smt") << "isDefined function " << nf << "?" << std::endl;
   return d_definedFunctions->find(nf) != d_definedFunctions->end();
 }
 
@@ -2632,9 +2632,9 @@ void SmtEngine::checkModel(bool hardFailure) {
       // function symbol (since then the definition is recursive)
       if (val.getKind() == kind::LAMBDA) {
         // first apply the model substitutions we have so far
-        Debug("boolean-terms") << "applying subses to " << val[1] << endl;
+        Trace("boolean-terms") << "applying subses to " << val[1] << endl;
         Node n = substitutions.apply(val[1]);
-        Debug("boolean-terms") << "++ got " << n << endl;
+        Trace("boolean-terms") << "++ got " << n << endl;
         // now check if n contains func by doing a substitution
         // [func->func2] and checking equality of the Nodes.
         // (this just a way to check if func is in n.)
@@ -2689,7 +2689,7 @@ void SmtEngine::checkModel(bool hardFailure) {
       }
 
       // (4) checks complete, add the substitution
-      Debug("boolean-terms") << "cm: adding subs " << func << " :=> " << val << endl;
+      Trace("boolean-terms") << "cm: adding subs " << func << " :=> " << val << endl;
       substitutions.addSubstitution(func, val);
     }
   }
@@ -2707,9 +2707,9 @@ void SmtEngine::checkModel(bool hardFailure) {
     Notice() << "SmtEngine::checkModel(): -- expands to " << n << endl;
 
     // Apply our model value substitutions.
-    Debug("boolean-terms") << "applying subses to " << n << endl;
+    Trace("boolean-terms") << "applying subses to " << n << endl;
     n = substitutions.apply(n);
-    Debug("boolean-terms") << "++ got " << n << endl;
+    Trace("boolean-terms") << "++ got " << n << endl;
     Notice() << "SmtEngine::checkModel(): -- substitutes to " << n << endl;
 
     // We look up the value before simplifying. If n contains quantifiers,
@@ -2727,9 +2727,9 @@ void SmtEngine::checkModel(bool hardFailure) {
     Notice() << "SmtEngine::checkModel(): -- ite replacement gives " << n << endl;
 
     // Apply our model value substitutions (again), as things may have been simplified.
-    Debug("boolean-terms") << "applying subses to " << n << endl;
+    Trace("boolean-terms") << "applying subses to " << n << endl;
     n = substitutions.apply(n);
-    Debug("boolean-terms") << "++ got " << n << endl;
+    Trace("boolean-terms") << "++ got " << n << endl;
     Notice() << "SmtEngine::checkModel(): -- re-substitutes to " << n << endl;
 
     // As a last-ditch effort, ask model to simplify it.

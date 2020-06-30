@@ -193,7 +193,7 @@ private:
       Expr from_e(d_from, new Node(n));
       Expr& to_e = d_vmap.d_typeMap[from_e];
       if(! to_e.isNull()) {
-        Debug("export") << "+ mapped `" << from_e << "' to `" << to_e << "'" << std::endl;
+        Trace("export") << "+ mapped `" << from_e << "' to `" << to_e << "'" << std::endl;
         return to_e.getNode();
       } else {
         // construct new variable in other manager:
@@ -242,7 +242,7 @@ private:
             Unhandled();
           }
 
-          Debug("export") << "+ exported var `" << from_e << "'[" << from_e.getId() << "] with name `" << name << "' and type `" << from_e.getType() << "' to `" << to_e << "'[" << to_e.getId() << "] with type `" << type << "'" << std::endl;
+          Trace("export") << "+ exported var `" << from_e << "'[" << from_e.getId() << "] with name `" << name << "' and type `" << from_e.getType() << "' to `" << to_e << "'[" << to_e.getId() << "] with type `" << type << "'" << std::endl;
         } else {
           if (n.getKind() == kind::BOUND_VARIABLE)
           {
@@ -264,7 +264,7 @@ private:
             NodeManagerScope nullScope(nullptr);
             to_e = d_to->mkVar(type);  // FIXME thread safety
           }
-          Debug("export") << "+ exported unnamed var `" << from_e << "' with type `" << from_e.getType() << "' to `" << to_e << "' with type `" << type << "'" << std::endl;
+          Trace("export") << "+ exported unnamed var `" << from_e << "' with type `" << from_e.getType() << "' to `" << to_e << "' with type `" << type << "'" << std::endl;
         }
         uint64_t to_int = (uint64_t)(to_e.getNode().d_nv);
         uint64_t from_int = (uint64_t)(from_e.getNode().d_nv);
@@ -285,26 +285,26 @@ private:
       }
 
       std::vector<Node> children;
-      Debug("export") << "n: " << n << std::endl;
+      Trace("export") << "n: " << n << std::endl;
       if(n.getMetaKind() == kind::metakind::PARAMETERIZED) {
-        Debug("export") << "+ parameterized, op is " << n.getOperator() << std::endl;
+        Trace("export") << "+ parameterized, op is " << n.getOperator() << std::endl;
         children.reserve(n.getNumChildren() + 1);
         children.push_back(exportInternal(n.getOperator()));
       } else {
         children.reserve(n.getNumChildren());
       }
       for(TNode::iterator i = n.begin(), i_end = n.end(); i != i_end; ++i) {
-        Debug("export") << "+ child: " << *i << std::endl;
+        Trace("export") << "+ child: " << *i << std::endl;
         children.push_back(exportInternal(*i));
       }
-      if(Debug.isOn("export")) {
-        Debug("export") << "children for export from " << n << std::endl;
+      if(Trace.isOn("export")) {
+        Trace("export") << "children for export from " << n << std::endl;
 
         // `n` belongs to the `from` ExprManager, so begin ExprManagerScope
         // after printing `n`
         ExprManagerScope ems(*d_to);
         for(std::vector<Node>::iterator i = children.begin(), i_end = children.end(); i != i_end; ++i) {
-          Debug("export") << "  child: " << *i << std::endl;
+          Trace("export") << "  child: " << *i << std::endl;
         }
       }
 
@@ -683,7 +683,7 @@ namespace expr {
 
 static Node exportConstant(TNode n, NodeManager* to, ExprManagerMapCollection& vmap) {
   Assert(n.isConst());
-  Debug("export") << "constant: " << n << std::endl;
+  Trace("export") << "constant: " << n << std::endl;
 
   if(n.getKind() == kind::STORE_ALL) {
     // Special export for ArrayStoreAll.

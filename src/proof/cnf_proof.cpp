@@ -86,7 +86,7 @@ void CnfProof::registerConvertedClause(ClauseId clause, bool explanation) {
   // Explanations do not need a CNF conversion proof since they are in CNF
   // (they will only need a theory proof as they are theory valid)
   if (explanation) {
-    Debug("proof:cnf") << "CnfProof::registerConvertedClause "
+    Trace("proof:cnf") << "CnfProof::registerConvertedClause "
                        << clause << " explanation? " << explanation << std::endl;
     Assert(d_explanations.find(clause) == d_explanations.end());
     d_explanations.insert(clause);
@@ -96,7 +96,7 @@ void CnfProof::registerConvertedClause(ClauseId clause, bool explanation) {
   Node current_assertion = getCurrentAssertion();
   Node current_expr = getCurrentDefinition();
 
-  Debug("proof:cnf") << "CnfProof::registerConvertedClause "
+  Trace("proof:cnf") << "CnfProof::registerConvertedClause "
                      << clause << " assertion = " << current_assertion
                      << clause << " definition = " << current_expr << std::endl;
 
@@ -129,7 +129,7 @@ void CnfProof::registerFalseUnitClause(ClauseId clauseId)
 }
 
 void CnfProof::setClauseAssertion(ClauseId clause, Node expr) {
-  Debug("proof:cnf") << "CnfProof::setClauseAssertion "
+  Trace("proof:cnf") << "CnfProof::setClauseAssertion "
                      << clause << " assertion " << expr << std::endl;
   // We can add the same clause from different assertions.  In this
   // case we keep the first assertion. For example asserting a /\ b
@@ -149,7 +149,7 @@ void CnfProof::setClauseAssertion(ClauseId clause, Node expr) {
 }
 
 void CnfProof::setClauseDefinition(ClauseId clause, Node definition) {
-  Debug("proof:cnf") << "CnfProof::setClauseDefinition "
+  Trace("proof:cnf") << "CnfProof::setClauseDefinition "
                      << clause << " definition " << definition << std::endl;
   // We keep the first definition
   if (d_clauseToDefinition.find(clause) != d_clauseToDefinition.end())
@@ -160,7 +160,7 @@ void CnfProof::setClauseDefinition(ClauseId clause, Node definition) {
 }
 
 void CnfProof::registerAssertion(Node assertion, ProofRule reason) {
-  Debug("proof:cnf") << "CnfProof::registerAssertion "
+  Trace("proof:cnf") << "CnfProof::registerAssertion "
                      << assertion << " reason " << reason << std::endl;
   // We can obtain the assertion from different reasons (e.g. if the
   // assertion is a lemma over shared terms both theories can generate
@@ -182,7 +182,7 @@ bool CnfProof::haveProofRecipe(const std::set<Node> &lemma) {
 }
 
 void CnfProof::setCnfDependence(Node from, Node to) {
-  Debug("proof:cnf") << "CnfProof::setCnfDependence "
+  Trace("proof:cnf") << "CnfProof::setCnfDependence "
                      << "from " << from  << std::endl
                      << "     to " << to << std::endl;
 
@@ -191,12 +191,12 @@ void CnfProof::setCnfDependence(Node from, Node to) {
 }
 
 void CnfProof::pushCurrentAssertion(Node assertion) {
-  Debug("proof:cnf") << "CnfProof::pushCurrentAssertion " << assertion
+  Trace("proof:cnf") << "CnfProof::pushCurrentAssertion " << assertion
                      << std::endl;
 
   d_currentAssertionStack.push_back(assertion);
 
-  Debug("proof:cnf") << "CnfProof::pushCurrentAssertion "
+  Trace("proof:cnf") << "CnfProof::pushCurrentAssertion "
                      << "new stack size = " << d_currentAssertionStack.size()
                      << std::endl;
 }
@@ -204,12 +204,12 @@ void CnfProof::pushCurrentAssertion(Node assertion) {
 void CnfProof::popCurrentAssertion() {
   Assert(d_currentAssertionStack.size());
 
-  Debug("proof:cnf") << "CnfProof::popCurrentAssertion "
+  Trace("proof:cnf") << "CnfProof::popCurrentAssertion "
                      << d_currentAssertionStack.back() << std::endl;
 
   d_currentAssertionStack.pop_back();
 
-  Debug("proof:cnf") << "CnfProof::popCurrentAssertion "
+  Trace("proof:cnf") << "CnfProof::popCurrentAssertion "
                      << "new stack size = " << d_currentAssertionStack.size()
                      << std::endl;
 }
@@ -226,7 +226,7 @@ void CnfProof::setProofRecipe(LemmaProofRecipe* proofRecipe) {
 }
 
 void CnfProof::pushCurrentDefinition(Node definition) {
-  Debug("proof:cnf") << "CnfProof::pushCurrentDefinition "
+  Trace("proof:cnf") << "CnfProof::pushCurrentDefinition "
                      << definition  << std::endl;
 
   d_currentDefinitionStack.push_back(definition);
@@ -235,7 +235,7 @@ void CnfProof::pushCurrentDefinition(Node definition) {
 void CnfProof::popCurrentDefinition() {
   Assert(d_currentDefinitionStack.size());
 
-  Debug("proof:cnf") << "CnfProof::popCurrentDefinition "
+  Trace("proof:cnf") << "CnfProof::popCurrentDefinition "
                      << d_currentDefinitionStack.back() << std::endl;
 
   d_currentDefinitionStack.pop_back();
@@ -452,7 +452,7 @@ void LFSCCnfProof::printCnfProofForClause(ClauseId id,
                                           const prop::SatClause* clause,
                                           std::ostream& os,
                                           std::ostream& paren) {
-  Debug("cnf-pf") << std::endl << std::endl << "LFSCCnfProof::printCnfProofForClause( " << id << " ) starting "
+  Trace("cnf-pf") << std::endl << std::endl << "LFSCCnfProof::printCnfProofForClause( " << id << " ) starting "
                   << std::endl;
 
   os << "(satlem _ _ ";
@@ -514,7 +514,7 @@ void LFSCCnfProof::printCnfProofForClause(ClauseId id,
 
     if (is_input)
     {
-      Debug("cnf-pf") << std::endl
+      Trace("cnf-pf") << std::endl
                       << "; base assertion is input. proof: " << os_base.str()
                       << std::endl;
     }

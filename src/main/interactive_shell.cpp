@@ -216,7 +216,7 @@ restart:
 
   string input = "";
   while(true) {
-    Debug("interactive") << "Input now '" << input << line << "'" << endl
+    Trace("interactive") << "Input now '" << input << line << "'" << endl
                          << flush;
 
     assert( !(d_in.fail() && !d_in.eof()) || line.empty() );
@@ -258,7 +258,7 @@ restart:
       /* Extract the newline delimiter from the stream too */
       int c CVC4_UNUSED = d_in.get();
       assert(c == '\n');
-      Debug("interactive") << "Next char is '" << (char)c << "'" << endl
+      Trace("interactive") << "Next char is '" << (char)c << "'" << endl
                            << flush;
     }
 
@@ -289,7 +289,7 @@ restart:
       }
     } else {
       /* No continuation, we're done. */
-      Debug("interactive") << "Leaving input loop." << endl << flush;
+      Trace("interactive") << "Leaving input loop." << endl << flush;
       break;
     }
   }
@@ -353,8 +353,8 @@ restart:
 #if HAVE_LIBREADLINE
 
 char** commandCompletion(const char* text, int start, int end) {
-  Debug("rl") << "text: " << text << endl;
-  Debug("rl") << "start: " << start << " end: " << end << endl;
+  Trace("rl") << "text: " << text << endl;
+  Trace("rl") << "start: " << start << " end: " << end << endl;
   return rl_completion_matches(text, commandGenerator);
 }
 

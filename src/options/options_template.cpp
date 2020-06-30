@@ -523,8 +523,8 @@ std::vector<std::string> Options::parseOptions(Options* options,
   // not been set.
   //DebugChannel.on("options");
 
-  Debug("options") << "Options::parseOptions == " << options << std::endl;
-  Debug("options") << "argv == " << argv << std::endl;
+  Trace("options") << "Options::parseOptions == " << options << std::endl;
+  Trace("options") << "argv == " << argv << std::endl;
 
   // Find the base name of the program.
   const char *x = strrchr(progName, '/');
@@ -536,10 +536,10 @@ std::vector<std::string> Options::parseOptions(Options* options,
 
   std::vector<std::string> nonoptions;
   parseOptionsRecursive(options, argc, argv, &nonoptions);
-  if(Debug.isOn("options")){
+  if(Trace.isOn("options")){
     for(std::vector<std::string>::const_iterator i = nonoptions.begin(),
           iend = nonoptions.end(); i != iend; ++i){
-      Debug("options") << "nonoptions " << *i << std::endl;
+      Trace("options") << "nonoptions " << *i << std::endl;
     }
   }
 
@@ -552,12 +552,12 @@ void Options::parseOptionsRecursive(Options* options,
                                     std::vector<std::string>* nonoptions)
 {
 
-  if(Debug.isOn("options")) {
-    Debug("options") << "starting a new parseOptionsRecursive with "
+  if(Trace.isOn("options")) {
+    Trace("options") << "starting a new parseOptionsRecursive with "
                      << argc << " arguments" << std::endl;
     for( int i = 0; i < argc ; i++ ){
       Assert(argv[i] != NULL);
-      Debug("options") << "  argv[" << i << "] = " << argv[i] << std::endl;
+      Trace("options") << "  argv[" << i << "] = " << argv[i] << std::endl;
     }
   }
 
@@ -590,7 +590,7 @@ void Options::parseOptionsRecursive(Options* options,
     // non-option.
     if (main_optind > 0 && main_optind < argc &&
         argv[main_optind][0] != '-') {
-      Debug("options") << "enqueueing " << argv[main_optind]
+      Trace("options") << "enqueueing " << argv[main_optind]
                        << " as a non-option." << std::endl;
       nonoptions->push_back(argv[main_optind]);
       ++main_optind;
@@ -598,10 +598,10 @@ void Options::parseOptionsRecursive(Options* options,
     }
 
 
-    Debug("options") << "[ before, main_optind == " << main_optind << " ]"
+    Trace("options") << "[ before, main_optind == " << main_optind << " ]"
                      << std::endl;
-    Debug("options") << "[ before, optind == " << optind << " ]" << std::endl;
-    Debug("options") << "[ argc == " << argc << ", argv == " << argv << " ]"
+    Trace("options") << "[ before, optind == " << optind << " ]" << std::endl;
+    Trace("options") << "[ argc == " << argc << ", argv == " << argv << " ]"
                      << std::endl;
     int c = getopt_long(argc, argv,
                         "+:${options_short}$",
@@ -609,7 +609,7 @@ void Options::parseOptionsRecursive(Options* options,
 
     main_optind = optind;
 
-    Debug("options") << "[ got " << int(c) << " (" << char(c) << ") ]"
+    Trace("options") << "[ got " << int(c) << " (" << char(c) << ") ]"
                      << "[ next option will be at pos: " << optind << " ]"
                      << std::endl;
 
@@ -622,10 +622,10 @@ void Options::parseOptionsRecursive(Options* options,
     }
 
     if ( c == -1 ) {
-      if(Debug.isOn("options")) {
-        Debug("options") << "done with option parsing" << std::endl;
+      if(Trace.isOn("options")) {
+        Trace("options") << "done with option parsing" << std::endl;
         for(int index = optind; index < argc; ++index) {
-          Debug("options") << "remaining " << argv[index] << std::endl;
+          Trace("options") << "remaining " << argv[index] << std::endl;
         }
       }
       break;
@@ -634,7 +634,7 @@ void Options::parseOptionsRecursive(Options* options,
     option = argv[old_optind == 0 ? 1 : old_optind];
     optionarg = (optarg == NULL) ? "" : optarg;
 
-    Debug("preemptGetopt") << "processing option " << c
+    Trace("preemptGetopt") << "processing option " << c
                            << " (`" << char(c) << "'), " << option << std::endl;
 
     switch(c) {
@@ -654,7 +654,7 @@ ${options_handler}$
     }
   }
 
-  Debug("options") << "got " << nonoptions->size()
+  Trace("options") << "got " << nonoptions->size()
                    << " non-option arguments." << std::endl;
 }
 

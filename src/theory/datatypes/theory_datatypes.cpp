@@ -371,7 +371,7 @@ void TheoryDatatypes::check(Effort e) {
   }
 
   Trace("datatypes-check") << "Finished check effort " << e << std::endl;
-  if( Debug.isOn("datatypes") || Debug.isOn("datatypes-split") ) {
+  if( Trace.isOn("datatypes") || Trace.isOn("datatypes-split") ) {
     Notice() << "TheoryDatatypes::check(): done" << endl;
   }
 }
@@ -522,7 +522,7 @@ void TheoryDatatypes::assertFact( Node fact, Node exp ){
 }
 
 void TheoryDatatypes::preRegisterTerm(TNode n) {
-  Debug("datatypes-prereg") << "TheoryDatatypes::preRegisterTerm() " << n << endl;
+  Trace("datatypes-prereg") << "TheoryDatatypes::preRegisterTerm() " << n << endl;
   collectTerms( n );
   switch (n.getKind()) {
   case kind::EQUAL:
@@ -661,28 +661,28 @@ Node TheoryDatatypes::expandDefinition(Node n)
         updateIndex = record.getIndex(
             n.getOperator().getConst<RecordUpdate>().getField());
       }
-      Debug("tuprec") << "expr is " << n << std::endl;
-      Debug("tuprec") << "updateIndex is " << updateIndex << std::endl;
-      Debug("tuprec") << "t is " << tn << std::endl;
-      Debug("tuprec") << "t has arity " << size << std::endl;
+      Trace("tuprec") << "expr is " << n << std::endl;
+      Trace("tuprec") << "updateIndex is " << updateIndex << std::endl;
+      Trace("tuprec") << "t is " << tn << std::endl;
+      Trace("tuprec") << "t has arity " << size << std::endl;
       for (size_t i = 0; i < size; ++i)
       {
         if (i == updateIndex)
         {
           b << n[1];
-          Debug("tuprec") << "arg " << i << " gets updated to " << n[1]
+          Trace("tuprec") << "arg " << i << " gets updated to " << n[1]
                           << std::endl;
         }
         else
         {
           b << nm->mkNode(
               APPLY_SELECTOR_TOTAL, dt[0].getSelectorInternal(tn, i), n[0]);
-          Debug("tuprec") << "arg " << i << " copies "
+          Trace("tuprec") << "arg " << i << " copies "
                           << b[b.getNumChildren() - 1] << std::endl;
         }
       }
       Node n_ret = b;
-      Debug("tuprec") << "return " << n_ret << std::endl;
+      Trace("tuprec") << "return " << n_ret << std::endl;
       return n_ret;
     }
     break;
@@ -693,12 +693,12 @@ Node TheoryDatatypes::expandDefinition(Node n)
 
 void TheoryDatatypes::presolve()
 {
-  Debug("datatypes") << "TheoryDatatypes::presolve()" << endl;
+  Trace("datatypes") << "TheoryDatatypes::presolve()" << endl;
 }
 
 Node TheoryDatatypes::ppRewrite(TNode in)
 {
-  Debug("tuprec") << "TheoryDatatypes::ppRewrite(" << in << ")" << endl;
+  Trace("tuprec") << "TheoryDatatypes::ppRewrite(" << in << ")" << endl;
 
   if( in.getKind()==EQUAL ){
     Node nn;
@@ -721,10 +721,10 @@ Node TheoryDatatypes::ppRewrite(TNode in)
 }
 
 void TheoryDatatypes::addSharedTerm(TNode t) {
-  Debug("datatypes") << "TheoryDatatypes::addSharedTerm(): "
+  Trace("datatypes") << "TheoryDatatypes::addSharedTerm(): "
                      << t << " " << t.getType().isBoolean() << endl;
   d_equalityEngine.addTriggerTerm(t, THEORY_DATATYPES);
-  Debug("datatypes") << "TheoryDatatypes::addSharedTerm() finished" << std::endl;
+  Trace("datatypes") << "TheoryDatatypes::addSharedTerm() finished" << std::endl;
 }
 
 /** propagate */
@@ -734,10 +734,10 @@ void TheoryDatatypes::propagate(Effort effort){
 
 /** propagate */
 bool TheoryDatatypes::propagate(TNode literal){
-  Debug("dt::propagate") << "TheoryDatatypes::propagate(" << literal  << ")" << std::endl;
+  Trace("dt::propagate") << "TheoryDatatypes::propagate(" << literal  << ")" << std::endl;
   // If already in conflict, no more propagation
   if (d_conflict) {
-    Debug("dt::propagate") << "TheoryDatatypes::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("dt::propagate") << "TheoryDatatypes::propagate(" << literal << "): already in conflict" << std::endl;
     return false;
   }
   Trace("dt-prop") << "dtPropagate " << literal << std::endl;
@@ -785,7 +785,7 @@ void TheoryDatatypes::explainPredicate( TNode p, bool polarity, std::vector<TNod
 
 /** explain */
 void TheoryDatatypes::explain(TNode literal, std::vector<TNode>& assumptions){
-  Debug("datatypes-explain") << "Explain " << literal << std::endl;
+  Trace("datatypes-explain") << "Explain " << literal << std::endl;
   bool polarity = literal.getKind() != kind::NOT;
   TNode atom = polarity ? literal : literal[0];
   if (atom.getKind() == kind::EQUAL) {
@@ -1071,7 +1071,7 @@ void TheoryDatatypes::addTester(
     unsigned ttindex, Node t, EqcInfo* eqc, Node n, Node t_arg)
 {
   Trace("datatypes-debug") << "Add tester : " << t << " to eqc(" << n << ")" << std::endl;
-  Debug("datatypes-labels") << "Add tester " << t << " " << n << " " << eqc << std::endl;
+  Trace("datatypes-labels") << "Add tester " << t << " " << n << " " << eqc << std::endl;
   bool tpolarity = t.getKind()!=NOT;
   Node j, jt;
   bool makeConflict = false;
@@ -1125,7 +1125,7 @@ void TheoryDatatypes::addTester(
       }
     }
     if( !makeConflict ){
-      Debug("datatypes-labels") << "Add to labels " << t << std::endl;
+      Trace("datatypes-labels") << "Add to labels " << t << std::endl;
       d_labels[n] = n_lbl + 1;
       if (n_lbl < d_labels_data[n].size())
       {
@@ -1141,7 +1141,7 @@ void TheoryDatatypes::addTester(
       n_lbl++;
 
       const DType& dt = t_arg.getType().getDType();
-      Debug("datatypes-labels") << "Labels at " << n_lbl << " / " << dt.getNumConstructors() << std::endl;
+      Trace("datatypes-labels") << "Labels at " << n_lbl << " / " << dt.getNumConstructors() << std::endl;
       if( tpolarity ){
         instantiate( eqc, n );
         for (unsigned i = 0, ncons = dt.getNumConstructors(); i < ncons; i++)
@@ -1201,7 +1201,7 @@ void TheoryDatatypes::addTester(
   }
   if( makeConflict ){
     d_conflict = true;
-    Debug("datatypes-labels") << "Explain " << j << " " << t << std::endl;
+    Trace("datatypes-labels") << "Explain " << j << " " << t << std::endl;
     std::vector< TNode > assumptions;
     explain( j, assumptions );
     explain( t, assumptions );
@@ -1685,7 +1685,7 @@ void TheoryDatatypes::collectTerms( Node n ) {
   Kind nk = n.getKind();
   if (nk == APPLY_CONSTRUCTOR)
   {
-    Debug("datatypes") << "  Found constructor " << n << endl;
+    Trace("datatypes") << "  Found constructor " << n << endl;
     if (n.getNumChildren() > 0)
     {
       d_functionTerms.push_back(n);
@@ -1769,7 +1769,7 @@ Node TheoryDatatypes::getInstantiateCons(Node n, const DType& dt, int index)
       n_ic = Rewriter::rewrite( n_ic );
       collectTerms( n_ic );
       d_equalityEngine.addTerm(n_ic);
-      Debug("dt-enum") << "Made instantiate cons " << n_ic << std::endl;
+      Trace("dt-enum") << "Made instantiate cons " << n_ic << std::endl;
     }
     d_inst_map[n][index] = n_ic;
     return n_ic;
@@ -1805,7 +1805,7 @@ void TheoryDatatypes::instantiate( EqcInfo* eqc, Node n ){
     return;
   }
   eq = tt.eqNode(tt_cons);
-  Debug("datatypes-inst") << "DtInstantiate : " << eqc << " " << eq
+  Trace("datatypes-inst") << "DtInstantiate : " << eqc << " " << eq
                           << std::endl;
   d_pending.push_back(eq);
   d_pending_exp[eq] = exp;

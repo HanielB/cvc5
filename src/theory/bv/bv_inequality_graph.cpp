@@ -30,7 +30,7 @@ const ReasonId CVC4::theory::bv::AxiomReasonId = -2;
 
 
 bool InequalityGraph::addInequality(TNode a, TNode b, bool strict, TNode reason) {
-  Debug("bv-inequality") << "InequalityGraph::addInequality " << a << " " << b << " strict: " << strict << "\n"; 
+  Trace("bv-inequality") << "InequalityGraph::addInequality " << a << " " << b << " strict: " << strict << "\n"; 
 
   TermId id_a = registerTerm(a);
   TermId id_b = registerTerm(b);
@@ -65,7 +65,7 @@ bool InequalityGraph::addInequality(TNode a, TNode b, bool strict, TNode reason)
     std::vector<ReasonId> conflict;
     conflict.push_back(id_reason);
     computeExplanation(UndefinedTermId, id_a, conflict);
-    Debug("bv-inequality") << "InequalityGraph::addInequality conflict: constant UB \n"; 
+    Trace("bv-inequality") << "InequalityGraph::addInequality conflict: constant UB \n"; 
     setConflict(conflict);
     return false; 
   }
@@ -83,13 +83,13 @@ bool InequalityGraph::updateValue(TermId id, ModelValue new_mv, TermId start, bo
   
   if (isConst(id)) {
     if (getValue(id) < lower_bound) {
-      Debug("bv-inequality") << "Conflict: constant " << getValue(id) << "\n"; 
+      Trace("bv-inequality") << "Conflict: constant " << getValue(id) << "\n"; 
       std::vector<ReasonId> conflict;
       TermId parent = new_mv.parent; 
       ReasonId reason = new_mv.reason; 
       conflict.push_back(reason); 
       computeExplanation(UndefinedTermId, parent, conflict);
-      Debug("bv-inequality") << "InequalityGraph::addInequality conflict: constant\n"; 
+      Trace("bv-inequality") << "InequalityGraph::addInequality conflict: constant\n"; 
       setConflict(conflict); 
       return false; 
     }
@@ -103,11 +103,11 @@ bool InequalityGraph::updateValue(TermId id, ModelValue new_mv, TermId start, bo
         std::vector<TermId> conflict;
         conflict.push_back(reason);
         computeExplanation(id, parent, conflict);
-        Debug("bv-inequality") << "InequalityGraph::addInequality conflict: cycle \n"; 
+        Trace("bv-inequality") << "InequalityGraph::addInequality conflict: cycle \n"; 
         setConflict(conflict); 
         return false; 
       }
-      Debug("bv-inequality-internal") << "Updating " << getTermNode(id) 
+      Trace("bv-inequality-internal") << "Updating " << getTermNode(id) 
                                       << "  from " << getValue(id) << "\n"
                                       << "  to " << lower_bound << "\n";
       changed = true;
@@ -121,7 +121,7 @@ bool InequalityGraph::processQueue(BFSQueue& queue, TermId start) {
   while (!queue.empty()) {
     TermId current = queue.top();
     queue.pop();
-    Debug("bv-inequality-internal") << "InequalityGraph::processQueue processing " << getTermNode(current) << "\n";
+    Trace("bv-inequality-internal") << "InequalityGraph::processQueue processing " << getTermNode(current) << "\n";
   
     BitVector current_value = getValue(current);
   
@@ -147,7 +147,7 @@ bool InequalityGraph::processQueue(BFSQueue& queue, TermId start) {
           conflict.push_back(start_reason);
         }
         computeExplanation(UndefinedTermId, current, conflict);
-        Debug("bv-inequality") << "InequalityGraph::addInequality conflict: cycle \n"; 
+        Trace("bv-inequality") << "InequalityGraph::addInequality conflict: cycle \n"; 
         setConflict(conflict); 
         return false; 
       }
@@ -161,29 +161,29 @@ bool InequalityGraph::processQueue(BFSQueue& queue, TermId start) {
       if (next == start) {
         // we know what we didn't update start or we would have had a conflict 
         // this means we are in a cycle where all the values are forced to be equal
-        Debug("bv-inequality-internal") << "InequalityGraph::processQueue equal cycle."; 
+        Trace("bv-inequality-internal") << "InequalityGraph::processQueue equal cycle."; 
         continue; 
       }
       
       if (!updated) {
         // if we didn't update current we don't need to add to the queue it's children 
-        Debug("bv-inequality-internal") << "  unchanged " << getTermNode(next) << "\n";  
+        Trace("bv-inequality-internal") << "  unchanged " << getTermNode(next) << "\n";  
         continue; 
       }
 
       queue.push(next);
-      Debug("bv-inequality-internal") << "   enqueue " << getTermNode(next) << "\n"; 
+      Trace("bv-inequality-internal") << "   enqueue " << getTermNode(next) << "\n"; 
     }
   }
   return true; 
 }
 
 void InequalityGraph::computeExplanation(TermId from, TermId to, std::vector<ReasonId>& explanation) {
-  if(Debug.isOn("bv-inequality")) {
+  if(Trace.isOn("bv-inequality")) {
     if (from == UndefinedTermId) {
-      Debug("bv-inequality") << "InequalityGraph::computeExplanation " << getTermNode(to) << "\n";
+      Trace("bv-inequality") << "InequalityGraph::computeExplanation " << getTermNode(to) << "\n";
     } else {
-      Debug("bv-inequality") << "InequalityGraph::computeExplanation " << getTermNode(from) <<" => "
+      Trace("bv-inequality") << "InequalityGraph::computeExplanation " << getTermNode(from) <<" => "
                              << getTermNode(to) << "\n";
     }
   }
@@ -197,13 +197,13 @@ void InequalityGraph::computeExplanation(TermId from, TermId to, std::vector<Rea
     explanation.push_back(exp.reason);
     Assert(exp.parent != UndefinedTermId);
     to = exp.parent; 
-    Debug("bv-inequality-internal") << "  parent: " << getTermNode(to) << "\n"
+    Trace("bv-inequality-internal") << "  parent: " << getTermNode(to) << "\n"
                                     << "  reason: " << getReasonNode(exp.reason) << "\n"; 
   }
 }
 
 void InequalityGraph::addEdge(TermId a, TermId b, bool strict, TermId reason) {
-  Debug("bv-inequality-internal") << "InequalityGraph::addEdge " << getTermNode(a) << " => " << getTermNode(b) << "\n"
+  Trace("bv-inequality-internal") << "InequalityGraph::addEdge " << getTermNode(a) << " => " << getTermNode(b) << "\n"
                                   << " strict ? " << strict << "\n"; 
   Edges& edges = getEdges(a);
   InequalityEdge new_edge(b, strict, reason); 
@@ -237,7 +237,7 @@ TermId InequalityGraph::registerTerm(TNode term) {
 
   // store in node mapping
   TermId id = d_termNodes.size();
-  Debug("bv-inequality-internal") << "InequalityGraph::registerTerm " << term << " => id"<< id << "\n"; 
+  Trace("bv-inequality-internal") << "InequalityGraph::registerTerm " << term << " => id"<< id << "\n"; 
   
   d_termNodes.push_back(term);
   d_termNodeToIdMap[term] = id;
@@ -267,7 +267,7 @@ ReasonId InequalityGraph::registerReason(TNode reason) {
   ReasonId id = d_reasonNodes.size();
   d_reasonNodes.push_back(reason);
   d_reasonToIdMap[reason] = id;
-  Debug("bv-inequality-internal") << "InequalityGraph::registerReason " << reason << " => id"<< id << "\n"; 
+  Trace("bv-inequality-internal") << "InequalityGraph::registerReason " << reason << " => id"<< id << "\n"; 
   return id; 
 }
 
@@ -295,10 +295,10 @@ void InequalityGraph::setConflict(const std::vector<ReasonId>& conflict) {
       d_conflict.push_back(getReasonNode(conflict[i]));
     }
   }
-  if (Debug.isOn("bv-inequality")) {
-    Debug("bv-inequality") << "InequalityGraph::setConflict \n";
+  if (Trace.isOn("bv-inequality")) {
+    Trace("bv-inequality") << "InequalityGraph::setConflict \n";
     for (unsigned i = 0; i < d_conflict.size(); ++i) {
-      Debug("bv-inequality") << "   " << d_conflict[i] <<"\n"; 
+      Trace("bv-inequality") << "   " << d_conflict[i] <<"\n"; 
     }
   }
 }
@@ -333,7 +333,7 @@ bool InequalityGraph::hasReason(TermId id) const {
 }
 
 bool InequalityGraph::addDisequality(TNode a, TNode b, TNode reason) {
-  Debug("bv-inequality") << "InequalityGraph::addDisequality " << reason << "\n"; 
+  Trace("bv-inequality") << "InequalityGraph::addDisequality " << reason << "\n"; 
   d_disequalities.push_back(reason);
 
   if (!isRegistered(a) || !isRegistered(b)) {
@@ -380,14 +380,14 @@ bool InequalityGraph::addDisequality(TNode a, TNode b, TNode reason) {
     // if none of the terms are constants just add the lemma 
     //splitDisequality(reason);
   } else {
-    Debug("bv-inequality-internal") << "Disequal: " << a << " => " << val_a.toString(10) << "\n"
+    Trace("bv-inequality-internal") << "Disequal: " << a << " => " << val_a.toString(10) << "\n"
                                     << "          " << b << " => " << val_b.toString(10) << "\n"; 
   }
   return true; 
 }
 
 // void InequalityGraph::splitDisequality(TNode diseq) {
-//   Debug("bv-inequality-internal")<<"InequalityGraph::splitDisequality " <<
+//   Trace("bv-inequality-internal")<<"InequalityGraph::splitDisequality " <<
 //   diseq <<"\n"; Assert (diseq.getKind() == kind::NOT &&
 //   diseq[0].getKind() == kind::EQUAL); if
 //   (d_disequalitiesAlreadySplit.find(diseq) ==
@@ -397,7 +397,7 @@ bool InequalityGraph::addDisequality(TNode a, TNode b, TNode reason) {
 // }
 
 void InequalityGraph::backtrack() {
-  Debug("bv-inequality-internal") << "InequalityGraph::backtrack()\n"; 
+  Trace("bv-inequality-internal") << "InequalityGraph::backtrack()\n"; 
   int size = d_undoStack.size(); 
   for (int i = size - 1; i >= (int)d_undoStackIndex.get(); --i) {
     Assert(!d_undoStack.empty());
@@ -405,11 +405,11 @@ void InequalityGraph::backtrack() {
     InequalityEdge edge = d_undoStack.back().second;
     d_undoStack.pop_back();
     
-    Debug("bv-inequality-internal") << " remove edge " << getTermNode(id) << " => "
+    Trace("bv-inequality-internal") << " remove edge " << getTermNode(id) << " => "
                                                        << getTermNode(edge.next) <<"\n"; 
     Edges& edges = getEdges(id);
     for (Edges::const_iterator it = edges.begin(); it!= edges.end(); ++it) {
-      Debug("bv-inequality-internal") << getTermNode(it->next) <<" " << it->strict << "\n"; 
+      Trace("bv-inequality-internal") << getTermNode(it->next) <<" " << it->strict << "\n"; 
     }
     Assert(!edges.empty());
     Assert(edges.back() == edge);
@@ -477,6 +477,6 @@ void InequalityGraph::getAllValuesInModel(std::vector<Node>& assignments)
     Node constant = utils::mkConst(value);
     Node assignment = nm->mkNode(kind::EQUAL, var, constant);
     assignments.push_back(assignment);
-    Debug("bitvector-model") << "   " << var << " => " << constant << "\n";
+    Trace("bitvector-model") << "   " << var << " => " << constant << "\n";
   }
 }

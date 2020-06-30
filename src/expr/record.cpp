@@ -38,22 +38,22 @@ static Record::FieldVector::const_iterator find(
 Record::Record(const FieldVector& fields)
     : d_fields(new FieldVector(fields))
 {
-  Debug("record") << "making " << this << " " << d_fields << std::endl;
+  Trace("record") << "making " << this << " " << d_fields << std::endl;
 }
 
 Record::Record(const Record& other)
     : d_fields(new FieldVector(other.getFields()))
 {
-  Debug("record") << "copy constructor " << this << " " << d_fields << std::endl;
+  Trace("record") << "copy constructor " << this << " " << d_fields << std::endl;
 }
 
 Record::~Record() {
-  Debug("record") << "deleting " << this << " " << d_fields << std::endl;
+  Trace("record") << "deleting " << this << " " << d_fields << std::endl;
   delete d_fields;
 }
 
 Record& Record::operator=(const Record& r) {
-  Debug("record") << "setting " << this << " " << d_fields << std::endl;
+  Trace("record") << "setting " << this << " " << d_fields << std::endl;
   Record::FieldVector& local = *d_fields;
   local = r.getFields();
   return *this;

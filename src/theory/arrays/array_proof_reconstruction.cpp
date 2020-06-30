@@ -42,7 +42,7 @@ void ArrayProofReconstruction::setExtMergeTag(unsigned tag) {
 void ArrayProofReconstruction::notify(
     unsigned reasonType, Node reason, Node a, Node b,
     std::vector<TNode>& equalities, eq::EqProof* proof) const {
-  Debug("pf::array") << "ArrayProofReconstruction::notify( "
+  Trace("pf::array") << "ArrayProofReconstruction::notify( "
                      << reason << ", " << a << ", " << b << std::endl;
 
 
@@ -100,7 +100,7 @@ void ArrayProofReconstruction::notify(
           Assert(a[0][0] == b[0]);
         }
 
-        Debug("pf::ee") << "Getting explanation for ROW guard: "
+        Trace("pf::ee") << "Getting explanation for ROW guard: "
                         << indexOne << " != " << indexTwo << std::endl;
 
         std::shared_ptr<eq::EqProof> childProof =
@@ -173,11 +173,11 @@ void ArrayProofReconstruction::notify(
         Node indexOne = a;
         Node indexTwo = b;
 
-        Debug("pf::ee") << "The two indices are: " << indexOne << ", " << indexTwo << std::endl
+        Trace("pf::ee") << "The two indices are: " << indexOne << ", " << indexTwo << std::endl
                         << "The reason for the edge is: " << reason << std::endl;
 
         Assert(reason.getNumChildren() == 2);
-        Debug("pf::ee") << "Getting explanation for ROW guard: " << reason[1] << std::endl;
+        Trace("pf::ee") << "Getting explanation for ROW guard: " << reason[1] << std::endl;
 
         std::shared_ptr<eq::EqProof> childProof =
             std::make_shared<eq::EqProof>();

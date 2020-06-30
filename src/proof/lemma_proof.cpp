@@ -67,51 +67,51 @@ std::set<Node> LemmaProofRecipe::getMissingAssertionsForStep(unsigned index) con
 void LemmaProofRecipe::dump(const char *tag) const {
 
   if (d_proofSteps.size() == 1) {
-    Debug(tag) << std::endl << "[Simple lemma]" << std::endl << std::endl;
+    Trace(tag) << std::endl << "[Simple lemma]" << std::endl << std::endl;
   }
 
   if (d_originalLemma != Node()) {
-    Debug(tag) << std::endl << "Original lemma: " << d_originalLemma << std::endl << std::endl;
+    Trace(tag) << std::endl << "Original lemma: " << d_originalLemma << std::endl << std::endl;
   }
 
   unsigned count = 1;
-  Debug(tag) << "Base assertions:" << std::endl;
+  Trace(tag) << "Base assertions:" << std::endl;
   for (std::set<Node>::iterator baseIt = d_baseAssertions.begin();
        baseIt != d_baseAssertions.end();
        ++baseIt) {
-    Debug(tag) << "\t#" << count << ": " << "\t" << *baseIt << std::endl;
+    Trace(tag) << "\t#" << count << ": " << "\t" << *baseIt << std::endl;
     ++count;
   }
 
-  Debug(tag) << std::endl << std::endl << "Proof steps:" << std::endl;
+  Trace(tag) << std::endl << std::endl << "Proof steps:" << std::endl;
 
   count = 1;
   for (const auto& step : (*this)) {
-    Debug(tag) << "\tStep #" << count << ": " << "\t[" << step.getTheory() << "] ";
+    Trace(tag) << "\tStep #" << count << ": " << "\t[" << step.getTheory() << "] ";
     if (step.getLiteral() == Node()) {
-      Debug(tag) << "Contradiction";
+      Trace(tag) << "Contradiction";
     } else {
-      Debug(tag) << step.getLiteral();
+      Trace(tag) << step.getLiteral();
     }
 
-    Debug(tag) << std::endl;
+    Trace(tag) << std::endl;
 
     std::set<Node> missingAssertions = getMissingAssertionsForStep(count - 1);
     for (std::set<Node>::const_iterator it = missingAssertions.begin(); it != missingAssertions.end(); ++it) {
-      Debug(tag) << "\t\t\tMissing assertion for step: " << *it << std::endl;
+      Trace(tag) << "\t\t\tMissing assertion for step: " << *it << std::endl;
     }
 
-    Debug(tag) << std::endl;
+    Trace(tag) << std::endl;
     ++count;
   }
 
   if (!d_assertionToExplanation.empty()) {
-    Debug(tag) << std::endl << "Rewrites used:" << std::endl;
+    Trace(tag) << std::endl << "Rewrites used:" << std::endl;
     count = 1;
     for (std::map<Node, Node>::const_iterator rewrite = d_assertionToExplanation.begin();
          rewrite != d_assertionToExplanation.end();
          ++rewrite) {
-      Debug(tag) << "\tRewrite #" << count << ":" << std::endl
+      Trace(tag) << "\tRewrite #" << count << ":" << std::endl
                  << "\t\t" << rewrite->first
                  << std::endl << "\t\trewritten into" << std::endl
                  << "\t\t" << rewrite->second

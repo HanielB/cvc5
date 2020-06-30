@@ -29,7 +29,7 @@ void Tableau::pivot(ArithVar oldBasic, ArithVar newBasic, CoefficientChangeCallb
   Assert(!isBasic(newBasic));
   Assert(d_mergeBuffer.empty());
 
-  Debug("tableau") << "Tableau::pivot(" <<  oldBasic <<", " << newBasic <<")"  << endl;
+  Trace("tableau") << "Tableau::pivot(" <<  oldBasic <<", " << newBasic <<")"  << endl;
 
   RowIndex ridx = basicToRowIndex(oldBasic);
 
@@ -115,7 +115,7 @@ void Tableau::addRow(ArithVar basic,
   d_rowIndex2basic.set(newRow, basic);
 
 
-  if(Debug.isOn("matrix")){ printMatrix(); }
+  if(Trace.isOn("matrix")){ printMatrix(); }
 
   NoEffectCCCB noeffect;
   NoEffectCCCB* nep = &noeffect;
@@ -138,7 +138,7 @@ void Tableau::addRow(ArithVar basic,
     }
   }
 
-  if(Debug.isOn("matrix")) { printMatrix(); }
+  if(Trace.isOn("matrix")) { printMatrix(); }
 
   Assert(debugNoZeroCoefficients(newRow));
   Assert(debugMatchingCountsForRow(newRow));

@@ -141,7 +141,7 @@ class TheorySep : public Theory {
 
     bool eqNotifyTriggerEquality(TNode equality, bool value) override
     {
-      Debug("sep::propagate")
+      Trace("sep::propagate")
           << "NotifyClass::eqNotifyTriggerEquality(" << equality << ", "
           << (value ? "true" : "false") << ")" << std::endl;
       // Just forward to sep
@@ -165,7 +165,7 @@ class TheorySep : public Theory {
                                      TNode t2,
                                      bool value) override
     {
-      Debug("sep::propagate")
+      Trace("sep::propagate")
           << "NotifyClass::eqNotifyTriggerTermEquality(" << t1 << ", " << t2
           << ", " << (value ? "true" : "false") << ")" << std::endl;
       if (value)
@@ -182,7 +182,7 @@ class TheorySep : public Theory {
 
     void eqNotifyConstantTermMerge(TNode t1, TNode t2) override
     {
-      Debug("sep::propagate") << "NotifyClass::eqNotifyConstantTermMerge(" << t1
+      Trace("sep::propagate") << "NotifyClass::eqNotifyConstantTermMerge(" << t1
                               << ", " << t2 << ")" << std::endl;
       d_sep.conflict(t1, t2);
     }

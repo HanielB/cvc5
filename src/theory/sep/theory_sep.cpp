@@ -103,10 +103,10 @@ Theory::PPAssertStatus TheorySep::ppAssert(TNode in, SubstitutionMap& outSubstit
 
 bool TheorySep::propagate(TNode literal)
 {
-  Debug("sep") << "TheorySep::propagate(" << literal  << ")" << std::endl;
+  Trace("sep") << "TheorySep::propagate(" << literal  << ")" << std::endl;
   // If already in conflict, no more propagation
   if (d_conflict) {
-    Debug("sep") << "TheorySep::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("sep") << "TheorySep::propagate(" << literal << "): already in conflict" << std::endl;
     return false;
   }
   bool ok = d_out->propagate(literal);
@@ -142,7 +142,7 @@ void TheorySep::propagate(Effort e){
 
 Node TheorySep::explain(TNode literal)
 {
-  Debug("sep") << "TheorySep::explain(" << literal << ")" << std::endl;
+  Trace("sep") << "TheorySep::explain(" << literal << ")" << std::endl;
   std::vector<TNode> assumptions;
   explain(literal, assumptions);
   return mkAnd(assumptions);
@@ -155,7 +155,7 @@ Node TheorySep::explain(TNode literal)
 
 
 void TheorySep::addSharedTerm(TNode t) {
-  Debug("sep") << "TheorySep::addSharedTerm(" << t << ")" << std::endl;
+  Trace("sep") << "TheorySep::addSharedTerm(" << t << ")" << std::endl;
   d_equalityEngine.addTriggerTerm(t, THEORY_SEP);
 }
 
@@ -175,7 +175,7 @@ EqualityStatus TheorySep::getEqualityStatus(TNode a, TNode b) {
 
 
 void TheorySep::computeCareGraph() {
-  Debug("sharing") << "Theory::computeCareGraph<" << getId() << ">()" << endl;
+  Trace("sharing") << "Theory::computeCareGraph<" << getId() << ">()" << endl;
   for (unsigned i = 0; i < d_sharedTerms.size(); ++ i) {
     TNode a = d_sharedTerms[i];
     TypeNode aType = a.getType();

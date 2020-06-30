@@ -1158,7 +1158,7 @@ void TheoryEngineModelBuilder::debugCheckModel(TheoryModel* tm)
       // non-linear mult is not necessarily accurate wrt getValue
       if (n.getKind() != kind::NONLINEAR_MULT)
       {
-        Debug("check-model::rep-checking") << "( " << repCheckInstance << ") "
+        Trace("check-model::rep-checking") << "( " << repCheckInstance << ") "
                                            << "n: " << n << endl
                                            << "getValue(n): " << tm->getValue(n)
                                            << endl

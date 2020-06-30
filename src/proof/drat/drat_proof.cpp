@@ -174,24 +174,24 @@ DratProof::DratProof() : d_instructions() {}
 DratProof DratProof::fromBinary(const std::string& s)
 {
   DratProof proof;
-  if (Debug.isOn("pf::drat"))
+  if (Trace.isOn("pf::drat"))
   {
-    Debug("pf::drat") << "Parsing binary DRAT proof" << std::endl;
-    Debug("pf::drat") << "proof length: " << s.length() << " bytes"
+    Trace("pf::drat") << "Parsing binary DRAT proof" << std::endl;
+    Trace("pf::drat") << "proof length: " << s.length() << " bytes"
                       << std::endl;
-    Debug("pf::drat") << "proof as bytes: ";
+    Trace("pf::drat") << "proof as bytes: ";
     for (char i : s)
     {
       if (i == 'a' || i == 'd')
       {
-        Debug("pf::drat") << std::endl << "  " << std::bitset<8>(i);
+        Trace("pf::drat") << std::endl << "  " << std::bitset<8>(i);
       }
       else
       {
-        Debug("pf::drat") << " " << std::bitset<8>(i);
+        Trace("pf::drat") << " " << std::bitset<8>(i);
       }
     }
-    Debug("pf::drat") << std::endl << "parsing proof..." << std::endl;
+    Trace("pf::drat") << std::endl << "parsing proof..." << std::endl;
   }
 
   // For each instruction
@@ -225,10 +225,10 @@ DratProof DratProof::fromBinary(const std::string& s)
     }
   }
 
-  if (Debug.isOn("pf::drat"))
+  if (Trace.isOn("pf::drat"))
   {
-    Debug("pf::drat") << "Printing out DRAT in textual format:" << std::endl;
-    proof.outputAsText(Debug("pf::drat"));
+    Trace("pf::drat") << "Printing out DRAT in textual format:" << std::endl;
+    proof.outputAsText(Trace("pf::drat"));
   }
 
   return proof;

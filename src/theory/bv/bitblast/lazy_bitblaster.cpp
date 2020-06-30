@@ -126,7 +126,7 @@ void TLazyBitblaster::bbAtom(TNode node)
   // make sure it is marked as an atom
   addAtom(node);
 
-  Debug("bitvector-bitblast") << "Bitblasting node " << node << "\n";
+  Trace("bitvector-bitblast") << "Bitblasting node " << node << "\n";
   ++d_statistics.d_numAtoms;
 
   /// if we are using bit-vector abstraction bit-blast the original
@@ -236,7 +236,7 @@ void TLazyBitblaster::bbTerm(TNode node, Bits& bits) {
   Assert(node.getType().isBitVector());
 
   d_bv->spendResource(ResourceManager::Resource::BitblastStep);
-  Debug("bitvector-bitblast") << "Bitblasting term " << node <<"\n";
+  Trace("bitvector-bitblast") << "Bitblasting term " << node <<"\n";
   ++d_statistics.d_numTerms;
 
   d_termBBStrategies[node.getKind()] (node, bits,this);
@@ -303,8 +303,8 @@ bool TLazyBitblaster::assertToSat(TNode lit, bool propagate) {
     markerLit = ~markerLit;
   }
 
-  Debug("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat asserting node: " << atom <<"\n";
-  Debug("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat with literal:   " << markerLit << "\n";
+  Trace("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat asserting node: " << atom <<"\n";
+  Trace("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat with literal:   " << markerLit << "\n";
 
   prop::SatValue ret = d_satSolver->assertAssumption(markerLit, propagate);
 
@@ -328,7 +328,7 @@ bool TLazyBitblaster::solve() {
       Trace("bitvector") << "     " << d_cnfStream->getNode(*it) << "\n";
     }
   }
-  Debug("bitvector") << "TLazyBitblaster::solve() asserted atoms " << d_assertedAtoms->size() <<"\n";
+  Trace("bitvector") << "TLazyBitblaster::solve() asserted atoms " << d_assertedAtoms->size() <<"\n";
   d_fullModelAssertionLevel.set(d_bv->numAssertions());
   return prop::SAT_VALUE_TRUE == d_satSolver->solve();
 }
@@ -341,7 +341,7 @@ prop::SatValue TLazyBitblaster::solveWithBudget(unsigned long budget) {
       Trace("bitvector") << "     " << d_cnfStream->getNode(*it) << "\n";
     }
   }
-  Debug("bitvector") << "TLazyBitblaster::solveWithBudget() asserted atoms " << d_assertedAtoms->size() <<"\n";
+  Trace("bitvector") << "TLazyBitblaster::solveWithBudget() asserted atoms " << d_assertedAtoms->size() <<"\n";
   return d_satSolver->solve(budget);
 }
 
@@ -443,9 +443,9 @@ EqualityStatus TLazyBitblaster::getEqualityStatus(TNode a, TNode b)
   bool has_full_model =
       numAssertions != 0 && d_fullModelAssertionLevel.get() == numAssertions;
 
-  Debug("bv-equality-status")
+  Trace("bv-equality-status")
       << "TLazyBitblaster::getEqualityStatus " << a << " = " << b << "\n";
-  Debug("bv-equality-status")
+  Trace("bv-equality-status")
       << "BVSatSolver has full model? " << has_full_model << "\n";
 
   // First check if it trivially rewrites to false/true
@@ -474,10 +474,10 @@ EqualityStatus TLazyBitblaster::getEqualityStatus(TNode a, TNode b)
 
   if (a_value == b_value)
   {
-    Debug("bv-equality-status") << "theory::EQUALITY_TRUE_IN_MODEL\n";
+    Trace("bv-equality-status") << "theory::EQUALITY_TRUE_IN_MODEL\n";
     return theory::EQUALITY_TRUE_IN_MODEL;
   }
-  Debug("bv-equality-status") << "theory::EQUALITY_FALSE_IN_MODEL\n";
+  Trace("bv-equality-status") << "theory::EQUALITY_FALSE_IN_MODEL\n";
   return theory::EQUALITY_FALSE_IN_MODEL;
 }
 
@@ -555,7 +555,7 @@ bool TLazyBitblaster::collectModelInfo(TheoryModel* m, bool fullModel)
     Node const_value = getModelFromSatSolver(var, true);
     Assert(const_value.isNull() || const_value.isConst());
     if(const_value != Node()) {
-      Debug("bitvector-model") << "TLazyBitblaster::collectModelInfo (assert (= "
+      Trace("bitvector-model") << "TLazyBitblaster::collectModelInfo (assert (= "
                                << var << " "
                                << const_value << "))\n";
       if (!m->assertEquality(var, const_value, true))

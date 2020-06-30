@@ -276,11 +276,11 @@ class NodeManager {
 
     // if d_reclaiming is set, make sure we don't call
     // reclaimZombies(), because it's already running.
-    if(Debug.isOn("gc")) {
-      Debug("gc") << "zombifying node value " << nv
+    if(Trace.isOn("gc")) {
+      Trace("gc") << "zombifying node value " << nv
                   << " [" << nv->d_id << "]: ";
-      nv->printAst(Debug("gc"));
-      Debug("gc") << (d_inReclaimZombies ? " [CURRENTLY-RECLAIMING]" : "")
+      nv->printAst(Trace("gc"));
+      Trace("gc") << (d_inReclaimZombies ? " [CURRENTLY-RECLAIMING]" : "")
                   << std::endl;
     }
 
@@ -309,8 +309,8 @@ class NodeManager {
    */
   inline void markRefCountMaxedOut(expr::NodeValue* nv) {
     Assert(nv->HasMaximizedReferenceCount());
-    if(Debug.isOn("gc")) {
-      Debug("gc") << "marking node value " << nv
+    if(Trace.isOn("gc")) {
+      Trace("gc") << "marking node value " << nv
                   << " [" << nv->d_id << "]: as maxed out" << std::endl;
     }
     d_maxedOut.push_back(nv);
@@ -1047,14 +1047,14 @@ public:
     //Assert(nm != NULL);
     NodeManager::s_current = nm;
     //Options::s_current = nm ? nm->d_options : NULL;
-    Debug("current") << "node manager scope: "
+    Trace("current") << "node manager scope: "
                      << NodeManager::s_current << "\n";
   }
 
   ~NodeManagerScope() {
     NodeManager::s_current = d_oldNodeManager;
     //Options::s_current = d_oldNodeManager ? d_oldNodeManager->d_options : NULL;
-    Debug("current") << "node manager scope: "
+    Trace("current") << "node manager scope: "
                      << "returning to " << NodeManager::s_current << "\n";
   }
 };/* class NodeManagerScope */
@@ -1143,7 +1143,7 @@ inline TypeNode NodeManager::mkArrayType(TypeNode indexType,
                 constituentType,
                 "cannot store types that are not first-class in arrays. Try "
                 "option --uf-ho.");
-  Debug("arrays") << "making array type " << indexType << " "
+  Trace("arrays") << "making array type " << indexType << " "
                   << constituentType << std::endl;
   return mkTypeNode(kind::ARRAY_TYPE, indexType, constituentType);
 }
@@ -1155,7 +1155,7 @@ inline TypeNode NodeManager::mkSetType(TypeNode elementType) {
                 elementType,
                 "cannot store types that are not first-class in sets. Try "
                 "option --uf-ho.");
-  Debug("sets") << "making sets type " << elementType << std::endl;
+  Trace("sets") << "making sets type " << elementType << std::endl;
   return mkTypeNode(kind::SET_TYPE, elementType);
 }
 
@@ -1554,11 +1554,11 @@ NodeClass NodeManager::mkConstInternal(const T& val) {
   new (&nv->d_children) T(val);
 
   poolInsert(nv);
-  if(Debug.isOn("gc")) {
-    Debug("gc") << "creating node value " << nv
+  if(Trace.isOn("gc")) {
+    Trace("gc") << "creating node value " << nv
                 << " [" << nv->d_id << "]: ";
-    nv->printAst(Debug("gc"));
-    Debug("gc") << std::endl;
+    nv->printAst(Trace("gc"));
+    Trace("gc") << std::endl;
   }
 
   return NodeClass(nv);

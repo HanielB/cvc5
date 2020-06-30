@@ -46,13 +46,13 @@ Node getInstCons(Node n, const DType& dt, int index)
     // add type ascription for ambiguous constructor types
     if (!n_ic.getType().isComparableTo(tn))
     {
-      Debug("datatypes-parametric")
+      Trace("datatypes-parametric")
           << "DtInstantiate: ambiguous type for " << n_ic << ", ascribe to "
           << n.getType() << std::endl;
-      Debug("datatypes-parametric")
+      Trace("datatypes-parametric")
           << "Constructor is " << dt[index] << std::endl;
       TypeNode tspec = dt[index].getSpecializedConstructorType(n.getType());
-      Debug("datatypes-parametric")
+      Trace("datatypes-parametric")
           << "Type specification is " << tspec << std::endl;
       children[0] = nm->mkNode(APPLY_TYPE_ASCRIPTION,
                                nm->mkConst(AscriptionType(tspec.toType())),

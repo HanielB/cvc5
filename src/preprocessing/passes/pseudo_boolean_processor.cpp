@@ -58,26 +58,26 @@ bool PseudoBooleanProcessor::decomposeAssertion(Node assertion, bool negated)
   }
   Assert(assertion.getKind() == kind::GEQ);
 
-  Debug("pbs::rewrites") << "decomposeAssertion" << assertion << std::endl;
+  Trace("pbs::rewrites") << "decomposeAssertion" << assertion << std::endl;
 
   Node l = assertion[0];
   Node r = assertion[1];
 
   if (r.getKind() != kind::CONST_RATIONAL)
   {
-    Debug("pbs::rewrites") << "not rhs constant" << assertion << std::endl;
+    Trace("pbs::rewrites") << "not rhs constant" << assertion << std::endl;
     return false;
   }
   // don't bother matching on anything other than + on the left hand side
   if (l.getKind() != kind::PLUS)
   {
-    Debug("pbs::rewrites") << "not plus" << assertion << std::endl;
+    Trace("pbs::rewrites") << "not plus" << assertion << std::endl;
     return false;
   }
 
   if (!Polynomial::isMember(l))
   {
-    Debug("pbs::rewrites") << "not polynomial" << assertion << std::endl;
+    Trace("pbs::rewrites") << "not polynomial" << assertion << std::endl;
     return false;
   }
 
@@ -158,7 +158,7 @@ void PseudoBooleanProcessor::addGeqZero(Node v, Node exp)
   Assert(!exp.isNull());
   CDNode2PairMap::const_iterator ci = d_pbBounds.find(v);
 
-  Debug("pbs::rewrites") << "addGeqZero " << v << std::endl;
+  Trace("pbs::rewrites") << "addGeqZero " << v << std::endl;
 
   if (ci == d_pbBounds.end())
   {
@@ -171,7 +171,7 @@ void PseudoBooleanProcessor::addGeqZero(Node v, Node exp)
     {
       Assert(!p.second.isNull());
       d_pbBounds.insert(v, std::make_pair(exp, p.second));
-      Debug("pbs::rewrites") << "add pbs " << v << std::endl;
+      Trace("pbs::rewrites") << "add pbs " << v << std::endl;
       Assert(isPseudoBoolean(v));
       d_pbs = d_pbs + 1;
     }
@@ -182,7 +182,7 @@ void PseudoBooleanProcessor::addLeqOne(Node v, Node exp)
 {
   Assert(isIntVar(v));
   Assert(!exp.isNull());
-  Debug("pbs::rewrites") << "addLeqOne " << v << std::endl;
+  Trace("pbs::rewrites") << "addLeqOne " << v << std::endl;
   CDNode2PairMap::const_iterator ci = d_pbBounds.find(v);
   if (ci == d_pbBounds.end())
   {
@@ -195,7 +195,7 @@ void PseudoBooleanProcessor::addLeqOne(Node v, Node exp)
     {
       Assert(!p.first.isNull());
       d_pbBounds.insert(v, std::make_pair(p.first, exp));
-      Debug("pbs::rewrites") << "add pbs " << v << std::endl;
+      Trace("pbs::rewrites") << "add pbs " << v << std::endl;
       Assert(isPseudoBoolean(v));
       d_pbs = d_pbs + 1;
     }
@@ -329,7 +329,7 @@ void PseudoBooleanProcessor::learnGeqSub(Node geq)
   bool success = decomposeAssertion(geq, negated);
   if (!success)
   {
-    Debug("pbs::rewrites") << "failed " << std::endl;
+    Trace("pbs::rewrites") << "failed " << std::endl;
     return;
   }
   Assert(d_off.value().isIntegral());
@@ -386,9 +386,9 @@ Node PseudoBooleanProcessor::applyReplacements(Node pre)
   Node assertion = Rewriter::rewrite(pre);
 
   Node result = d_subCache.apply(assertion);
-  if (Debug.isOn("pbs::rewrites") && result != assertion)
+  if (Trace.isOn("pbs::rewrites") && result != assertion)
   {
-    Debug("pbs::rewrites") << "applyReplacements" << assertion << "-> "
+    Trace("pbs::rewrites") << "applyReplacements" << assertion << "-> "
                            << result << std::endl;
   }
   return result;

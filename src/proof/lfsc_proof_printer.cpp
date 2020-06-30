@@ -125,17 +125,17 @@ void LFSCProofPrinter::printResolutions(TSatProof<Solver>* satProof,
                                         std::ostream& out,
                                         std::ostream& paren)
 {
-  Debug("bv-proof") << "; print resolutions" << std::endl;
+  Trace("bv-proof") << "; print resolutions" << std::endl;
   std::set<ClauseId>::iterator it = satProof->getSeenLearnt().begin();
   for (; it != satProof->getSeenLearnt().end(); ++it)
   {
     if (*it != satProof->getEmptyClauseId())
     {
-      Debug("bv-proof") << "; print resolution for " << *it << std::endl;
+      Trace("bv-proof") << "; print resolution for " << *it << std::endl;
       printResolution(satProof, *it, out, paren);
     }
   }
-  Debug("bv-proof") << "; done print resolutions" << std::endl;
+  Trace("bv-proof") << "; done print resolutions" << std::endl;
 }
 
 template <class Solver>

@@ -145,14 +145,14 @@ void TheoryStrings::setMasterEqualityEngine(eq::EqualityEngine* eq) {
 }
 
 void TheoryStrings::addSharedTerm(TNode t) {
-  Debug("strings") << "TheoryStrings::addSharedTerm(): "
+  Trace("strings") << "TheoryStrings::addSharedTerm(): "
                      << t << " " << t.getType().isBoolean() << endl;
   d_equalityEngine.addTriggerTerm(t, THEORY_STRINGS);
   if (options::stringExp())
   {
     getExtTheory()->registerTermRec(t);
   }
-  Debug("strings") << "TheoryStrings::addSharedTerm() finished" << std::endl;
+  Trace("strings") << "TheoryStrings::addSharedTerm() finished" << std::endl;
 }
 
 EqualityStatus TheoryStrings::getEqualityStatus(TNode a, TNode b) {
@@ -174,11 +174,11 @@ void TheoryStrings::propagate(Effort e) {
 }
 
 bool TheoryStrings::propagate(TNode literal) {
-  Debug("strings-propagate") << "TheoryStrings::propagate(" << literal  << ")" << std::endl;
+  Trace("strings-propagate") << "TheoryStrings::propagate(" << literal  << ")" << std::endl;
   // If already in conflict, no more propagation
   if (d_state.isInConflict())
   {
-    Debug("strings-propagate") << "TheoryStrings::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("strings-propagate") << "TheoryStrings::propagate(" << literal << "): already in conflict" << std::endl;
     return false;
   }
   // Propagate out
@@ -191,7 +191,7 @@ bool TheoryStrings::propagate(TNode literal) {
 
 
 Node TheoryStrings::explain( TNode literal ){
-  Debug("strings-explain") << "explain called on " << literal << std::endl;
+  Trace("strings-explain") << "explain called on " << literal << std::endl;
   std::vector< TNode > assumptions;
   d_im->explain(literal, assumptions);
   if( assumptions.empty() ){
@@ -216,7 +216,7 @@ bool TheoryStrings::getCurrentSubstitution( int effort, std::vector< Node >& var
 }
 
 void TheoryStrings::presolve() {
-  Debug("strings-presolve") << "TheoryStrings::Presolving : get fmf options " << (options::stringFMF() ? "true" : "false") << std::endl;
+  Trace("strings-presolve") << "TheoryStrings::Presolving : get fmf options " << (options::stringFMF() ? "true" : "false") << std::endl;
   d_strat.initializeStrategy();
 
   // if strings fmf is enabled, register the strategy
@@ -230,7 +230,7 @@ void TheoryStrings::presolve() {
         d_stringsFmf.getDecisionStrategy(),
         DecisionManager::STRAT_SCOPE_LOCAL_SOLVE);
   }
-  Debug("strings-presolve") << "Finished presolve" << std::endl;
+  Trace("strings-presolve") << "Finished presolve" << std::endl;
 }
 
 
@@ -700,7 +700,7 @@ bool TheoryStrings::needsCheckLastEffort() {
 void TheoryStrings::conflict(TNode a, TNode b){
   if (!d_state.isInConflict())
   {
-    Debug("strings-conflict") << "Making conflict..." << std::endl;
+    Trace("strings-conflict") << "Making conflict..." << std::endl;
     d_state.setConflict();
     Node conflictNode;
     conflictNode = explain( a.eqNode(b) );

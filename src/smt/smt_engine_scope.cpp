@@ -51,12 +51,12 @@ SmtScope::SmtScope(const SmtEngine* smt)
       d_oldSmtEngine(s_smtEngine_current) {
   Assert(smt != NULL);
   s_smtEngine_current = const_cast<SmtEngine*>(smt);
-  Debug("current") << "smt scope: " << s_smtEngine_current << std::endl;
+  Trace("current") << "smt scope: " << s_smtEngine_current << std::endl;
 }
 
 SmtScope::~SmtScope() {
   s_smtEngine_current = d_oldSmtEngine;
-  Debug("current") << "smt scope: returning to " << s_smtEngine_current
+  Trace("current") << "smt scope: returning to " << s_smtEngine_current
                    << std::endl;
 }
 

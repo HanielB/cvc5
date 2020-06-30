@@ -100,8 +100,8 @@ bool ProcessAssertions::apply(AssertionPipeline& assertions)
   Trace("smt-proc") << "ProcessAssertions::processAssertions() begin" << endl;
   Trace("smt") << "ProcessAssertions::processAssertions()" << endl;
 
-  Debug("smt") << "#Assertions : " << assertions.size() << endl;
-  Debug("smt") << "#Assumptions: " << assertions.getNumAssumptions() << endl;
+  Trace("smt") << "#Assertions : " << assertions.size() << endl;
+  Trace("smt") << "#Assumptions: " << assertions.getNumAssumptions() << endl;
 
   if (assertions.size() == 0)
   {
@@ -152,7 +152,7 @@ bool ProcessAssertions::apply(AssertionPipeline& assertions)
         ProofManager::currentPM()->addAssertion(assertions[i].toExpr());
       });
 
-  Debug("smt") << " assertions     : " << assertions.size() << endl;
+  Trace("smt") << " assertions     : " << assertions.size() << endl;
 
   if (options::globalNegate())
   {
@@ -186,7 +186,7 @@ bool ProcessAssertions::apply(AssertionPipeline& assertions)
     d_passes["bv-abstraction"]->apply(&assertions);
   }
 
-  Debug("smt") << " assertions     : " << assertions.size() << endl;
+  Trace("smt") << " assertions     : " << assertions.size() << endl;
 
   bool noConflict = true;
 
@@ -327,7 +327,7 @@ bool ProcessAssertions::apply(AssertionPipeline& assertions)
   {
     d_passes["static-learning"]->apply(&assertions);
   }
-  Debug("smt") << " assertions     : " << assertions.size() << endl;
+  Trace("smt") << " assertions     : " << assertions.size() << endl;
 
   {
     d_smt.d_stats->d_numAssertionsPre += assertions.size();
@@ -438,11 +438,11 @@ bool ProcessAssertions::apply(AssertionPipeline& assertions)
   // begin: INVARIANT to maintain: no reordering of assertions or
   // introducing new ones
 
-  Debug("smt") << " assertions     : " << assertions.size() << endl;
+  Trace("smt") << " assertions     : " << assertions.size() << endl;
 
-  Debug("smt") << "ProcessAssertions::processAssertions() POST SIMPLIFICATION"
+  Trace("smt") << "ProcessAssertions::processAssertions() POST SIMPLIFICATION"
                << endl;
-  Debug("smt") << " assertions     : " << assertions.size() << endl;
+  Trace("smt") << " assertions     : " << assertions.size() << endl;
 
   d_passes["theory-preprocess"]->apply(&assertions);
 
@@ -501,7 +501,7 @@ bool ProcessAssertions::simplifyAssertions(AssertionPipeline& assertions)
       }
     }
 
-    Debug("smt") << " assertions     : " << assertions.size() << endl;
+    Trace("smt") << " assertions     : " << assertions.size() << endl;
 
     // before ppRewrite check if only core theory for BV theory
     d_smt.d_theoryEngine->staticInitializeBVOptions(assertions.ref());
@@ -525,7 +525,7 @@ bool ProcessAssertions::simplifyAssertions(AssertionPipeline& assertions)
       }
     }
 
-    Debug("smt") << " assertions     : " << assertions.size() << endl;
+    Trace("smt") << " assertions     : " << assertions.size() << endl;
 
     // Unconstrained simplification
     if (options::unconstrainedSimp())
@@ -547,7 +547,7 @@ bool ProcessAssertions::simplifyAssertions(AssertionPipeline& assertions)
 
     dumpAssertions("post-repeatsimp", assertions);
     Trace("smt") << "POST repeatSimp" << endl;
-    Debug("smt") << " assertions     : " << assertions.size() << endl;
+    Trace("smt") << " assertions     : " << assertions.size() << endl;
   }
   catch (TypeCheckingExceptionPrivate& tcep)
   {
@@ -694,25 +694,25 @@ Node ProcessAssertions::expandDefinitions(
           DefinedFunction def = (*i).second;
           formals = def.getFormals();
 
-          if (Debug.isOn("expand"))
+          if (Trace.isOn("expand"))
           {
-            Debug("expand") << "found: " << n << endl;
-            Debug("expand") << " func: " << func << endl;
+            Trace("expand") << "found: " << n << endl;
+            Trace("expand") << " func: " << func << endl;
             string name = func.getAttribute(expr::VarNameAttr());
-            Debug("expand") << "     : \"" << name << "\"" << endl;
+            Trace("expand") << "     : \"" << name << "\"" << endl;
           }
-          if (Debug.isOn("expand"))
+          if (Trace.isOn("expand"))
           {
-            Debug("expand") << " defn: " << def.getFunction() << endl
+            Trace("expand") << " defn: " << def.getFunction() << endl
                             << "       [";
             if (formals.size() > 0)
             {
               copy(formals.begin(),
                    formals.end() - 1,
-                   ostream_iterator<Node>(Debug("expand"), ", "));
-              Debug("expand") << formals.back();
+                   ostream_iterator<Node>(Trace("expand"), ", "));
+              Trace("expand") << formals.back();
             }
-            Debug("expand") << "]" << endl
+            Trace("expand") << "]" << endl
                             << "       " << def.getFunction().getType() << endl
                             << "       " << def.getFormula() << endl;
           }
@@ -724,7 +724,7 @@ Node ProcessAssertions::expandDefinitions(
                                       formals.end(),
                                       n.begin(),
                                       n.begin() + formals.size());
-        Debug("expand") << "made : " << instance << endl;
+        Trace("expand") << "made : " << instance << endl;
 
         Node expanded = expandDefinitions(instance, cache, expandOnly);
         cache[n] = (n == expanded ? Node::null() : expanded);
@@ -759,14 +759,14 @@ Node ProcessAssertions::expandDefinitions(
       // Working upwards
       // Reconstruct the node from it's (now rewritten) children on the stack
 
-      Debug("expand") << "cons : " << node << endl;
+      Trace("expand") << "cons : " << node << endl;
       if (node.getNumChildren() > 0)
       {
         // cout << "cons : " << node << endl;
         NodeBuilder<> nb(node.getKind());
         if (node.getMetaKind() == metakind::PARAMETERIZED)
         {
-          Debug("expand") << "op   : " << node.getOperator() << endl;
+          Trace("expand") << "op   : " << node.getOperator() << endl;
           // cout << "op   : " << node.getOperator() << endl;
           nb << node.getOperator();
         }
@@ -776,7 +776,7 @@ Node ProcessAssertions::expandDefinitions(
           Node expanded = result.top();
           result.pop();
           // cout << "exchld : " << expanded << endl;
-          Debug("expand") << "exchld : " << expanded << endl;
+          Trace("expand") << "exchld : " << expanded << endl;
           nb << expanded;
         }
         node = nb;

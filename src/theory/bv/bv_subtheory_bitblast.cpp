@@ -100,7 +100,7 @@ void BitblastSolver::bitblastQueue() {
   while (!d_bitblastQueue.empty()) {
     TNode atom = d_bitblastQueue.front();
     d_bitblastQueue.pop();
-    Debug("bv-bitblast-queue") << "BitblastSolver::bitblastQueue (" << atom << ")\n";
+    Trace("bv-bitblast-queue") << "BitblastSolver::bitblastQueue (" << atom << ")\n";
     if (options::bvAbstraction() &&
         d_abstractionModule->isLemmaAtom(atom)) {
       // don't bit-blast lemma atoms
@@ -109,7 +109,7 @@ void BitblastSolver::bitblastQueue() {
     if( !utils::isBitblastAtom(atom) ){
       continue;
     }
-    Debug("bitblast-queue") << "Bitblasting atom " << atom <<"\n";
+    Trace("bitblast-queue") << "Bitblasting atom " << atom <<"\n";
     {
       TimerStat::CodeTimer codeTimer(d_bitblaster->d_statistics.d_bitblastTimer);
       d_bitblaster->bbAtom(atom);
@@ -119,12 +119,12 @@ void BitblastSolver::bitblastQueue() {
 
 bool BitblastSolver::check(Theory::Effort e)
 {
-  Debug("bv-bitblast") << "BitblastSolver::check (" << e << ")\n";
+  Trace("bv-bitblast") << "BitblastSolver::check (" << e << ")\n";
   Assert(options::bitblastMode() == options::BitblastMode::LAZY);
 
   ++(d_statistics.d_numCallstoCheck);
 
-  Debug("bv-bitblast-debug") << "...process queue" << std::endl;
+  Trace("bv-bitblast-debug") << "...process queue" << std::endl;
   //// Lazy bit-blasting
   // bit-blast enqueued nodes
   bitblastQueue();
@@ -134,7 +134,7 @@ bool BitblastSolver::check(Theory::Effort e)
   {
     TNode fact = get();
     d_validModelCache = false;
-    Debug("bv-bitblast") << "  fact " << fact << ")\n";
+    Trace("bv-bitblast") << "  fact " << fact << ")\n";
 
     if (options::bvAbstraction())
     {
@@ -169,7 +169,7 @@ bool BitblastSolver::check(Theory::Effort e)
     }
   }
 
-  Debug("bv-bitblast-debug") << "...do propagation" << std::endl;
+  Trace("bv-bitblast-debug") << "...do propagation" << std::endl;
   // We need to ensure we are fully propagated, so propagate now
   if (d_useSatPropagation)
   {
@@ -185,11 +185,11 @@ bool BitblastSolver::check(Theory::Effort e)
   }
 
   // Solving
-  Debug("bv-bitblast-debug") << "...do solving" << std::endl;
+  Trace("bv-bitblast-debug") << "...do solving" << std::endl;
   if (e == Theory::EFFORT_FULL)
   {
     Assert(!d_bv->inConflict());
-    Debug("bitvector::bitblaster")
+    Trace("bitvector::bitblaster")
         << "BitblastSolver::addAssertions solving. \n";
     bool ok = d_bitblaster->solve();
     if (!ok)
@@ -202,7 +202,7 @@ bool BitblastSolver::check(Theory::Effort e)
     }
   }
 
-  Debug("bv-bitblast-debug") << "...do abs bb" << std::endl;
+  Trace("bv-bitblast-debug") << "...do abs bb" << std::endl;
   if (options::bvAbstraction() && e == Theory::EFFORT_FULL
       && d_lemmaAtomsQueue.size())
   {

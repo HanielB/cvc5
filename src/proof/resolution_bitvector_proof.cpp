@@ -94,7 +94,7 @@ void ResolutionBitVectorProof::startBVConflict(
 void ResolutionBitVectorProof::endBVConflict(
     const CVC4::BVMinisat::Solver::TLitVec& confl)
 {
-  Debug("pf::bv") << "ResolutionBitVectorProof::endBVConflict called"
+  Trace("pf::bv") << "ResolutionBitVectorProof::endBVConflict called"
                   << std::endl;
 
   std::vector<Expr> expr_confl;
@@ -107,11 +107,11 @@ void ResolutionBitVectorProof::endBVConflict(
   }
 
   Expr conflict = utils::mkSortedExpr(kind::OR, expr_confl);
-  Debug("pf::bv") << "Make conflict for " << conflict << std::endl;
+  Trace("pf::bv") << "Make conflict for " << conflict << std::endl;
 
   if (d_bbConflictMap.find(conflict) != d_bbConflictMap.end())
   {
-    Debug("pf::bv") << "Abort...already conflict for " << conflict << std::endl;
+    Trace("pf::bv") << "Abort...already conflict for " << conflict << std::endl;
     // This can only happen when we have eager explanations in the bv solver
     // if we don't get to propagate p before ~p is already asserted
     d_resolutionProof->cancelResChain();
@@ -122,7 +122,7 @@ void ResolutionBitVectorProof::endBVConflict(
   ClauseId clause_id = d_resolutionProof->registerAssumptionConflict(confl);
   d_bbConflictMap[conflict] = clause_id;
   d_resolutionProof->endResChain(clause_id);
-  Debug("pf::bv") << "ResolutionBitVectorProof::endBVConflict id" << clause_id
+  Trace("pf::bv") << "ResolutionBitVectorProof::endBVConflict id" << clause_id
                   << " => " << conflict << "\n";
   d_isAssumptionConflict = false;
 }
@@ -131,7 +131,7 @@ void ResolutionBitVectorProof::finalizeConflicts(std::vector<Expr>& conflicts)
 {
   if (options::bitblastMode() == options::BitblastMode::EAGER)
   {
-    Debug("pf::bv") << "Construct full proof." << std::endl;
+    Trace("pf::bv") << "Construct full proof." << std::endl;
     d_resolutionProof->constructProof();
     return;
   }
@@ -139,7 +139,7 @@ void ResolutionBitVectorProof::finalizeConflicts(std::vector<Expr>& conflicts)
   for (unsigned i = 0; i < conflicts.size(); ++i)
   {
     Expr confl = conflicts[i];
-    Debug("pf::bv") << "Finalize conflict #" << i << ": " << confl << std::endl;
+    Trace("pf::bv") << "Finalize conflict #" << i << ": " << confl << std::endl;
 
     // Special case: if the conflict has a (true) or a (not false) in it, it is
     // trivial...
@@ -164,7 +164,7 @@ void ResolutionBitVectorProof::finalizeConflicts(std::vector<Expr>& conflicts)
     }
     if (ignoreConflict)
     {
-      Debug("pf::bv") << "Ignoring conflict due to (true) or (not false)"
+      Trace("pf::bv") << "Ignoring conflict due to (true) or (not false)"
                       << std::endl;
       continue;
     }
@@ -221,7 +221,7 @@ void ResolutionBitVectorProof::finalizeConflicts(std::vector<Expr>& conflicts)
 
           if (matching)
           {
-            Debug("pf::bv")
+            Trace("pf::bv")
                 << "Collecting info from a sub-conflict" << std::endl;
             d_resolutionProof->collectClauses(it->second);
             matchFound = true;
@@ -232,14 +232,14 @@ void ResolutionBitVectorProof::finalizeConflicts(std::vector<Expr>& conflicts)
 
       if (!matchFound)
       {
-        Debug("pf::bv") << "Do not collect clauses for " << confl << std::endl
+        Trace("pf::bv") << "Do not collect clauses for " << confl << std::endl
                         << "Dumping existing conflicts:" << std::endl;
 
         i = 0;
         for (it = d_bbConflictMap.begin(); it != d_bbConflictMap.end(); ++it)
         {
           ++i;
-          Debug("pf::bv") << "\tConflict #" << i << ": " << it->first
+          Trace("pf::bv") << "\tConflict #" << i << ": " << it->first
                           << std::endl;
         }
 
@@ -255,11 +255,11 @@ void LfscResolutionBitVectorProof::printTheoryLemmaProof(
     std::ostream& paren,
     const ProofLetMap& map)
 {
-  Debug("pf::bv")
+  Trace("pf::bv")
       << "(pf::bv) LfscResolutionBitVectorProof::printTheoryLemmaProof called"
       << std::endl;
   Expr conflict = utils::mkSortedExpr(kind::OR, lemma);
-  Debug("pf::bv") << "\tconflict = " << conflict << std::endl;
+  Trace("pf::bv") << "\tconflict = " << conflict << std::endl;
 
   if (d_bbConflictMap.find(conflict) != d_bbConflictMap.end())
   {
@@ -298,7 +298,7 @@ void LfscResolutionBitVectorProof::printTheoryLemmaProof(
   }
   else
   {
-    Debug("pf::bv") << "Found a non-recorded conflict. Looking for a matching "
+    Trace("pf::bv") << "Found a non-recorded conflict. Looking for a matching "
                        "sub-conflict..."
                     << std::endl;
 
@@ -355,7 +355,7 @@ void LfscResolutionBitVectorProof::printTheoryLemmaProof(
 
       if (matching)
       {
-        Debug("pf::bv") << "Found a match with conflict #" << i << ": "
+        Trace("pf::bv") << "Found a match with conflict #" << i << ": "
                         << std::endl
                         << possibleMatch << std::endl;
         // The rest is just a copy of the usual handling, if a precise match is
@@ -436,7 +436,7 @@ void LfscResolutionBitVectorProof::printTheoryLemmaProof(
     {
       if (lit.getKind() == kind::NOT && lit[0] == utils::mkFalse())
       {
-        Debug("pf::bv") << "Lemma has a (not false) literal" << std::endl;
+        Trace("pf::bv") << "Lemma has a (not false) literal" << std::endl;
         os << "(clausify_false ";
         os << ProofManager::getLitName(lit);
         os << ")";
@@ -444,14 +444,14 @@ void LfscResolutionBitVectorProof::printTheoryLemmaProof(
       }
     }
 
-    Debug("pf::bv") << "Failed to find a matching sub-conflict..." << std::endl
+    Trace("pf::bv") << "Failed to find a matching sub-conflict..." << std::endl
                     << "Dumping existing conflicts:" << std::endl;
 
     i = 0;
     for (it = d_bbConflictMap.begin(); it != d_bbConflictMap.end(); ++it)
     {
       ++i;
-      Debug("pf::bv") << "\tConflict #" << i << ": " << it->first << std::endl;
+      Trace("pf::bv") << "\tConflict #" << i << ": " << it->first << std::endl;
     }
 
     Unreachable();
@@ -476,16 +476,16 @@ void LfscResolutionBitVectorProof::printBBDeclarationAndCnf(std::ostream& os,
   os << std::endl << ";; BB atom mapping\n" << std::endl;
 
   std::set<Node>::iterator atomIt;
-  Debug("pf::bv") << std::endl
+  Trace("pf::bv") << std::endl
                   << "BV Dumping atoms from inputs: " << std::endl
                   << std::endl;
   for (atomIt = d_atomsInBitblastingProof.begin();
        atomIt != d_atomsInBitblastingProof.end();
        ++atomIt)
   {
-    Debug("pf::bv") << "\tAtom: " << *atomIt << std::endl;
+    Trace("pf::bv") << "\tAtom: " << *atomIt << std::endl;
   }
-  Debug("pf::bv") << std::endl;
+  Trace("pf::bv") << std::endl;
 
   // first print bit-blasting
   printBitblasting(os, paren);

@@ -104,7 +104,7 @@
  ** NOTE IN 1(b) AND 2(b) THAT we can NOT create Node wrapper
  ** temporary for the NodeValue in the NodeBuilder<>::operator Node()
  ** member function.  If we create a temporary (for example by writing
- ** Debug("builder") << Node(nv) << endl), the NodeValue will have its
+ ** Trace("builder") << Node(nv) << endl), the NodeValue will have its
  ** reference count incremented from zero to one, then decremented,
  ** which makes it eligible for collection before the builder has even
  ** returned it!  So this is a no-no.
@@ -946,11 +946,11 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() {
     nv->d_id = d_nm->next_id++;// FIXME multithreading
     nv->d_rc = 0;
     setUsed();
-    if(Debug.isOn("gc")) {
-      Debug("gc") << "creating node value " << nv
+    if(Trace.isOn("gc")) {
+      Trace("gc") << "creating node value " << nv
                   << " [" << nv->d_id << "]: ";
-      nv->printAst(Debug("gc"));
-      Debug("gc") << std::endl;
+      nv->printAst(Trace("gc"));
+      Trace("gc") << std::endl;
     }
     return nv;
   }
@@ -1032,11 +1032,11 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      if(Debug.isOn("gc")) {
-        Debug("gc") << "creating node value " << nv
+      if(Trace.isOn("gc")) {
+        Trace("gc") << "creating node value " << nv
                     << " [" << nv->d_id << "]: ";
-        nv->printAst(Debug("gc"));
-        Debug("gc") << std::endl;
+        nv->printAst(Trace("gc"));
+        Trace("gc") << std::endl;
       }
       return nv;
     }
@@ -1081,7 +1081,7 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      Debug("gc") << "creating node value " << nv
+      Trace("gc") << "creating node value " << nv
                   << " [" << nv->d_id << "]: " << *nv << "\n";
       return nv;
     }
@@ -1125,7 +1125,7 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() const {
     nv->d_kind = d_nv->d_kind;
     nv->d_id = d_nm->next_id++;// FIXME multithreading
     nv->d_rc = 0;
-    Debug("gc") << "creating node value " << nv
+    Trace("gc") << "creating node value " << nv
                 << " [" << nv->d_id << "]: " << *nv << "\n";
     return nv;
   }
@@ -1212,7 +1212,7 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() const {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      Debug("gc") << "creating node value " << nv
+      Trace("gc") << "creating node value " << nv
                   << " [" << nv->d_id << "]: " << *nv << "\n";
       return nv;
     }
@@ -1266,7 +1266,7 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() const {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      Debug("gc") << "creating node value " << nv
+      Trace("gc") << "creating node value " << nv
                   << " [" << nv->d_id << "]: " << *nv << "\n";
       return nv;
     }

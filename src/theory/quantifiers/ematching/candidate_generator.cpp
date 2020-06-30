@@ -86,7 +86,7 @@ bool CandidateGeneratorQE::isLegalOpCandidate( Node n ) {
 
 Node CandidateGeneratorQE::getNextCandidate(){
   if( d_mode==cand_term_db ){
-    Debug("cand-gen-qe") << "...get next candidate in tbd" << std::endl;
+    Trace("cand-gen-qe") << "...get next candidate in tbd" << std::endl;
     //get next candidate term in the uf term database
     while( d_term_iter<d_term_iter_limit ){
       Node n = d_qe->getTermDatabase()->getGroundTerm( d_op, d_term_iter );
@@ -98,7 +98,7 @@ Node CandidateGeneratorQE::getNextCandidate(){
           }else{
             Node r = d_qe->getEqualityQuery()->getRepresentative( n );
             if( d_exclude_eqc.find( r )==d_exclude_eqc.end() ){
-              Debug("cand-gen-qe") << "...returning " << n << std::endl;
+              Trace("cand-gen-qe") << "...returning " << n << std::endl;
               return n;
             }
           }
@@ -106,17 +106,17 @@ Node CandidateGeneratorQE::getNextCandidate(){
       }
     }
   }else if( d_mode==cand_term_eqc ){
-    Debug("cand-gen-qe") << "...get next candidate in eqc" << std::endl;
+    Trace("cand-gen-qe") << "...get next candidate in eqc" << std::endl;
     while( !d_eqc_iter.isFinished() ){
       Node n = *d_eqc_iter;
       ++d_eqc_iter;
       if( isLegalOpCandidate( n ) ){
-        Debug("cand-gen-qe") << "...returning " << n << std::endl;
+        Trace("cand-gen-qe") << "...returning " << n << std::endl;
         return n;
       }
     }
   }else if( d_mode==cand_term_ident ){
-    Debug("cand-gen-qe") << "...get next candidate identity" << std::endl;
+    Trace("cand-gen-qe") << "...get next candidate identity" << std::endl;
     if (!d_eqc.isNull())
     {
       Node n = d_eqc;

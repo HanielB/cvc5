@@ -148,7 +148,7 @@ class CDOhash_map : public ContextObj {
         //
         // FIXME multithreading
         if(d_map->d_first == this) {
-          Debug("gc") << "remove first-elem " << this << " from map " << d_map << " with next-elem " << d_next << std::endl;
+          Trace("gc") << "remove first-elem " << this << " from map " << d_map << " with next-elem " << d_next << std::endl;
           if(d_next == this) {
             Assert(d_prev == this);
             d_map->d_first = NULL;
@@ -156,12 +156,12 @@ class CDOhash_map : public ContextObj {
             d_map->d_first = d_next;
           }
         } else {
-          Debug("gc") << "remove nonfirst-elem " << this << " from map " << d_map << std::endl;
+          Trace("gc") << "remove nonfirst-elem " << this << " from map " << d_map << std::endl;
         }
         d_next->d_prev = d_prev;
         d_prev->d_next = d_next;
 
-        Debug("gc") << "CDHashMap<> trash push_back " << this << std::endl;
+        Trace("gc") << "CDHashMap<> trash push_back " << this << std::endl;
         // this->deleteSelf();
         enqueueToGarbageCollect();
       } else {
@@ -215,9 +215,9 @@ class CDOhash_map : public ContextObj {
     CDOhash_map*& first = d_map->d_first;
     if(first == NULL) {
       first = d_next = d_prev = this;
-      Debug("gc") << "add first-elem " << this << " to map " << d_map << std::endl;
+      Trace("gc") << "add first-elem " << this << " to map " << d_map << std::endl;
     } else {
-      Debug("gc") << "add nonfirst-elem " << this << " to map " << d_map << " with first-elem " << first << "[" << first->d_prev << " " << first->d_next << std::endl;
+      Trace("gc") << "add nonfirst-elem " << this << " to map " << d_map << " with first-elem " << first << "[" << first->d_prev << " " << first->d_next << std::endl;
       d_prev = first->d_prev;
       d_next = first;
       d_prev->d_next = this;
@@ -296,18 +296,18 @@ public:
     : ContextObj(context), d_map(), d_first(NULL), d_context(context) {}
 
   ~CDHashMap() {
-    Debug("gc") << "cdhashmap" << this << " disappearing, destroying..."
+    Trace("gc") << "cdhashmap" << this << " disappearing, destroying..."
                 << std::endl;
     destroy();
-    Debug("gc") << "cdhashmap" << this << " disappearing, done destroying"
+    Trace("gc") << "cdhashmap" << this << " disappearing, done destroying"
                 << std::endl;
     clear();
   }
 
   void clear() {
-    Debug("gc") << "clearing cdhashmap" << this << ", emptying trash"
+    Trace("gc") << "clearing cdhashmap" << this << ", emptying trash"
                 << std::endl;
-    Debug("gc") << "done emptying trash for " << this << std::endl;
+    Trace("gc") << "done emptying trash for " << this << std::endl;
 
     for (auto& key_element_pair : d_map) {
       // mark it as being a destruction (short-circuit restore())

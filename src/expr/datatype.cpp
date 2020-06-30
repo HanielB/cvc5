@@ -277,7 +277,7 @@ void Datatype::addSygusConstructor(Expr op,
   DatatypeConstructor c(name, cweight);
   c.setSygus(op, spc);
   for( unsigned j=0; j<cargs.size(); j++ ){
-    Debug("parser-sygus-debug") << "  arg " << j << " : " << cargs[j] << std::endl;
+    Trace("parser-sygus-debug") << "  arg " << j << " : " << cargs[j] << std::endl;
     std::stringstream sname;
     sname << name << "_" << j;
     c.addArg(sname.str(), cargs[j]);
@@ -555,7 +555,7 @@ void DatatypeConstructor::addArg(std::string selectorName, Type selectorType) {
   ExprManagerScope ems(selectorType);
 
   Expr type = NodeManager::currentNM()->mkSkolem("unresolved_" + selectorName, TypeNode::fromType(selectorType), "is an unresolved selector type placeholder", NodeManager::SKOLEM_EXACT_NAME | NodeManager::SKOLEM_NO_NOTIFY).toExpr();
-  Debug("datatypes") << type << endl;
+  Trace("datatypes") << type << endl;
   d_args.push_back(DatatypeConstructorArg(selectorName, type));
   d_internal->addArg(d_args.back().d_internal);
 }

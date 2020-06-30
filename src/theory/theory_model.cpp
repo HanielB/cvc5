@@ -147,7 +147,7 @@ Node TheoryModel::getValue(TNode n) const
 {
   //apply substitutions
   Node nn = d_substitutions.apply(n);
-  Debug("model-getvalue-debug") << "[model-getvalue] getValue : substitute " << n << " to " << nn << std::endl;
+  Trace("model-getvalue-debug") << "[model-getvalue] getValue : substitute " << n << " to " << nn << std::endl;
   //get value in model
   nn = getModelValue(nn);
   if (nn.isNull()) return nn;
@@ -155,7 +155,7 @@ Node TheoryModel::getValue(TNode n) const
     //normalize
     nn = Rewriter::rewrite(nn);
   }
-  Debug("model-getvalue") << "[model-getvalue] getValue( " << n << " ): " << std::endl
+  Trace("model-getvalue") << "[model-getvalue] getValue( " << n << " ): " << std::endl
                           << "[model-getvalue] returning " << nn << std::endl;
   return nn;
 }
@@ -183,14 +183,14 @@ Cardinality TheoryModel::getCardinality( Type t ) const{
   //for now, we only handle cardinalities for uninterpreted sorts
   if( tn.isSort() ){
     if( d_rep_set.hasType( tn ) ){
-      Debug("model-getvalue-debug") << "Get cardinality sort, #rep : " << d_rep_set.getNumRepresentatives( tn ) << std::endl;
+      Trace("model-getvalue-debug") << "Get cardinality sort, #rep : " << d_rep_set.getNumRepresentatives( tn ) << std::endl;
       return Cardinality( d_rep_set.getNumRepresentatives( tn ) );
     }else{
-      Debug("model-getvalue-debug") << "Get cardinality sort, unconstrained, return 1." << std::endl;
+      Trace("model-getvalue-debug") << "Get cardinality sort, unconstrained, return 1." << std::endl;
       return Cardinality( 1 );
     }
   }else{
-      Debug("model-getvalue-debug") << "Get cardinality other sort, unknown." << std::endl;
+      Trace("model-getvalue-debug") << "Get cardinality other sort, unknown." << std::endl;
     return Cardinality( CardinalityUnknown() );
   }
 }
@@ -201,8 +201,8 @@ Node TheoryModel::getModelValue(TNode n) const
   if (it != d_modelCache.end()) {
     return (*it).second;
   }
-  Debug("model-getvalue-debug") << "Get model value " << n << " ... ";
-  Debug("model-getvalue-debug") << d_equalityEngine->hasTerm(n) << std::endl;
+  Trace("model-getvalue-debug") << "Get model value " << n << " ... ";
+  Trace("model-getvalue-debug") << d_equalityEngine->hasTerm(n) << std::endl;
   Kind nk = n.getKind();
   if (n.isConst() || nk == BOUND_VARIABLE)
   {
@@ -218,13 +218,13 @@ Node TheoryModel::getModelValue(TNode n) const
       && d_unevaluated_kinds.find(nk) == d_unevaluated_kinds.end()
       && d_semi_evaluated_kinds.find(nk) == d_semi_evaluated_kinds.end())
   {
-    Debug("model-getvalue-debug")
+    Trace("model-getvalue-debug")
         << "Get model value children " << n << std::endl;
     std::vector<Node> children;
     if (n.getKind() == APPLY_UF)
     {
       Node op = getModelValue(n.getOperator());
-      Debug("model-getvalue-debug") << "  operator : " << op << std::endl;
+      Trace("model-getvalue-debug") << "  operator : " << op << std::endl;
       children.push_back(op);
     }
     else if (n.getMetaKind() == kind::metakind::PARAMETERIZED)
@@ -235,18 +235,18 @@ Node TheoryModel::getModelValue(TNode n) const
     for (unsigned i = 0, nchild = n.getNumChildren(); i < nchild; ++i)
     {
       ret = getModelValue(n[i]);
-      Debug("model-getvalue-debug")
+      Trace("model-getvalue-debug")
           << "  " << n << "[" << i << "] is " << ret << std::endl;
       children.push_back(ret);
     }
     ret = nm->mkNode(n.getKind(), children);
-    Debug("model-getvalue-debug") << "ret (pre-rewrite): " << ret << std::endl;
+    Trace("model-getvalue-debug") << "ret (pre-rewrite): " << ret << std::endl;
     ret = Rewriter::rewrite(ret);
-    Debug("model-getvalue-debug") << "ret (post-rewrite): " << ret << std::endl;
+    Trace("model-getvalue-debug") << "ret (post-rewrite): " << ret << std::endl;
     // special cases
     if (ret.getKind() == kind::CARDINALITY_CONSTRAINT)
     {
-      Debug("model-getvalue-debug")
+      Trace("model-getvalue-debug")
           << "get cardinality constraint " << ret[0].getType() << std::endl;
       ret = nm->mkConst(
           getCardinality(ret[0].getType().toType()).getFiniteCardinality()
@@ -254,7 +254,7 @@ Node TheoryModel::getModelValue(TNode n) const
     }
     else if (ret.getKind() == kind::CARDINALITY_VALUE)
     {
-      Debug("model-getvalue-debug")
+      Trace("model-getvalue-debug")
           << "get cardinality value " << ret[0].getType() << std::endl;
       ret = nm->mkConst(Rational(
           getCardinality(ret[0].getType().toType()).getFiniteCardinality()));
@@ -295,7 +295,7 @@ Node TheoryModel::getModelValue(TNode n) const
   }
   if (eeHasTerm)
   {
-    Debug("model-getvalue-debug")
+    Trace("model-getvalue-debug")
         << "get value from representative " << ret << "..." << std::endl;
     ret = d_equalityEngine->getRepresentative(ret);
     Assert(d_reps.find(ret) != d_reps.end());
@@ -365,7 +365,7 @@ Node TheoryModel::getModelValue(TNode n) const
 /** add substitution */
 void TheoryModel::addSubstitution( TNode x, TNode t, bool invalidateCache ){
   if( !d_substitutions.hasSubstitution( x ) ){
-    Debug("model") << "Add substitution in model " << x << " -> " << t << std::endl;
+    Trace("model") << "Add substitution in model " << x << " -> " << t << std::endl;
     d_substitutions.addSubstitution( x, t, invalidateCache );
   } else {
 #ifdef CVC4_ASSERTIONS

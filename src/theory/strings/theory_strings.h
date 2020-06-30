@@ -119,7 +119,7 @@ class TheoryStrings : public Theory {
    NotifyClass(TheoryStrings& ts) : d_str(ts), d_state(ts.d_state) {}
    bool eqNotifyTriggerEquality(TNode equality, bool value) override
    {
-     Debug("strings") << "NotifyClass::eqNotifyTriggerEquality(" << equality
+     Trace("strings") << "NotifyClass::eqNotifyTriggerEquality(" << equality
                       << ", " << (value ? "true" : "false") << ")" << std::endl;
      if (value)
      {
@@ -133,7 +133,7 @@ class TheoryStrings : public Theory {
     }
     bool eqNotifyTriggerPredicate(TNode predicate, bool value) override
     {
-      Debug("strings") << "NotifyClass::eqNotifyTriggerPredicate(" << predicate << ", " << (value ? "true" : "false") << ")" << std::endl;
+      Trace("strings") << "NotifyClass::eqNotifyTriggerPredicate(" << predicate << ", " << (value ? "true" : "false") << ")" << std::endl;
       if (value) {
         return d_str.propagate(predicate);
       } else {
@@ -145,7 +145,7 @@ class TheoryStrings : public Theory {
                                      TNode t2,
                                      bool value) override
     {
-      Debug("strings") << "NotifyClass::eqNotifyTriggerTermMerge(" << tag << ", " << t1 << ", " << t2 << ")" << std::endl;
+      Trace("strings") << "NotifyClass::eqNotifyTriggerTermMerge(" << tag << ", " << t1 << ", " << t2 << ")" << std::endl;
       if (value) {
         return d_str.propagate(t1.eqNode(t2));
       } else {
@@ -154,26 +154,26 @@ class TheoryStrings : public Theory {
     }
     void eqNotifyConstantTermMerge(TNode t1, TNode t2) override
     {
-      Debug("strings") << "NotifyClass::eqNotifyConstantTermMerge(" << t1 << ", " << t2 << ")" << std::endl;
+      Trace("strings") << "NotifyClass::eqNotifyConstantTermMerge(" << t1 << ", " << t2 << ")" << std::endl;
       d_str.conflict(t1, t2);
     }
     void eqNotifyNewClass(TNode t) override
     {
-      Debug("strings") << "NotifyClass::eqNotifyNewClass(" << t << std::endl;
+      Trace("strings") << "NotifyClass::eqNotifyNewClass(" << t << std::endl;
       d_str.eqNotifyNewClass(t);
     }
     void eqNotifyPreMerge(TNode t1, TNode t2) override
     {
-      Debug("strings") << "NotifyClass::eqNotifyPreMerge(" << t1 << ", " << t2 << std::endl;
+      Trace("strings") << "NotifyClass::eqNotifyPreMerge(" << t1 << ", " << t2 << std::endl;
       d_state.eqNotifyPreMerge(t1, t2);
     }
     void eqNotifyPostMerge(TNode t1, TNode t2) override
     {
-      Debug("strings") << "NotifyClass::eqNotifyPostMerge(" << t1 << ", " << t2 << std::endl;
+      Trace("strings") << "NotifyClass::eqNotifyPostMerge(" << t1 << ", " << t2 << std::endl;
     }
     void eqNotifyDisequal(TNode t1, TNode t2, TNode reason) override
     {
-      Debug("strings") << "NotifyClass::eqNotifyDisequal(" << t1 << ", " << t2 << ", " << reason << std::endl;
+      Trace("strings") << "NotifyClass::eqNotifyDisequal(" << t1 << ", " << t2 << ", " << reason << std::endl;
       d_state.eqNotifyDisequal(t1, t2, reason);
     }
 

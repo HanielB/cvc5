@@ -192,7 +192,7 @@ private:
  */
 struct ECCleanupStrategy {
   static void cleanup(ECData* ec) {
-    Debug("ufgc") << "cleaning up ECData " << ec << "\n";
+    Trace("ufgc") << "cleaning up ECData " << ec << "\n";
     ec->deleteSelf();
   }
 };/* struct ECCleanupStrategy */

@@ -67,14 +67,14 @@ void TheoryProxy::theoryPropagate(std::vector<SatLiteral>& output) {
   std::vector<TNode> outputNodes;
   d_theoryEngine->getPropagatedLiterals(outputNodes);
   for (unsigned i = 0, i_end = outputNodes.size(); i < i_end; ++ i) {
-    Debug("prop-explain") << "theoryPropagate() => " << outputNodes[i] << std::endl;
+    Trace("prop-explain") << "theoryPropagate() => " << outputNodes[i] << std::endl;
     output.push_back(d_cnfStream->getLiteral(outputNodes[i]));
   }
 }
 
 void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
   TNode lNode = d_cnfStream->getNode(l);
-  Debug("prop-explain") << "explainPropagation(" << lNode << ")" << std::endl;
+  Trace("prop-explain") << "explainPropagation(" << lNode << ")" << std::endl;
 
   LemmaProofRecipe* proofRecipe = NULL;
   PROOF(proofRecipe = new LemmaProofRecipe;);
@@ -85,7 +85,7 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
       ProofManager::getCnfProof()->pushCurrentAssertion(theoryExplanation);
       ProofManager::getCnfProof()->setProofRecipe(proofRecipe);
 
-      Debug("pf::sat") << "TheoryProxy::explainPropagation: setting lemma recipe to: "
+      Trace("pf::sat") << "TheoryProxy::explainPropagation: setting lemma recipe to: "
                        << std::endl;
       proofRecipe->dump("pf::sat");
 
@@ -93,7 +93,7 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
       proofRecipe = NULL;
     });
 
-  Debug("prop-explain") << "explainPropagation() => " << theoryExplanation << std::endl;
+  Trace("prop-explain") << "explainPropagation() => " << theoryExplanation << std::endl;
   if (theoryExplanation.getKind() == kind::AND) {
     Node::const_iterator it = theoryExplanation.begin();
     Node::const_iterator it_end = theoryExplanation.end();
@@ -109,7 +109,7 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
 
 void TheoryProxy::enqueueTheoryLiteral(const SatLiteral& l) {
   Node literalNode = d_cnfStream->getNode(l);
-  Debug("prop") << "enqueueing theory literal " << l << " " << literalNode << std::endl;
+  Trace("prop") << "enqueueing theory literal " << l << " " << literalNode << std::endl;
   Assert(!literalNode.isNull());
   d_queue.push(literalNode);
 }

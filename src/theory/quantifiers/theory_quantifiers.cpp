@@ -67,17 +67,17 @@ void TheoryQuantifiers::preRegisterTerm(TNode n) {
   {
     return;
   }
-  Debug("quantifiers-prereg") << "TheoryQuantifiers::preRegisterTerm() " << n << endl;
+  Trace("quantifiers-prereg") << "TheoryQuantifiers::preRegisterTerm() " << n << endl;
   // Preregister the quantified formula.
   // This initializes the modules used for handling n in this user context.
   getQuantifiersEngine()->preRegisterQuantifier(n);
-  Debug("quantifiers-prereg")
+  Trace("quantifiers-prereg")
       << "TheoryQuantifiers::preRegisterTerm() done " << n << endl;
 }
 
 
 void TheoryQuantifiers::presolve() {
-  Debug("quantifiers-presolve") << "TheoryQuantifiers::presolve()" << endl;
+  Trace("quantifiers-presolve") << "TheoryQuantifiers::presolve()" << endl;
   if( getQuantifiersEngine() ){
     getQuantifiersEngine()->presolve();
   }
@@ -97,7 +97,7 @@ bool TheoryQuantifiers::collectModelInfo(TheoryModel* m)
   for(assertions_iterator i = facts_begin(); i != facts_end(); ++i) {
     if ((*i).d_assertion.getKind() == kind::NOT)
     {
-      Debug("quantifiers::collectModelInfo")
+      Trace("quantifiers::collectModelInfo")
           << "got quant FALSE: " << (*i).d_assertion[0] << endl;
       if (!m->assertPredicate((*i).d_assertion[0], false))
       {
@@ -106,7 +106,7 @@ bool TheoryQuantifiers::collectModelInfo(TheoryModel* m)
     }
     else
     {
-      Debug("quantifiers::collectModelInfo") << "got quant TRUE : " << *i << endl;
+      Trace("quantifiers::collectModelInfo") << "got quant TRUE : " << *i << endl;
       if (!m->assertPredicate(*i, true))
       {
         return false;

@@ -254,7 +254,7 @@ void InferenceManager::addToExplanation(Node a,
 {
   if (a != b)
   {
-    Debug("strings-explain")
+    Trace("strings-explain")
         << "Add to explanation : " << a << " == " << b << std::endl;
     Assert(d_state.areEqual(a, b));
     exp.push_back(a.eqNode(b));
@@ -473,7 +473,7 @@ Node InferenceManager::mkExplain(const std::vector<Node>& a,
   for (const Node& apc : aconj)
   {
     Assert(apc.getKind() != AND);
-    Debug("strings-explain") << "Add to explanation " << apc << std::endl;
+    Trace("strings-explain") << "Add to explanation " << apc << std::endl;
     if (apc.getKind() == NOT && apc[0].getKind() == EQUAL)
     {
       Assert(ee->hasTerm(apc[0][0]));
@@ -489,7 +489,7 @@ Node InferenceManager::mkExplain(const std::vector<Node>& a,
   {
     if (std::find(antec_exp.begin(), antec_exp.end(), anc) == antec_exp.end())
     {
-      Debug("strings-explain")
+      Trace("strings-explain")
           << "Add to explanation (new literal) " << anc << std::endl;
       antec_exp.push_back(anc);
     }
@@ -513,7 +513,7 @@ Node InferenceManager::mkExplain(const std::vector<Node>& a,
 void InferenceManager::explain(TNode literal,
                                std::vector<TNode>& assumptions) const
 {
-  Debug("strings-explain") << "Explain " << literal << " "
+  Trace("strings-explain") << "Explain " << literal << " "
                            << d_state.isInConflict() << std::endl;
   eq::EqualityEngine* ee = d_state.getEqualityEngine();
   bool polarity = literal.getKind() != NOT;
@@ -540,13 +540,13 @@ void InferenceManager::explain(TNode literal,
       assumptions.push_back(a);
     }
   }
-  if (Debug.isOn("strings-explain-debug"))
+  if (Trace.isOn("strings-explain-debug"))
   {
-    Debug("strings-explain-debug")
+    Trace("strings-explain-debug")
         << "Explanation for " << literal << " was " << std::endl;
     for (const TNode a : tassumptions)
     {
-      Debug("strings-explain-debug") << "   " << a << std::endl;
+      Trace("strings-explain-debug") << "   " << a << std::endl;
     }
   }
 }

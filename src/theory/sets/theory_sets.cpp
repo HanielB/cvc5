@@ -125,7 +125,7 @@ Node TheorySets::expandDefinition(Node n)
 }
 
 Theory::PPAssertStatus TheorySets::ppAssert(TNode in, SubstitutionMap& outSubstitutions) {
-  Debug("sets-proc") << "ppAssert : " << in << std::endl;
+  Trace("sets-proc") << "ppAssert : " << in << std::endl;
   Theory::PPAssertStatus status = Theory::PP_ASSERT_STATUS_UNSOLVED;
 
   // this is based off of Theory::ppAssert

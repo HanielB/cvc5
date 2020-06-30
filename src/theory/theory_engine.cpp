@@ -259,7 +259,7 @@ TheoryEngine::~TheoryEngine() {
 void TheoryEngine::interrupt() { d_interrupted = true; }
 void TheoryEngine::preRegister(TNode preprocessed) {
 
-  Debug("theory") << "TheoryEngine::preRegister( " << preprocessed << ")" << std::endl;
+  Trace("theory") << "TheoryEngine::preRegister( " << preprocessed << ")" << std::endl;
   if(Dump.isOn("missed-t-propagations")) {
     d_possiblePropagations.push_back(preprocessed);
   }
@@ -281,7 +281,7 @@ void TheoryEngine::preRegister(TNode preprocessed) {
       }
 
       // the atom should not have free variables
-      Debug("theory") << "TheoryEngine::preRegister: " << preprocessed
+      Trace("theory") << "TheoryEngine::preRegister: " << preprocessed
                       << std::endl;
       Assert(!expr::hasFreeVar(preprocessed));
       // Pre-register the terms in the atom
@@ -421,7 +421,7 @@ void TheoryEngine::check(Theory::Effort effort) {
     if (theory::TheoryTraits<THEORY>::hasCheck && d_logicInfo.isTheoryEnabled(THEORY)) { \
        theoryOf(THEORY)->check(effort); \
        if (d_inConflict) { \
-         Debug("conflict") << THEORY << " in conflict. " << std::endl; \
+         Trace("conflict") << THEORY << " in conflict. " << std::endl; \
          break; \
        } \
     }
@@ -436,7 +436,7 @@ void TheoryEngine::check(Theory::Effort effort) {
     // Mark the lemmas flag (no lemmas added)
     d_lemmasAdded = false;
 
-    Debug("theory") << "TheoryEngine::check(" << effort << "): d_factsAsserted = " << (d_factsAsserted ? "true" : "false") << endl;
+    Trace("theory") << "TheoryEngine::check(" << effort << "): d_factsAsserted = " << (d_factsAsserted ? "true" : "false") << endl;
 
     // If in full effort, we have a fake new assertion just to jumpstart the checking
     if (Theory::fullEffort(effort)) {
@@ -446,7 +446,7 @@ void TheoryEngine::check(Theory::Effort effort) {
     // Check until done
     while (d_factsAsserted && !d_inConflict && !d_lemmasAdded) {
 
-      Debug("theory") << "TheoryEngine::check(" << effort << "): running check" << endl;
+      Trace("theory") << "TheoryEngine::check(" << effort << "): running check" << endl;
 
       Trace("theory::assertions") << endl;
       if (Trace.isOn("theory::assertions")) {
@@ -472,7 +472,7 @@ void TheoryEngine::check(Theory::Effort effort) {
             << CheckSatCommand();
       }
 
-      Debug("theory") << "TheoryEngine::check(" << effort << "): running propagation after the initial check" << endl;
+      Trace("theory") << "TheoryEngine::check(" << effort << "): running propagation after the initial check" << endl;
 
       // We are still satisfiable, propagate as much as possible
       propagate(effort);
@@ -480,7 +480,7 @@ void TheoryEngine::check(Theory::Effort effort) {
       // We do combination if all has been processed and we are in fullcheck
       if (Theory::fullEffort(effort) && d_logicInfo.isSharingEnabled() && !d_factsAsserted && !d_lemmasAdded && !d_inConflict) {
         // Do the combination
-        Debug("theory") << "TheoryEngine::check(" << effort << "): running combination" << endl;
+        Trace("theory") << "TheoryEngine::check(" << effort << "): running combination" << endl;
         combineTheories();
         if(d_logicInfo.isQuantified()){
           d_quantEngine->notifyCombineTheories();
@@ -531,8 +531,8 @@ void TheoryEngine::check(Theory::Effort effort) {
       }
     }
 
-    Debug("theory") << "TheoryEngine::check(" << effort << "): done, we are " << (d_inConflict ? "unsat" : "sat") << (d_lemmasAdded ? " with new lemmas" : " with no new lemmas");
-    Debug("theory") << ", need check = " << (needCheck() ? "YES" : "NO") << endl;
+    Trace("theory") << "TheoryEngine::check(" << effort << "): done, we are " << (d_inConflict ? "unsat" : "sat") << (d_lemmasAdded ? " with new lemmas" : " with no new lemmas");
+    Trace("theory") << ", need check = " << (needCheck() ? "YES" : "NO") << endl;
 
     if( Theory::fullEffort(effort) && !d_inConflict && !needCheck()) {
       // case where we are about to answer SAT
@@ -594,7 +594,7 @@ void TheoryEngine::combineTheories() {
   for (; care_it != care_it_end; ++ care_it) {
     const CarePair& carePair = *care_it;
 
-    Debug("combineTheories")
+    Trace("combineTheories")
         << "TheoryEngine::combineTheories(): checking " << carePair.d_a << " = "
         << carePair.d_b << " from " << carePair.d_theory << endl;
 
@@ -604,7 +604,7 @@ void TheoryEngine::combineTheories() {
     // The equality in question (order for no repetition)
     Node equality = carePair.d_a.eqNode(carePair.d_b);
     // EqualityStatus es = getEqualityStatus(carePair.d_a, carePair.d_b);
-    // Debug("combineTheories") << "TheoryEngine::combineTheories(): " <<
+    // Trace("combineTheories") << "TheoryEngine::combineTheories(): " <<
     //   (es == EQUALITY_TRUE_AND_PROPAGATED ? "EQUALITY_TRUE_AND_PROPAGATED" :
     //   es == EQUALITY_FALSE_AND_PROPAGATED ? "EQUALITY_FALSE_AND_PROPAGATED" :
     //   es == EQUALITY_TRUE ? "EQUALITY_TRUE" :
@@ -615,7 +615,7 @@ void TheoryEngine::combineTheories() {
     //    "Unexpected case") << endl;
 
     // We need to split on it
-    Debug("combineTheories") << "TheoryEngine::combineTheories(): requesting a split " << endl;
+    Trace("combineTheories") << "TheoryEngine::combineTheories(): requesting a split " << endl;
 
     lemma(equality.orNode(equality.notNode()),
           RULE_INVALID,
@@ -688,34 +688,34 @@ bool TheoryEngine::properConflict(TNode conflict) const {
   if (conflict.getKind() == kind::AND) {
     for (unsigned i = 0; i < conflict.getNumChildren(); ++ i) {
       if (! getPropEngine()->hasValue(conflict[i], value)) {
-        Debug("properConflict") << "Bad conflict is due to unassigned atom: "
+        Trace("properConflict") << "Bad conflict is due to unassigned atom: "
                                 << conflict[i] << endl;
         return false;
       }
       if (! value) {
-        Debug("properConflict") << "Bad conflict is due to false atom: "
+        Trace("properConflict") << "Bad conflict is due to false atom: "
                                 << conflict[i] << endl;
         return false;
       }
       if (conflict[i] != Rewriter::rewrite(conflict[i])) {
-        Debug("properConflict") << "Bad conflict is due to atom not in normal form: "
+        Trace("properConflict") << "Bad conflict is due to atom not in normal form: "
                                 << conflict[i] << " vs " << Rewriter::rewrite(conflict[i]) << endl;
         return false;
       }
     }
   } else {
     if (! getPropEngine()->hasValue(conflict, value)) {
-      Debug("properConflict") << "Bad conflict is due to unassigned atom: "
+      Trace("properConflict") << "Bad conflict is due to unassigned atom: "
                               << conflict << endl;
       return false;
     }
     if(! value) {
-      Debug("properConflict") << "Bad conflict is due to false atom: "
+      Trace("properConflict") << "Bad conflict is due to false atom: "
                               << conflict << endl;
       return false;
     }
     if (conflict != Rewriter::rewrite(conflict)) {
-      Debug("properConflict") << "Bad conflict is due to atom not in normal form: "
+      Trace("properConflict") << "Bad conflict is due to atom not in normal form: "
                               << conflict << " vs " << Rewriter::rewrite(conflict) << endl;
       return false;
     }
@@ -1183,7 +1183,7 @@ void TheoryEngine::assertFact(TNode literal)
         const AtomRequests::Request& request = it.get();
         Node toAssert =
             polarity ? (Node)request.d_atom : request.d_atom.notNode();
-        Debug("theory::atoms") << "TheoryEngine::assertFact(" << literal << "): sending requested " << toAssert << endl;
+        Trace("theory::atoms") << "TheoryEngine::assertFact(" << literal << "): sending requested " << toAssert << endl;
         assertToTheory(
             toAssert, literal, request.d_toTheory, THEORY_SAT_SOLVER);
         it.next();
@@ -1201,7 +1201,7 @@ void TheoryEngine::assertFact(TNode literal)
 
 bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory) {
 
-  Debug("theory::propagate") << "TheoryEngine::propagate(" << literal << ", " << theory << ")" << endl;
+  Trace("theory::propagate") << "TheoryEngine::propagate(" << literal << ", " << theory << ")" << endl;
 
   Trace("dtview::prop") << std::string(d_context->getLevel(), ' ')
                         << ":THEORY-PROP: " << literal << endl;
@@ -1282,11 +1282,11 @@ Node TheoryEngine::getModelValue(TNode var) {
 
 
 Node TheoryEngine::ensureLiteral(TNode n) {
-  Debug("ensureLiteral") << "rewriting: " << n << std::endl;
+  Trace("ensureLiteral") << "rewriting: " << n << std::endl;
   Node rewritten = Rewriter::rewrite(n);
-  Debug("ensureLiteral") << "      got: " << rewritten << std::endl;
+  Trace("ensureLiteral") << "      got: " << rewritten << std::endl;
   Node preprocessed = preprocess(rewritten);
-  Debug("ensureLiteral") << "preprocessed: " << preprocessed << std::endl;
+  Trace("ensureLiteral") << "preprocessed: " << preprocessed << std::endl;
   d_propEngine->ensureLiteral(preprocessed);
   return preprocessed;
 }
@@ -1390,19 +1390,19 @@ static Node mkExplanation(const std::vector<NodeTheoryPair>& explanation) {
 }
 
 Node TheoryEngine::getExplanationAndRecipe(TNode node, LemmaProofRecipe* proofRecipe) {
-  Debug("theory::explain") << "TheoryEngine::getExplanation(" << node << "): current propagation index = " << d_propagationMapTimestamp << endl;
+  Trace("theory::explain") << "TheoryEngine::getExplanation(" << node << "): current propagation index = " << d_propagationMapTimestamp << endl;
 
   bool polarity = node.getKind() != kind::NOT;
   TNode atom = polarity ? node : node[0];
 
   // If we're not in shared mode, explanations are simple
   if (!d_logicInfo.isSharingEnabled()) {
-    Debug("theory::explain") << "TheoryEngine::getExplanation: sharing is NOT enabled. "
+    Trace("theory::explain") << "TheoryEngine::getExplanation: sharing is NOT enabled. "
                              << " Responsible theory is: "
                              << theoryOf(atom)->getId() << std::endl;
 
     Node explanation = theoryOf(atom)->explain(node);
-    Debug("theory::explain") << "TheoryEngine::getExplanation(" << node << ") => " << explanation << endl;
+    Trace("theory::explain") << "TheoryEngine::getExplanation(" << node << ") => " << explanation << endl;
     PROOF({
         if(proofRecipe) {
           Node emptyNode;
@@ -1424,7 +1424,7 @@ Node TheoryEngine::getExplanationAndRecipe(TNode node, LemmaProofRecipe* proofRe
                 ++ i;
                 continue;
               }
-              Debug("theory::explain") << "TheoryEngine::getExplanationAndRecipe: adding recipe assertion: "
+              Trace("theory::explain") << "TheoryEngine::getExplanationAndRecipe: adding recipe assertion: "
                                        << flat[i].negate() << std::endl;
               proofStep.addAssertion(flat[i].negate());
               proofRecipe->addBaseAssertion(flat[i].negate());
@@ -1446,14 +1446,14 @@ Node TheoryEngine::getExplanationAndRecipe(TNode node, LemmaProofRecipe* proofRe
     return explanation;
   }
 
-  Debug("theory::explain") << "TheoryEngine::getExplanation: sharing IS enabled" << std::endl;
+  Trace("theory::explain") << "TheoryEngine::getExplanation: sharing IS enabled" << std::endl;
 
   // Initial thing to explain
   NodeTheoryPair toExplain(node, THEORY_SAT_SOLVER, d_propagationMapTimestamp);
   Assert(d_propagationMap.find(toExplain) != d_propagationMap.end());
 
   NodeTheoryPair nodeExplainerPair = d_propagationMap[toExplain];
-  Debug("theory::explain")
+  Trace("theory::explain")
       << "TheoryEngine::getExplanation: explainer for node "
       << nodeExplainerPair.d_node
       << " is theory: " << nodeExplainerPair.d_theory << std::endl;
@@ -1474,7 +1474,7 @@ Node TheoryEngine::getExplanationAndRecipe(TNode node, LemmaProofRecipe* proofRe
   getExplanation(explanationVector, proofRecipe);
   Node explanation = mkExplanation(explanationVector);
 
-  Debug("theory::explain") << "TheoryEngine::getExplanation(" << node << ") => " << explanation << endl;
+  Trace("theory::explain") << "TheoryEngine::getExplanation(" << node << ") => " << explanation << endl;
 
   return explanation;
 }
@@ -1535,7 +1535,7 @@ void TheoryEngine::ensureLemmaAtoms(const std::vector<TNode>& atoms, theory::The
     // Rewrite the equality
     Node eqNormalized = Rewriter::rewrite(atoms[i]);
 
-    Debug("theory::atoms") << "TheoryEngine::ensureLemmaAtoms(): " << eq << " with nf " << eqNormalized << endl;
+    Trace("theory::atoms") << "TheoryEngine::ensureLemmaAtoms(): " << eq << " with nf " << eqNormalized << endl;
 
     // If the equality is a boolean constant, we send immediately
     if (eqNormalized.isConst()) {
@@ -1593,7 +1593,7 @@ theory::LemmaStatus TheoryEngine::lemma(TNode node,
 
   // Do we need to check atoms
   if (atomsTo != theory::THEORY_LAST) {
-    Debug("theory::atoms") << "TheoryEngine::lemma(" << node << ", " << atomsTo << ")" << endl;
+    Trace("theory::atoms") << "TheoryEngine::lemma(" << node << ", " << atomsTo << ")" << endl;
     AtomsCollect collectAtoms;
     NodeVisitor<AtomsCollect>::run(collectAtoms, node);
     ensureLemmaAtoms(collectAtoms.getAtoms(), atomsTo);
@@ -1647,7 +1647,7 @@ theory::LemmaStatus TheoryEngine::lemma(TNode node,
 
 void TheoryEngine::conflict(TNode conflict, TheoryId theoryId) {
 
-  Debug("theory::conflict") << "TheoryEngine::conflict(" << conflict << ", " << theoryId << ")" << endl;
+  Trace("theory::conflict") << "TheoryEngine::conflict(" << conflict << ", " << theoryId << ")" << endl;
 
   Trace("dtview::conflict") << ":THEORY-CONFLICT: " << conflict << std::endl;
 
@@ -1686,7 +1686,7 @@ void TheoryEngine::conflict(TNode conflict, TheoryId theoryId) {
     getExplanation(explanationVector, proofRecipe);
     PROOF(ProofManager::getCnfProof()->setProofRecipe(proofRecipe));
     Node fullConflict = mkExplanation(explanationVector);
-    Debug("theory::conflict") << "TheoryEngine::conflict(" << conflict << ", " << theoryId << "): full = " << fullConflict << endl;
+    Trace("theory::conflict") << "TheoryEngine::conflict(" << conflict << ", " << theoryId << "): full = " << fullConflict << endl;
     Assert(properConflict(fullConflict));
     lemma(fullConflict, RULE_CONFLICT, true, true, false, THEORY_LAST);
 
@@ -1790,7 +1790,7 @@ void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector
     // Get the current literal to explain
     NodeTheoryPair toExplain = explanationVector[i];
 
-    Debug("theory::explain")
+    Trace("theory::explain")
         << "[i=" << i << "] TheoryEngine::explain(): processing ["
         << toExplain.d_timestamp << "] " << toExplain.d_node << " sent from "
         << toExplain.d_theory << endl;
@@ -1811,7 +1811,7 @@ void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector
     // If from the SAT solver, keep it
     if (toExplain.d_theory == THEORY_SAT_SOLVER)
     {
-      Debug("theory::explain") << "\tLiteral came from THEORY_SAT_SOLVER. Kepping it." << endl;
+      Trace("theory::explain") << "\tLiteral came from THEORY_SAT_SOLVER. Kepping it." << endl;
       explanationVector[j++] = explanationVector[i++];
       continue;
     }
@@ -1819,7 +1819,7 @@ void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector
     // If an and, expand it
     if (toExplain.d_node.getKind() == kind::AND)
     {
-      Debug("theory::explain")
+      Trace("theory::explain")
           << "TheoryEngine::explain(): expanding " << toExplain.d_node
           << " got from " << toExplain.d_theory << endl;
       for (unsigned k = 0; k < toExplain.d_node.getNumChildren(); ++k)
@@ -1835,13 +1835,13 @@ void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector
     // See if it was sent to the theory by another theory
     PropagationMap::const_iterator find = d_propagationMap.find(toExplain);
     if (find != d_propagationMap.end()) {
-      Debug("theory::explain")
+      Trace("theory::explain")
           << "\tTerm was propagated by another theory (theory = "
           << getTheoryString((*find).second.d_theory) << ")" << std::endl;
       // There is some propagation, check if its a timely one
       if ((*find).second.d_timestamp < toExplain.d_timestamp)
       {
-        Debug("theory::explain")
+        Trace("theory::explain")
             << "\tRelevant timetsamp, pushing " << (*find).second.d_node
             << "to index = " << explanationVector.size() << std::endl;
         explanationVector.push_back((*find).second);
@@ -1850,7 +1850,7 @@ void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector
         PROOF({
           if (toExplain.d_node != (*find).second.d_node)
           {
-            Debug("pf::explain")
+            Trace("pf::explain")
                 << "TheoryEngine::getExplanation: Rewrite alert! toAssert = "
                 << toExplain.d_node << ", toExplain = " << (*find).second.d_node
                 << std::endl;
@@ -1872,17 +1872,17 @@ void TheoryEngine::getExplanation(std::vector<NodeTheoryPair>& explanationVector
     if (toExplain.d_theory == THEORY_BUILTIN)
     {
       explanation = d_sharedTerms.explain(toExplain.d_node);
-      Debug("theory::explain") << "\tTerm was propagated by THEORY_BUILTIN. Explanation: " << explanation << std::endl;
+      Trace("theory::explain") << "\tTerm was propagated by THEORY_BUILTIN. Explanation: " << explanation << std::endl;
     }
     else
     {
       explanation = theoryOf(toExplain.d_theory)->explain(toExplain.d_node);
-      Debug("theory::explain") << "\tTerm was propagated by owner theory: "
+      Trace("theory::explain") << "\tTerm was propagated by owner theory: "
                                << theoryOf(toExplain.d_theory)->getId()
                                << ". Explanation: " << explanation << std::endl;
     }
 
-    Debug("theory::explain")
+    Trace("theory::explain")
         << "TheoryEngine::explain(): got explanation " << explanation
         << " got from " << toExplain.d_theory << endl;
     Assert(explanation != toExplain.d_node)

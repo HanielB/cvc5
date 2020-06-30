@@ -20,7 +20,7 @@
 namespace CVC4 {
 
 void SkolemizationManager::registerSkolem(Node disequality, Node skolem) {
-  Debug("pf::pm") << "SkolemizationManager: registerSkolem: disequality = " << disequality << ", skolem = " << skolem << std::endl;
+  Trace("pf::pm") << "SkolemizationManager: registerSkolem: disequality = " << disequality << ", skolem = " << skolem << std::endl;
 
   if (isSkolem(skolem)) {
     Assert(d_skolemToDisequality[skolem] == disequality);
@@ -36,10 +36,10 @@ bool SkolemizationManager::hasSkolem(Node disequality) {
 }
 
 Node SkolemizationManager::getSkolem(Node disequality) {
-  Debug("pf::pm") << "SkolemizationManager: getSkolem( ";
+  Trace("pf::pm") << "SkolemizationManager: getSkolem( ";
   Assert(d_disequalityToSkolem.find(disequality)
          != d_disequalityToSkolem.end());
-  Debug("pf::pm") << disequality << " ) = " << d_disequalityToSkolem[disequality] << std::endl;
+  Trace("pf::pm") << disequality << " ) = " << d_disequalityToSkolem[disequality] << std::endl;
   return d_disequalityToSkolem[disequality];
 }
 
@@ -53,7 +53,7 @@ bool SkolemizationManager::isSkolem(Node skolem) {
 }
 
 void SkolemizationManager::clear() {
-  Debug("pf::pm") << "SkolemizationManager: clear" << std::endl;
+  Trace("pf::pm") << "SkolemizationManager: clear" << std::endl;
   d_disequalityToSkolem.clear();
   d_skolemToDisequality.clear();
 }

@@ -32,7 +32,7 @@ using namespace CVC4::theory::bv::utils;
 bool AbstractionModule::applyAbstraction(const std::vector<Node>& assertions,
                                          std::vector<Node>& new_assertions)
 {
-  Debug("bv-abstraction") << "AbstractionModule::applyAbstraction\n";
+  Trace("bv-abstraction") << "AbstractionModule::applyAbstraction\n";
 
   TimerStat::CodeTimer abstractionTimer(d_statistics.d_abstractionTime);
 
@@ -49,8 +49,8 @@ bool AbstractionModule::applyAbstraction(const std::vector<Node>& assertions,
         }
         Node signature = computeSignature(assertions[i][j]);
         storeSignature(signature, assertions[i][j]);
-        Debug("bv-abstraction") << "   assertion: " << assertions[i][j] << "\n";
-        Debug("bv-abstraction") << "   signature: " << signature << "\n";
+        Trace("bv-abstraction") << "   assertion: " << assertions[i][j] << "\n";
+        Trace("bv-abstraction") << "   signature: " << signature << "\n";
       }
     }
   }
@@ -254,9 +254,9 @@ void AbstractionModule::skolemizeArguments(std::vector<Node>& assertions)
       assertion_builder << new_func_def;
     }
     Node new_assertion = assertion_builder;
-    Debug("bv-abstraction-dbg") << "AbstractionModule::skolemizeArguments "
+    Trace("bv-abstraction-dbg") << "AbstractionModule::skolemizeArguments "
                                 << assertions[i] << " => \n";
-    Debug("bv-abstraction-dbg") << "    " << new_assertion;
+    Trace("bv-abstraction-dbg") << "    " << new_assertion;
     assertions[i] = new_assertion;
   }
 }
@@ -433,7 +433,7 @@ void AbstractionModule::storeGeneralization(TNode s, TNode t) {
 void AbstractionModule::finalizeSignatures()
 {
   NodeManager* nm = NodeManager::currentNM();
-  Debug("bv-abstraction")
+  Trace("bv-abstraction")
       << "AbstractionModule::finalizeSignatures num signatures = "
       << d_signatures.size() << "\n";
   TNodeSet new_signatures;
@@ -505,7 +505,7 @@ void AbstractionModule::finalizeSignatures()
     // we already processed this signature
     Assert(d_signatureToFunc.find(signature) == d_signatureToFunc.end());
 
-    Debug("bv-abstraction") << "Processing signature " << signature << " count "
+    Trace("bv-abstraction") << "Processing signature " << signature << " count "
                             << it->second << "\n";
     std::vector<TypeNode> arg_types;
     TNodeSet seen;
@@ -519,7 +519,7 @@ void AbstractionModule::finalizeSignatures()
     TypeNode abs_type = nm->mkFunctionType(arg_types, range);
     Node abs_func =
         nm->mkSkolem("abs_$$", abs_type, "abstraction function for bv theory");
-    Debug("bv-abstraction") << " abstracted by function " << abs_func << "\n";
+    Trace("bv-abstraction") << " abstracted by function " << abs_func << "\n";
 
     // NOTE: signature expression type is BOOLEAN
     d_signatureToFunc[signature] = abs_func;
@@ -528,7 +528,7 @@ void AbstractionModule::finalizeSignatures()
 
   d_statistics.d_numFunctionsAbstracted.setData(d_signatureToFunc.size());
 
-  Debug("bv-abstraction") << "AbstractionModule::finalizeSignatures abstracted "
+  Trace("bv-abstraction") << "AbstractionModule::finalizeSignatures abstracted "
                           << d_signatureToFunc.size() << " signatures. \n";
 }
 
@@ -577,13 +577,13 @@ void AbstractionModule::collectArguments(TNode node, TNode signature, std::vecto
 
 Node AbstractionModule::abstractSignatures(TNode assertion)
 {
-  Debug("bv-abstraction") << "AbstractionModule::abstractSignatures "
+  Trace("bv-abstraction") << "AbstractionModule::abstractSignatures "
                           << assertion << "\n";
   NodeManager* nm = NodeManager::currentNM();
   // assume the assertion has been fully abstracted
   Node signature = getGeneralizedSignature(assertion);
 
-  Debug("bv-abstraction") << "   with sig " << signature << "\n";
+  Trace("bv-abstraction") << "   with sig " << signature << "\n";
   NodeNodeMap::iterator it = d_signatureToFunc.find(signature);
   if (it != d_signatureToFunc.end())
   {
@@ -602,7 +602,7 @@ Node AbstractionModule::abstractSignatures(TNode assertion)
     Node result = nm->mkNode(
         kind::EQUAL,
         nm->mkNode(kind::APPLY_UF, args), utils::mkConst(1, 1u));
-    Debug("bv-abstraction") << "=>   " << result << "\n";
+    Trace("bv-abstraction") << "=>   " << result << "\n";
     Assert(result.getType() == assertion.getType());
     return result;
   }
@@ -652,8 +652,8 @@ Node AbstractionModule::getInterpretation(TNode node) {
   Node result = substituteArguments(sig, apply, index, seen);
   Assert(result.getType().isBoolean());
   Assert(index == apply.getNumChildren());
-  // Debug("bv-abstraction") << "AbstractionModule::getInterpretation " << node << "\n";
-  // Debug("bv-abstraction") << "    => " << result << "\n";
+  // Trace("bv-abstraction") << "AbstractionModule::getInterpretation " << node << "\n";
+  // Trace("bv-abstraction") << "    => " << result << "\n";
   return result;
 }
 
@@ -700,7 +700,7 @@ Node AbstractionModule::simplifyConflict(TNode conflict) {
     Dump("bv-abstraction") << PopCommand();
   }
 
-  Debug("bv-abstraction-dbg") << "AbstractionModule::simplifyConflict " << conflict << "\n";
+  Trace("bv-abstraction-dbg") << "AbstractionModule::simplifyConflict " << conflict << "\n";
   if (conflict.getKind() != kind::AND)
     return conflict;
 
@@ -739,8 +739,8 @@ Node AbstractionModule::simplifyConflict(TNode conflict) {
   }
   Node new_conflict = Rewriter::rewrite(utils::mkAnd(conjuncts));
 
-  Debug("bv-abstraction") << "AbstractionModule::simplifyConflict conflict " << conflict <<"\n";
-  Debug("bv-abstraction") << "   => " << new_conflict <<"\n";
+  Trace("bv-abstraction") << "AbstractionModule::simplifyConflict conflict " << conflict <<"\n";
+  Trace("bv-abstraction") << "   => " << new_conflict <<"\n";
 
   if (Dump.isOn("bv-abstraction")) {
 
@@ -760,30 +760,30 @@ void DebugPrintInstantiations(
     const std::vector<TNode>& functions)
 {
   // print header
-  Debug("bv-abstraction-dbg") <<"[ ";
+  Trace("bv-abstraction-dbg") <<"[ ";
   for (unsigned i = 0; i < functions.size(); ++i) {
     for (unsigned j = 1; j < functions[i].getNumChildren(); ++j) {
-      Debug("bv-abstraction-dgb") << functions[i][j] <<" ";
+      Trace("bv-abstraction-dgb") << functions[i][j] <<" ";
     }
-    Debug("bv-abstraction-dgb") << " || ";
+    Trace("bv-abstraction-dgb") << " || ";
   }
-  Debug("bv-abstraction-dbg") <<"]\n";
+  Trace("bv-abstraction-dbg") <<"]\n";
 
   for (unsigned i = 0; i < instantiations.size(); ++i) {
-    Debug("bv-abstraction-dbg") <<"[";
+    Trace("bv-abstraction-dbg") <<"[";
     const std::vector<ArgsVec>& inst = instantiations[i];
     for (unsigned j = 0; j < inst.size(); ++j) {
       for (unsigned k = 0; k < inst[j].size(); ++k) {
-        Debug("bv-abstraction-dbg") << inst[j][k] << " ";
+        Trace("bv-abstraction-dbg") << inst[j][k] << " ";
       }
-      Debug("bv-abstraction-dbg") << " || ";
+      Trace("bv-abstraction-dbg") << " || ";
     }
-    Debug("bv-abstraction-dbg") <<"]\n";
+    Trace("bv-abstraction-dbg") <<"]\n";
   }
 }
 
 void AbstractionModule::generalizeConflict(TNode conflict, std::vector<Node>& lemmas) {
-  Debug("bv-abstraction") << "AbstractionModule::generalizeConflict " << conflict << "\n";
+  Trace("bv-abstraction") << "AbstractionModule::generalizeConflict " << conflict << "\n";
   std::vector<TNode> functions;
 
   // collect abstract functions
@@ -834,7 +834,7 @@ void AbstractionModule::generalizeConflict(TNode conflict, std::vector<Node>& le
     TNode lemma = reverse_skolem.apply(new_lemmas[i]);
     if (d_addedLemmas.find(lemma) == d_addedLemmas.end()) {
       lemmas.push_back(lemma);
-      Debug("bv-abstraction-gen") << "adding lemma " << lemma << "\n";
+      Trace("bv-abstraction-gen") << "adding lemma " << lemma << "\n";
       storeLemma(lemma);
 
       if (Dump.isOn("bv-abstraction")) {
@@ -921,7 +921,7 @@ bool AbstractionModule::LemmaInstantiatior::accept(const vector<int>& stack) {
 
 void AbstractionModule::LemmaInstantiatior::mkLemma() {
   Node lemma = d_subst.apply(d_conflict);
-  // Debug("bv-abstraction-gen") << "AbstractionModule::LemmaInstantiatior::mkLemma " << lemma <<"\n";
+  // Trace("bv-abstraction-gen") << "AbstractionModule::LemmaInstantiatior::mkLemma " << lemma <<"\n";
   d_lemmas.push_back(lemma);
 }
 
@@ -948,12 +948,12 @@ void AbstractionModule::LemmaInstantiatior::backtrack(vector<int>& stack) {
 
 
 void AbstractionModule::LemmaInstantiatior::generateInstantiations(std::vector<Node>& lemmas) {
-  Debug("bv-abstraction-gen") << "AbstractionModule::LemmaInstantiatior::generateInstantiations ";
+  Trace("bv-abstraction-gen") << "AbstractionModule::LemmaInstantiatior::generateInstantiations ";
 
   std::vector<int> stack;
   backtrack(stack);
   Assert(d_ctx->getLevel() == 0);
-  Debug("bv-abstraction-gen") << "numLemmas=" << d_lemmas.size() <<"\n";
+  Trace("bv-abstraction-gen") << "numLemmas=" << d_lemmas.size() <<"\n";
   lemmas.swap(d_lemmas);
 }
 
@@ -1001,18 +1001,18 @@ void AbstractionModule::makeFreshArgs(TNode func, std::vector<Node>& fresh_args)
 Node AbstractionModule::tryMatching(const std::vector<Node>& ss, const std::vector<TNode>& tt, TNode conflict) {
   Assert(ss.size() == tt.size());
 
-  Debug("bv-abstraction-dbg") << "AbstractionModule::tryMatching conflict = " << conflict << "\n";
-  if (Debug.isOn("bv-abstraction-dbg")) {
-    Debug("bv-abstraction-dbg") << "  Match: ";
+  Trace("bv-abstraction-dbg") << "AbstractionModule::tryMatching conflict = " << conflict << "\n";
+  if (Trace.isOn("bv-abstraction-dbg")) {
+    Trace("bv-abstraction-dbg") << "  Match: ";
     for (unsigned i = 0; i < ss.size(); ++i) {
-      Debug("bv-abstraction-dbg") << ss[i] <<" ";
+      Trace("bv-abstraction-dbg") << ss[i] <<" ";
 
     }
-    Debug("bv-abstraction-dbg") << "\n  To: ";
+    Trace("bv-abstraction-dbg") << "\n  To: ";
     for (unsigned i = 0; i < tt.size(); ++i) {
-      Debug("bv-abstraction-dbg") << tt[i] <<" ";
+      Trace("bv-abstraction-dbg") << tt[i] <<" ";
     }
-    Debug("bv-abstraction-dbg") <<"\n";
+    Trace("bv-abstraction-dbg") <<"\n";
   }
 
 
@@ -1052,7 +1052,7 @@ Node AbstractionModule::tryMatching(const std::vector<Node>& ss, const std::vect
   }
 
   Node res = subst.apply(conflict);
-  Debug("bv-abstraction-dbg") << "  Lemma: " << res <<"\n";
+  Trace("bv-abstraction-dbg") << "  Lemma: " << res <<"\n";
   return res;
 }
 

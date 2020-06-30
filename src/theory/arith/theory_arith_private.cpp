@@ -601,7 +601,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
 
-  Debug("arith") << "AssertLower(" << x_i << " " << c_i << ")"<< std::endl;
+  Trace("arith") << "AssertLower(" << x_i << " " << c_i << ")"<< std::endl;
 
   Assert(!isInteger(x_i) || c_i.isIntegral());
 
@@ -623,7 +623,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
   }else if(cmpToUB == 0){
     if(isInteger(x_i)){
       d_constantIntegerVariables.push_back(x_i);
-      Debug("dio::push") << "dio::push " << x_i << endl;
+      Trace("dio::push") << "dio::push " << x_i << endl;
     }
     ConstraintP ub = d_partialModel.getUpperBoundConstraint(x_i);
 
@@ -643,7 +643,7 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
       ConstraintP diseq = vc.getDisequality();
       // x <= b, x >= b |= x = b
       // (x > b or x < b or x = b)
-      Debug("arith::eq") << "lb == ub, propagate eq" << eq << endl;
+      Trace("arith::eq") << "lb == ub, propagate eq" << eq << endl;
       bool triConflict = diseq->isTrue();
 
       if(!eq->isTrue()){
@@ -703,8 +703,8 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
 
   d_updatedBounds.softAdd(x_i);
 
-  if(Debug.isOn("model")) {
-    Debug("model") << "before" << endl;
+  if(Trace.isOn("model")) {
+    Trace("model") << "before" << endl;
     d_partialModel.printModel(x_i);
     d_tableau.debugPrintIsBasic(x_i);
   }
@@ -717,8 +717,8 @@ bool TheoryArithPrivate::AssertLower(ConstraintP constraint){
     d_errorSet.signalVariable(x_i);
   }
 
-  if(Debug.isOn("model")) {
-    Debug("model") << "after" << endl;
+  if(Trace.isOn("model")) {
+    Trace("model") << "after" << endl;
     d_partialModel.printModel(x_i);
     d_tableau.debugPrintIsBasic(x_i);
  }
@@ -736,14 +736,14 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
 
-  Debug("arith") << "AssertUpper(" << x_i << " " << c_i << ")"<< std::endl;
+  Trace("arith") << "AssertUpper(" << x_i << " " << c_i << ")"<< std::endl;
 
 
   //Too strong because of rounding with integers
   //Assert(!constraint->hasLiteral() || original == constraint->getLiteral());
   Assert(!isInteger(x_i) || c_i.isIntegral());
 
-  Debug("arith") << "AssertUpper(" << x_i << " " << c_i << ")"<< std::endl;
+  Trace("arith") << "AssertUpper(" << x_i << " " << c_i << ")"<< std::endl;
 
   if(d_partialModel.greaterThanUpperBound(x_i, c_i) ){ // \upperbound(x_i) <= c_i
     return false; //sat
@@ -763,7 +763,7 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
   }else if(cmpToLB == 0){ // \lowerBound(x_i) == \upperbound(x_i)
     if(isInteger(x_i)){
       d_constantIntegerVariables.push_back(x_i);
-      Debug("dio::push") << "dio::push " << x_i << endl;
+      Trace("dio::push") << "dio::push " << x_i << endl;
     }
 
     const ValueCollection& vc = constraint->getValueCollection();
@@ -783,7 +783,7 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
       ConstraintP diseq = vc.getDisequality();
       // x <= b, x >= b |= x = b
       // (x > b or x < b or x = b)
-      Debug("arith::eq") << "lb == ub, propagate eq" << eq << endl;
+      Trace("arith::eq") << "lb == ub, propagate eq" << eq << endl;
       bool triConflict = diseq->isTrue();
       if(!eq->isTrue()){
         eq->impliedByTrichotomy(constraint, lb, triConflict);
@@ -843,8 +843,8 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
 
   d_updatedBounds.softAdd(x_i);
 
-  if(Debug.isOn("model")) {
-    Debug("model") << "before" << endl;
+  if(Trace.isOn("model")) {
+    Trace("model") << "before" << endl;
     d_partialModel.printModel(x_i);
     d_tableau.debugPrintIsBasic(x_i);
   }
@@ -857,8 +857,8 @@ bool TheoryArithPrivate::AssertUpper(ConstraintP constraint){
     d_errorSet.signalVariable(x_i);
   }
 
-  if(Debug.isOn("model")) {
-    Debug("model") << "after" << endl;
+  if(Trace.isOn("model")) {
+    Trace("model") << "after" << endl;
     d_partialModel.printModel(x_i);
     d_tableau.debugPrintIsBasic(x_i);
   }
@@ -877,7 +877,7 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
 
-  Debug("arith") << "AssertEquality(" << x_i << " " << c_i << ")"<< std::endl;
+  Trace("arith") << "AssertEquality(" << x_i << " " << c_i << ")"<< std::endl;
 
   //Should be fine in integers
   Assert(!isInteger(x_i) || c_i.isIntegral());
@@ -907,7 +907,7 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
 
   if(isInteger(x_i)){
     d_constantIntegerVariables.push_back(x_i);
-    Debug("dio::push") << "dio::push " << x_i << endl;
+    Trace("dio::push") << "dio::push " << x_i << endl;
   }
 
   // Don't bother to check whether x_i != c_i is in d_diseq
@@ -935,8 +935,8 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
 
   d_updatedBounds.softAdd(x_i);
 
-  if(Debug.isOn("model")) {
-    Debug("model") << "before" << endl;
+  if(Trace.isOn("model")) {
+    Trace("model") << "before" << endl;
     d_partialModel.printModel(x_i);
     d_tableau.debugPrintIsBasic(x_i);
   }
@@ -949,8 +949,8 @@ bool TheoryArithPrivate::AssertEquality(ConstraintP constraint){
     d_errorSet.signalVariable(x_i);
   }
 
-  if(Debug.isOn("model")) {
-    Debug("model") << "after" << endl;
+  if(Trace.isOn("model")) {
+    Trace("model") << "after" << endl;
     d_partialModel.printModel(x_i);
     d_tableau.debugPrintIsBasic(x_i);
   }
@@ -968,7 +968,7 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
 
   ArithVar x_i = constraint->getVariable();
   const DeltaRational& c_i = constraint->getValue();
-  Debug("arith") << "AssertDisequality(" << x_i << " " << c_i << ")"<< std::endl;
+  Trace("arith") << "AssertDisequality(" << x_i << " " << c_i << ")"<< std::endl;
 
   //Should be fine in integers
   Assert(!isInteger(x_i) || c_i.isIntegral());
@@ -1000,7 +1000,7 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
     if(lb->isTrue()){
       const ConstraintP ub = d_constraintDatabase.ensureConstraint(const_cast<ValueCollection&>(vc), UpperBound);
       Assert(!ub->isTrue());
-      Debug("arith::eq") << "propagate UpperBound " << constraint << lb << ub << endl;
+      Trace("arith::eq") << "propagate UpperBound " << constraint << lb << ub << endl;
       const ConstraintP negUb = ub->getNegation();
       if(!negUb->isTrue()){
         negUb->impliedByTrichotomy(constraint, lb, false);
@@ -1015,7 +1015,7 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
       const ConstraintP lb = d_constraintDatabase.ensureConstraint(const_cast<ValueCollection&>(vc), LowerBound);
       Assert(!lb->isTrue());
 
-      Debug("arith::eq") << "propagate LowerBound " << constraint << lb << ub << endl;
+      Trace("arith::eq") << "propagate LowerBound " << constraint << lb << ub << endl;
       const ConstraintP negLb = lb->getNegation();
       if(!negLb->isTrue()){
         negLb->impliedByTrichotomy(constraint, ub, false);
@@ -1028,25 +1028,25 @@ bool TheoryArithPrivate::AssertDisequality(ConstraintP constraint){
   bool split = constraint->isSplit();
 
   if(!split && c_i == d_partialModel.getAssignment(x_i)){
-    Debug("arith::eq") << "lemma now! " << constraint << endl;
+    Trace("arith::eq") << "lemma now! " << constraint << endl;
     outputLemma(constraint->split());
     return false;
   }else if(d_partialModel.strictlyLessThanLowerBound(x_i, c_i)){
-    Debug("arith::eq") << "can drop as less than lb" << constraint << endl;
+    Trace("arith::eq") << "can drop as less than lb" << constraint << endl;
   }else if(d_partialModel.strictlyGreaterThanUpperBound(x_i, c_i)){
-    Debug("arith::eq") << "can drop as less than ub" << constraint << endl;
+    Trace("arith::eq") << "can drop as less than ub" << constraint << endl;
   }else if(!split){
-    Debug("arith::eq") << "push back" << constraint << endl;
+    Trace("arith::eq") << "push back" << constraint << endl;
     d_diseqQueue.push(constraint);
     d_partialModel.invalidateDelta();
   }else{
-    Debug("arith::eq") << "skipping already split " << constraint << endl;
+    Trace("arith::eq") << "skipping already split " << constraint << endl;
   }
   return false;
 }
 
 void TheoryArithPrivate::addSharedTerm(TNode n){
-  Debug("arith::addSharedTerm") << "addSharedTerm: " << n << endl;
+  Trace("arith::addSharedTerm") << "addSharedTerm: " << n << endl;
   if(n.isConst()){
     d_partialModel.invalidateDelta();
   }
@@ -1098,7 +1098,7 @@ Node TheoryArithPrivate::ppRewriteTerms(TNode n) {
 }
 
 Node TheoryArithPrivate::ppRewrite(TNode atom) {
-  Debug("arith::preprocess") << "arith::preprocess() : " << atom << endl;
+  Trace("arith::preprocess") << "arith::preprocess() : " << atom << endl;
 
   if (options::arithRewriteEq())
   {
@@ -1109,7 +1109,7 @@ Node TheoryArithPrivate::ppRewrite(TNode atom) {
       leq = ppRewriteTerms(leq);
       geq = ppRewriteTerms(geq);
       Node rewritten = Rewriter::rewrite(leq.andNode(geq));
-      Debug("arith::preprocess")
+      Trace("arith::preprocess")
           << "arith::preprocess() : returning " << rewritten << endl;
       // don't need to rewrite terms since rewritten is not a non-standard op
       return rewritten;
@@ -1120,7 +1120,7 @@ Node TheoryArithPrivate::ppRewrite(TNode atom) {
 
 Theory::PPAssertStatus TheoryArithPrivate::ppAssert(TNode in, SubstitutionMap& outSubstitutions) {
   TimerStat::CodeTimer codeTimer(d_statistics.d_simplifyTimer);
-  Debug("simplify") << "TheoryArithPrivate::solve(" << in << ")" << endl;
+  Trace("simplify") << "TheoryArithPrivate::solve(" << in << ")" << endl;
 
 
   // Solve equalities
@@ -1157,17 +1157,17 @@ Theory::PPAssertStatus TheoryArithPrivate::ppAssert(TNode in, SubstitutionMap& o
 
       if (right.size() > options::ppAssertMaxSubSize())
       {
-        Debug("simplify")
+        Trace("simplify")
             << "TheoryArithPrivate::solve(): did not substitute due to the "
                "right hand side containing too many terms: "
             << minVar << ":" << elim << endl;
-        Debug("simplify") << right.size() << endl;
+        Trace("simplify") << right.size() << endl;
       }
       else if (d_containing.isLegalElimination(minVar, elim))
       {
         // cannot eliminate integers here unless we know the resulting
         // substitution is integral
-        Debug("simplify") << "TheoryArithPrivate::solve(): substitution "
+        Trace("simplify") << "TheoryArithPrivate::solve(): substitution "
                           << minVar << " |-> " << elim << endl;
 
         outSubstitutions.addSubstitution(minVar, elim);
@@ -1175,7 +1175,7 @@ Theory::PPAssertStatus TheoryArithPrivate::ppAssert(TNode in, SubstitutionMap& o
       }
       else
       {
-        Debug("simplify") << "TheoryArithPrivate::solve(): can't substitute "
+        Trace("simplify") << "TheoryArithPrivate::solve(): can't substitute "
                           << minVar << ":" << minVar.getType() << " |-> "
                           << elim << ":" << elim.getType() << endl;
       }
@@ -1443,7 +1443,7 @@ void TheoryArithPrivate::setupAtom(TNode atom) {
 }
 
 void TheoryArithPrivate::preRegisterTerm(TNode n) {
-  Debug("arith::preregister") <<"begin arith::preRegisterTerm("<< n <<")"<< endl;
+  Trace("arith::preregister") <<"begin arith::preRegisterTerm("<< n <<")"<< endl;
 
   if (d_nonlinearExtension != nullptr)
   {
@@ -1458,7 +1458,7 @@ void TheoryArithPrivate::preRegisterTerm(TNode n) {
       ConstraintP c = d_constraintDatabase.lookup(n);
       Assert(c != NullConstraint);
 
-      Debug("arith::preregister") << "setup constraint" << c << endl;
+      Trace("arith::preregister") << "setup constraint" << c << endl;
       Assert(!c->canBePropagated());
       c->setPreregistered();
     }
@@ -1468,7 +1468,7 @@ void TheoryArithPrivate::preRegisterTerm(TNode n) {
     throw LogicException(ss.str());
   }
 
-  Debug("arith::preregister") << "end arith::preRegisterTerm("<< n <<")" << endl;
+  Trace("arith::preregister") << "end arith::preRegisterTerm("<< n <<")" << endl;
 }
 
 void TheoryArithPrivate::releaseArithVar(ArithVar v){
@@ -1503,7 +1503,7 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal){
   }
   d_constraintDatabase.addVariable(varX);
 
-  Debug("arith::arithvar") << "@" << getSatContext()->getLevel()
+  Trace("arith::arithvar") << "@" << getSatContext()->getLevel()
                            << " " << x << " |-> " << varX
                            << "(relaiming " << reclaim << ")" << endl;
 
@@ -1521,7 +1521,7 @@ void TheoryArithPrivate::asVectors(const Polynomial& p, std::vector<Rational>& c
 
     Node n = variable.getNode();
 
-    Debug("arith::asVectors") << "should be var: " << n << endl;
+    Trace("arith::asVectors") << "should be var: " << n << endl;
 
     // TODO: This VarList::isMember(n) can be stronger
     Assert(isLeaf(n) || VarList::isMember(n));
@@ -1549,19 +1549,19 @@ void TheoryArithPrivate::setupBasicValue(ArithVar x){
   DeltaRational assignment = d_linEq.computeRowValue(x, false);
   d_partialModel.setAssignment(x,safeAssignment,assignment);
 
-  Debug("arith") << "setupVariable("<<x<<")"<<std::endl;
+  Trace("arith") << "setupVariable("<<x<<")"<<std::endl;
 }
 
 ArithVar TheoryArithPrivate::determineArithVar(const Polynomial& p) const{
   Assert(!p.containsConstant());
   Assert(p.getHead().constantIsPositive());
   TNode n = p.getNode();
-  Debug("determineArithVar") << "determineArithVar(" << n << ")" << endl;
+  Trace("determineArithVar") << "determineArithVar(" << n << ")" << endl;
   return d_partialModel.asArithVar(n);
 }
 
 ArithVar TheoryArithPrivate::determineArithVar(TNode assertion) const{
-  Debug("determineArithVar") << "determineArithVar " << assertion << endl;
+  Trace("determineArithVar") << "determineArithVar " << assertion << endl;
   Comparison cmp = Comparison::parseNormalForm(assertion);
   Polynomial variablePart = cmp.normalizedVariablePart();
   return determineArithVar(variablePart);
@@ -1597,7 +1597,7 @@ Node TheoryArithPrivate::dioCutting(){
           // If the bounds are equal this is already in the dioSolver
           //Add v = dr as a speculation.
           Comparison eq = mkIntegerEqualityFromAssignment(v);
-          Debug("dio::push") << "dio::push " << v << " " <<  eq.getNode() << endl;
+          Trace("dio::push") << "dio::push " << v << " " <<  eq.getNode() << endl;
           Assert(!eq.isBoolean());
           d_diosolver.pushInputConstraint(eq, eq.getNode());
           // It does not matter what the explanation of eq is.
@@ -1622,12 +1622,12 @@ Node TheoryArithPrivate::dioCutting(){
     Comparison geq = Comparison::mkComparison(GEQ, p, c);
     Node lemma = NodeManager::currentNM()->mkNode(OR, leq.getNode(), geq.getNode());
     Node rewrittenLemma = Rewriter::rewrite(lemma);
-    Debug("arith::dio::ex") << "dioCutting found the plane: " << plane.getNode() << endl;
-    Debug("arith::dio::ex") << "resulting in the cut: " << lemma << endl;
-    Debug("arith::dio::ex") << "rewritten " << rewrittenLemma << endl;
-    Debug("arith::dio") << "dioCutting found the plane: " << plane.getNode() << endl;
-    Debug("arith::dio") << "resulting in the cut: " << lemma << endl;
-    Debug("arith::dio") << "rewritten " << rewrittenLemma << endl;
+    Trace("arith::dio::ex") << "dioCutting found the plane: " << plane.getNode() << endl;
+    Trace("arith::dio::ex") << "resulting in the cut: " << lemma << endl;
+    Trace("arith::dio::ex") << "rewritten " << rewrittenLemma << endl;
+    Trace("arith::dio") << "dioCutting found the plane: " << plane.getNode() << endl;
+    Trace("arith::dio") << "resulting in the cut: " << lemma << endl;
+    Trace("arith::dio") << "rewritten " << rewrittenLemma << endl;
     return rewrittenLemma;
   }
 }
@@ -1637,7 +1637,7 @@ Node TheoryArithPrivate::callDioSolver(){
     ArithVar v = d_constantIntegerVariables.front();
     d_constantIntegerVariables.pop();
 
-    Debug("arith::dio")  << "callDioSolver " << v << endl;
+    Trace("arith::dio")  << "callDioSolver " << v << endl;
 
     Assert(isInteger(v));
     Assert(d_partialModel.boundsAreEqual(v));
@@ -1666,7 +1666,7 @@ Node TheoryArithPrivate::callDioSolver(){
       Assert(orig.getKind() != EQUAL);
       return orig;
     }else{
-      Debug("dio::push") << "dio::push " << v << " " << eq.getNode() << " with reason " << orig << endl;
+      Trace("dio::push") << "dio::push " << v << " " << eq.getNode() << " with reason " << orig << endl;
       d_diosolver.pushInputConstraint(eq, orig);
     }
   }
@@ -1703,7 +1703,7 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
     constraint = d_constraintDatabase.lookup(reAssertion);
 
     if(assertion != reAssertion){
-      Debug("arith::nf") << "getting non-nf assertion " << assertion << " |-> " <<  reAssertion << endl;
+      Trace("arith::nf") << "getting non-nf assertion " << assertion << " |-> " <<  reAssertion << endl;
       Assert(constraint != NullConstraint);
       d_assertionsThatDoNotMatchTheirLiterals.insert(assertion, constraint);
     }
@@ -1720,31 +1720,31 @@ ConstraintP TheoryArithPrivate::constraintFromFactQueue(){
   constraint->setAssertedToTheTheory(assertion, inConflict);
 
   if(!constraint->hasProof()){
-    Debug("arith::constraint") << "marking as constraint as self explaining " << endl;
+    Trace("arith::constraint") << "marking as constraint as self explaining " << endl;
     constraint->setAssumption(inConflict);
   } else {
-    Debug("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
+    Trace("arith::constraint") << "already has proof: " << constraint->externalExplainByAssertions() << endl;
   }
   
 
-  if(Debug.isOn("arith::negatedassumption") && inConflict){
+  if(Trace.isOn("arith::negatedassumption") && inConflict){
     ConstraintP negation = constraint->getNegation();
-    if(Debug.isOn("arith::negatedassumption") && negation->isAssumption()){
+    if(Trace.isOn("arith::negatedassumption") && negation->isAssumption()){
       debugPrintFacts();
     }
-    Debug("arith::eq") << "negation has proof" << endl;
-    Debug("arith::eq") << constraint << endl;
-    Debug("arith::eq") << negation << endl;
+    Trace("arith::eq") << "negation has proof" << endl;
+    Trace("arith::eq") << constraint << endl;
+    Trace("arith::eq") << negation << endl;
   }
 
   if(inConflict){
     ConstraintP negation = constraint->getNegation();
-    if(Debug.isOn("arith::negatedassumption") && negation->isAssumption()){
+    if(Trace.isOn("arith::negatedassumption") && negation->isAssumption()){
       debugPrintFacts();
     }
-    Debug("arith::eq") << "negation has proof" << endl;
-    Debug("arith::eq") << constraint << endl;
-    Debug("arith::eq") << negation << endl;
+    Trace("arith::eq") << "negation has proof" << endl;
+    Trace("arith::eq") << constraint << endl;
+    Trace("arith::eq") << negation << endl;
     raiseConflict(negation);
     return NullConstraint;
   }else{
@@ -1764,9 +1764,9 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
       ConstraintP floorConstraint = constraint->getFloor();
       if(!floorConstraint->isTrue()){
         bool inConflict = floorConstraint->negationHasProof();
-        if (Debug.isOn("arith::intbound")) {
-          Debug("arith::intbound") << "literal, before: " << constraint->getLiteral() << std::endl;
-          Debug("arith::intbound") << "constraint, after: " << floorConstraint << std::endl;
+        if (Trace.isOn("arith::intbound")) {
+          Trace("arith::intbound") << "literal, before: " << constraint->getLiteral() << std::endl;
+          Trace("arith::intbound") << "constraint, after: " << floorConstraint << std::endl;
         }
         floorConstraint->impliedByIntTighten(constraint, inConflict);
         floorConstraint->tryToPropagate();
@@ -1784,9 +1784,9 @@ bool TheoryArithPrivate::assertionCases(ConstraintP constraint){
       ConstraintP ceilingConstraint = constraint->getCeiling();
       if(!ceilingConstraint->isTrue()){
         bool inConflict = ceilingConstraint->negationHasProof();
-        if (Debug.isOn("arith::intbound")) {
-          Debug("arith::intbound") << "literal, before: " << constraint->getLiteral() << std::endl;
-          Debug("arith::intbound") << "constraint, after: " << ceilingConstraint << std::endl;
+        if (Trace.isOn("arith::intbound")) {
+          Trace("arith::intbound") << "literal, before: " << constraint->getLiteral() << std::endl;
+          Trace("arith::intbound") << "constraint, after: " << ceilingConstraint << std::endl;
         }
         ceilingConstraint->impliedByIntTighten(constraint, inConflict);
         ceilingConstraint->tryToPropagate();
@@ -1844,9 +1844,9 @@ bool TheoryArithPrivate::hasIntegerModel(){
   ArithVar next = nextIntegerViolatation(true);
   if(next != ARITHVAR_SENTINEL){
     d_nextIntegerCheckVar = next;
-    if(Debug.isOn("arith::hasIntegerModel")){
-      Debug("arith::hasIntegerModel") << "has int model? " << next << endl;
-      d_partialModel.printModel(next, Debug("arith::hasIntegerModel"));
+    if(Trace.isOn("arith::hasIntegerModel")){
+      Trace("arith::hasIntegerModel") << "has int model? " << next << endl;
+      d_partialModel.printModel(next, Trace("arith::hasIntegerModel"));
     }
     return false;
   }else{
@@ -1890,7 +1890,7 @@ Node flattenAndSort(Node n){
 
 /** Outputs conflicts to the output channel. */
 void TheoryArithPrivate::outputConflicts(){
-  Debug("arith::conflict") << "outputting conflicts" << std::endl;
+  Trace("arith::conflict") << "outputting conflicts" << std::endl;
   Assert(anyConflict());
   static unsigned int conflicts = 0;
   
@@ -1901,7 +1901,7 @@ void TheoryArithPrivate::outputConflicts(){
       bool hasProof = confConstraint->hasProof();
       Assert(confConstraint->inConflict());
       const ConstraintRule& pf = confConstraint->getConstraintRule();
-      if (Debug.isOn("arith::conflict"))
+      if (Trace.isOn("arith::conflict"))
       {
         pf.print(std::cout);
         std::cout << std::endl;
@@ -1909,7 +1909,7 @@ void TheoryArithPrivate::outputConflicts(){
       Node conflict = confConstraint->externalExplainConflict();
 
       ++conflicts;
-      Debug("arith::conflict") << "d_conflicts[" << i << "] " << conflict
+      Trace("arith::conflict") << "d_conflicts[" << i << "] " << conflict
                                << " has proof: " << hasProof << endl;
       PROOF(if (d_containing.d_proofRecorder && confConstraint->hasFarkasProof()
                 && pf.d_farkasCoefficients->size()
@@ -1927,9 +1927,9 @@ void TheoryArithPrivate::outputConflicts(){
               << conflict[conflict.getNumChildren() - j - 1];
         }
 
-        if (Debug.isOn("arith::pf::tree")) {
-          confConstraint->printProofTree(Debug("arith::pf::tree"));
-          confConstraint->getNegation()->printProofTree(Debug("arith::pf::tree"));
+        if (Trace.isOn("arith::pf::tree")) {
+          confConstraint->printProofTree(Trace("arith::pf::tree"));
+          confConstraint->getNegation()->printProofTree(Trace("arith::pf::tree"));
         }
 
         Assert(conflict.getNumChildren() == pf.d_farkasCoefficients->size());
@@ -1939,9 +1939,9 @@ void TheoryArithPrivate::outputConflicts(){
               conflictInFarkasCoefficientOrder, pf.d_farkasCoefficients);
         }
       })
-      if(Debug.isOn("arith::normalize::external")){
+      if(Trace.isOn("arith::normalize::external")){
         conflict = flattenAndSort(conflict);
-        Debug("arith::conflict") << "(normalized to) " << conflict << endl;
+        Trace("arith::conflict") << "(normalized to) " << conflict << endl;
       }
 
       outputConflict(conflict);
@@ -1950,12 +1950,12 @@ void TheoryArithPrivate::outputConflicts(){
   if(!d_blackBoxConflict.get().isNull()){
     Node bb = d_blackBoxConflict.get();
     ++conflicts;
-    Debug("arith::conflict") << "black box conflict" << bb
+    Trace("arith::conflict") << "black box conflict" << bb
       //<< "("<<conflicts<<")"
                              << endl;
-    if(Debug.isOn("arith::normalize::external")){
+    if(Trace.isOn("arith::normalize::external")){
       bb = flattenAndSort(bb);
-      Debug("arith::conflict") << "(normalized to) " << bb << endl;
+      Trace("arith::conflict") << "(normalized to) " << bb << endl;
     }
 
     outputConflict(bb);
@@ -1963,22 +1963,22 @@ void TheoryArithPrivate::outputConflicts(){
 }
 
 void TheoryArithPrivate::outputLemma(TNode lem) {
-  Debug("arith::channel") << "Arith lemma: " << lem << std::endl;
+  Trace("arith::channel") << "Arith lemma: " << lem << std::endl;
   (d_containing.d_out)->lemma(lem);
 }
 
 void TheoryArithPrivate::outputConflict(TNode lit) {
-  Debug("arith::channel") << "Arith conflict: " << lit << std::endl;
+  Trace("arith::channel") << "Arith conflict: " << lit << std::endl;
   (d_containing.d_out)->conflict(lit);
 }
 
 void TheoryArithPrivate::outputPropagate(TNode lit) {
-  Debug("arith::channel") << "Arith propagation: " << lit << std::endl;
+  Trace("arith::channel") << "Arith propagation: " << lit << std::endl;
   (d_containing.d_out)->propagate(lit);
 }
 
 void TheoryArithPrivate::outputRestart() {
-  Debug("arith::channel") << "Arith restart!" << std::endl;
+  Trace("arith::channel") << "Arith restart!" << std::endl;
   (d_containing.d_out)->demandRestart();
 }
 
@@ -1998,7 +1998,7 @@ void TheoryArithPrivate::outputRestart() {
 
 bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel, bool emmmittedLemmaOrSplit){
   int level = getSatContext()->getLevel();
-  Debug("approx")
+  Trace("approx")
     << "attemptSolveInteger " << d_qflraStatus
     << " " << emmmittedLemmaOrSplit
     << " " << effortLevel
@@ -2081,7 +2081,7 @@ bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx){
           vec.pop_back();
           ConstraintP neg_at_j = at_j->getNegation();
 
-          Debug("approx::replayLog") << "Setting the proof for the replayLog conflict on:" << endl
+          Trace("approx::replayLog") << "Setting the proof for the replayLog conflict on:" << endl
                                      << "  (" << neg_at_j->isTrue() <<") " << neg_at_j << endl
                                      << "  (" << at_j->isTrue() <<") " << at_j << endl;
           neg_at_j->impliedByIntHole(vec, true);
@@ -2114,7 +2114,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
   Node sum = toSumNode(d_partialModel, lhs);
   if(sum.isNull()){ return make_pair(NullConstraint, added); }
 
-  Debug("approx::constraint") << "replayGetConstraint " << sum
+  Trace("approx::constraint") << "replayGetConstraint " << sum
                               << " " << k
                               << " " << rhs
                               << endl;
@@ -2138,7 +2138,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
   ConstraintType t = Constraint::constraintTypeOfComparison(cmp);
   DeltaRational dr = cmp.normalizedDeltaRational();
 
-  Debug("approx::constraint") << "rewriting " << rewritten << endl
+  Trace("approx::constraint") << "rewriting " << rewritten << endl
                               << " |-> " << norm << " " << t << " " << dr << endl;
 
   Assert(!branch || d_partialModel.hasArithVar(norm));
@@ -2146,7 +2146,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
   if(d_partialModel.hasArithVar(norm)){
 
     v = d_partialModel.asArithVar(norm);
-    Debug("approx::constraint") << "replayGetConstraint found "
+    Trace("approx::constraint") << "replayGetConstraint found "
                                 << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
     Assert(!branch || d_partialModel.isIntegerInput(v));
   }else{
@@ -2155,7 +2155,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const D
 
     added = v;
 
-    Debug("approx::constraint") << "replayGetConstraint adding "
+    Trace("approx::constraint") << "replayGetConstraint adding "
                                 << norm << " |-> " << v << " @ " << getSatContext()->getLevel() << endl;
 
     Polynomial poly = Polynomial::parsePolynomial(norm);
@@ -2228,7 +2228,7 @@ std::pair<ConstraintP, ArithVar> TheoryArithPrivate::replayGetConstraint(const C
 // }
 
 Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum){
-  Debug("arith::toSumNode") << "toSumNode() begin" << endl;
+  Trace("arith::toSumNode") << "toSumNode() begin" << endl;
   NodeBuilder<> nb(kind::PLUS);
   NodeManager* nm = NodeManager::currentNM();
   DenseMap<Rational>::const_iterator iter, end;
@@ -2239,10 +2239,10 @@ Node toSumNode(const ArithVariables& vars, const DenseMap<Rational>& sum){
     Node xNode = vars.asNode(x);
     const Rational& q = sum[x];
     Node mult = nm->mkNode(kind::MULT, mkRationalNode(q), xNode);
-    Debug("arith::toSumNode") << "toSumNode() " << x << " " << mult << endl;
+    Trace("arith::toSumNode") << "toSumNode() " << x << " " << mult << endl;
     nb << mult;
   }
-  Debug("arith::toSumNode") << "toSumNode() end" << endl;
+  Trace("arith::toSumNode") << "toSumNode() end" << endl;
   return safeConstructNary(nb);
 }
 
@@ -2278,7 +2278,7 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
   std::vector< ConstraintCPVec > conflicts;
 
   approx->tryCut(nid, bci);
-  Debug("approx::branch") << "tryBranchCut" << bci << endl;
+  Trace("approx::branch") << "tryBranchCut" << bci << endl;
   Assert(bci.reconstructed());
   Assert(!bci.proven());
   pair<ConstraintP, ArithVar> p = replayGetConstraint(bci);
@@ -2329,26 +2329,26 @@ void TheoryArithPrivate::tryBranchCut(ApproximateSimplex* approx, int nid, Branc
       // Constraint::assertionFringe(back);
     }
 
-    if(Debug.isOn("approx::branch")){
+    if(Trace.isOn("approx::branch")){
       if(d_conflicts.empty()){
         entireStateIsConsistent("branchfailure");
       }
     }
   }
 
-  Debug("approx::branch") << "branch constraint " << bc << endl;
+  Trace("approx::branch") << "branch constraint " << bc << endl;
   for(size_t i = 0, N = conflicts.size(); i < N; ++i){
     ConstraintCPVec& conf = conflicts[i];
 
     // make sure to be working on the assertion fringe!
     if(!contains(conf, bcneg)){
-      Debug("approx::branch") << "reraise " << conf  << endl;
+      Trace("approx::branch") << "reraise " << conf  << endl;
       ConstraintCP conflicting = vectorToIntHoleConflict(conf);
       raiseConflict(conflicting);
     }else if(!bci.proven()){
       drop(conf, bcneg);
       bci.setExplanation(conf);
-      Debug("approx::branch") << "dropped " << bci  << endl;
+      Trace("approx::branch") << "dropped " << bci  << endl;
     }
   }
 }
@@ -2358,33 +2358,33 @@ void TheoryArithPrivate::replayAssert(ConstraintP c) {
     bool inConflict = c->negationHasProof();
     if(!c->hasProof()){
       c->setInternalAssumption(inConflict);
-      Debug("approx::replayAssert") << "replayAssert " << c << " set internal" << endl;
+      Trace("approx::replayAssert") << "replayAssert " << c << " set internal" << endl;
     }else{
-      Debug("approx::replayAssert") << "replayAssert " << c << " has explanation" << endl;
+      Trace("approx::replayAssert") << "replayAssert " << c << " has explanation" << endl;
     }
-    Debug("approx::replayAssert") << "replayAssertion " << c << endl;    
+    Trace("approx::replayAssert") << "replayAssertion " << c << endl;    
     if(inConflict){
       raiseConflict(c);
     }else{
       assertionCases(c);
     }
   }else{
-    Debug("approx::replayAssert") << "replayAssert " << c << " already asserted" << endl;    
+    Trace("approx::replayAssert") << "replayAssert " << c << " already asserted" << endl;    
   }
 }
 
 
 void TheoryArithPrivate::resolveOutPropagated(std::vector<ConstraintCPVec>& confs, const std::set<ConstraintCP>& propagated) const {
-  Debug("arith::resolveOutPropagated")
+  Trace("arith::resolveOutPropagated")
     << "starting resolveOutPropagated() " << confs.size() << endl;
   for(size_t i =0, N = confs.size(); i < N; ++i){
     ConstraintCPVec& conf = confs[i];
     size_t orig = conf.size();
     Constraint::assertionFringe(conf);
-    Debug("arith::resolveOutPropagated")
+    Trace("arith::resolveOutPropagated")
       << "  conf["<<i<<"] " << orig << " to " << conf.size() << endl;
   }
-  Debug("arith::resolveOutPropagated")
+  Trace("arith::resolveOutPropagated")
     << "ending resolveOutPropagated() " << confs.size() << endl;
 }
 
@@ -2422,13 +2422,13 @@ void TheoryArithPrivate::subsumption(
       }
     }
   }
-  Debug("arith::subsumption") << "subsumed " << subsumed << "/" << checks
+  Trace("arith::subsumption") << "subsumed " << subsumed << "/" << checks
                               << endl;
 }
 
 std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex* approx, int nid, ConstraintP bc, int depth){
   ++(d_statistics.d_replayLogRecCount);
-  Debug("approx::replayLogRec") << "replayLogRec()"
+  Trace("approx::replayLogRec") << "replayLogRec()"
                                 << d_statistics.d_replayLogRecCount.getData() << std::endl;
 
   size_t rpvars_size = d_replayVariables.size();
@@ -2495,8 +2495,8 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             tl.mapRowId(nl.getNodeId(), ci->getRowId(), p.second);
           }
           ConstraintP con = p.first;
-          if(Debug.isOn("approx::replayLogRec")){
-            Debug("approx::replayLogRec") << "cut was remade " << con << " " << *ci << endl;
+          if(Trace.isOn("approx::replayLogRec")){
+            Trace("approx::replayLogRec") << "cut was remade " << con << " " << *ci << endl;
           }
 
           if(ci->proven()){
@@ -2505,19 +2505,19 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             const ConstraintCPVec& exp = ci->getExplanation();
             // success
             if(con->isTrue()){
-              Debug("approx::replayLogRec") << "not asserted?" << endl;
+              Trace("approx::replayLogRec") << "not asserted?" << endl;
             }else if(!con->negationHasProof()){
               con->impliedByIntHole(exp, false);
               replayAssert(con);
-              Debug("approx::replayLogRec") << "cut prop" << endl;
+              Trace("approx::replayLogRec") << "cut prop" << endl;
             }else {
               con->impliedByIntHole(exp, true);
-              Debug("approx::replayLogRec") << "cut into conflict " << con << endl;
+              Trace("approx::replayLogRec") << "cut into conflict " << con << endl;
               raiseConflict(con);
             }
           }else{
             ++d_statistics.d_cutsProofFailed;
-            Debug("approx::replayLogRec") << "failed to get proof " << *ci << endl;
+            Trace("approx::replayLogRec") << "failed to get proof " << *ci << endl;
           }
         }else if(ci->getKlass() != RowsDeletedKlass){
           ++d_statistics.d_cutsReconstructionFailed;
@@ -2585,7 +2585,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             }
           }
         }else{
-          Debug("approx::replayLogRec") << "replayLogRec() skipping" << dnlog << std::endl;
+          Trace("approx::replayLogRec") << "replayLogRec() skipping" << dnlog << std::endl;
           ++d_statistics.d_replayBranchSkips;
         }
 
@@ -2601,7 +2601,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             }
           }
         }else{
-          Debug("approx::replayLogRec") << "replayLogRec() skipping" << uplog << std::endl;
+          Trace("approx::replayLogRec") << "replayLogRec() skipping" << uplog << std::endl;
           ++d_statistics.d_replayBranchSkips;
         }
 
@@ -2624,23 +2624,23 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
             }
           }
         }else{
-          Debug("approx::replayLogRec") << "replayLogRec() skipping resolving" << nl << std::endl;
+          Trace("approx::replayLogRec") << "replayLogRec() skipping resolving" << nl << std::endl;
         }
-        Debug("approx::replayLogRec") << "found #"<<res.size()<<" conflicts on branch " << nid << endl;
+        Trace("approx::replayLogRec") << "found #"<<res.size()<<" conflicts on branch " << nid << endl;
         if(res.empty()){
           ++d_statistics.d_replayBranchCloseFailures;
         }
 
       }else{
-        Debug("approx::replayLogRec") << "failed to make a branch " << nid << endl;
+        Trace("approx::replayLogRec") << "failed to make a branch " << nid << endl;
       }
     }else{
       ++d_statistics.d_replayLeafCloseFailures;
-      Debug("approx::replayLogRec") << "failed on node " << nid << endl;
+      Trace("approx::replayLogRec") << "failed on node " << nid << endl;
       Assert(res.empty());
     }
     resolveOutPropagated(res, propagated);
-    Debug("approx::replayLogRec") << "replayLogRec() ending" << std::endl;
+    Trace("approx::replayLogRec") << "replayLogRec() ending" << std::endl;
 
 
     if(options::replayFailureLemma()){
@@ -2706,7 +2706,7 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
       d_tableau.removeBasicRow(v);
 
       releaseArithVar(v);
-      Debug("approx::vars") << "releasing " << v << endl;
+      Trace("approx::vars") << "releasing " << v << endl;
     }
     d_linEq.stopTrackingBoundCounts();
     d_partialModel.startQueueingBoundCounts();
@@ -2801,7 +2801,7 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
         Node implication = asLemma.impNode(implied);
         // DO NOT CALL OUTPUT LEMMA!
         d_approxCuts.push_back(implication);
-        Debug("approx::lemmas") << "cut["<<i<<"] " << implication << endl;
+        Trace("approx::lemmas") << "cut["<<i<<"] " << implication << endl;
         ++(d_statistics.d_mipExternalCuts);
       }
     }
@@ -2812,7 +2812,7 @@ bool TheoryArithPrivate::replayLemmas(ApproximateSimplex* approx){
         Node branch = lit.orNode(lit.notNode());
         d_approxCuts.push_back(branch);
         ++(d_statistics.d_mipExternalBranch);
-        Debug("approx::lemmas") << "branching "<< root <<" as " << branch << endl;
+        Trace("approx::lemmas") << "branching "<< root <<" as " << branch << endl;
       }
     }
     return anythingnew;
@@ -2899,7 +2899,7 @@ void TheoryArithPrivate::solveInteger(Theory::Effort effortLevel){
         mipRes = approx->solveMIP(false);
       }
 
-      Debug("arith::solveInteger") << "mipRes " << mipRes << endl;
+      Trace("arith::solveInteger") << "mipRes " << mipRes << endl;
       switch(mipRes) {
       case MipBingo:
         // attempt the solution
@@ -3014,16 +3014,16 @@ SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(bool pass1){
 }
 
 void TheoryArithPrivate::importSolution(const ApproximateSimplex::Solution& solution){
-  if(Debug.isOn("arith::importSolution")){
-    Debug("arith::importSolution") << "importSolution before " << d_qflraStatus << endl;
-    d_partialModel.printEntireModel(Debug("arith::importSolution"));
+  if(Trace.isOn("arith::importSolution")){
+    Trace("arith::importSolution") << "importSolution before " << d_qflraStatus << endl;
+    d_partialModel.printEntireModel(Trace("arith::importSolution"));
   }
 
   d_qflraStatus = d_attemptSolSimplex.attempt(solution);
 
-  if(Debug.isOn("arith::importSolution")){
-    Debug("arith::importSolution") << "importSolution intermediate " << d_qflraStatus << endl;
-    d_partialModel.printEntireModel(Debug("arith::importSolution"));
+  if(Trace.isOn("arith::importSolution")){
+    Trace("arith::importSolution") << "importSolution intermediate " << d_qflraStatus << endl;
+    d_partialModel.printEntireModel(Trace("arith::importSolution"));
   }
 
   if(d_qflraStatus != Result::UNSAT){
@@ -3035,9 +3035,9 @@ void TheoryArithPrivate::importSolution(const ApproximateSimplex::Solution& solu
     options::arithStandardCheckVarOrderPivots.set(oldCap);
   }
 
-  if(Debug.isOn("arith::importSolution")){
-    Debug("arith::importSolution") << "importSolution after " << d_qflraStatus << endl;
-    d_partialModel.printEntireModel(Debug("arith::importSolution"));
+  if(Trace.isOn("arith::importSolution")){
+    Trace("arith::importSolution") << "importSolution after " << d_qflraStatus << endl;
+    d_partialModel.printEntireModel(Trace("arith::importSolution"));
   }
 }
 
@@ -3081,7 +3081,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
 
   bool useApprox = options::useApprox() && ApproximateSimplex::enabled() && getSolveIntegerResource();
 
-  Debug("TheoryArithPrivate::solveRealRelaxation")
+  Trace("TheoryArithPrivate::solveRealRelaxation")
     << "solveRealRelaxation() approx"
     << " " <<  options::useApprox()
     << " " << ApproximateSimplex::enabled()
@@ -3092,7 +3092,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
   bool noPivotLimitPass1 = noPivotLimit && !useApprox;
   d_qflraStatus = simplex.findModel(noPivotLimitPass1);
 
-  Debug("TheoryArithPrivate::solveRealRelaxation")
+  Trace("TheoryArithPrivate::solveRealRelaxation")
     << "solveRealRelaxation()" << " pass1 " << d_qflraStatus << endl;
   
   if(d_qflraStatus == Result::SAT_UNKNOWN && useApprox && safeToCallApprox()){
@@ -3123,10 +3123,10 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
       TimerStat::CodeTimer codeTimer1(d_statistics.d_lpTimer);
       relaxRes = approxSolver->solveRelaxation();
     }
-      Debug("solveRealRelaxation") << "solve relaxation? " << endl;
+      Trace("solveRealRelaxation") << "solve relaxation? " << endl;
       switch(relaxRes){
       case LinFeasible:
-        Debug("solveRealRelaxation") << "lin feasible? " << endl;
+        Trace("solveRealRelaxation") << "lin feasible? " << endl;
         ++d_statistics.d_relaxLinFeas;
         relaxSolution = approxSolver->extractRelaxation();
         importSolution(relaxSolution);
@@ -3137,7 +3137,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
       case LinInfeasible:
         // todo attempt to recreate approximate conflict
         ++d_statistics.d_relaxLinInfeas;
-        Debug("solveRealRelaxation") << "lin infeasible " << endl;
+        Trace("solveRealRelaxation") << "lin infeasible " << endl;
         relaxSolution = approxSolver->extractRelaxation();
         importSolution(relaxSolution);
         if(d_qflraStatus != Result::UNSAT){
@@ -3146,7 +3146,7 @@ bool TheoryArithPrivate::solveRealRelaxation(Theory::Effort effortLevel){
         break;
       case LinExhausted:
         ++d_statistics.d_relaxLinExhausted;
-        Debug("solveRealRelaxation") << "exhuasted " << endl;
+        Trace("solveRealRelaxation") << "exhuasted " << endl;
         break;
       case LinUnknown:
       default:
@@ -3336,10 +3336,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
   TimerStat::CodeTimer checkTimer(d_containing.d_checkTime);
   //cout << "TheoryArithPrivate::check " << effortLevel << std::endl;
-  Debug("effortlevel") << "TheoryArithPrivate::check " << effortLevel << std::endl;
-  Debug("arith") << "TheoryArithPrivate::check begun " << effortLevel << std::endl;
+  Trace("effortlevel") << "TheoryArithPrivate::check " << effortLevel << std::endl;
+  Trace("arith") << "TheoryArithPrivate::check begun " << effortLevel << std::endl;
 
-  if(Debug.isOn("arith::consistency")){
+  if(Trace.isOn("arith::consistency")){
     Assert(unenqueuedVariablesAreConsistent());
   }
 
@@ -3365,7 +3365,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       // we may attempt some constraints twice.  this is okay!
       ConstraintP curr = d_learnedBounds.front();
       d_learnedBounds.pop();
-      Debug("arith::learned") << curr << endl;
+      Trace("arith::learned") << curr << endl;
 
       bool res CVC4_UNUSED = assertionCases(curr);
       Assert(!res || anyConflict());
@@ -3378,12 +3378,12 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     d_qflraStatus = Result::UNSAT;
     if(options::revertArithModels() && previous == Result::SAT){
       ++d_statistics.d_revertsOnConflicts;
-      Debug("arith::bt") << "clearing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+      Trace("arith::bt") << "clearing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
       revertOutOfConflict();
       d_errorSet.clear();
     }else{
       ++d_statistics.d_commitsOnConflicts;
-      Debug("arith::bt") << "committing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+      Trace("arith::bt") << "committing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
       d_partialModel.commitAssignmentChanges();
       revertOutOfConflict();
     }
@@ -3393,32 +3393,32 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
 
 
-  if(Debug.isOn("arith::print_assertions")) {
-    debugPrintAssertions(Debug("arith::print_assertions"));
+  if(Trace.isOn("arith::print_assertions")) {
+    debugPrintAssertions(Trace("arith::print_assertions"));
   }
 
   bool emmittedConflictOrSplit = false;
   Assert(d_conflicts.empty());
 
   bool useSimplex = d_qflraStatus != Result::SAT;
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "pre realRelax" << endl;
 
   if(useSimplex){
     emmittedConflictOrSplit = solveRealRelaxation(effortLevel);
   }
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "post realRelax" << endl;
 
 
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "pre solveInteger" << endl;
 
   if(attemptSolveInteger(effortLevel, emmittedConflictOrSplit)){
     solveInteger(effortLevel);
     if(anyConflict()){
       ++d_statistics.d_commitsOnConflicts;
-      Debug("arith::bt") << "committing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+      Trace("arith::bt") << "committing here " << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
       revertOutOfConflict();
       d_errorSet.clear();
       outputConflicts();
@@ -3426,7 +3426,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
   }
 
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "post solveInteger" << endl;
 
   switch(d_qflraStatus){
@@ -3435,10 +3435,10 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       ++d_statistics.d_nontrivialSatChecks;
     }
 
-    Debug("arith::bt") << "committing sap inConflit"  << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+    Trace("arith::bt") << "committing sap inConflit"  << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
     d_partialModel.commitAssignmentChanges();
     d_unknownsInARow = 0;
-    if(Debug.isOn("arith::consistency")){
+    if(Trace.isOn("arith::consistency")){
       Assert(entireStateIsConsistent("sat comit"));
     }
     if(useSimplex && options::collectPivots()){
@@ -3453,7 +3453,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     ++d_unknownsInARow;
     ++(d_statistics.d_unknownChecks);
     Assert(!Theory::fullEffort(effortLevel));
-    Debug("arith::bt") << "committing unknown"  << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+    Trace("arith::bt") << "committing unknown"  << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
     d_partialModel.commitAssignmentChanges();
     d_statistics.d_maxUnknownsInARow.maxAssign(d_unknownsInARow);
 
@@ -3470,16 +3470,16 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
 
     ++d_statistics.d_commitsOnConflicts;
 
-    Debug("arith::bt") << "committing on conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+    Trace("arith::bt") << "committing on conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
     d_partialModel.commitAssignmentChanges();
     revertOutOfConflict();
 
-    if(Debug.isOn("arith::consistency::comitonconflict")){
+    if(Trace.isOn("arith::consistency::comitonconflict")){
       entireStateIsConsistent("commit on conflict");
     }
     outputConflicts();
     emmittedConflictOrSplit = true;
-    Debug("arith::conflict") << "simplex conflict" << endl;
+    Trace("arith::conflict") << "simplex conflict" << endl;
 
     if(useSimplex && options::collectPivots()){
       if(options::useFC()){
@@ -3494,16 +3494,16 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
   d_statistics.d_avgUnknownsInARow.addEntry(d_unknownsInARow);
 
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "pre approx cuts" << endl;
   if(!d_approxCuts.empty()){
     bool anyFresh = false;
     while(!d_approxCuts.empty()){
       Node lem = d_approxCuts.front();
       d_approxCuts.pop();
-      Debug("arith::approx::cuts") << "approximate cut:" << lem << endl;
+      Trace("arith::approx::cuts") << "approximate cut:" << lem << endl;
       anyFresh = anyFresh || hasFreshArithLiteral(lem);
-      Debug("arith::lemma") << "approximate cut:" << lem << endl;
+      Trace("arith::lemma") << "approximate cut:" << lem << endl;
       outputLemma(lem);
     }
     if(anyFresh){
@@ -3511,7 +3511,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
   }
 
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "post approx cuts" << endl;
 
   // This should be fine if sat or unknown
@@ -3561,15 +3561,15 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     }
 
     if(anyConflict()){
-      Debug("arith::unate") << "unate conflict" << endl;
+      Trace("arith::unate") << "unate conflict" << endl;
       revertOutOfConflict();
       d_qflraStatus = Result::UNSAT;
       outputConflicts();
       emmittedConflictOrSplit = true;
       //cout << "unate conflict " << endl;
-      Debug("arith::bt") << "committing on unate conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
+      Trace("arith::bt") << "committing on unate conflict" << " " << newFacts << " " << previous << " " << d_qflraStatus  << endl;
 
-      Debug("arith::conflict") << "unate arith conflict" << endl;
+      Trace("arith::conflict") << "unate arith conflict" << endl;
     }
   }
   else
@@ -3579,7 +3579,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
   Assert(d_currentPropagationList.empty());
 
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "post unate" << endl;
 
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
@@ -3588,11 +3588,11 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   if(!emmittedConflictOrSplit && Theory::fullEffort(effortLevel)){
     emmittedConflictOrSplit = splitDisequalities();
   }
-  Debug("arith::ems") << "ems: " << emmittedConflictOrSplit
+  Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "pos splitting" << endl;
 
 
-  Debug("arith") << "integer? "
+  Trace("arith") << "integer? "
        << " conf/split " << emmittedConflictOrSplit
        << " fulleffort " << Theory::fullEffort(effortLevel)
        << " hasintmodel " << hasIntegerModel() << endl;
@@ -3603,7 +3603,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       possibleConflict = callDioSolver();
       if(possibleConflict != Node::null()){
         revertOutOfConflict();
-        Debug("arith::conflict") << "dio conflict   " << possibleConflict << endl;
+        Trace("arith::conflict") << "dio conflict   " << possibleConflict << endl;
         raiseBlackBoxConflict(possibleConflict);
         outputConflicts();
         emmittedConflictOrSplit = true;
@@ -3617,7 +3617,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
           emmittedConflictOrSplit = true;
           d_hasDoneWorkSinceCut = false;
           d_cutCount = d_cutCount + 1;
-          Debug("arith::lemma") << "dio cut   " << possibleLemma << endl;
+          Trace("arith::lemma") << "dio cut   " << possibleLemma << endl;
           outputLemma(possibleLemma);
         }
       }
@@ -3629,7 +3629,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
         ++(d_statistics.d_externalBranchAndBounds);
         d_cutCount = d_cutCount + 1;
         emmittedConflictOrSplit = true;
-        Debug("arith::lemma") << "rrbranch lemma"
+        Trace("arith::lemma") << "rrbranch lemma"
                               << possibleLemma << endl;
         outputLemma(possibleLemma);
 
@@ -3640,12 +3640,12 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
       if(d_diosolver.hasMoreDecompositionLemmas()){
         while(d_diosolver.hasMoreDecompositionLemmas()){
           Node decompositionLemma = d_diosolver.nextDecompositionLemma();
-          Debug("arith::lemma") << "dio decomposition lemma "
+          Trace("arith::lemma") << "dio decomposition lemma "
                                 << decompositionLemma << endl;
           outputLemma(decompositionLemma);
         }
       }else{
-        Debug("arith::restart") << "arith restart!" << endl;
+        Trace("arith::restart") << "arith restart!" << endl;
         outputRestart();
       }
     }
@@ -3663,7 +3663,7 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
   }
 
   if(Theory::fullEffort(effortLevel)){
-    if(Debug.isOn("arith::consistency::final")){
+    if(Trace.isOn("arith::consistency::final")){
       entireStateIsConsistent("arith::consistency::final");
     }
     // cout << "fulleffort" << getSatContext()->getLevel() << endl;
@@ -3671,11 +3671,11 @@ void TheoryArithPrivate::check(Theory::Effort effortLevel){
     // cout << "emmittedConflictOrSplit" << emmittedConflictOrSplit << endl;
   }
 
-  if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
-  if(Debug.isOn("arith::print_model")) {
-    debugPrintModel(Debug("arith::print_model"));
+  if(Trace.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
+  if(Trace.isOn("arith::print_model")) {
+    debugPrintModel(Trace("arith::print_model"));
   }
-  Debug("arith") << "TheoryArithPrivate::check end" << std::endl;
+  Trace("arith") << "TheoryArithPrivate::check end" << std::endl;
 }
 
 Node TheoryArithPrivate::branchIntegerVariable(ArithVar x) const {
@@ -3724,14 +3724,14 @@ Node TheoryArithPrivate::branchIntegerVariable(ArithVar x) const {
 
   Trace("integers") << "integers: branch & bound: " << lem << endl;
   if(isSatLiteral(lem[0])) {
-    Debug("integers") << "    " << lem[0] << " == " << getSatValue(lem[0]) << endl;
+    Trace("integers") << "    " << lem[0] << " == " << getSatValue(lem[0]) << endl;
   } else {
-    Debug("integers") << "    " << lem[0] << " is not assigned a SAT literal" << endl;
+    Trace("integers") << "    " << lem[0] << " is not assigned a SAT literal" << endl;
   }
   if(isSatLiteral(lem[1])) {
-    Debug("integers") << "    " << lem[1] << " == " << getSatValue(lem[1]) << endl;
+    Trace("integers") << "    " << lem[1] << " == " << getSatValue(lem[1]) << endl;
     } else {
-    Debug("integers") << "    " << lem[1] << " is not assigned a SAT literal" << endl;
+    Trace("integers") << "    " << lem[1] << " is not assigned a SAT literal" << endl;
   }
   return lem;
 }
@@ -3779,31 +3779,31 @@ bool TheoryArithPrivate::splitDisequalities(){
     d_diseqQueue.pop();
 
     if(front->isSplit()){
-      Debug("arith::eq") << "split already" << endl;
+      Trace("arith::eq") << "split already" << endl;
     }else{
-      Debug("arith::eq") << "not split already" << endl;
+      Trace("arith::eq") << "not split already" << endl;
 
       ArithVar lhsVar = front->getVariable();
 
       const DeltaRational& lhsValue = d_partialModel.getAssignment(lhsVar);
       const DeltaRational& rhsValue = front->getValue();
       if(lhsValue == rhsValue){
-        Debug("arith::lemma") << "Splitting on " << front << endl;
-        Debug("arith::lemma") << "LHS value = " << lhsValue << endl;
-        Debug("arith::lemma") << "RHS value = " << rhsValue << endl;
+        Trace("arith::lemma") << "Splitting on " << front << endl;
+        Trace("arith::lemma") << "LHS value = " << lhsValue << endl;
+        Trace("arith::lemma") << "RHS value = " << rhsValue << endl;
         Node lemma = front->split();
         ++(d_statistics.d_statDisequalitySplits);
 
-        Debug("arith::lemma") << "Now " << Rewriter::rewrite(lemma) << endl;
+        Trace("arith::lemma") << "Now " << Rewriter::rewrite(lemma) << endl;
         outputLemma(lemma);
         //cout << "Now " << Rewriter::rewrite(lemma) << endl;
         splitSomething = true;
       }else if(d_partialModel.strictlyLessThanLowerBound(lhsVar, rhsValue)){
-        Debug("arith::eq") << "can drop as less than lb" << front << endl;
+        Trace("arith::eq") << "can drop as less than lb" << front << endl;
       }else if(d_partialModel.strictlyGreaterThanUpperBound(lhsVar, rhsValue)){
-        Debug("arith::eq") << "can drop as greater than ub" << front << endl;
+        Trace("arith::eq") << "can drop as greater than ub" << front << endl;
       }else{
-        Debug("arith::eq") << "save" << front << ": " <<lhsValue << " != " << rhsValue << endl;
+        Trace("arith::eq") << "save" << front << ": " <<lhsValue << " != " << rhsValue << endl;
         save.push_back(front);
       }
     }
@@ -3816,8 +3816,8 @@ bool TheoryArithPrivate::splitDisequalities(){
 }
 
 /**
- * Should be guarded by at least Debug.isOn("arith::print_assertions").
- * Prints to Debug("arith::print_assertions")
+ * Should be guarded by at least Trace.isOn("arith::print_assertions").
+ * Prints to Trace("arith::print_assertions")
  */
 void TheoryArithPrivate::debugPrintAssertions(std::ostream& out) const {
   out << "Assertions:" << endl;
@@ -3866,29 +3866,29 @@ bool TheoryArithPrivate::needsCheckLastEffort() {
 
 Node TheoryArithPrivate::explain(TNode n)
 {
-  Debug("arith::explain") << "explain @" << getSatContext()->getLevel() << ": " << n << endl;
+  Trace("arith::explain") << "explain @" << getSatContext()->getLevel() << ": " << n << endl;
 
   ConstraintP c = d_constraintDatabase.lookup(n);
   if(c != NullConstraint){
     Assert(!c->isAssumption());
     Node exp = c->externalExplainForPropagation();
-    Debug("arith::explain") << "constraint explanation" << n << ":" << exp << endl;
+    Trace("arith::explain") << "constraint explanation" << n << ":" << exp << endl;
     return exp;
   }else if(d_assertionsThatDoNotMatchTheirLiterals.find(n) != d_assertionsThatDoNotMatchTheirLiterals.end()){
     c = d_assertionsThatDoNotMatchTheirLiterals[n];
     if(!c->isAssumption()){
       Node exp = c->externalExplainForPropagation();
-      Debug("arith::explain") << "assertions explanation" << n << ":" << exp << endl;
+      Trace("arith::explain") << "assertions explanation" << n << ":" << exp << endl;
       return exp;
     }else{
-      Debug("arith::explain") << "this is a strange mismatch" << n << endl;
+      Trace("arith::explain") << "this is a strange mismatch" << n << endl;
       Assert(d_congruenceManager.canExplain(n));
-      Debug("arith::explain") << "this is a strange mismatch" << n << endl;
+      Trace("arith::explain") << "this is a strange mismatch" << n << endl;
       return d_congruenceManager.explain(n);
     }
   }else{
     Assert(d_congruenceManager.canExplain(n));
-    Debug("arith::explain") << "dm explanation" << n << endl;
+    Trace("arith::explain") << "dm explanation" << n << endl;
     return d_congruenceManager.explain(n);
   }
 }
@@ -3940,11 +3940,11 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
 
   while(d_constraintDatabase.hasMorePropagations()){
     ConstraintCP c = d_constraintDatabase.nextPropagation();
-    Debug("arith::prop") << "next prop" << getSatContext()->getLevel() << ": " << c << endl;
+    Trace("arith::prop") << "next prop" << getSatContext()->getLevel() << ": " << c << endl;
 
     if(c->negationHasProof()){
-      Debug("arith::prop") << "negation has proof " << c->getNegation() << endl;
-      Debug("arith::prop") << c->getNegation()->externalExplainByAssertions()
+      Trace("arith::prop") << "negation has proof " << c->getNegation() << endl;
+      Trace("arith::prop") << c->getNegation()->externalExplainByAssertions()
                            << endl;
     }
     Assert(!c->negationHasProof())
@@ -3953,11 +3953,11 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
 
     if(!c->assertedToTheTheory()){
       Node literal = c->getLiteral();
-      Debug("arith::prop") << "propagating @" << getSatContext()->getLevel() << " " << literal << endl;
+      Trace("arith::prop") << "propagating @" << getSatContext()->getLevel() << " " << literal << endl;
 
       outputPropagate(literal);
     }else{
-      Debug("arith::prop") << "already asserted to the theory " <<  c->getLiteral() << endl;
+      Trace("arith::prop") << "already asserted to the theory " <<  c->getLiteral() << endl;
     }
   }
 
@@ -3970,7 +3970,7 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
 
     ConstraintP constraint = d_constraintDatabase.lookup(normalized);
     if(constraint == NullConstraint){
-      Debug("arith::prop") << "propagating on non-constraint? "  << toProp << endl;
+      Trace("arith::prop") << "propagating on non-constraint? "  << toProp << endl;
 
       outputPropagate(toProp);
     }else if(constraint->negationHasProof()){
@@ -3978,12 +3978,12 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
       Node notNormalized = normalized.getKind() == NOT ?
         normalized[0] : normalized.notNode();
       Node lp = flattenAnd(exp.andNode(notNormalized));
-      Debug("arith::prop") << "propagate conflict" <<  lp << endl;
+      Trace("arith::prop") << "propagate conflict" <<  lp << endl;
       raiseBlackBoxConflict(lp);
       outputConflicts();
       return;
     }else{
-      Debug("arith::prop") << "propagating still?" <<  toProp << endl;
+      Trace("arith::prop") << "propagating still?" <<  toProp << endl;
       outputPropagate(toProp);
     }
   }
@@ -3992,7 +3992,7 @@ void TheoryArithPrivate::propagate(Theory::Effort e) {
 DeltaRational TheoryArithPrivate::getDeltaValue(TNode term) const
 {
   AlwaysAssert(d_qflraStatus != Result::SAT_UNKNOWN);
-  Debug("arith::value") << term << std::endl;
+  Trace("arith::value") << term << std::endl;
 
   if (d_partialModel.hasArithVar(term)) {
     ArithVar var = d_partialModel.asArithVar(term);
@@ -4120,11 +4120,11 @@ bool TheoryArithPrivate::collectModelInfo(TheoryModel* m)
   AlwaysAssert(d_qflraStatus == Result::SAT);
   //AlwaysAssert(!d_nlIncomplete, "Arithmetic solver cannot currently produce models for input with nonlinear arithmetic constraints");
 
-  if(Debug.isOn("arith::collectModelInfo")){
+  if(Trace.isOn("arith::collectModelInfo")){
     debugPrintFacts();
   }
 
-  Debug("arith::collectModelInfo") << "collectModelInfo() begin " << endl;
+  Trace("arith::collectModelInfo") << "collectModelInfo() begin " << endl;
 
   std::set<Node> termSet;
   d_containing.computeRelevantTerms(termSet);
@@ -4152,7 +4152,7 @@ bool TheoryArithPrivate::collectModelInfo(TheoryModel* m)
         Rational qmodel = mod.substituteDelta(delta);
 
         Node qNode = mkRationalNode(qmodel);
-        Debug("arith::collectModelInfo") << "m->assertEquality(" << term << ", " << qmodel << ", true)" << endl;
+        Trace("arith::collectModelInfo") << "m->assertEquality(" << term << ", " << qmodel << ", true)" << endl;
         if (d_nonlinearExtension != nullptr)
         {
           // Let non-linear extension inspect the values before they are sent
@@ -4167,7 +4167,7 @@ bool TheoryArithPrivate::collectModelInfo(TheoryModel* m)
           }
         }
       }else{
-        Debug("arith::collectModelInfo") << "Skipping m->assertEquality(" << term << ", true)" << endl;
+        Trace("arith::collectModelInfo") << "Skipping m->assertEquality(" << term << ", true)" << endl;
 
       }
     }
@@ -4201,7 +4201,7 @@ bool TheoryArithPrivate::collectModelInfo(TheoryModel* m)
   // const eq::EqualityEngine& ee = d_congruenceManager.getEqualityEngine();
   // m->assertEqualityEngine(&ee);
 
-  Debug("arith::collectModelInfo") << "collectModelInfo() end " << endl;
+  Trace("arith::collectModelInfo") << "collectModelInfo() end " << endl;
   return true;
 }
 
@@ -4224,7 +4224,7 @@ bool TheoryArithPrivate::safeToReset() const {
 void TheoryArithPrivate::notifyRestart(){
   TimerStat::CodeTimer codeTimer(d_statistics.d_restartTimer);
 
-  if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
+  if(Trace.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
   ++d_restartsCounter;
   d_solveIntMaybeHelp = 0;
@@ -4271,7 +4271,7 @@ bool TheoryArithPrivate::unenqueuedVariablesAreConsistent(){
         }
         Warning() << endl;
         result = false;
-      } else if(Debug.isOn("arith::consistency::initial")){
+      } else if(Trace.isOn("arith::consistency::initial")){
         d_partialModel.printModel(var);
         Warning() << "Initial var is not consistent for " << var <<  d_partialModel.asNode(var);
         if(d_tableau.isBasic(var)){
@@ -4289,11 +4289,11 @@ void TheoryArithPrivate::presolve(){
 
   d_statistics.d_initialTableauSize.setData(d_tableau.size());
 
-  if(Debug.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
+  if(Trace.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
 
   static thread_local unsigned callCount = 0;
-  if(Debug.isOn("arith::presolve")) {
-    Debug("arith::presolve") << "TheoryArithPrivate::presolve #" << callCount << endl;
+  if(Trace.isOn("arith::presolve")) {
+    Trace("arith::presolve") << "TheoryArithPrivate::presolve #" << callCount << endl;
     callCount = callCount + 1;
   }
 
@@ -4318,7 +4318,7 @@ void TheoryArithPrivate::presolve(){
   vector<Node>::const_iterator i = lemmas.begin(), i_end = lemmas.end();
   for(; i != i_end; ++i){
     Node lem = *i;
-    Debug("arith::oldprop") << " lemma lemma duck " <<lem << endl;
+    Trace("arith::oldprop") << " lemma lemma duck " <<lem << endl;
     outputLemma(lem);
   }
 
@@ -4389,7 +4389,7 @@ bool TheoryArithPrivate::propagateCandidateBound(ArithVar basic, bool upperBound
       bool canBePropagated = bestImplied->canBePropagated();
       bool hasProof = bestImplied->hasProof();
 
-      Debug("arith::prop") << "arith::prop" << basic
+      Trace("arith::prop") << "arith::prop" << basic
                            << " " << assertedToTheTheory
                            << " " << canBePropagated
                            << " " << hasProof
@@ -4406,24 +4406,24 @@ bool TheoryArithPrivate::propagateCandidateBound(ArithVar basic, bool upperBound
         d_linEq.propagateBasicFromRow(bestImplied);
         // I think this can be skipped if canBePropagated is true
         //d_learnedBounds.push(bestImplied);
-        if(Debug.isOn("arith::prop")){
-          Debug("arith::prop") << "success " << bestImplied << endl;
-          d_partialModel.printModel(basic, Debug("arith::prop"));
+        if(Trace.isOn("arith::prop")){
+          Trace("arith::prop") << "success " << bestImplied << endl;
+          d_partialModel.printModel(basic, Trace("arith::prop"));
         }
         return true;
       }
-      if(Debug.isOn("arith::prop")){
-        Debug("arith::prop") << "failed " << basic
+      if(Trace.isOn("arith::prop")){
+        Trace("arith::prop") << "failed " << basic
                              << " " << bound
                              << " " << assertedToTheTheory
                              << " " << canBePropagated
                              << " " << hasProof << endl;
-        d_partialModel.printModel(basic, Debug("arith::prop"));
+        d_partialModel.printModel(basic, Trace("arith::prop"));
       }
     }
-  }else if(Debug.isOn("arith::prop")){
-    Debug("arith::prop") << "false " << bound << " ";
-    d_partialModel.printModel(basic, Debug("arith::prop"));
+  }else if(Trace.isOn("arith::prop")){
+    Trace("arith::prop") << "false " << bound << " ";
+    d_partialModel.printModel(basic, Trace("arith::prop"));
   }
   return false;
 }
@@ -4454,7 +4454,7 @@ void TheoryArithPrivate::propagateCandidate(ArithVar basic){
 void TheoryArithPrivate::propagateCandidates(){
   TimerStat::CodeTimer codeTimer(d_statistics.d_boundComputationTime);
 
-  Debug("arith::prop") << "propagateCandidates begin" << endl;
+  Trace("arith::prop") << "propagateCandidates begin" << endl;
 
   Assert(d_candidateBasics.empty());
 
@@ -4489,7 +4489,7 @@ void TheoryArithPrivate::propagateCandidates(){
     Assert(d_tableau.isBasic(candidate));
     propagateCandidate(candidate);
   }
-  Debug("arith::prop") << "propagateCandidates end" << endl << endl << endl;
+  Trace("arith::prop") << "propagateCandidates end" << endl << endl << endl;
 }
 
 void TheoryArithPrivate::propagateCandidatesNew(){
@@ -4508,7 +4508,7 @@ void TheoryArithPrivate::propagateCandidatesNew(){
    */
 
   TimerStat::CodeTimer codeTimer(d_statistics.d_boundComputationTime);
-  Debug("arith::prop") << "propagateCandidatesNew begin" << endl;
+  Trace("arith::prop") << "propagateCandidatesNew begin" << endl;
 
   Assert(d_qflraStatus == Result::SAT);
   if(d_updatedBounds.empty()){ return; }
@@ -4525,7 +4525,7 @@ void TheoryArithPrivate::propagateCandidatesNew(){
     d_candidateRows.pop_back();
     propagateCandidateRow(candidate);
   }
-  Debug("arith::prop") << "propagateCandidatesNew end" << endl << endl << endl;
+  Trace("arith::prop") << "propagateCandidatesNew end" << endl << endl << endl;
 }
 
 bool TheoryArithPrivate::propagateMightSucceed(ArithVar v, bool ub) const{
@@ -4556,7 +4556,7 @@ bool TheoryArithPrivate::propagateMightSucceed(ArithVar v, bool ub) const{
 }
 
 bool TheoryArithPrivate::attemptSingleton(RowIndex ridx, bool rowUp){
-  Debug("arith::prop") << "  attemptSingleton" << ridx;
+  Trace("arith::prop") << "  attemptSingleton" << ridx;
 
   const Tableau::Entry* ep;
   ep = d_linEq.rowLacksBound(ridx, rowUp, ARITHVAR_SENTINEL);
@@ -4576,8 +4576,8 @@ bool TheoryArithPrivate::attemptSingleton(RowIndex ridx, bool rowUp){
   // if c < 0, v \geq -D/c so !vUp
   bool vUp = (rowUp == ( coeff.sgn() < 0));
 
-  Debug("arith::prop") << "  " << rowUp << " " << v << " " << coeff << " " << vUp << endl;
-  Debug("arith::prop") << "  " << propagateMightSucceed(v, vUp) << endl;
+  Trace("arith::prop") << "  " << rowUp << " " << v << " " << coeff << " " << vUp << endl;
+  Trace("arith::prop") << "  " << propagateMightSucceed(v, vUp) << endl;
 
   if(propagateMightSucceed(v, vUp)){
     DeltaRational dr = d_linEq.computeRowBound(ridx, rowUp, v);
@@ -4588,7 +4588,7 @@ bool TheoryArithPrivate::attemptSingleton(RowIndex ridx, bool rowUp){
 }
 
 bool TheoryArithPrivate::attemptFull(RowIndex ridx, bool rowUp){
-  Debug("arith::prop") << "  attemptFull" << ridx << endl;
+  Trace("arith::prop") << "  attemptFull" << ridx << endl;
 
   vector<const Tableau::Entry*> candidates;
 
@@ -4677,7 +4677,7 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
   bool canBePropagated = implied->canBePropagated();
   bool hasProof = implied->hasProof();
 
-  Debug("arith::prop") << "arith::prop" << v
+  Trace("arith::prop") << "arith::prop" << v
                        << " " << assertedToTheTheory
                        << " " << canBePropagated
                        << " " << hasProof
@@ -4695,10 +4695,10 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
     //   * coeffs[i+1] is for explain[i]
     d_linEq.propagateRow(explain, ridx, rowUp, implied, coeffs);
     if(d_tableau.getRowLength(ridx) <= options::arithPropAsLemmaLength()){
-      if (Debug.isOn("arith::prop::pf")) {
+      if (Trace.isOn("arith::prop::pf")) {
         for (const auto & constraint : explain) {
           Assert(constraint->hasProof());
-          constraint->printProofTree(Debug("arith::prop::pf"));
+          constraint->printProofTree(Trace("arith::prop::pf"));
         }
       }
       Node implication = implied->externalImplication(explain);
@@ -4706,21 +4706,21 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
       PROOF(if (d_containing.d_proofRecorder
                 && coeffs != RationalVectorCPSentinel
                 && coeffs->size() == clause.getNumChildren()) {
-        Debug("arith::prop") << "implied    : " << implied << std::endl;
-        Debug("arith::prop") << "implication: " << implication << std::endl;
-        Debug("arith::prop") << "coeff len: " << coeffs->size() << std::endl;
-        Debug("arith::prop") << "exp    : " << explain << std::endl;
-        Debug("arith::prop") << "clause : " << clause << std::endl;
-        Debug("arith::prop")
+        Trace("arith::prop") << "implied    : " << implied << std::endl;
+        Trace("arith::prop") << "implication: " << implication << std::endl;
+        Trace("arith::prop") << "coeff len: " << coeffs->size() << std::endl;
+        Trace("arith::prop") << "exp    : " << explain << std::endl;
+        Trace("arith::prop") << "clause : " << clause << std::endl;
+        Trace("arith::prop")
             << "clause len: " << clause.getNumChildren() << std::endl;
-        Debug("arith::prop") << "exp len: " << explain.size() << std::endl;
+        Trace("arith::prop") << "exp len: " << explain.size() << std::endl;
         // Using the information from the above comment we assemble a conflict
         // AND in coefficient order
         NodeBuilder<> conflictInFarkasCoefficientOrder(kind::AND);
         conflictInFarkasCoefficientOrder << implication[1].negate();
         for (const Node& antecedent : implication[0])
         {
-          Debug("arith::prop") << "  ante: " << antecedent << std::endl;
+          Trace("arith::prop") << "  ante: " << antecedent << std::endl;
           conflictInFarkasCoefficientOrder << antecedent;
         }
 
@@ -4744,11 +4744,11 @@ bool TheoryArithPrivate::rowImplicationCanBeApplied(RowIndex ridx, bool rowUp, C
     return true;
   }
 
-  if(Debug.isOn("arith::prop")){
-    Debug("arith::prop")
+  if(Trace.isOn("arith::prop")){
+    Trace("arith::prop")
       << "failed " << v << " " << assertedToTheTheory << " "
       << canBePropagated << " " << hasProof << " " << implied << endl;
-    d_partialModel.printModel(v, Debug("arith::prop"));
+    d_partialModel.printModel(v, Trace("arith::prop"));
   }
   return false;
 }
@@ -4761,7 +4761,7 @@ bool TheoryArithPrivate::propagateCandidateRow(RowIndex ridx){
   static int instance = 0;
   ++instance;
 
-  Debug("arith::prop")
+  Trace("arith::prop")
     << "propagateCandidateRow " << instance << " attempt " << rowLength << " " <<  hasCount << endl;
 
   if (rowLength >= options::arithPropagateMaxLength()
@@ -4829,7 +4829,7 @@ std::pair<bool, Node> TheoryArithPrivate::entailmentCheck(TNode lit, const Arith
 
   // l k r
   // diff : (l - r) k 0
-  Debug("arith::entailCheck") << "TheoryArithPrivate::entailmentCheck(" << lit << ")"<< endl;
+  Trace("arith::entailCheck") << "TheoryArithPrivate::entailmentCheck(" << lit << ")"<< endl;
   Kind k;
   int primDir;
   Rational lm, rm, dm;
@@ -4868,7 +4868,7 @@ std::pair<bool, Node> TheoryArithPrivate::entailmentCheck(TNode lit, const Arith
   for( alg = params.begin(), alg_end = params.end(); alg != alg_end; ++alg ){
     const inferbounds::InferBoundAlgorithm& ibalg = *alg;
 
-    Debug("arith::entailCheck") << "entailmentCheck trying " << (inferbounds::Algorithms) ibalg.getAlgorithm() << endl;
+    Trace("arith::entailCheck") << "entailmentCheck trying " << (inferbounds::Algorithms) ibalg.getAlgorithm() << endl;
     switch(ibalg.getAlgorithm()){
     case inferbounds::None:
       break;
@@ -4946,7 +4946,7 @@ std::pair<bool, Node> TheoryArithPrivate::entailmentCheck(TNode lit, const Arith
       if(!bestPrimDiff.first.isNull()){
         DeltaRational d = (bestPrimDiff.second * dm);
         if((primDir > 0 && d <= sep) || (primDir < 0 && d >= sep) ){
-          Debug("arith::entailCheck") << "entailmentCheck found "
+          Trace("arith::entailCheck") << "entailmentCheck found "
                                       << primDir << "*" << dm << "*(" << dp<<")"
                                       << " <= " << primDir << "*" << dm << "*" << bestPrimDiff.second
                                       << " <= " << primDir << "*" << sep << endl
@@ -5150,7 +5150,7 @@ bool TheoryArithPrivate::decomposeLiteral(Node lit, Kind& k, int& dir, Rational&
     dir = 1;
   }
 
-  Debug("arith::decomp") << "arith::decomp "
+  Trace("arith::decomp") << "arith::decomp "
                          << lit << "(" << normKind << "*" << dir << ")"<< endl
                          << "  left:" << lc << " + " << lm << "*(" <<  lp << ") : " <<left << endl
                          << "  right:" << rc << " + " << rm << "*(" <<  rp << ") : " << right << endl

@@ -725,9 +725,9 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
   Node converted(d_conv.convert(node));
 
   if (converted != node) {
-    Debug("fp-convertTerm")
+    Trace("fp-convertTerm")
         << "TheoryFp::convertTerm(): before " << node << std::endl;
-    Debug("fp-convertTerm")
+    Trace("fp-convertTerm")
         << "TheoryFp::convertTerm(): after  " << converted << std::endl;
   }
 
@@ -737,7 +737,7 @@ void TheoryFp::convertAndEquateTerm(TNode node) {
   while (oldAdditionalAssertions < newAdditionalAssertions) {
     Node addA = d_conv.d_additionalAssertions[oldAdditionalAssertions];
 
-    Debug("fp-convertTerm") << "TheoryFp::convertTerm(): additional assertion  "
+    Trace("fp-convertTerm") << "TheoryFp::convertTerm(): additional assertion  "
                             << addA << std::endl;
 
 #ifdef SYMFPUPROPISBOOL
@@ -940,7 +940,7 @@ void TheoryFp::check(Effort level) {
     Assertion assertion = get();
     TNode fact = assertion.d_assertion;
 
-    Debug("fp") << "TheoryFp::check(): processing " << fact << std::endl;
+    Trace("fp") << "TheoryFp::check(): processing " << fact << std::endl;
 
     // Only handle equalities; the rest should be handled by
     // the bit-vector theory
@@ -958,12 +958,12 @@ void TheoryFp::check(Effort level) {
       registerTerm(predicate);  // Needed for float equalities
 
       if (negated) {
-        Debug("fp-eq") << "TheoryFp::check(): adding dis-equality " << fact[0]
+        Trace("fp-eq") << "TheoryFp::check(): adding dis-equality " << fact[0]
                        << std::endl;
         d_equalityEngine.assertEquality(predicate, false, fact);
 
       } else {
-        Debug("fp-eq") << "TheoryFp::check(): adding equality " << fact
+        Trace("fp-eq") << "TheoryFp::check(): adding equality " << fact
                        << std::endl;
         d_equalityEngine.assertEquality(predicate, true, fact);
       }
@@ -973,7 +973,7 @@ void TheoryFp::check(Effort level) {
       Assert(isRegistered(predicate));
 
       if (d_equalityEngine.isFunctionKind(predicate.getKind())) {
-        Debug("fp-eq") << "TheoryFp::check(): adding predicate " << predicate
+        Trace("fp-eq") << "TheoryFp::check(): adding predicate " << predicate
                        << " is " << !negated << std::endl;
         d_equalityEngine.assertPredicate(predicate, !negated, fact);
       }
@@ -1133,7 +1133,7 @@ bool TheoryFp::collectModelInfo(TheoryModel *m)
 
 bool TheoryFp::NotifyClass::eqNotifyTriggerEquality(TNode equality,
                                                     bool value) {
-  Debug("fp-eq")
+  Trace("fp-eq")
       << "TheoryFp::eqNotifyTriggerEquality(): call back as equality "
       << equality << " is " << value << std::endl;
 
@@ -1146,7 +1146,7 @@ bool TheoryFp::NotifyClass::eqNotifyTriggerEquality(TNode equality,
 
 bool TheoryFp::NotifyClass::eqNotifyTriggerPredicate(TNode predicate,
                                                      bool value) {
-  Debug("fp-eq")
+  Trace("fp-eq")
       << "TheoryFp::eqNotifyTriggerPredicate(): call back as predicate "
       << predicate << " is " << value << std::endl;
 
@@ -1159,7 +1159,7 @@ bool TheoryFp::NotifyClass::eqNotifyTriggerPredicate(TNode predicate,
 
 bool TheoryFp::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag, TNode t1,
                                                         TNode t2, bool value) {
-  Debug("fp-eq") << "TheoryFp::eqNotifyTriggerTermEquality(): call back as "
+  Trace("fp-eq") << "TheoryFp::eqNotifyTriggerTermEquality(): call back as "
                  << t1 << (value ? " = " : " != ") << t2 << std::endl;
 
   if (value) {
@@ -1170,7 +1170,7 @@ bool TheoryFp::NotifyClass::eqNotifyTriggerTermEquality(TheoryId tag, TNode t1,
 }
 
 void TheoryFp::NotifyClass::eqNotifyConstantTermMerge(TNode t1, TNode t2) {
-  Debug("fp-eq") << "TheoryFp::eqNotifyConstantTermMerge(): call back as " << t1
+  Trace("fp-eq") << "TheoryFp::eqNotifyConstantTermMerge(): call back as " << t1
                  << " = " << t2 << std::endl;
 
   std::vector<TNode> assumptions;

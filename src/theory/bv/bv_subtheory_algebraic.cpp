@@ -81,7 +81,7 @@ SubstitutionEx::SubstitutionEx(theory::SubstitutionMap* modelMap)
 {}
 
 bool SubstitutionEx::addSubstitution(TNode from, TNode to, TNode reason) {
-  Debug("bv-substitution") << "SubstitutionEx::addSubstitution: "<< from
+  Trace("bv-substitution") << "SubstitutionEx::addSubstitution: "<< from
                            <<" => "<< to << "\n" << " reason "<<reason << "\n";
   Assert(from != to);
   if (d_substitutions.find(from) != d_substitutions.end()) {
@@ -96,7 +96,7 @@ bool SubstitutionEx::addSubstitution(TNode from, TNode to, TNode reason) {
 }
 
 Node SubstitutionEx::apply(TNode node) {
-  Debug("bv-substitution") << "SubstitutionEx::apply("<< node <<")\n";
+  Trace("bv-substitution") << "SubstitutionEx::apply("<< node <<")\n";
   if (d_cacheInvalid) {
     d_cache.clear();
     d_cacheInvalid = false;
@@ -106,12 +106,12 @@ Node SubstitutionEx::apply(TNode node) {
 
   if (it != d_cache.end()) {
     Node res = it->second.to;
-    Debug("bv-substitution") << "   =>"<< res <<"\n";
+    Trace("bv-substitution") << "   =>"<< res <<"\n";
     return res;
   }
 
   Node result = internalApply(node);
-  Debug("bv-substitution") << "   =>"<< result <<"\n";
+  Trace("bv-substitution") << "   =>"<< result <<"\n";
   return result;
 }
 
@@ -200,9 +200,9 @@ Node SubstitutionEx::explain(TNode node) const {
     return utils::mkTrue();
   }
 
-  Debug("bv-substitution") << "SubstitutionEx::explain("<< node <<")\n";
+  Trace("bv-substitution") << "SubstitutionEx::explain("<< node <<")\n";
   Node res = getReason(node);
-  Debug("bv-substitution") << "  with "<< res <<"\n";
+  Trace("bv-substitution") << "  with "<< res <<"\n";
   return res;
 }
 
@@ -222,7 +222,7 @@ Node SubstitutionEx::getCache(TNode node) const {
 }
 
 void SubstitutionEx::storeCache(TNode from, TNode to, Node reason) {
-  //  Debug("bv-substitution") << "SubstitutionEx::storeCache(" << from <<", " << to <<", "<< reason<<")\n";
+  //  Trace("bv-substitution") << "SubstitutionEx::storeCache(" << from <<", " << to <<", "<< reason<<")\n";
   Assert(!hasCache(from));
   d_cache[from] = SubstitutionElement(to, reason);
 }
@@ -259,7 +259,7 @@ bool AlgebraicSolver::check(Theory::Effort e)
   if (!useHeuristic()) { return true; }
 
   TimerStat::CodeTimer algebraicTimer(d_statistics.d_solveTime);
-  Debug("bv-subtheory-algebraic") << "AlgebraicSolver::check (" << e << ")\n";
+  Trace("bv-subtheory-algebraic") << "AlgebraicSolver::check (" << e << ")\n";
   ++(d_numCalls);
   ++(d_statistics.d_numCallstoCheck);
 
@@ -275,7 +275,7 @@ bool AlgebraicSolver::check(Theory::Effort e)
   NodeSet seen_assertions;
   // Processing assertions from scratch
   for (AssertionQueue::const_iterator it = assertionsBegin(); it != assertionsEnd(); ++it) {
-    Debug("bv-subtheory-algebraic") << "   " << *it << "\n";
+    Trace("bv-subtheory-algebraic") << "   " << *it << "\n";
     TNode assertion = *it;
     unsigned id = worklist.size();
     d_ids[assertion] = id;
@@ -292,7 +292,7 @@ bool AlgebraicSolver::check(Theory::Effort e)
     d_ids[worklist[i].node] = worklist[i].id;
   }
 
-  Debug("bv-subtheory-algebraic") << "Assertions " << worklist.size() <<" : \n";
+  Trace("bv-subtheory-algebraic") << "Assertions " << worklist.size() <<" : \n";
 
   Assert(d_explanations.size() == worklist.size());
 
@@ -342,7 +342,7 @@ bool AlgebraicSolver::check(Theory::Effort e)
       Node conflict = BooleanSimplification::simplify(d_explanations[id]);
       d_bv->setConflict(conflict);
       d_isComplete.set(true);
-      Debug("bv-subtheory-algebraic") << " UNSAT: assertion simplfies to false with conflict: "<< conflict << "\n";
+      Trace("bv-subtheory-algebraic") << " UNSAT: assertion simplfies to false with conflict: "<< conflict << "\n";
 
       if (Dump.isOn("bv-algebraic")) {
         Dump("bv-algebraic") << EchoCommand("TheoryBV::AlgebraicSolver::conflict");
@@ -369,17 +369,17 @@ bool AlgebraicSolver::check(Theory::Effort e)
   worklist.resize(w);
 
 
-  if(Debug.isOn("bv-subtheory-algebraic")) {
-    Debug("bv-subtheory-algebraic") << "Assertions post-substitutions " << worklist.size() << ":\n";
+  if(Trace.isOn("bv-subtheory-algebraic")) {
+    Trace("bv-subtheory-algebraic") << "Assertions post-substitutions " << worklist.size() << ":\n";
     for (unsigned i = 0; i < worklist.size(); ++i) {
-      Debug("bv-subtheory-algebraic") << "   " << worklist[i].node << "\n";
+      Trace("bv-subtheory-algebraic") << "   " << worklist[i].node << "\n";
     }
   }
 
 
   // all facts solved to true
   if (worklist.empty()) {
-    Debug("bv-subtheory-algebraic") << " SAT: everything simplifies to true.\n";
+    Trace("bv-subtheory-algebraic") << " SAT: everything simplifies to true.\n";
     ++(d_statistics.d_numSimplifiesToTrue);
     ++(d_numSolved);
     return true;
@@ -402,7 +402,7 @@ bool AlgebraicSolver::check(Theory::Effort e)
   }
   bool ok = quickCheck(facts);
 
-  Debug("bv-subtheory-algebraic") << "AlgebraicSolver::check done " << ok << ".\n";
+  Trace("bv-subtheory-algebraic") << "AlgebraicSolver::check done " << ok << ".\n";
   return ok;
 }
 
@@ -411,13 +411,13 @@ bool AlgebraicSolver::quickCheck(std::vector<Node>& facts) {
 
   if (res == SAT_VALUE_UNKNOWN) {
     d_isComplete.set(false);
-    Debug("bv-subtheory-algebraic") << " Unknown.\n";
+    Trace("bv-subtheory-algebraic") << " Unknown.\n";
     ++(d_statistics.d_numUnknown);
     return true;
   }
 
   if (res == SAT_VALUE_TRUE) {
-    Debug("bv-subtheory-algebraic") << " Sat.\n";
+    Trace("bv-subtheory-algebraic") << " Sat.\n";
     ++(d_statistics.d_numSat);
     ++(d_numSolved);
     d_isComplete.set(true);
@@ -427,13 +427,13 @@ bool AlgebraicSolver::quickCheck(std::vector<Node>& facts) {
   Assert(res == SAT_VALUE_FALSE);
   Assert(d_quickSolver->inConflict());
   d_isComplete.set(true);
-  Debug("bv-subtheory-algebraic") << " Unsat.\n";
+  Trace("bv-subtheory-algebraic") << " Unsat.\n";
   ++(d_numSolved);
   ++(d_statistics.d_numUnsat);
 
 
   Node conflict = d_quickSolver->getConflict();
-  Debug("bv-subtheory-algebraic") << " Conflict: " << conflict << "\n";
+  Trace("bv-subtheory-algebraic") << " Conflict: " << conflict << "\n";
 
   // singleton conflict
   if (conflict.getKind() != kind::AND) {
@@ -448,9 +448,9 @@ bool AlgebraicSolver::quickCheck(std::vector<Node>& facts) {
   Assert(conflict.getKind() == kind::AND);
   if (options::bitvectorQuickXplain()) {
     d_quickSolver->popToZero();
-    Debug("bv-quick-xplain") << "AlgebraicSolver::quickCheck original conflict size " << conflict.getNumChildren() << "\n";
+    Trace("bv-quick-xplain") << "AlgebraicSolver::quickCheck original conflict size " << conflict.getNumChildren() << "\n";
     conflict = d_quickXplain->minimizeConflict(conflict);
-    Debug("bv-quick-xplain") << "AlgebraicSolver::quickCheck minimized conflict size " << conflict.getNumChildren() << "\n";
+    Trace("bv-quick-xplain") << "AlgebraicSolver::quickCheck minimized conflict size " << conflict.getNumChildren() << "\n";
   }
 
   vector<TNode> theory_confl;
@@ -466,7 +466,7 @@ bool AlgebraicSolver::quickCheck(std::vector<Node>& facts) {
 
   Node confl = BooleanSimplification::simplify(utils::mkAnd(theory_confl));
 
-  Debug("bv-subtheory-algebraic") << " Out Conflict: " << confl << "\n";
+  Trace("bv-subtheory-algebraic") << " Out Conflict: " << confl << "\n";
   setConflict(confl);
   return false;
 }
@@ -712,7 +712,7 @@ EqualityStatus AlgebraicSolver::getEqualityStatus(TNode a, TNode b) {
 
 bool AlgebraicSolver::collectModelInfo(TheoryModel* model, bool fullModel)
 {
-  Debug("bitvector-model") << "AlgebraicSolver::collectModelInfo\n";
+  Trace("bitvector-model") << "AlgebraicSolver::collectModelInfo\n";
   AlwaysAssert(!d_quickSolver->inConflict());
   set<Node> termSet;
   d_bv->computeRelevantTerms(termSet);
@@ -732,16 +732,16 @@ bool AlgebraicSolver::collectModelInfo(TheoryModel* model, bool fullModel)
   }
 
   NodeSet leaf_vars;
-  Debug("bitvector-model") << "Substitutions:\n";
+  Trace("bitvector-model") << "Substitutions:\n";
   for (unsigned i = 0; i < variables.size(); ++i) {
     TNode current = variables[i];
     TNode subst = Rewriter::rewrite(d_modelMap->apply(current));
-    Debug("bitvector-model") << "   " << current << " => " << subst << "\n";
+    Trace("bitvector-model") << "   " << current << " => " << subst << "\n";
     values[i] = subst;
     collectVariables(subst, leaf_vars);
   }
 
-  Debug("bitvector-model") << "Model:\n";
+  Trace("bitvector-model") << "Model:\n";
 
   for (NodeSet::const_iterator it = leaf_vars.begin(); it != leaf_vars.end(); ++it) {
     TNode var = *it;
@@ -751,17 +751,17 @@ bool AlgebraicSolver::collectModelInfo(TheoryModel* model, bool fullModel)
     // may be a shared term that did not appear in the current assertions
     // AJR: need to check whether already in map for cases where collectModelInfo is called multiple times in the same context
     if (!value.isNull() && !d_modelMap->hasSubstitution(var)) {
-      Debug("bitvector-model") << "   " << var << " => " << value << "\n";
+      Trace("bitvector-model") << "   " << var << " => " << value << "\n";
       Assert(value.getKind() == kind::CONST_BITVECTOR);
       d_modelMap->addSubstitution(var, value);
     }
   }
 
-  Debug("bitvector-model") << "Final Model:\n";
+  Trace("bitvector-model") << "Final Model:\n";
   for (unsigned i = 0; i < variables.size(); ++i) {
     TNode current = values[i];
     TNode subst = Rewriter::rewrite(d_modelMap->apply(current));
-    Debug("bitvector-model") << "AlgebraicSolver:   " << variables[i] << " => " << subst << "\n";
+    Trace("bitvector-model") << "AlgebraicSolver:   " << variables[i] << " => " << subst << "\n";
     // Doesn't have to be constant as it may be irrelevant
     Assert(subst.getKind() == kind::CONST_BITVECTOR);
     if (!model->assertEquality(variables[i], subst, true))

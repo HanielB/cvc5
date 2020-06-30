@@ -267,20 +267,20 @@ std::string ProofManager::sanitize(TNode node) {
 }
 
 void ProofManager::traceDeps(TNode n, ExprSet* coreAssertions) {
-  Debug("cores") << "trace deps " << n << std::endl;
+  Trace("cores") << "trace deps " << n << std::endl;
   if ((n.isConst() && n == NodeManager::currentNM()->mkConst<bool>(true)) ||
       (n.getKind() == kind::NOT && n[0] == NodeManager::currentNM()->mkConst<bool>(false))) {
     return;
   }
   if(d_inputCoreFormulas.find(n.toExpr()) != d_inputCoreFormulas.end()) {
     // originating formula was in core set
-    Debug("cores") << " -- IN INPUT CORE LIST!" << std::endl;
+    Trace("cores") << " -- IN INPUT CORE LIST!" << std::endl;
     coreAssertions->insert(n.toExpr());
   } else {
-    Debug("cores") << " -- NOT IN INPUT CORE LIST!" << std::endl;
+    Trace("cores") << " -- NOT IN INPUT CORE LIST!" << std::endl;
     if(d_deps.find(n) == d_deps.end()) {
       if (options::allowEmptyDependencies()) {
-        Debug("cores") << " -- Could not track cause assertion. Failing silently." << std::endl;
+        Trace("cores") << " -- Could not track cause assertion. Failing silently." << std::endl;
         return;
       }
       InternalError()
@@ -290,7 +290,7 @@ void ProofManager::traceDeps(TNode n, ExprSet* coreAssertions) {
     Assert(d_deps.find(n) != d_deps.end());
     std::vector<Node> deps = (*d_deps.find(n)).second;
     for(std::vector<Node>::const_iterator i = deps.begin(); i != deps.end(); ++i) {
-      Debug("cores") << " + tracing deps: " << n << " -deps-on- " << *i << std::endl;
+      Trace("cores") << " + tracing deps: " << n << " -deps-on- " << *i << std::endl;
       if( !(*i).isNull() ){
         traceDeps(*i, coreAssertions);
       }
@@ -299,20 +299,20 @@ void ProofManager::traceDeps(TNode n, ExprSet* coreAssertions) {
 }
 
 void ProofManager::traceDeps(TNode n, CDExprSet* coreAssertions) {
-  Debug("cores") << "trace deps " << n << std::endl;
+  Trace("cores") << "trace deps " << n << std::endl;
   if ((n.isConst() && n == NodeManager::currentNM()->mkConst<bool>(true)) ||
       (n.getKind() == kind::NOT && n[0] == NodeManager::currentNM()->mkConst<bool>(false))) {
     return;
   }
   if(d_inputCoreFormulas.find(n.toExpr()) != d_inputCoreFormulas.end()) {
     // originating formula was in core set
-    Debug("cores") << " -- IN INPUT CORE LIST!" << std::endl;
+    Trace("cores") << " -- IN INPUT CORE LIST!" << std::endl;
     coreAssertions->insert(n.toExpr());
   } else {
-    Debug("cores") << " -- NOT IN INPUT CORE LIST!" << std::endl;
+    Trace("cores") << " -- NOT IN INPUT CORE LIST!" << std::endl;
     if(d_deps.find(n) == d_deps.end()) {
       if (options::allowEmptyDependencies()) {
-        Debug("cores") << " -- Could not track cause assertion. Failing silently." << std::endl;
+        Trace("cores") << " -- Could not track cause assertion. Failing silently." << std::endl;
         return;
       }
       InternalError()
@@ -323,7 +323,7 @@ void ProofManager::traceDeps(TNode n, CDExprSet* coreAssertions) {
     std::vector<Node> deps = (*d_deps.find(n)).second;
 
     for(std::vector<Node>::const_iterator i = deps.begin(); i != deps.end(); ++i) {
-      Debug("cores") << " + tracing deps: " << n << " -deps-on- " << *i << std::endl;
+      Trace("cores") << " + tracing deps: " << n << " -deps-on- " << *i << std::endl;
       if( !(*i).isNull() ){
         traceDeps(*i, coreAssertions);
       }
@@ -347,8 +347,8 @@ void ProofManager::traceUnsatCore() {
     Node node = d_cnfProof->getAssertionForClause(it->first);
     ProofRule rule = d_cnfProof->getProofRule(node);
 
-    Debug("cores") << "core input assertion " << node << std::endl;
-    Debug("cores") << "with proof rule " << rule << std::endl;
+    Trace("cores") << "core input assertion " << node << std::endl;
+    Trace("cores") << "with proof rule " << rule << std::endl;
     if (rule == RULE_TSEITIN ||
         rule == RULE_GIVEN) {
       // trace dependences back to actual assertions
@@ -393,22 +393,22 @@ void ProofManager::getLemmasInUnsatCore(theory::TheoryId theory, std::vector<Nod
   IdToSatClause::const_iterator it;
   std::set<Node> seen;
 
-  Debug("pf::lemmasUnsatCore") << "Dumping all lemmas in unsat core" << std::endl;
+  Trace("pf::lemmasUnsatCore") << "Dumping all lemmas in unsat core" << std::endl;
   for (it = used_lemmas.begin(); it != used_lemmas.end(); ++it) {
     std::set<Node> lemma = satClauseToNodeSet(it->second);
-    Debug("pf::lemmasUnsatCore") << nodeSetToString(lemma);
+    Trace("pf::lemmasUnsatCore") << nodeSetToString(lemma);
 
     // TODO: we should be able to drop the "haveProofRecipe" check.
     // however, there are some rewrite issues with the arith solver, resulting
     // in non-registered recipes. For now we assume no one is requesting arith lemmas.
     LemmaProofRecipe recipe;
     if (!getCnfProof()->haveProofRecipe(lemma)) {
-      Debug("pf::lemmasUnsatCore") << "\t[no recipe]" << std::endl;
+      Trace("pf::lemmasUnsatCore") << "\t[no recipe]" << std::endl;
       continue;
     }
 
     recipe = getCnfProof()->getProofRecipe(lemma);
-    Debug("pf::lemmasUnsatCore") << "\t[owner = " << recipe.getTheory()
+    Trace("pf::lemmasUnsatCore") << "\t[owner = " << recipe.getTheory()
                                  << ", original = " << recipe.getOriginalLemma() << "]" << std::endl;
     if (recipe.simpleLemma() && recipe.getTheory() == theory && seen.find(recipe.getOriginalLemma()) == seen.end()) {
       lemmas.push_back(recipe.getOriginalLemma());
@@ -512,7 +512,7 @@ Node ProofManager::getWeakestImplicantInUnsatCore(Node lemma) {
 }
 
 void ProofManager::addAssertion(Expr formula) {
-  Debug("proof:pm") << "assert: " << formula << std::endl;
+  Trace("proof:pm") << "assert: " << formula << std::endl;
   d_inputFormulas.insert(formula);
   std::ostringstream name;
   name << "A" << d_inputFormulaToName.size();
@@ -520,16 +520,16 @@ void ProofManager::addAssertion(Expr formula) {
 }
 
 void ProofManager::addCoreAssertion(Expr formula) {
-  Debug("cores") << "assert: " << formula << std::endl;
+  Trace("cores") << "assert: " << formula << std::endl;
   d_deps[Node::fromExpr(formula)]; // empty vector of deps
   d_inputCoreFormulas.insert(formula);
 }
 
 void ProofManager::addDependence(TNode n, TNode dep) {
   if(dep != n) {
-    Debug("cores") << "dep: " << n << " : " << dep << std::endl;
+    Trace("cores") << "dep: " << n << " : " << dep << std::endl;
     if( !dep.isNull() && d_deps.find(dep) == d_deps.end()) {
-      Debug("cores") << "WHERE DID " << dep << " come from ??" << std::endl;
+      Trace("cores") << "WHERE DID " << dep << " come from ??" << std::endl;
     }
     std::vector<Node> deps = d_deps[n].get();
     deps.push_back(dep);
@@ -567,25 +567,25 @@ void LFSCProof::toStream(std::ostream& out, const ProofLetMap& map) const
 
 void collectAtoms(TNode node, std::set<Node>& seen, CnfProof* cnfProof)
 {
-  Debug("pf::pm::atoms") << "collectAtoms: Colleting atoms from " << node
+  Trace("pf::pm::atoms") << "collectAtoms: Colleting atoms from " << node
                          << "\n";
   if (seen.find(node) != seen.end())
   {
-    Debug("pf::pm::atoms") << "collectAtoms:\t already seen\n";
+    Trace("pf::pm::atoms") << "collectAtoms:\t already seen\n";
     return;
   }
   // if I have a SAT literal for a node, save it, unless this node is a
   // negation, in which case its underlying will be collected downstream
   if (cnfProof->hasLiteral(node) && node.getKind() != kind::NOT)
   {
-    Debug("pf::pm::atoms") << "collectAtoms: has SAT literal, save\n";
+    Trace("pf::pm::atoms") << "collectAtoms: has SAT literal, save\n";
     seen.insert(node);
   }
   for (unsigned i = 0; i < node.getNumChildren(); ++i)
   {
-    Debug("pf::pm::atoms") << push;
+    Trace("pf::pm::atoms") << push;
     collectAtoms(node[i], seen, cnfProof);
-    Debug("pf::pm::atoms") << pop;
+    Trace("pf::pm::atoms") << pop;
   }
 }
 
@@ -614,14 +614,14 @@ void LFSCProof::toStream(std::ostream& out) const
     d_satProof->collectClausesUsed(used_inputs, used_lemmas);
 
     IdToSatClause::iterator it2;
-    Debug("pf::pm") << std::endl << "Used inputs: " << std::endl;
+    Trace("pf::pm") << std::endl << "Used inputs: " << std::endl;
     for (it2 = used_inputs.begin(); it2 != used_inputs.end(); ++it2)
     {
-      Debug("pf::pm") << "\t input = " << *(it2->second) << std::endl;
+      Trace("pf::pm") << "\t input = " << *(it2->second) << std::endl;
     }
-    Debug("pf::pm") << std::endl;
+    Trace("pf::pm") << std::endl;
 
-    Debug("pf::pm") << std::endl << "Used lemmas: " << std::endl;
+    Trace("pf::pm") << std::endl << "Used lemmas: " << std::endl;
     for (it2 = used_lemmas.begin(); it2 != used_lemmas.end(); ++it2)
     {
       std::vector<Expr> clause_expr;
@@ -638,43 +638,43 @@ void LFSCProof::toStream(std::ostream& out) const
         clause_expr.push_back(expr_lit);
       }
 
-      Debug("pf::pm") << "\t lemma " << it2->first << " = " << *(it2->second)
+      Trace("pf::pm") << "\t lemma " << it2->first << " = " << *(it2->second)
                       << std::endl;
-      Debug("pf::pm") << "\t";
+      Trace("pf::pm") << "\t";
       for (unsigned i = 0; i < clause_expr.size(); ++i)
       {
-        Debug("pf::pm") << clause_expr[i] << " ";
+        Trace("pf::pm") << clause_expr[i] << " ";
       }
-      Debug("pf::pm") << std::endl;
+      Trace("pf::pm") << std::endl;
     }
-    Debug("pf::pm") << std::endl;
+    Trace("pf::pm") << std::endl;
 
     // collecting assertions that lead to the clauses being asserted
     d_cnfProof->collectAssertionsForClauses(used_inputs, used_assertions);
 
     NodeSet::iterator it3;
-    Debug("pf::pm") << std::endl << "Used assertions: " << std::endl;
+    Trace("pf::pm") << std::endl << "Used assertions: " << std::endl;
     for (it3 = used_assertions.begin(); it3 != used_assertions.end(); ++it3)
-      Debug("pf::pm") << "\t assertion = " << *it3 << std::endl;
+      Trace("pf::pm") << "\t assertion = " << *it3 << std::endl;
 
     // collects the atoms in the clauses
     d_cnfProof->collectAtomsAndRewritesForLemmas(used_lemmas, atoms, rewrites);
 
     if (!rewrites.empty())
     {
-      Debug("pf::pm") << std::endl << "Rewrites used in lemmas: " << std::endl;
+      Trace("pf::pm") << std::endl << "Rewrites used in lemmas: " << std::endl;
       NodePairSet::const_iterator rewriteIt;
       for (rewriteIt = rewrites.begin(); rewriteIt != rewrites.end();
            ++rewriteIt)
       {
-        Debug("pf::pm") << "\t" << rewriteIt->first << " --> "
+        Trace("pf::pm") << "\t" << rewriteIt->first << " --> "
                         << rewriteIt->second << std::endl;
       }
-      Debug("pf::pm") << std::endl << "Rewrite printing done" << std::endl;
+      Trace("pf::pm") << std::endl << "Rewrite printing done" << std::endl;
     }
     else
     {
-      Debug("pf::pm") << "No rewrites in lemmas found" << std::endl;
+      Trace("pf::pm") << "No rewrites in lemmas found" << std::endl;
     }
 
     // The derived/unrewritten atoms may not have CNF literals required later
@@ -682,7 +682,7 @@ void LFSCProof::toStream(std::ostream& out) const
     std::set<Node>::const_iterator it;
     for (it = atoms.begin(); it != atoms.end(); ++it)
     {
-      Debug("pf::pm") << "Ensure literal for atom: " << *it << std::endl;
+      Trace("pf::pm") << "Ensure literal for atom: " << *it << std::endl;
       if (!d_cnfProof->hasLiteral(*it))
       {
         // For arithmetic: these literals are not normalized, causing an error
@@ -707,7 +707,7 @@ void LFSCProof::toStream(std::ostream& out) const
     d_cnfProof->collectAtomsForClauses(used_lemmas, atoms);
 
     // collects the atoms in the assertions
-    Debug("pf::pm") << std::endl
+    Trace("pf::pm") << std::endl
                     << "LFSCProof::toStream: Colleting atoms from assertions "
                     << used_assertions << "\n"
                     << push;
@@ -715,16 +715,16 @@ void LFSCProof::toStream(std::ostream& out) const
     {
       collectAtoms(used_assertion, atoms, d_cnfProof);
     }
-    Debug("pf::pm") << pop;
+    Trace("pf::pm") << pop;
 
     std::set<Node>::iterator atomIt;
-    Debug("pf::pm") << std::endl
+    Trace("pf::pm") << std::endl
                     << "Dumping atoms from lemmas, inputs and assertions: "
                     << std::endl
                     << std::endl;
     for (atomIt = atoms.begin(); atomIt != atoms.end(); ++atomIt)
     {
-      Debug("pf::pm") << "\tAtom: " << *atomIt << std::endl;
+      Trace("pf::pm") << "\tAtom: " << *atomIt << std::endl;
     }
   }
 
@@ -739,18 +739,18 @@ void LFSCProof::toStream(std::ostream& out) const
     out << " ;; Declarations\n";
 
     // declare the theory atoms
-    Debug("pf::pm") << "LFSCProof::toStream: registering terms:" << std::endl;
+    Trace("pf::pm") << "LFSCProof::toStream: registering terms:" << std::endl;
     for (std::set<Node>::const_iterator it = atoms.begin(); it != atoms.end(); ++it)
     {
-      Debug("pf::pm") << "\tTerm: " << (*it).toExpr() << std::endl;
+      Trace("pf::pm") << "\tTerm: " << (*it).toExpr() << std::endl;
       d_theoryProof->registerTerm((*it).toExpr());
     }
 
-    Debug("pf::pm") << std::endl
+    Trace("pf::pm") << std::endl
                     << "Term registration done!" << std::endl
                     << std::endl;
 
-    Debug("pf::pm") << std::endl
+    Trace("pf::pm") << std::endl
                     << "LFSCProof::toStream: starting to print assertions"
                     << std::endl;
 
@@ -760,7 +760,7 @@ void LFSCProof::toStream(std::ostream& out) const
     d_theoryProof->printTermDeclarations(out, paren);
     d_theoryProof->printAssertions(out, paren);
 
-    Debug("pf::pm") << std::endl
+    Trace("pf::pm") << std::endl
                     << "LFSCProof::toStream: print assertions DONE"
                     << std::endl;
 
@@ -798,7 +798,7 @@ void LFSCProof::toStream(std::ostream& out) const
     out << ";; Printing mapping from preprocessed assertions into atoms \n";
     d_cnfProof->printAtomMapping(atoms, out, paren, globalLetMap);
 
-    Debug("pf::pm") << std::endl
+    Trace("pf::pm") << std::endl
                     << "Printing cnf proof for clauses" << std::endl;
 
     IdToSatClause::const_iterator cl_it = used_inputs.begin();
@@ -813,12 +813,12 @@ void LFSCProof::toStream(std::ostream& out) const
   {
     CodeTimer theoryLemmaTimer{
         ProofManager::currentPM()->getStats().d_theoryLemmaTime};
-    Debug("pf::pm") << std::endl
+    Trace("pf::pm") << std::endl
                     << "Printing cnf proof for clauses DONE" << std::endl;
 
-    Debug("pf::pm") << "Proof manager: printing theory lemmas" << std::endl;
+    Trace("pf::pm") << "Proof manager: printing theory lemmas" << std::endl;
     d_theoryProof->printTheoryLemmas(used_lemmas, out, paren, globalLetMap);
-    Debug("pf::pm") << "Proof manager: printing theory lemmas DONE!"
+    Trace("pf::pm") << "Proof manager: printing theory lemmas DONE!"
                     << std::endl;
   }
 
@@ -853,7 +853,7 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
   NodeSet::const_iterator it = assertions.begin();
   NodeSet::const_iterator end = assertions.end();
 
-  Debug("pf::pm") << "LFSCProof::printPreprocessedAssertions starting" << std::endl;
+  Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions starting" << std::endl;
 
   if (options::fewerPreprocessingHoles()) {
     // Check for assertions that did not get rewritten, and update the printing filter.
@@ -875,20 +875,20 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
           ExprSet inputAssertions;
           ProofManager::currentPM()->traceDeps(*it, &inputAssertions);
 
-          Debug("pf::pm") << "Original assertions for " << *it << " are: " << std::endl;
+          Trace("pf::pm") << "Original assertions for " << *it << " are: " << std::endl;
 
           ProofManager::assertions_iterator assertionIt;
           for (assertionIt = inputAssertions.begin(); assertionIt != inputAssertions.end(); ++assertionIt) {
-            Debug("pf::pm") << "\t" << *assertionIt << std::endl;
+            Trace("pf::pm") << "\t" << *assertionIt << std::endl;
           }
 
           if (inputAssertions.size() == 0) {
-            Debug("pf::pm") << "LFSCProof::printPreprocessedAssertions: Count NOT find the assertion that caused this PA. Picking an arbitrary one..." << std::endl;
+            Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions: Count NOT find the assertion that caused this PA. Picking an arbitrary one..." << std::endl;
             // For now just use the first assertion...
             inputAssertion = *(ProofManager::currentPM()->begin_assertions());
           } else {
             if (inputAssertions.size() != 1) {
-              Debug("pf::pm") << "LFSCProof::printPreprocessedAssertions: Attention: more than one original assertion was found. Picking just one." << std::endl;
+              Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions: Attention: more than one original assertion was found. Picking just one." << std::endl;
             }
             inputAssertion = *inputAssertions.begin();
           }
@@ -896,12 +896,12 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
 
         if (!ProofManager::currentPM()->have_input_assertion(inputAssertion)) {
           // The thing returned by traceDeps does not appear in the input assertions...
-          Debug("pf::pm") << "LFSCProof::printPreprocessedAssertions: Count NOT find the assertion that caused this PA. Picking an arbitrary one..." << std::endl;
+          Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions: Count NOT find the assertion that caused this PA. Picking an arbitrary one..." << std::endl;
           // For now just use the first assertion...
           inputAssertion = *(ProofManager::currentPM()->begin_assertions());
         }
 
-        Debug("pf::pm") << "Original assertion for " << *it
+        Trace("pf::pm") << "Original assertion for " << *it
                         << " is: "
                         << inputAssertion
                         << ", AKA "
@@ -946,15 +946,15 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
 
 void LFSCProof::checkUnrewrittenAssertion(const NodeSet& rewrites) const
 {
-  Debug("pf::pm") << "LFSCProof::checkUnrewrittenAssertion starting" << std::endl;
+  Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion starting" << std::endl;
 
   NodeSet::const_iterator rewrite;
   for (rewrite = rewrites.begin(); rewrite != rewrites.end(); ++rewrite) {
-    Debug("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: handling " << *rewrite << std::endl;
+    Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: handling " << *rewrite << std::endl;
     if (ProofManager::currentPM()->have_input_assertion((*rewrite).toExpr())) {
       Assert(
           ProofManager::currentPM()->have_input_assertion((*rewrite).toExpr()));
-      Debug("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: this assertion was NOT rewritten!" << std::endl
+      Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: this assertion was NOT rewritten!" << std::endl
                       << "\tAdding filter: "
                       << ProofManager::getPreprocessedAssertionName(*rewrite, "")
                       << " --> "
@@ -963,7 +963,7 @@ void LFSCProof::checkUnrewrittenAssertion(const NodeSet& rewrites) const
       ProofManager::currentPM()->addAssertionFilter(*rewrite,
         ProofManager::currentPM()->getInputFormulaName((*rewrite).toExpr()));
     } else {
-      Debug("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: this assertion WAS rewritten! " << *rewrite << std::endl;
+      Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: this assertion WAS rewritten! " << *rewrite << std::endl;
     }
   }
 }
@@ -991,12 +991,12 @@ Node ProofManager::mkOp(TNode n) {
     Assert((n.getConst<Kind>() == kind::SELECT)
            || (n.getConst<Kind>() == kind::STORE));
 
-    Debug("mgd-pm-mkop") << "making an op for " << n << "\n";
+    Trace("mgd-pm-mkop") << "making an op for " << n << "\n";
 
     std::stringstream ss;
     ss << n;
     std::string s = ss.str();
-    Debug("mgd-pm-mkop") << " : " << s << std::endl;
+    Trace("mgd-pm-mkop") << " : " << s << std::endl;
     std::vector<TypeNode> v;
     v.push_back(NodeManager::currentNM()->integerType());
     if(n.getConst<Kind>() == kind::SELECT) {
@@ -1008,11 +1008,11 @@ Node ProofManager::mkOp(TNode n) {
       v.push_back(NodeManager::currentNM()->integerType());
     }
     TypeNode type = NodeManager::currentNM()->mkFunctionType(v);
-    Debug("mgd-pm-mkop") << "typenode is: " << type << "\n";
+    Trace("mgd-pm-mkop") << "typenode is: " << type << "\n";
     op = NodeManager::currentNM()->mkSkolem(s, type, " ignore", NodeManager::SKOLEM_NO_NOTIFY);
     d_bops[op] = n;
   }
-  Debug("mgd-pm-mkop") << "returning the op: " << op << "\n";
+  Trace("mgd-pm-mkop") << "returning the op: " << op << "\n";
   return op;
 }
 //---end from Morgan---
@@ -1092,10 +1092,10 @@ std::vector<RewriteLogEntry> ProofManager::getRewriteLog() {
 }
 
 void ProofManager::dumpRewriteLog() const {
-  Debug("pf::rr") << "Dumpign rewrite log:" << std::endl;
+  Trace("pf::rr") << "Dumpign rewrite log:" << std::endl;
 
   for (unsigned i = 0; i < d_rewriteLog.size(); ++i) {
-    Debug("pf::rr") << "\tRule " << d_rewriteLog[i].getRuleId()
+    Trace("pf::rr") << "\tRule " << d_rewriteLog[i].getRuleId()
                     << ": "
                     << d_rewriteLog[i].getOriginal()
                     << " --> "

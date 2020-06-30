@@ -478,15 +478,15 @@ void InstStrategyAutoGenTriggers::generateTriggers( Node f ){
         }        
         //sort based on # occurrences (this will cause Trigger to select rarer symbols)
         std::sort( patTerms.begin(), patTerms.end(), sqfs );
-        if (Debug.isOn("relevant-trigger"))
+        if (Trace.isOn("relevant-trigger"))
         {
-          Debug("relevant-trigger")
+          Trace("relevant-trigger")
               << "Terms based on relevance: " << std::endl;
           for (const Node& p : patTerms)
           {
-            Debug("relevant-trigger")
+            Trace("relevant-trigger")
                 << "   " << p << " from " << d_pat_to_mpat[p] << " (";
-            Debug("relevant-trigger")
+            Trace("relevant-trigger")
                 << d_quant_rel->getNumQuantifiersForSymbol(
                        d_pat_to_mpat[p].getOperator())
                 << ")" << std::endl;

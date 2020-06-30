@@ -44,16 +44,16 @@ void ArithProofRecorder::saveFarkasCoefficients(
     Assert(nonNegativeChild.getType().isBoolean()
            && nonNegativeChild[0].getType().isReal());
   }
-  Debug("pf::arith") << "Saved Farkas Coefficients:" << std::endl;
-  if (Debug.isOn("pf::arith"))
+  Trace("pf::arith") << "Saved Farkas Coefficients:" << std::endl;
+  if (Trace.isOn("pf::arith"))
   {
     for (size_t i = 0, nchildren = conflict.getNumChildren(); i < nchildren;
          ++i)
     {
       const Node& child = conflict[i];
       const Rational& r = (*farkasCoefficients)[i];
-      Debug("pf::arith") << "  " << std::setw(8) << r;
-      Debug("pf::arith") << "  " << child << std::endl;
+      Trace("pf::arith") << "  " << std::setw(8) << r;
+      Trace("pf::arith") << "  " << child << std::endl;
     }
   }
 

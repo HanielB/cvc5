@@ -41,7 +41,7 @@ std::ostream& operator<<(std::ostream& out, const std::pair<T, U>& p) {
 /**
  * A utility class to provide (essentially) a "/dev/null" streambuf.
  * If debugging support is compiled in, but debugging for
- * e.g. "parser" is off, then Debug("parser") returns a stream
+ * e.g. "parser" is off, then Trace("parser") returns a stream
  * attached to a null_streambuf instance so that output is directed to
  * the bit bucket.
  */
@@ -435,10 +435,10 @@ extern DumpOutC DumpOutChannel CVC4_PUBLIC;
 
 #endif /* CVC4_MUZZLE */
 
-// Disallow e.g. !Debug("foo").isOn() forms
+// Disallow e.g. !Trace("foo").isOn() forms
 // because the ! will apply before the ? .
 // If a compiler error has directed you here,
-// just parenthesize it e.g. !(Debug("foo").isOn())
+// just parenthesize it e.g. !(Trace("foo").isOn())
 class __cvc4_true {
   void operator!() CVC4_UNUSED;
   void operator~() CVC4_UNUSED;
@@ -447,42 +447,6 @@ class __cvc4_true {
 public:
   inline operator bool() { return true; }
 };/* __cvc4_true */
-
-#if defined(CVC4_DEBUG) && defined(CVC4_TRACING)
-
-class CVC4_PUBLIC ScopedDebug {
-  std::string d_tag;
-  bool d_oldSetting;
-
-public:
-
-  ScopedDebug(std::string tag, bool newSetting = true) :
-    d_tag(tag) {
-    d_oldSetting = Debug.isOn(d_tag);
-    if(newSetting) {
-      Debug.on(d_tag);
-    } else {
-      Debug.off(d_tag);
-    }
-  }
-
-  ~ScopedDebug() {
-    if(d_oldSetting) {
-      Debug.on(d_tag);
-    } else {
-      Debug.off(d_tag);
-    }
-  }
-};/* class ScopedDebug */
-
-#else /* CVC4_DEBUG && CVC4_TRACING */
-
-class CVC4_PUBLIC ScopedDebug {
-public:
-  ScopedDebug(std::string tag, bool newSetting = true) {}
-};/* class ScopedDebug */
-
-#endif /* CVC4_DEBUG && CVC4_TRACING */
 
 #ifdef CVC4_TRACING
 

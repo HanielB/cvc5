@@ -223,14 +223,14 @@ TheoryId Theory::theoryOf(options::TheoryOfMode mode, TNode node)
 }
 
 void Theory::addSharedTermInternal(TNode n) {
-  Debug("sharing") << "Theory::addSharedTerm<" << getId() << ">(" << n << ")" << endl;
-  Debug("theory::assertions") << "Theory::addSharedTerm<" << getId() << ">(" << n << ")" << endl;
+  Trace("sharing") << "Theory::addSharedTerm<" << getId() << ">(" << n << ")" << endl;
+  Trace("theory::assertions") << "Theory::addSharedTerm<" << getId() << ">(" << n << ")" << endl;
   d_sharedTerms.push_back(n);
   addSharedTerm(n);
 }
 
 void Theory::computeCareGraph() {
-  Debug("sharing") << "Theory::computeCareGraph<" << getId() << ">()" << endl;
+  Trace("sharing") << "Theory::computeCareGraph<" << getId() << ">()" << endl;
   for (unsigned i = 0; i < d_sharedTerms.size(); ++ i) {
     TNode a = d_sharedTerms[i];
     TypeNode aType = a.getType();

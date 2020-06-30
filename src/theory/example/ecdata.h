@@ -62,7 +62,7 @@ struct Link {
   Link(context::Context* context, TNode n, Link* l = NULL) :
     d_next(true, context, l),
     d_data(n) {
-    Debug("context") << "Link: " << this
+    Trace("context") << "Link: " << this
                      << " so cdo is " << &d_next << std::endl;
   }
 
@@ -203,7 +203,7 @@ public:
 
   /** Destructor for ECDatas */
   ~ECData() {
-    Debug("ufgc") << "Calling ECData destructor" << std::endl;
+    Trace("ufgc") << "Calling ECData destructor" << std::endl;
     destroy();
   }
 

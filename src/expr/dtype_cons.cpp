@@ -418,7 +418,7 @@ Node DTypeConstructor::computeGroundTerm(TypeNode t,
   {
     Assert(DType::datatypeOf(d_constructor).isParametric());
     // type is parametric, must apply type ascription
-    Debug("datatypes-gt") << "ambiguous type for " << groundTerm
+    Trace("datatypes-gt") << "ambiguous type for " << groundTerm
                           << ", ascribe to " << t << std::endl;
     groundTerms[0] = nm->mkNode(
         APPLY_TYPE_ASCRIPTION,

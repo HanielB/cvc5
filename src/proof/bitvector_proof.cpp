@@ -46,7 +46,7 @@ void BitVectorProof::setBitblaster(theory::bv::TBitblaster<Node>* bb)
 
 void BitVectorProof::registerTermBB(Expr term)
 {
-  Debug("pf::bv") << "BitVectorProof::registerTermBB( " << term
+  Trace("pf::bv") << "BitVectorProof::registerTermBB( " << term
                   << " )" << std::endl;
 
   if (d_seenBBTerms.find(term) != d_seenBBTerms.end()) return;
@@ -61,14 +61,14 @@ void BitVectorProof::registerTermBB(Expr term)
 
   if (theory::Theory::theoryOf(term) != theory::THEORY_BV)
   {
-    Debug("pf::bv") << "\tMarking term " << term
+    Trace("pf::bv") << "\tMarking term " << term
                     << " for future BV registration" << std::endl;
     d_proofEngine->markTermForFutureRegistration(term, theory::THEORY_BV);
   }
 }
 
 void BitVectorProof::registerAtomBB(Expr atom, Expr atom_bb) {
-  Debug("pf::bv") << "BitVectorProof::registerAtomBB( " << atom
+  Trace("pf::bv") << "BitVectorProof::registerAtomBB( " << atom
                   << ", " << atom_bb << " )" << std::endl;
 
   Expr def = atom.eqExpr(atom_bb);
@@ -81,7 +81,7 @@ void BitVectorProof::registerAtomBB(Expr atom, Expr atom_bb) {
 }
 
 void BitVectorProof::registerTerm(Expr term) {
-  Debug("pf::bv") << "BitVectorProof::registerTerm( " << term << " )"
+  Trace("pf::bv") << "BitVectorProof::registerTerm( " << term << " )"
                   << std::endl;
 
   if (options::lfscLetification() && term.isConst()
@@ -101,9 +101,9 @@ void BitVectorProof::registerTerm(Expr term) {
     d_declarations.insert(term);
   }
 
-  Debug("pf::bv") << "Going to register children: " << std::endl;
+  Trace("pf::bv") << "Going to register children: " << std::endl;
   for (unsigned i = 0; i < term.getNumChildren(); ++i) {
-    Debug("pf::bv") << "\t" << term[i] << std::endl;
+    Trace("pf::bv") << "\t" << term[i] << std::endl;
   }
 
   // don't care about parametric operators for bv?
@@ -114,7 +114,7 @@ void BitVectorProof::registerTerm(Expr term) {
 
 std::string BitVectorProof::getBBTermName(Expr expr)
 {
-  Debug("pf::bv") << "BitVectorProof::getBBTermName( " << expr << " ) = bt"
+  Trace("pf::bv") << "BitVectorProof::getBBTermName( " << expr << " ) = bt"
                   << expr.getId() << std::endl;
   std::ostringstream os;
   os << "bt" << expr.getId();
@@ -126,7 +126,7 @@ void BitVectorProof::printOwnedTermAsType(Expr term,
                                           const ProofLetMap& map,
                                           TypeNode expectedType)
 {
-  Debug("pf::bv") << std::endl
+  Trace("pf::bv") << std::endl
                   << "(pf::bv) BitVectorProof::printOwnedTerm( " << term
                   << " ), theory is: " << theory::Theory::theoryOf(term)
                   << std::endl;
@@ -238,7 +238,7 @@ void BitVectorProof::printBitOf(Expr term,
   unsigned bit = term.getOperator().getConst<BitVectorBitOf>().d_bitIndex;
   Expr var = term[0];
 
-  Debug("pf::bv") << "BitVectorProof::printBitOf( " << term << " ), "
+  Trace("pf::bv") << "BitVectorProof::printBitOf( " << term << " ), "
                   << "bit = " << bit << ", var = " << var << std::endl;
 
   os << "(bitof ";
@@ -347,7 +347,7 @@ void BitVectorProof::printOperatorParametric(Expr term,
 
 void BitVectorProof::printOwnedSort(Type type, std::ostream& os)
 {
-  Debug("pf::bv") << std::endl
+  Trace("pf::bv") << std::endl
                   << "(pf::bv) BitVectorProof::printOwnedSort( " << type << " )"
                   << std::endl;
   Assert(type.isBitVector());
@@ -414,7 +414,7 @@ void BitVectorProof::printAliasingDeclarations(std::ostream& os,
   ExprToString::const_iterator end = d_assignedAliases.end();
 
   for (; it != end; ++it) {
-    Debug("pf::bv") << "Printing aliasing declaration for: " << *it << std::endl;
+    Trace("pf::bv") << "Printing aliasing declaration for: " << *it << std::endl;
     std::stringstream declaration;
     declaration << ".fbvd" << d_aliasToBindDeclaration.size();
     d_aliasToBindDeclaration[it->second] = declaration.str();
@@ -478,7 +478,7 @@ void BitVectorProof::printTermBitblasting(Expr term, std::ostream& os)
   case kind::BITVECTOR_PLUS :
   case kind::BITVECTOR_SUB :
   case kind::BITVECTOR_CONCAT : {
-    Debug("pf::bv") << "Bitblasing kind = " << kind << std::endl;
+    Trace("pf::bv") << "Bitblasing kind = " << kind << std::endl;
 
     for (int i = term.getNumChildren() - 1; i > 0; --i) {
       os <<"(bv_bbl_"<< utils::toLFSCKind(kind);
@@ -594,7 +594,7 @@ void BitVectorProof::printAtomBitblasting(Expr atom,
   case kind::BITVECTOR_SGT :
   case kind::BITVECTOR_SGE :
   case kind::EQUAL: {
-    Debug("pf::bv") << "Bitblasing kind = " << kind << std::endl;
+    Trace("pf::bv") << "Bitblasing kind = " << kind << std::endl;
 
     os << "(bv_bbl_" << utils::toLFSCKindTerm(atom);
 
@@ -631,7 +631,7 @@ void BitVectorProof::printBitblasting(std::ostream& os, std::ostream& paren)
 {
   // bit-blast terms
   {
-    Debug("pf::bv")
+    Trace("pf::bv")
         << "BitVectorProof::printBitblasting: the bitblasted terms are: "
         << std::endl;
     std::vector<Expr>::const_iterator it = d_bbTerms.begin();
@@ -639,13 +639,13 @@ void BitVectorProof::printBitblasting(std::ostream& os, std::ostream& paren)
 
     for (; it != end; ++it) {
       if (d_usedBB.find(*it) == d_usedBB.end()) {
-        Debug("pf::bv") << "\t" << *it << "\t(UNUSED)" << std::endl;
+        Trace("pf::bv") << "\t" << *it << "\t(UNUSED)" << std::endl;
       } else {
-        Debug("pf::bv") << "\t" << *it << std::endl;
+        Trace("pf::bv") << "\t" << *it << std::endl;
       }
     }
 
-    Debug("pf::bv") << std::endl;
+    Trace("pf::bv") << std::endl;
   }
 
   std::vector<Expr>::const_iterator it = d_bbTerms.begin();
@@ -733,7 +733,7 @@ std::string BitVectorProof::assignAlias(Expr expr)
 
   std::stringstream ss;
   ss << "fbv" << d_assignedAliases.size();
-  Debug("pf::bv") << "assignAlias( " << expr << ") = " << ss.str() << std::endl;
+  Trace("pf::bv") << "assignAlias( " << expr << ") = " << ss.str() << std::endl;
   d_assignedAliases[expr] = ss.str();
   return ss.str();
 }

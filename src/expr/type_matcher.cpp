@@ -26,12 +26,12 @@ void TypeMatcher::addTypesFromDatatype(TypeNode dt)
 {
   std::vector<TypeNode> argTypes = dt.getParamTypes();
   addTypes(argTypes);
-  Debug("typecheck-idt") << "instantiating matcher for " << dt << std::endl;
+  Trace("typecheck-idt") << "instantiating matcher for " << dt << std::endl;
   for (unsigned i = 0, narg = argTypes.size(); i < narg; ++i)
   {
     if (dt.isParameterInstantiatedDatatype(i))
     {
-      Debug("typecheck-idt")
+      Trace("typecheck-idt")
           << "++ instantiate param " << i << " : " << d_types[i] << std::endl;
       d_match[i] = d_types[i];
     }
@@ -54,7 +54,7 @@ void TypeMatcher::addTypes(const std::vector<TypeNode>& types)
 
 bool TypeMatcher::doMatching(TypeNode pattern, TypeNode tn)
 {
-  Debug("typecheck-idt") << "doMatching() : " << pattern << " : " << tn
+  Trace("typecheck-idt") << "doMatching() : " << pattern << " : " << tn
                          << std::endl;
   std::vector<TypeNode>::iterator i =
       std::find(d_types.begin(), d_types.end(), pattern);
@@ -63,7 +63,7 @@ bool TypeMatcher::doMatching(TypeNode pattern, TypeNode tn)
     size_t index = i - d_types.begin();
     if (!d_match[index].isNull())
     {
-      Debug("typecheck-idt")
+      Trace("typecheck-idt")
           << "check subtype " << tn << " " << d_match[index] << std::endl;
       TypeNode tnn = TypeNode::leastCommonTypeNode(tn, d_match[index]);
       // recognize subtype relation

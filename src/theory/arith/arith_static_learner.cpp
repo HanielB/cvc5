@@ -104,14 +104,14 @@ void ArithStaticLearner::staticLearning(TNode n, NodeBuilder<>& learned){
 
 
 void ArithStaticLearner::process(TNode n, NodeBuilder<>& learned, const TNodeSet& defTrue){
-  Debug("arith::static") << "===================== looking at " << n << endl;
+  Trace("arith::static") << "===================== looking at " << n << endl;
 
   switch(n.getKind()){
   case ITE:
     if (expr::hasBoundVar(n))
     {
       // Unsafe with non-ground ITEs; do nothing
-      Debug("arith::static")
+      Trace("arith::static")
           << "(potentially) non-ground ITE, ignoring..." << endl;
       break;
     }
@@ -170,7 +170,7 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
     case LEQ: { // (ite (<= x y) x y)
       Node nLeqX = NodeBuilder<2>(LEQ) << n << t;
       Node nLeqY = NodeBuilder<2>(LEQ) << n << e;
-      Debug("arith::static") << n << "is a min =>"  << nLeqX << nLeqY << endl;
+      Trace("arith::static") << n << "is a min =>"  << nLeqX << nLeqY << endl;
       learned << nLeqX << nLeqY;
       ++(d_statistics.d_iteMinMaxApplications);
       break;
@@ -179,7 +179,7 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
     case GEQ: { // (ite (>= x y) x y)
       Node nGeqX = NodeBuilder<2>(GEQ) << n << t;
       Node nGeqY = NodeBuilder<2>(GEQ) << n << e;
-      Debug("arith::static") << n << "is a max =>"  << nGeqX << nGeqY << endl;
+      Trace("arith::static") << n << "is a max =>"  << nGeqX << nGeqY << endl;
       learned << nGeqX << nGeqY;
       ++(d_statistics.d_iteMinMaxApplications);
       break;
@@ -192,7 +192,7 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
 void ArithStaticLearner::iteConstant(TNode n, NodeBuilder<>& learned){
   Assert(n.getKind() == ITE);
 
-  Debug("arith::static") << "iteConstant(" << n << ")" << endl;
+  Trace("arith::static") << "iteConstant(" << n << ")" << endl;
 
   if (d_minMap.find(n[1]) != d_minMap.end() && d_minMap.find(n[2]) != d_minMap.end()) {
     const DeltaRational& first = d_minMap[n[1]];
@@ -208,7 +208,7 @@ void ArithStaticLearner::iteConstant(TNode n, NodeBuilder<>& learned){
         nGeqMin = NodeBuilder<2>(kind::GT) << n << mkRationalNode(min.getNoninfinitesimalPart());
       }
       learned << nGeqMin;
-      Debug("arith::static") << n << " iteConstant"  << nGeqMin << endl;
+      Trace("arith::static") << n << " iteConstant"  << nGeqMin << endl;
       ++(d_statistics.d_iteConstantApplications);
     }
   }
@@ -227,7 +227,7 @@ void ArithStaticLearner::iteConstant(TNode n, NodeBuilder<>& learned){
         nLeqMax = NodeBuilder<2>(kind::LT) << n << mkRationalNode(max.getNoninfinitesimalPart());
       }
       learned << nLeqMax;
-      Debug("arith::static") << n << " iteConstant"  << nLeqMax << endl;
+      Trace("arith::static") << n << " iteConstant"  << nLeqMax << endl;
       ++(d_statistics.d_iteConstantApplications);
     }
   }
@@ -257,7 +257,7 @@ void ArithStaticLearner::addBound(TNode n) {
       if (maxFind == d_maxMap.end() || (*maxFind).second > bound)
       {
         d_maxMap.insert(n[0], bound);
-        Debug("arith::static") << "adding bound " << n << endl;
+        Trace("arith::static") << "adding bound " << n << endl;
       }
       break;
     case kind::GT: bound = DeltaRational(constant, 1); CVC4_FALLTHROUGH;
@@ -265,7 +265,7 @@ void ArithStaticLearner::addBound(TNode n) {
       if (minFind == d_minMap.end() || (*minFind).second < bound)
       {
         d_minMap.insert(n[0], bound);
-        Debug("arith::static") << "adding bound " << n << endl;
+        Trace("arith::static") << "adding bound " << n << endl;
       }
       break;
     default: Unhandled() << k; break;

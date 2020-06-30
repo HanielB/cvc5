@@ -54,12 +54,12 @@ struct ScopedBool {
   ScopedBool(bool& value) :
     d_value(value) {
 
-    Debug("gc") << ">> setting ScopedBool\n";
+    Trace("gc") << ">> setting ScopedBool\n";
     d_value = true;
   }
 
   ~ScopedBool() {
-    Debug("gc") << "<< clearing ScopedBool\n";
+    Trace("gc") << "<< clearing ScopedBool\n";
     d_value = false;
   }
 };
@@ -74,11 +74,11 @@ struct NVReclaim {
   NVReclaim(NodeValue*& deletionField) :
     d_deletionField(deletionField) {
 
-    Debug("gc") << ">> setting NVRECLAIM field\n";
+    Trace("gc") << ">> setting NVRECLAIM field\n";
   }
 
   ~NVReclaim() {
-    Debug("gc") << "<< clearing NVRECLAIM field\n";
+    Trace("gc") << "<< clearing NVRECLAIM field\n";
     d_deletionField = NULL;
   }
 };
@@ -209,7 +209,7 @@ NodeManager::~NodeManager() {
       NodeValue* greatest_maxed_out = order.back();
       order.pop_back();
       Assert(greatest_maxed_out->HasMaximizedReferenceCount());
-      Debug("gc") << "Force zombify " << greatest_maxed_out << std::endl;
+      Trace("gc") << "Force zombify " << greatest_maxed_out << std::endl;
       greatest_maxed_out->d_rc = 0;
       markForDeletion(greatest_maxed_out);
     } else {
@@ -219,18 +219,18 @@ NodeManager::~NodeManager() {
 
   poolRemove( &expr::NodeValue::null() );
 
-  if(Debug.isOn("gc:leaks")) {
-    Debug("gc:leaks") << "still in pool:" << endl;
+  if(Trace.isOn("gc:leaks")) {
+    Trace("gc:leaks") << "still in pool:" << endl;
     for(NodeValuePool::const_iterator i = d_nodeValuePool.begin(),
           iend = d_nodeValuePool.end();
         i != iend;
         ++i) {
-      Debug("gc:leaks") << "  " << *i
+      Trace("gc:leaks") << "  " << *i
                         << " id=" << (*i)->d_id
                         << " rc=" << (*i)->d_rc
                         << " " << **i << endl;
     }
-    Debug("gc:leaks") << ":end:" << endl;
+    Trace("gc:leaks") << ":end:" << endl;
   }
 
   // defensive coding, in case destruction-order issues pop up (they often do)
@@ -263,7 +263,7 @@ void NodeManager::reclaimZombies() {
   // FIXME multithreading
   Assert(!d_attrManager->inGarbageCollection());
 
-  Debug("gc") << "reclaiming " << d_zombies.size() << " zombie(s)!\n";
+  Trace("gc") << "reclaiming " << d_zombies.size() << " zombie(s)!\n";
 
   // during reclamation, reclaimZombies() is never supposed to be called
   Assert(!d_inReclaimZombies)
@@ -312,11 +312,11 @@ void NodeManager::reclaimZombies() {
 
     // collect ONLY IF still zero
     if(nv->d_rc == 0) {
-      if(Debug.isOn("gc")) {
-        Debug("gc") << "deleting node value " << nv
+      if(Trace.isOn("gc")) {
+        Trace("gc") << "deleting node value " << nv
                     << " [" << nv->d_id << "]: ";
-        nv->printAst(Debug("gc"));
-        Debug("gc") << endl;
+        nv->printAst(Trace("gc"));
+        Trace("gc") << endl;
       }
 
       // remove from the pool
@@ -382,7 +382,7 @@ std::vector<NodeValue*> NodeManager::TopologicalSort(
     while (!stack.empty()) {
       NodeValue* current = stack.back().second;
       const bool visited_children = stack.back().first;
-      Debug("gc") << "Topological sort " << current << " " << visited_children
+      Trace("gc") << "Topological sort " << current << " " << visited_children
                   << std::endl;
       if (visited_children) {
         if (root_set.find(current) != root_set.end()) {
@@ -425,7 +425,7 @@ TypeNode NodeManager::getType(TNode n, bool check)
   bool needsCheck = check && !getAttribute(n, TypeCheckedAttr());
 
 
-  Debug("getType") << this << " getting type for " << &n << " " << n << ", check=" << check << ", needsCheck = " << needsCheck << ", hasType = " << hasType << endl;
+  Trace("getType") << this << " getting type for " << &n << " " << n << ", check=" << check << ", needsCheck = " << needsCheck << ", hasType = " << hasType << endl;
 
 #ifdef CVC4_DEBUG
   // already did type check eagerly upon creation in node builder
@@ -478,7 +478,7 @@ TypeNode NodeManager::getType(TNode n, bool check)
   /* The check should have happened, if we asked for it. */
   Assert(!check || getAttribute(n, TypeCheckedAttr()));
 
-  Debug("getType") << "type of " << &n << " " <<  n << " is " << typeNode << endl;
+  Trace("getType") << "type of " << &n << " " <<  n << " is " << typeNode << endl;
   return typeNode;
 }
 
@@ -515,21 +515,21 @@ TypeNode NodeManager::mkSequenceType(TypeNode elementType)
 TypeNode NodeManager::mkConstructorType(const DatatypeConstructor& constructor,
                                         TypeNode range) {
   vector<TypeNode> sorts;
-  Debug("datatypes") << "ctor name: " << constructor.getName() << endl;
+  Trace("datatypes") << "ctor name: " << constructor.getName() << endl;
   for(DatatypeConstructor::const_iterator i = constructor.begin();
       i != constructor.end();
       ++i) {
     TypeNode selectorType = *(*i).getSelector().getType().d_typeNode;
-    Debug("datatypes") << selectorType << endl;
+    Trace("datatypes") << selectorType << endl;
     TypeNode sort = selectorType[1];
 
     // should be guaranteed here already, but just in case
     Assert(!sort.isFunctionLike());
 
-    Debug("datatypes") << "ctor sort: " << sort << endl;
+    Trace("datatypes") << "ctor sort: " << sort << endl;
     sorts.push_back(sort);
   }
-  Debug("datatypes") << "ctor range: " << range << endl;
+  Trace("datatypes") << "ctor range: " << range << endl;
   PrettyCheckArgument(!range.isFunctionLike(), range,
                       "cannot create higher-order function types");
   sorts.push_back(range);
@@ -564,7 +564,7 @@ TypeNode NodeManager::TupleTypeCache::getTupleType( NodeManager * nm, std::vecto
       }
       dt.addConstructor(c);
       d_data = TypeNode::fromType(nm->toExprManager()->mkDatatypeType(dt));
-      Debug("tuprec-debug") << "Return type : " << d_data << std::endl;
+      Trace("tuprec-debug") << "Return type : " << d_data << std::endl;
     }
     return d_data;
   }else{
@@ -591,7 +591,7 @@ TypeNode NodeManager::RecTypeCache::getRecordType( NodeManager * nm, const Recor
       }
       dt.addConstructor(c);
       d_data = TypeNode::fromType(nm->toExprManager()->mkDatatypeType(dt));
-      Debug("tuprec-debug") << "Return type : " << d_data << std::endl;
+      Trace("tuprec-debug") << "Return type : " << d_data << std::endl;
     }
     return d_data;
   }else{
@@ -637,13 +637,13 @@ TypeNode NodeManager::mkFunctionType(const std::vector<TypeNode>& argTypes,
 
 TypeNode NodeManager::mkTupleType(const std::vector<TypeNode>& types) {
   std::vector< TypeNode > ts;
-  Debug("tuprec-debug") << "Make tuple type : ";
+  Trace("tuprec-debug") << "Make tuple type : ";
   for (unsigned i = 0; i < types.size(); ++ i) {
     CheckArgument(!types[i].isFunctionLike(), types, "cannot put function-like types in tuples");
     ts.push_back( types[i] );
-    Debug("tuprec-debug") << types[i] << " ";
+    Trace("tuprec-debug") << types[i] << " ";
   }
-  Debug("tuprec-debug") << std::endl;
+  Trace("tuprec-debug") << std::endl;
   return d_tt_cache.getTupleType( this, ts );
 }
 
