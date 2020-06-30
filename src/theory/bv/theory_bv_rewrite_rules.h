@@ -418,7 +418,8 @@ public:
   template<bool checkApplies>
   static inline Node run(TNode node) {
     if (!checkApplies || applies(node)) {
-      Trace("theory::bv::rewrite") << "RewriteRule<" << rule << ">(" << node << ")" << std::endl;
+      Trace("theory::bv::rewrite")
+          << "RewriteRule<" << rule << ">(" << node << ")" << std::endl;
       Assert(checkApplies || applies(node));
       //++ s_statistics->d_ruleApplications;
       Node result = apply(node);
@@ -434,7 +435,8 @@ public:
             << CheckSatCommand(condition.toExpr());
         }
       }
-      Trace("theory::bv::rewrite") << "RewriteRule<" << rule << ">(" << node << ") => " << result << std::endl;
+      Trace("theory::bv::rewrite") << "RewriteRule<" << rule << ">(" << node
+                                   << ") => " << result << std::endl;
       return result;
     } else {
       return node;
@@ -594,7 +596,8 @@ bool RewriteRule<EmptyRule>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EmptyRule>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<EmptyRule> for " << node.getKind() <<"\n"; 
+  Trace("bv-rewrite") << "RewriteRule<EmptyRule> for " << node.getKind()
+                      << "\n";
   Unreachable();
   return node;
 }

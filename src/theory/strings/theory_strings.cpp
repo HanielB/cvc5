@@ -145,8 +145,8 @@ void TheoryStrings::setMasterEqualityEngine(eq::EqualityEngine* eq) {
 }
 
 void TheoryStrings::addSharedTerm(TNode t) {
-  Trace("strings") << "TheoryStrings::addSharedTerm(): "
-                     << t << " " << t.getType().isBoolean() << endl;
+  Trace("strings") << "TheoryStrings::addSharedTerm(): " << t << " "
+                   << t.getType().isBoolean() << endl;
   d_equalityEngine.addTriggerTerm(t, THEORY_STRINGS);
   if (options::stringExp())
   {
@@ -174,11 +174,13 @@ void TheoryStrings::propagate(Effort e) {
 }
 
 bool TheoryStrings::propagate(TNode literal) {
-  Trace("strings-propagate") << "TheoryStrings::propagate(" << literal  << ")" << std::endl;
+  Trace("strings-propagate")
+      << "TheoryStrings::propagate(" << literal << ")" << std::endl;
   // If already in conflict, no more propagation
   if (d_state.isInConflict())
   {
-    Trace("strings-propagate") << "TheoryStrings::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("strings-propagate") << "TheoryStrings::propagate(" << literal
+                               << "): already in conflict" << std::endl;
     return false;
   }
   // Propagate out
@@ -216,7 +218,9 @@ bool TheoryStrings::getCurrentSubstitution( int effort, std::vector< Node >& var
 }
 
 void TheoryStrings::presolve() {
-  Trace("strings-presolve") << "TheoryStrings::Presolving : get fmf options " << (options::stringFMF() ? "true" : "false") << std::endl;
+  Trace("strings-presolve")
+      << "TheoryStrings::Presolving : get fmf options "
+      << (options::stringFMF() ? "true" : "false") << std::endl;
   d_strat.initializeStrategy();
 
   // if strings fmf is enabled, register the strategy

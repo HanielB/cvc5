@@ -86,8 +86,8 @@ void CnfProof::registerConvertedClause(ClauseId clause, bool explanation) {
   // Explanations do not need a CNF conversion proof since they are in CNF
   // (they will only need a theory proof as they are theory valid)
   if (explanation) {
-    Trace("proof:cnf") << "CnfProof::registerConvertedClause "
-                       << clause << " explanation? " << explanation << std::endl;
+    Trace("proof:cnf") << "CnfProof::registerConvertedClause " << clause
+                       << " explanation? " << explanation << std::endl;
     Assert(d_explanations.find(clause) == d_explanations.end());
     d_explanations.insert(clause);
     return;
@@ -96,9 +96,9 @@ void CnfProof::registerConvertedClause(ClauseId clause, bool explanation) {
   Node current_assertion = getCurrentAssertion();
   Node current_expr = getCurrentDefinition();
 
-  Trace("proof:cnf") << "CnfProof::registerConvertedClause "
-                     << clause << " assertion = " << current_assertion
-                     << clause << " definition = " << current_expr << std::endl;
+  Trace("proof:cnf") << "CnfProof::registerConvertedClause " << clause
+                     << " assertion = " << current_assertion << clause
+                     << " definition = " << current_expr << std::endl;
 
   setClauseAssertion(clause, current_assertion);
   setClauseDefinition(clause, current_expr);
@@ -129,8 +129,8 @@ void CnfProof::registerFalseUnitClause(ClauseId clauseId)
 }
 
 void CnfProof::setClauseAssertion(ClauseId clause, Node expr) {
-  Trace("proof:cnf") << "CnfProof::setClauseAssertion "
-                     << clause << " assertion " << expr << std::endl;
+  Trace("proof:cnf") << "CnfProof::setClauseAssertion " << clause
+                     << " assertion " << expr << std::endl;
   // We can add the same clause from different assertions.  In this
   // case we keep the first assertion. For example asserting a /\ b
   // and then b /\ c where b is an atom, would assert b twice (note
@@ -149,8 +149,8 @@ void CnfProof::setClauseAssertion(ClauseId clause, Node expr) {
 }
 
 void CnfProof::setClauseDefinition(ClauseId clause, Node definition) {
-  Trace("proof:cnf") << "CnfProof::setClauseDefinition "
-                     << clause << " definition " << definition << std::endl;
+  Trace("proof:cnf") << "CnfProof::setClauseDefinition " << clause
+                     << " definition " << definition << std::endl;
   // We keep the first definition
   if (d_clauseToDefinition.find(clause) != d_clauseToDefinition.end())
     return;
@@ -160,8 +160,8 @@ void CnfProof::setClauseDefinition(ClauseId clause, Node definition) {
 }
 
 void CnfProof::registerAssertion(Node assertion, ProofRule reason) {
-  Trace("proof:cnf") << "CnfProof::registerAssertion "
-                     << assertion << " reason " << reason << std::endl;
+  Trace("proof:cnf") << "CnfProof::registerAssertion " << assertion
+                     << " reason " << reason << std::endl;
   // We can obtain the assertion from different reasons (e.g. if the
   // assertion is a lemma over shared terms both theories can generate
   // the same lemma) We only need to prove the lemma in one way, so we
@@ -183,7 +183,7 @@ bool CnfProof::haveProofRecipe(const std::set<Node> &lemma) {
 
 void CnfProof::setCnfDependence(Node from, Node to) {
   Trace("proof:cnf") << "CnfProof::setCnfDependence "
-                     << "from " << from  << std::endl
+                     << "from " << from << std::endl
                      << "     to " << to << std::endl;
 
   Assert(from != to);
@@ -226,8 +226,8 @@ void CnfProof::setProofRecipe(LemmaProofRecipe* proofRecipe) {
 }
 
 void CnfProof::pushCurrentDefinition(Node definition) {
-  Trace("proof:cnf") << "CnfProof::pushCurrentDefinition "
-                     << definition  << std::endl;
+  Trace("proof:cnf") << "CnfProof::pushCurrentDefinition " << definition
+                     << std::endl;
 
   d_currentDefinitionStack.push_back(definition);
 }
@@ -452,8 +452,10 @@ void LFSCCnfProof::printCnfProofForClause(ClauseId id,
                                           const prop::SatClause* clause,
                                           std::ostream& os,
                                           std::ostream& paren) {
-  Trace("cnf-pf") << std::endl << std::endl << "LFSCCnfProof::printCnfProofForClause( " << id << " ) starting "
-                  << std::endl;
+  Trace("cnf-pf") << std::endl
+                  << std::endl
+                  << "LFSCCnfProof::printCnfProofForClause( " << id
+                  << " ) starting " << std::endl;
 
   os << "(satlem _ _ ";
   std::ostringstream clause_paren;

@@ -280,7 +280,9 @@ void ProofManager::traceDeps(TNode n, ExprSet* coreAssertions) {
     Trace("cores") << " -- NOT IN INPUT CORE LIST!" << std::endl;
     if(d_deps.find(n) == d_deps.end()) {
       if (options::allowEmptyDependencies()) {
-        Trace("cores") << " -- Could not track cause assertion. Failing silently." << std::endl;
+        Trace("cores")
+            << " -- Could not track cause assertion. Failing silently."
+            << std::endl;
         return;
       }
       InternalError()
@@ -290,7 +292,8 @@ void ProofManager::traceDeps(TNode n, ExprSet* coreAssertions) {
     Assert(d_deps.find(n) != d_deps.end());
     std::vector<Node> deps = (*d_deps.find(n)).second;
     for(std::vector<Node>::const_iterator i = deps.begin(); i != deps.end(); ++i) {
-      Trace("cores") << " + tracing deps: " << n << " -deps-on- " << *i << std::endl;
+      Trace("cores") << " + tracing deps: " << n << " -deps-on- " << *i
+                     << std::endl;
       if( !(*i).isNull() ){
         traceDeps(*i, coreAssertions);
       }
@@ -312,7 +315,9 @@ void ProofManager::traceDeps(TNode n, CDExprSet* coreAssertions) {
     Trace("cores") << " -- NOT IN INPUT CORE LIST!" << std::endl;
     if(d_deps.find(n) == d_deps.end()) {
       if (options::allowEmptyDependencies()) {
-        Trace("cores") << " -- Could not track cause assertion. Failing silently." << std::endl;
+        Trace("cores")
+            << " -- Could not track cause assertion. Failing silently."
+            << std::endl;
         return;
       }
       InternalError()
@@ -323,7 +328,8 @@ void ProofManager::traceDeps(TNode n, CDExprSet* coreAssertions) {
     std::vector<Node> deps = (*d_deps.find(n)).second;
 
     for(std::vector<Node>::const_iterator i = deps.begin(); i != deps.end(); ++i) {
-      Trace("cores") << " + tracing deps: " << n << " -deps-on- " << *i << std::endl;
+      Trace("cores") << " + tracing deps: " << n << " -deps-on- " << *i
+                     << std::endl;
       if( !(*i).isNull() ){
         traceDeps(*i, coreAssertions);
       }
@@ -393,7 +399,8 @@ void ProofManager::getLemmasInUnsatCore(theory::TheoryId theory, std::vector<Nod
   IdToSatClause::const_iterator it;
   std::set<Node> seen;
 
-  Trace("pf::lemmasUnsatCore") << "Dumping all lemmas in unsat core" << std::endl;
+  Trace("pf::lemmasUnsatCore")
+      << "Dumping all lemmas in unsat core" << std::endl;
   for (it = used_lemmas.begin(); it != used_lemmas.end(); ++it) {
     std::set<Node> lemma = satClauseToNodeSet(it->second);
     Trace("pf::lemmasUnsatCore") << nodeSetToString(lemma);
@@ -408,8 +415,9 @@ void ProofManager::getLemmasInUnsatCore(theory::TheoryId theory, std::vector<Nod
     }
 
     recipe = getCnfProof()->getProofRecipe(lemma);
-    Trace("pf::lemmasUnsatCore") << "\t[owner = " << recipe.getTheory()
-                                 << ", original = " << recipe.getOriginalLemma() << "]" << std::endl;
+    Trace("pf::lemmasUnsatCore")
+        << "\t[owner = " << recipe.getTheory()
+        << ", original = " << recipe.getOriginalLemma() << "]" << std::endl;
     if (recipe.simpleLemma() && recipe.getTheory() == theory && seen.find(recipe.getOriginalLemma()) == seen.end()) {
       lemmas.push_back(recipe.getOriginalLemma());
       seen.insert(recipe.getOriginalLemma());
@@ -853,7 +861,8 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
   NodeSet::const_iterator it = assertions.begin();
   NodeSet::const_iterator end = assertions.end();
 
-  Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions starting" << std::endl;
+  Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions starting"
+                  << std::endl;
 
   if (options::fewerPreprocessingHoles()) {
     // Check for assertions that did not get rewritten, and update the printing filter.
@@ -875,7 +884,8 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
           ExprSet inputAssertions;
           ProofManager::currentPM()->traceDeps(*it, &inputAssertions);
 
-          Trace("pf::pm") << "Original assertions for " << *it << " are: " << std::endl;
+          Trace("pf::pm") << "Original assertions for " << *it
+                          << " are: " << std::endl;
 
           ProofManager::assertions_iterator assertionIt;
           for (assertionIt = inputAssertions.begin(); assertionIt != inputAssertions.end(); ++assertionIt) {
@@ -883,12 +893,18 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
           }
 
           if (inputAssertions.size() == 0) {
-            Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions: Count NOT find the assertion that caused this PA. Picking an arbitrary one..." << std::endl;
+            Trace("pf::pm")
+                << "LFSCProof::printPreprocessedAssertions: Count NOT find the "
+                   "assertion that caused this PA. Picking an arbitrary one..."
+                << std::endl;
             // For now just use the first assertion...
             inputAssertion = *(ProofManager::currentPM()->begin_assertions());
           } else {
             if (inputAssertions.size() != 1) {
-              Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions: Attention: more than one original assertion was found. Picking just one." << std::endl;
+              Trace("pf::pm")
+                  << "LFSCProof::printPreprocessedAssertions: Attention: more "
+                     "than one original assertion was found. Picking just one."
+                  << std::endl;
             }
             inputAssertion = *inputAssertions.begin();
           }
@@ -896,16 +912,18 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
 
         if (!ProofManager::currentPM()->have_input_assertion(inputAssertion)) {
           // The thing returned by traceDeps does not appear in the input assertions...
-          Trace("pf::pm") << "LFSCProof::printPreprocessedAssertions: Count NOT find the assertion that caused this PA. Picking an arbitrary one..." << std::endl;
+          Trace("pf::pm")
+              << "LFSCProof::printPreprocessedAssertions: Count NOT find the "
+                 "assertion that caused this PA. Picking an arbitrary one..."
+              << std::endl;
           // For now just use the first assertion...
           inputAssertion = *(ProofManager::currentPM()->begin_assertions());
         }
 
         Trace("pf::pm") << "Original assertion for " << *it
-                        << " is: "
-                        << inputAssertion
-                        << ", AKA "
-                        << ProofManager::currentPM()->getInputFormulaName(inputAssertion)
+                        << " is: " << inputAssertion << ", AKA "
+                        << ProofManager::currentPM()->getInputFormulaName(
+                               inputAssertion)
                         << std::endl;
 
         ProofManager::currentPM()->getTheoryProofEngine()->printTheoryTerm(inputAssertion, os, globalLetMap);
@@ -946,24 +964,30 @@ void LFSCProof::printPreprocessedAssertions(const NodeSet& assertions,
 
 void LFSCProof::checkUnrewrittenAssertion(const NodeSet& rewrites) const
 {
-  Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion starting" << std::endl;
+  Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion starting"
+                  << std::endl;
 
   NodeSet::const_iterator rewrite;
   for (rewrite = rewrites.begin(); rewrite != rewrites.end(); ++rewrite) {
-    Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: handling " << *rewrite << std::endl;
+    Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: handling "
+                    << *rewrite << std::endl;
     if (ProofManager::currentPM()->have_input_assertion((*rewrite).toExpr())) {
       Assert(
           ProofManager::currentPM()->have_input_assertion((*rewrite).toExpr()));
-      Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: this assertion was NOT rewritten!" << std::endl
-                      << "\tAdding filter: "
-                      << ProofManager::getPreprocessedAssertionName(*rewrite, "")
-                      << " --> "
-                      << ProofManager::currentPM()->getInputFormulaName((*rewrite).toExpr())
-                      << std::endl;
+      Trace("pf::pm")
+          << "LFSCProof::checkUnrewrittenAssertion: this assertion was NOT "
+             "rewritten!"
+          << std::endl
+          << "\tAdding filter: "
+          << ProofManager::getPreprocessedAssertionName(*rewrite, "") << " --> "
+          << ProofManager::currentPM()->getInputFormulaName((*rewrite).toExpr())
+          << std::endl;
       ProofManager::currentPM()->addAssertionFilter(*rewrite,
         ProofManager::currentPM()->getInputFormulaName((*rewrite).toExpr()));
     } else {
-      Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: this assertion WAS rewritten! " << *rewrite << std::endl;
+      Trace("pf::pm") << "LFSCProof::checkUnrewrittenAssertion: this assertion "
+                         "WAS rewritten! "
+                      << *rewrite << std::endl;
     }
   }
 }
@@ -1095,10 +1119,8 @@ void ProofManager::dumpRewriteLog() const {
   Trace("pf::rr") << "Dumpign rewrite log:" << std::endl;
 
   for (unsigned i = 0; i < d_rewriteLog.size(); ++i) {
-    Trace("pf::rr") << "\tRule " << d_rewriteLog[i].getRuleId()
-                    << ": "
-                    << d_rewriteLog[i].getOriginal()
-                    << " --> "
+    Trace("pf::rr") << "\tRule " << d_rewriteLog[i].getRuleId() << ": "
+                    << d_rewriteLog[i].getOriginal() << " --> "
                     << d_rewriteLog[i].getResult() << std::endl;
   }
 }

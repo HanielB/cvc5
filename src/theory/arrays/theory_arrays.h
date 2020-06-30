@@ -286,7 +286,10 @@ class TheoryArrays : public Theory {
 
     bool eqNotifyTriggerEquality(TNode equality, bool value) override
     {
-      Trace("arrays::propagate") << spaces(d_arrays.getSatContext()->getLevel()) << "NotifyClass::eqNotifyTriggerEquality(" << equality << ", " << (value ? "true" : "false") << ")" << std::endl;
+      Trace("arrays::propagate")
+          << spaces(d_arrays.getSatContext()->getLevel())
+          << "NotifyClass::eqNotifyTriggerEquality(" << equality << ", "
+          << (value ? "true" : "false") << ")" << std::endl;
       // Just forward to arrays
       if (value) {
         return d_arrays.propagate(equality);
@@ -297,7 +300,10 @@ class TheoryArrays : public Theory {
 
     bool eqNotifyTriggerPredicate(TNode predicate, bool value) override
     {
-      Trace("arrays::propagate") << spaces(d_arrays.getSatContext()->getLevel()) << "NotifyClass::eqNotifyTriggerEquality(" << predicate << ", " << (value ? "true" : "false") << ")" << std::endl;
+      Trace("arrays::propagate")
+          << spaces(d_arrays.getSatContext()->getLevel())
+          << "NotifyClass::eqNotifyTriggerEquality(" << predicate << ", "
+          << (value ? "true" : "false") << ")" << std::endl;
       // Just forward to arrays
       if (value) {
         return d_arrays.propagate(predicate);
@@ -311,7 +317,10 @@ class TheoryArrays : public Theory {
                                      TNode t2,
                                      bool value) override
     {
-      Trace("arrays::propagate") << spaces(d_arrays.getSatContext()->getLevel()) << "NotifyClass::eqNotifyTriggerTermEquality(" << t1 << ", " << t2 << ", " << (value ? "true" : "false") << ")" << std::endl;
+      Trace("arrays::propagate")
+          << spaces(d_arrays.getSatContext()->getLevel())
+          << "NotifyClass::eqNotifyTriggerTermEquality(" << t1 << ", " << t2
+          << ", " << (value ? "true" : "false") << ")" << std::endl;
       if (value) {
         if (t1.getType().isArray()) {
           if (!d_arrays.isShared(t1) || !d_arrays.isShared(t2)) {
@@ -333,7 +342,9 @@ class TheoryArrays : public Theory {
 
     void eqNotifyConstantTermMerge(TNode t1, TNode t2) override
     {
-      Trace("arrays::propagate") << spaces(d_arrays.getSatContext()->getLevel()) << "NotifyClass::eqNotifyConstantTermMerge(" << t1 << ", " << t2 << ")" << std::endl;
+      Trace("arrays::propagate") << spaces(d_arrays.getSatContext()->getLevel())
+                                 << "NotifyClass::eqNotifyConstantTermMerge("
+                                 << t1 << ", " << t2 << ")" << std::endl;
       d_arrays.conflict(t1, t2);
     }
 

@@ -1273,7 +1273,8 @@ TheoryFpRewriter::TheoryFpRewriter()
     RewriteResponse res = d_preRewriteTable[node.getKind()](node, true);
     if (res.d_node != node)
     {
-      Trace("fp-rewrite") << "TheoryFpRewriter::preRewrite(): before " << node << std::endl;
+      Trace("fp-rewrite") << "TheoryFpRewriter::preRewrite(): before " << node
+                          << std::endl;
       Trace("fp-rewrite") << "TheoryFpRewriter::preRewrite(): after  "
                           << res.d_node << std::endl;
     }
@@ -1308,7 +1309,8 @@ TheoryFpRewriter::TheoryFpRewriter()
     RewriteResponse res = d_postRewriteTable[node.getKind()](node, false);
     if (res.d_node != node)
     {
-      Trace("fp-rewrite") << "TheoryFpRewriter::postRewrite(): before " << node << std::endl;
+      Trace("fp-rewrite") << "TheoryFpRewriter::postRewrite(): before " << node
+                          << std::endl;
       Trace("fp-rewrite") << "TheoryFpRewriter::postRewrite(): after  "
                           << res.d_node << std::endl;
     }

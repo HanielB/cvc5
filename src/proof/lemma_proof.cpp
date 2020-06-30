@@ -71,7 +71,9 @@ void LemmaProofRecipe::dump(const char *tag) const {
   }
 
   if (d_originalLemma != Node()) {
-    Trace(tag) << std::endl << "Original lemma: " << d_originalLemma << std::endl << std::endl;
+    Trace(tag) << std::endl
+               << "Original lemma: " << d_originalLemma << std::endl
+               << std::endl;
   }
 
   unsigned count = 1;
@@ -79,7 +81,8 @@ void LemmaProofRecipe::dump(const char *tag) const {
   for (std::set<Node>::iterator baseIt = d_baseAssertions.begin();
        baseIt != d_baseAssertions.end();
        ++baseIt) {
-    Trace(tag) << "\t#" << count << ": " << "\t" << *baseIt << std::endl;
+    Trace(tag) << "\t#" << count << ": "
+               << "\t" << *baseIt << std::endl;
     ++count;
   }
 
@@ -87,7 +90,8 @@ void LemmaProofRecipe::dump(const char *tag) const {
 
   count = 1;
   for (const auto& step : (*this)) {
-    Trace(tag) << "\tStep #" << count << ": " << "\t[" << step.getTheory() << "] ";
+    Trace(tag) << "\tStep #" << count << ": "
+               << "\t[" << step.getTheory() << "] ";
     if (step.getLiteral() == Node()) {
       Trace(tag) << "Contradiction";
     } else {
@@ -112,10 +116,10 @@ void LemmaProofRecipe::dump(const char *tag) const {
          rewrite != d_assertionToExplanation.end();
          ++rewrite) {
       Trace(tag) << "\tRewrite #" << count << ":" << std::endl
-                 << "\t\t" << rewrite->first
-                 << std::endl << "\t\trewritten into" << std::endl
-                 << "\t\t" << rewrite->second
-                 << std::endl << std::endl;
+                 << "\t\t" << rewrite->first << std::endl
+                 << "\t\trewritten into" << std::endl
+                 << "\t\t" << rewrite->second << std::endl
+                 << std::endl;
       ++count;
     }
   }

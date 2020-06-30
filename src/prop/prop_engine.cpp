@@ -81,7 +81,6 @@ PropEngine::PropEngine(TheoryEngine* te,
       d_interrupted(false),
       d_resourceManager(rm)
 {
-
   Trace("prop") << "Constructing the PropEngine" << endl;
 
   d_decisionEngine.reset(new DecisionEngine(satContext, userContext, rm));
@@ -208,7 +207,8 @@ Result PropEngine::checkSat() {
     return Result(Result::SAT_UNKNOWN, why);
   }
 
-  if( result == SAT_VALUE_TRUE && Trace.isOn("prop") ) {
+  if (result == SAT_VALUE_TRUE && Trace.isOn("prop"))
+  {
     printSatisfyingAssignment();
   }
 

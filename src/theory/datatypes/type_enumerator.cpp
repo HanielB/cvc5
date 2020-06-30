@@ -49,25 +49,29 @@ Node DatatypesEnumerator::getTermEnum( TypeNode tn, unsigned i ){
      while( i>=d_terms[tn].size() ){
        ++d_children[tei];
        if( d_children[tei].isFinished() ){
-         Trace("dt-enum-debug") << "...fail term enum " << tn << " " << i << std::endl;
+         Trace("dt-enum-debug")
+             << "...fail term enum " << tn << " " << i << std::endl;
          return Node::null();
        }
        d_terms[tn].push_back( *d_children[tei] );
      }
-     Trace("dt-enum-debug") << "...return term enum " << tn << " " << i << " : " << d_terms[tn][i] << std::endl;
+     Trace("dt-enum-debug") << "...return term enum " << tn << " " << i << " : "
+                            << d_terms[tn][i] << std::endl;
      ret = d_terms[tn][i];
    }
    return ret;
  }
 
  bool DatatypesEnumerator::increment( unsigned index ){
-   Trace("dt-enum") << "Incrementing " << d_type << " " << d_ctor << " at size " << d_sel_sum[index] << "/" << d_size_limit << std::endl;
+   Trace("dt-enum") << "Incrementing " << d_type << " " << d_ctor << " at size "
+                    << d_sel_sum[index] << "/" << d_size_limit << std::endl;
    if( d_sel_sum[index]==-1 ){
      //first time
      d_sel_sum[index] = 0;
      //special case: no children to iterate
      if( index>=d_has_debruijn && d_sel_types[index].empty() ){
-       Trace("dt-enum") << "...success (nc) = " << (d_size_limit==0) << std::endl;
+       Trace("dt-enum") << "...success (nc) = " << (d_size_limit == 0)
+                        << std::endl;
        return d_size_limit==0;
      }else{
        Trace("dt-enum") << "...success" << std::endl;

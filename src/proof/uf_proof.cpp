@@ -77,7 +77,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
 
     Node n1;
     std::stringstream ss, ss2;
-    Trace("pf::uf") << "\nsubtrans has " << subTrans->d_children.size() << " children\n";
+    Trace("pf::uf") << "\nsubtrans has " << subTrans->d_children.size()
+                    << " children\n";
     bool disequalityFound = (neg >= 0);
 
     if(!disequalityFound || subTrans->d_children.size() >= 2) {
@@ -102,7 +103,10 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
       {
         Trace("pf::uf") << "\nn2[0]: " << n2[0][0] << std::endl;
       }
-      if (n1.getNumChildren() > 1) { Trace("pf::uf") << "n1[1]: " << n1[1] << std::endl; }
+      if (n1.getNumChildren() > 1)
+      {
+        Trace("pf::uf") << "n1[1]: " << n1[1] << std::endl;
+      }
 
       if(n2[0].getKind() == kind::APPLY_UF) {
         out << "(trans _ _ _ _ ";
@@ -172,7 +176,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
     out << " ";
     std::stringstream ss;
     Node n2 = toStreamRecLFSC(ss, tp, *(pf2->d_children[1]), tb + 1, map);
-    Trace("pf::uf") << "\nok, in FIRST cong[" << stk.size() << "]" << "\n";
+    Trace("pf::uf") << "\nok, in FIRST cong[" << stk.size() << "]"
+                    << "\n";
     pf2->debug_print("pf::uf");
     Trace("pf::uf") << "looking at " << pf2->d_node << "\n";
     Trace("pf::uf") << "           " << n1 << "\n";
@@ -225,7 +230,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
       b2 << n1[1-side];
     }
     Trace("pf::uf") << "pf2->d_node " << pf2->d_node << std::endl;
-    Trace("pf::uf") << "b1.getNumChildren() " << b1.getNumChildren() << std::endl;
+    Trace("pf::uf") << "b1.getNumChildren() " << b1.getNumChildren()
+                    << std::endl;
     Trace("pf::uf") << "n1 " << n1 << std::endl;
     Trace("pf::uf") << "n2 " << n2 << std::endl;
     Trace("pf::uf") << "side " << side << std::endl;
@@ -255,7 +261,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
       out << " ";
       ss.str("");
       n2 = toStreamRecLFSC(ss, tp, *(pf2->d_children[1]), tb + 1, map);
-      Trace("pf::uf") << "\nok, in cong[" << stk.size() << "]" << "\n";
+      Trace("pf::uf") << "\nok, in cong[" << stk.size() << "]"
+                      << "\n";
       Trace("pf::uf") << "looking at " << pf2->d_node << "\n";
       Trace("pf::uf") << "           " << n1 << "\n";
       Trace("pf::uf") << "           " << n2 << "\n";
@@ -275,7 +282,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
     }
     n1 = b1;
     n2 = b2;
-    Trace("pf::uf") << "at end assert, got " << pf2->d_node << "  and  " << n1 << std::endl;
+    Trace("pf::uf") << "at end assert, got " << pf2->d_node << "  and  " << n1
+                    << std::endl;
     if(pf2->d_node.getKind() == kind::PARTIAL_APPLY_UF) {
       Assert(n1 == pf2->d_node);
     }
@@ -288,7 +296,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
       }
       b1.append(n1.begin(), n1.end());
       n1 = b1;
-      Trace("pf::uf") << "at[2] end assert, got " << pf2->d_node << "  and  " << n1 << std::endl;
+      Trace("pf::uf") << "at[2] end assert, got " << pf2->d_node << "  and  "
+                      << n1 << std::endl;
       if(pf2->d_node.getKind() == kind::APPLY_UF) {
         Assert(n1 == pf2->d_node);
       }
@@ -458,7 +467,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
         Trace("pf::uf") << (n2.getKind() == kind::EQUAL) << "\n";
 
         if ((n1.getNumChildren() >= 2) && (n2.getNumChildren() >= 2)) {
-          Trace("pf::uf") << n1[0].getId() << " " << n1[1].getId() << " / " << n2[0].getId() << " " << n2[1].getId() << "\n";
+          Trace("pf::uf") << n1[0].getId() << " " << n1[1].getId() << " / "
+                          << n2[0].getId() << " " << n2[1].getId() << "\n";
           Trace("pf::uf") << n1[0].getId() << " " << n1[0] << "\n";
           Trace("pf::uf") << n1[1].getId() << " " << n1[1] << "\n";
           Trace("pf::uf") << n2[0].getId() << " " << n2[0] << "\n";
@@ -476,20 +486,35 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
         // Both elements of the transitivity rule are equalities/iffs
       {
         if(n1[0] == n2[0]) {
-          if(tb == 1) { Trace("pf::uf") << "case 1\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::uf") << "case 1\n";
+          }
           n1 = n1[1].eqNode(n2[1]);
           ss << "(symm _ _ _ " << ss1.str() << ") " << ss2.str();
         } else if(n1[1] == n2[1]) {
-          if(tb == 1) { Trace("pf::uf") << "case 2\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::uf") << "case 2\n";
+          }
           n1 = n1[0].eqNode(n2[0]);
           ss << ss1.str() << " (symm _ _ _ " << ss2.str() << ")";
         } else if(n1[0] == n2[1]) {
-          if(tb == 1) { Trace("pf::uf") << "case 3\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::uf") << "case 3\n";
+          }
           n1 = n2[0].eqNode(n1[1]);
           ss << ss2.str() << " " << ss1.str();
-          if(tb == 1) { Trace("pf::uf") << "++ proved " << n1 << "\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::uf") << "++ proved " << n1 << "\n";
+          }
         } else if(n1[1] == n2[0]) {
-          if(tb == 1) { Trace("pf::uf") << "case 4\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::uf") << "case 4\n";
+          }
           n1 = n1[0].eqNode(n2[1]);
           ss << ss1.str() << " " << ss2.str();
         } else {
@@ -501,7 +526,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
           Warning() << "\n\n";
           Unreachable();
         }
-        Trace("pf::uf") << "++ trans proof[" << i << "], now have " << n1 << std::endl;
+        Trace("pf::uf") << "++ trans proof[" << i << "], now have " << n1
+                        << std::endl;
       } else if(n1.getKind() == kind::EQUAL) {
         // n1 is an equality/iff, but n2 is a predicate
         if(n1[0] == n2) {
@@ -573,7 +599,8 @@ Node ProofUF::toStreamRecLFSC(std::ostream& out,
   default:
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
-    Trace("pf::uf") << "theory proof: " << pf.d_node << " by rule " << int(pf.d_id) << std::endl;
+    Trace("pf::uf") << "theory proof: " << pf.d_node << " by rule "
+                    << int(pf.d_id) << std::endl;
     AlwaysAssert(false);
     return pf.d_node;
   }
@@ -627,7 +654,9 @@ void LFSCUFProof::printOwnedTermAsType(Expr term,
                                        TypeNode expectedType)
 {
   Node node = Node::fromExpr(term);
-  Trace("pf::uf") << std::endl << "(pf::uf) LFSCUfProof::printOwnedTerm: term = " << node << std::endl;
+  Trace("pf::uf") << std::endl
+                  << "(pf::uf) LFSCUfProof::printOwnedTerm: term = " << node
+                  << std::endl;
 
   Assert(theory::Theory::theoryOf(node) == theory::THEORY_UF);
 
@@ -664,7 +693,9 @@ void LFSCUFProof::printOwnedTermAsType(Expr term,
 }
 
 void LFSCUFProof::printOwnedSort(Type type, std::ostream& os) {
-  Trace("pf::uf") << std::endl << "(pf::uf) LFSCArrayProof::printOwnedSort: type is: " << type << std::endl;
+  Trace("pf::uf") << std::endl
+                  << "(pf::uf) LFSCArrayProof::printOwnedSort: type is: "
+                  << type << std::endl;
 
   Assert(type.isSort());
   os << type;

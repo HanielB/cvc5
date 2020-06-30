@@ -151,7 +151,8 @@ void TheoryProofEngine::finishRegisterTheory(theory::Theory* th) {
 TheoryProof* TheoryProofEngine::getTheoryProof(theory::TheoryId id) {
   // The UF theory handles queries for the Builtin theory.
   if (id == theory::THEORY_BUILTIN) {
-    Trace("pf::tp") << "TheoryProofEngine::getTheoryProof: BUILTIN --> UF" << std::endl;
+    Trace("pf::tp") << "TheoryProofEngine::getTheoryProof: BUILTIN --> UF"
+                    << std::endl;
     id = theory::THEORY_UF;
   }
 
@@ -201,17 +202,22 @@ TypeNode TheoryProofEngine::equalityType(const Expr& left, const Expr& right)
 }
 
 void TheoryProofEngine::registerTerm(Expr term) {
-  Trace("pf::tp::register") << "TheoryProofEngine::registerTerm: registering term: " << term << std::endl;
+  Trace("pf::tp::register")
+      << "TheoryProofEngine::registerTerm: registering term: " << term
+      << std::endl;
 
   if (d_registrationCache.count(term)) {
     return;
   }
 
-  Trace("pf::tp::register") << "TheoryProofEngine::registerTerm: registering NEW term: " << term << std::endl;
+  Trace("pf::tp::register")
+      << "TheoryProofEngine::registerTerm: registering NEW term: " << term
+      << std::endl;
 
   theory::TheoryId theory_id = theory::Theory::theoryOf(term);
 
-  Trace("pf::tp::register") << "Term's theory( " << term << " ) = " << theory_id << std::endl;
+  Trace("pf::tp::register")
+      << "Term's theory( " << term << " ) = " << theory_id << std::endl;
 
   // don't need to register boolean terms
   if (theory_id == theory::THEORY_BUILTIN ||
@@ -231,7 +237,9 @@ void TheoryProofEngine::registerTerm(Expr term) {
   // A special case: the array theory needs to know of every skolem, even if
   // it belongs to another theory (e.g., a BV skolem)
   if (ProofManager::getSkolemizationManager()->isSkolem(term) && theory_id != theory::THEORY_ARRAYS) {
-    Trace("pf::tp::register") << "TheoryProofEngine::registerTerm: registering a non-array skolem: " << term << std::endl;
+    Trace("pf::tp::register")
+        << "TheoryProofEngine::registerTerm: registering a non-array skolem: "
+        << term << std::endl;
     getTheoryProof(theory::THEORY_ARRAYS)->registerTerm(term);
   }
 
@@ -381,7 +389,9 @@ void LFSCTheoryProofEngine::registerTermsFromAssertions() {
 }
 
 void LFSCTheoryProofEngine::printAssertions(std::ostream& os, std::ostream& paren) {
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printAssertions called" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printAssertions called"
+                  << std::endl
+                  << std::endl;
 
   ProofManager::assertions_iterator it = ProofManager::currentPM()->begin_assertions();
   ProofManager::assertions_iterator end = ProofManager::currentPM()->end_assertions();
@@ -402,18 +412,22 @@ void LFSCTheoryProofEngine::printAssertions(std::ostream& os, std::ostream& pare
     paren << ")";
   }
 
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printAssertions done" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printAssertions done" << std::endl
+                  << std::endl;
 }
 
 void LFSCTheoryProofEngine::printLemmaRewrites(NodePairSet& rewrites,
                                                std::ostream& os,
                                                std::ostream& paren) {
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printLemmaRewrites called" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printLemmaRewrites called"
+                  << std::endl
+                  << std::endl;
 
   NodePairSet::const_iterator it;
 
   for (it = rewrites.begin(); it != rewrites.end(); ++it) {
-    Trace("pf::tp") << "printLemmaRewrites: " << it->first << " --> " << it->second << std::endl;
+    Trace("pf::tp") << "printLemmaRewrites: " << it->first << " --> "
+                    << it->second << std::endl;
 
     Node n1 = it->first;
     Node n2 = it->second;
@@ -428,15 +442,20 @@ void LFSCTheoryProofEngine::printLemmaRewrites(NodePairSet& rewrites,
     os << "(\\ " << rewriteRule.str() << "\n";
 
     d_assertionToRewrite[it->first] = rewriteRule.str();
-    Trace("pf::tp") << "d_assertionToRewrite[" << it->first << "] = " << rewriteRule.str() << std::endl;
+    Trace("pf::tp") << "d_assertionToRewrite[" << it->first
+                    << "] = " << rewriteRule.str() << std::endl;
     paren << "))";
   }
 
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printLemmaRewrites done" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printLemmaRewrites done"
+                  << std::endl
+                  << std::endl;
 }
 
 void LFSCTheoryProofEngine::printSortDeclarations(std::ostream& os, std::ostream& paren) {
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printSortDeclarations called" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printSortDeclarations called"
+                  << std::endl
+                  << std::endl;
 
   TheoryProofTable::const_iterator it = d_theoryProofTable.begin();
   TheoryProofTable::const_iterator end = d_theoryProofTable.end();
@@ -444,11 +463,15 @@ void LFSCTheoryProofEngine::printSortDeclarations(std::ostream& os, std::ostream
     it->second->printSortDeclarations(os, paren);
   }
 
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printSortDeclarations done" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printSortDeclarations done"
+                  << std::endl
+                  << std::endl;
 }
 
 void LFSCTheoryProofEngine::printTermDeclarations(std::ostream& os, std::ostream& paren) {
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printTermDeclarations called" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printTermDeclarations called"
+                  << std::endl
+                  << std::endl;
 
   TheoryProofTable::const_iterator it = d_theoryProofTable.begin();
   TheoryProofTable::const_iterator end = d_theoryProofTable.end();
@@ -456,11 +479,14 @@ void LFSCTheoryProofEngine::printTermDeclarations(std::ostream& os, std::ostream
     it->second->printTermDeclarations(os, paren);
   }
 
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printTermDeclarations done" << std::endl << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printTermDeclarations done"
+                  << std::endl
+                  << std::endl;
 }
 
 void LFSCTheoryProofEngine::printDeferredDeclarations(std::ostream& os, std::ostream& paren) {
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printDeferredDeclarations called" << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printDeferredDeclarations called"
+                  << std::endl;
 
   TheoryProofTable::const_iterator it = d_theoryProofTable.begin();
   TheoryProofTable::const_iterator end = d_theoryProofTable.end();
@@ -470,7 +496,8 @@ void LFSCTheoryProofEngine::printDeferredDeclarations(std::ostream& os, std::ost
 }
 
 void LFSCTheoryProofEngine::printAliasingDeclarations(std::ostream& os, std::ostream& paren, const ProofLetMap &globalLetMap) {
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printAliasingDeclarations called" << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printAliasingDeclarations called"
+                  << std::endl;
 
   TheoryProofTable::const_iterator it = d_theoryProofTable.begin();
   TheoryProofTable::const_iterator end = d_theoryProofTable.end();
@@ -480,7 +507,8 @@ void LFSCTheoryProofEngine::printAliasingDeclarations(std::ostream& os, std::ost
 }
 
 void LFSCTheoryProofEngine::dumpTheoryLemmas(const IdToSatClause& lemmas) {
-  Trace("pf::dumpLemmas") << "Dumping ALL theory lemmas" << std::endl << std::endl;
+  Trace("pf::dumpLemmas") << "Dumping ALL theory lemmas" << std::endl
+                          << std::endl;
 
   ProofManager* pm = ProofManager::currentPM();
   for (IdToSatClause::const_iterator it = lemmas.begin(); it != lemmas.end(); ++it) {
@@ -502,7 +530,8 @@ void LFSCTheoryProofEngine::dumpTheoryLemmas(const IdToSatClause& lemmas) {
     recipe.dump("pf::dumpLemmas");
   }
 
-  Trace("pf::dumpLemmas") << "Theory lemma printing DONE" << std::endl << std::endl;
+  Trace("pf::dumpLemmas") << "Theory lemma printing DONE" << std::endl
+                          << std::endl;
 }
 
 // TODO: this function should be moved into the BV prover.
@@ -604,9 +633,11 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
                                               std::ostream& paren,
                                               ProofLetMap& map) {
   os << " ;; Theory Lemmas \n";
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printTheoryLemmas: starting" << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printTheoryLemmas: starting"
+                  << std::endl;
 
-  if (Trace.isOn("pf::dumpLemmas")) {
+  if (Trace.isOn("pf::dumpLemmas"))
+  {
     dumpTheoryLemmas(lemmas);
   }
 
@@ -621,14 +652,17 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
   }
 
   ProofManager* pm = ProofManager::currentPM();
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printTheoryLemmas: printing lemmas..." << std::endl;
+  Trace("pf::tp")
+      << "LFSCTheoryProofEngine::printTheoryLemmas: printing lemmas..."
+      << std::endl;
 
   for (IdToSatClause::const_iterator it = lemmas.begin(); it != lemmas.end(); ++it) {
     ClauseId id = it->first;
     const prop::SatClause* clause = it->second;
 
-    Trace("pf::tp") << "LFSCTheoryProofEngine::printTheoryLemmas: printing lemma. ID = "
-                    << id << std::endl;
+    Trace("pf::tp")
+        << "LFSCTheoryProofEngine::printTheoryLemmas: printing lemma. ID = "
+        << id << std::endl;
 
     std::vector<Expr> clause_expr;
     std::set<Node> clause_expr_nodes;
@@ -659,15 +693,16 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
       // Find and handle missing assertions, due to rewrites
       std::set<Node> missingAssertions = recipe.getMissingAssertionsForStep(0);
       if (!missingAssertions.empty()) {
-        Trace("pf::tp") << "Have missing assertions for this simple lemma!" << std::endl;
+        Trace("pf::tp") << "Have missing assertions for this simple lemma!"
+                        << std::endl;
       }
 
       std::set<Node>::const_iterator missingAssertion;
       for (missingAssertion = missingAssertions.begin();
            missingAssertion != missingAssertions.end();
            ++missingAssertion) {
-
-        Trace("pf::tp") << "Working on missing assertion: " << *missingAssertion << std::endl;
+        Trace("pf::tp") << "Working on missing assertion: " << *missingAssertion
+                        << std::endl;
         Assert(recipe.wasRewritten(missingAssertion->negate()));
         Node explanation = recipe.getExplanation(missingAssertion->negate()).negate();
         Trace("pf::tp") << "Found explanation: " << explanation << std::endl;
@@ -686,11 +721,8 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
         }
 
         AlwaysAssert(found);
-        Trace("pf::tp") << "Replacing theory assertion "
-                        << clause_expr[k]
-                        << " with "
-                        << *missingAssertion
-                        << std::endl;
+        Trace("pf::tp") << "Replacing theory assertion " << clause_expr[k]
+                        << " with " << *missingAssertion << std::endl;
 
         clause_expr[k] = missingAssertion->toExpr();
 
@@ -713,23 +745,27 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
           rewritten << "))";
         }
 
-        Trace("pf::tp") << "Setting a rewrite filter for this proof: " << std::endl
-                        << pm->getLitName(*missingAssertion) << " --> " << rewritten.str()
-                        << ", explanation = " << explanation
-                        << std::endl << std::endl;
+        Trace("pf::tp") << "Setting a rewrite filter for this proof: "
+                        << std::endl
+                        << pm->getLitName(*missingAssertion) << " --> "
+                        << rewritten.str() << ", explanation = " << explanation
+                        << std::endl
+                        << std::endl;
 
         pm->addRewriteFilter(pm->getLitName(*missingAssertion), rewritten.str());
       }
 
       // Query the appropriate theory for a proof of this clause
       theory::TheoryId theory_id = getTheoryForLemma(clause);
-      Trace("pf::tp") << "Get theory lemma from " << theory_id << "..." << std::endl;
+      Trace("pf::tp") << "Get theory lemma from " << theory_id << "..."
+                      << std::endl;
       getTheoryProof(theory_id)->printTheoryLemmaProof(clause_expr, os, paren, map);
 
       // Turn rewrite filter OFF
       pm->clearRewriteFilters();
 
-      Trace("pf::tp") << "Get theory lemma from " << theory_id << "... DONE!" << std::endl;
+      Trace("pf::tp") << "Get theory lemma from " << theory_id << "... DONE!"
+                      << std::endl;
       os << clause_paren.str();
       os << "( \\ " << pm->getLemmaClauseName(id) <<"\n";
       paren << "))";
@@ -773,11 +809,13 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
 
         // query appropriate theory for proof of clause
         theory::TheoryId theory_id = currentStep->getTheory();
-        Trace("pf::tp") << "Get theory lemma from " << theory_id << "..." << std::endl;
+        Trace("pf::tp") << "Get theory lemma from " << theory_id << "..."
+                        << std::endl;
 
         std::set<Node> missingAssertions = recipe.getMissingAssertionsForStep(i);
         if (!missingAssertions.empty()) {
-          Trace("pf::tp") << "Have missing assertions for this step!" << std::endl;
+          Trace("pf::tp") << "Have missing assertions for this step!"
+                          << std::endl;
         }
 
         // Turn rewrite filter ON
@@ -785,8 +823,8 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
         for (missingAssertion = missingAssertions.begin();
              missingAssertion != missingAssertions.end();
              ++missingAssertion) {
-
-          Trace("pf::tp") << "Working on missing assertion: " << *missingAssertion << std::endl;
+          Trace("pf::tp") << "Working on missing assertion: "
+                          << *missingAssertion << std::endl;
 
           Assert(recipe.wasRewritten(missingAssertion->negate()));
           Node explanation = recipe.getExplanation(missingAssertion->negate()).negate();
@@ -809,10 +847,8 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
           AlwaysAssert(found);
 
           Trace("pf::tp") << "Replacing theory assertion "
-                          << currentClauseExpr[k]
-                          << " with "
-                          << *missingAssertion
-                          << std::endl;
+                          << currentClauseExpr[k] << " with "
+                          << *missingAssertion << std::endl;
 
           currentClauseExpr[k] = missingAssertion->toExpr();
 
@@ -835,10 +871,12 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
             rewritten << "))";
           }
 
-          Trace("pf::tp") << "Setting a rewrite filter for this proof: " << std::endl
-                          << pm->getLitName(*missingAssertion) << " --> " << rewritten.str()
-                          << "explanation = " << explanation
-                          << std::endl << std::endl;
+          Trace("pf::tp") << "Setting a rewrite filter for this proof: "
+                          << std::endl
+                          << pm->getLitName(*missingAssertion) << " --> "
+                          << rewritten.str() << "explanation = " << explanation
+                          << std::endl
+                          << std::endl;
 
           pm->addRewriteFilter(pm->getLitName(*missingAssertion), rewritten.str());
         }
@@ -848,7 +886,8 @@ void LFSCTheoryProofEngine::printTheoryLemmas(const IdToSatClause& lemmas,
         // Turn rewrite filter OFF
         pm->clearRewriteFilters();
 
-        Trace("pf::tp") << "Get theory lemma from " << theory_id << "... DONE!" << std::endl;
+        Trace("pf::tp") << "Get theory lemma from " << theory_id << "... DONE!"
+                        << std::endl;
         os << clause_paren.str();
         os << "( \\ " << pm->getLemmaClauseName(id) << "s" << i <<"\n";
         paren << "))";
@@ -888,7 +927,8 @@ void LFSCTheoryProofEngine::printBoundTermAsType(Expr term,
                                                  const ProofLetMap& map,
                                                  TypeNode expectedType)
 {
-  Trace("pf::tp") << "LFSCTheoryProofEngine::printBoundTerm( " << term << " ) " << std::endl;
+  Trace("pf::tp") << "LFSCTheoryProofEngine::printBoundTerm( " << term << " ) "
+                  << std::endl;
 
   // Since let-abbreviated terms are abbreviated with their default type, only
   // use the let map if there is no expectedType or the expectedType matches
@@ -1085,9 +1125,13 @@ void TheoryProof::printTheoryLemmaProof(std::vector<Expr>& lemma,
                     << ProofManager::currentPM()->getLogic();
   }
 
-  Trace("pf::tp") << "TheoryProof::printTheoryLemmaProof - calling th->ProduceProofs()" << std::endl;
+  Trace("pf::tp")
+      << "TheoryProof::printTheoryLemmaProof - calling th->ProduceProofs()"
+      << std::endl;
   th->produceProofs();
-  Trace("pf::tp") << "TheoryProof::printTheoryLemmaProof - th->ProduceProofs() DONE" << std::endl;
+  Trace("pf::tp")
+      << "TheoryProof::printTheoryLemmaProof - th->ProduceProofs() DONE"
+      << std::endl;
 
   MyPreRegisterVisitor preRegVisitor(th);
   for (unsigned i=0; i<lemma.size(); i++) {
@@ -1101,9 +1145,11 @@ void TheoryProof::printTheoryLemmaProof(std::vector<Expr>& lemma,
     }
   }
 
-  Trace("pf::tp") << "TheoryProof::printTheoryLemmaProof - calling th->check()" << std::endl;
+  Trace("pf::tp") << "TheoryProof::printTheoryLemmaProof - calling th->check()"
+                  << std::endl;
   th->check(theory::Theory::EFFORT_FULL);
-  Trace("pf::tp") << "TheoryProof::printTheoryLemmaProof - th->check() DONE" << std::endl;
+  Trace("pf::tp") << "TheoryProof::printTheoryLemmaProof - th->check() DONE"
+                  << std::endl;
 
   if(!oc.hasConflict()) {
     Trace("pf::tp") << "; conflict is null" << std::endl;
@@ -1112,7 +1158,8 @@ void TheoryProof::printTheoryLemmaProof(std::vector<Expr>& lemma,
     Trace("pf::tp") << "; ++ but got lemma: " << lastLemma << std::endl;
 
     if (lastLemma.getKind() == kind::OR) {
-      Trace("pf::tp") << "OR lemma. Negating each child separately" << std::endl;
+      Trace("pf::tp") << "OR lemma. Negating each child separately"
+                      << std::endl;
       for (unsigned i = 0; i < lastLemma.getNumChildren(); ++i) {
         if (lastLemma[i].getKind() == kind::NOT) {
           Trace("pf::tp") << ";     asserting fact: " << lastLemma[i][0] << std::endl;
@@ -1142,12 +1189,17 @@ void TheoryProof::printTheoryLemmaProof(std::vector<Expr>& lemma,
   } else {
     Trace("pf::tp") << "Calling   oc.d_proof->toStream(os)" << std::endl;
     oc.getConflictProof().toStream(os, map);
-    Trace("pf::tp") << "Calling   oc.d_proof->toStream(os) -- DONE!" << std::endl;
+    Trace("pf::tp") << "Calling   oc.d_proof->toStream(os) -- DONE!"
+                    << std::endl;
   }
 
-  Trace("pf::tp") << "About to delete the theory solver used for proving the lemma... " << std::endl;
+  Trace("pf::tp")
+      << "About to delete the theory solver used for proving the lemma... "
+      << std::endl;
   delete th;
-  Trace("pf::tp") << "About to delete the theory solver used for proving the lemma: DONE! " << std::endl;
+  Trace("pf::tp")
+      << "About to delete the theory solver used for proving the lemma: DONE! "
+      << std::endl;
 }
 
 bool TheoryProofEngine::supportedTheory(theory::TheoryId id) {
@@ -1383,8 +1435,8 @@ bool TheoryProof::match(TNode n1, TNode n2)
   {
     n2 = pm->lookupOp(n2);
   }
-  Trace(ufProof ? "pf::uf" : "mgd") << "+ match " << n1 << " " << n2
-                                    << std::endl;
+  Trace(ufProof ? "pf::uf" : "mgd")
+      << "+ match " << n1 << " " << n2 << std::endl;
   if (!ufProof)
   {
     Trace("pf::array") << "+ match: step 1" << std::endl;
@@ -1494,15 +1546,15 @@ int TheoryProof::assertAndPrint(
     else if (pf.d_children[i]->d_id == theory::eq::MERGED_THROUGH_CONGRUENCE
              && pf.d_children[i]->d_node.isNull())
     {
-      Trace("pf::" + theoryName) << "Handling congruence over equalities"
-                                 << std::endl;
+      Trace("pf::" + theoryName)
+          << "Handling congruence over equalities" << std::endl;
 
       // Gather the sequence of consecutive congruence closures.
       std::vector<std::shared_ptr<const theory::eq::EqProof>>
           congruenceClosures;
       unsigned count;
-      Trace("pf::" + theoryName) << "Collecting congruence sequence"
-                                 << std::endl;
+      Trace("pf::" + theoryName)
+          << "Collecting congruence sequence" << std::endl;
       for (count = 0; i + count < pf.d_children.size()
                       && pf.d_children[i + count]->d_id
                              == theory::eq::MERGED_THROUGH_CONGRUENCE
@@ -1526,8 +1578,8 @@ int TheoryProof::assertAndPrint(
 
       if ((i == 0) || (i == 1 && neg == 0))
       {
-        Trace("pf::" + theoryName) << "Target does not appear before"
-                                   << std::endl;
+        Trace("pf::" + theoryName)
+            << "Target does not appear before" << std::endl;
         targetAppearsBefore = false;
       }
 
@@ -1535,8 +1587,8 @@ int TheoryProof::assertAndPrint(
           || (!pf.d_children[i + count]->d_node.isNull()
               && pf.d_children[i + count]->d_node.getKind() == kind::NOT))
       {
-        Trace("pf::" + theoryName) << "Target does not appear after"
-                                   << std::endl;
+        Trace("pf::" + theoryName)
+            << "Target does not appear after" << std::endl;
         targetAppearsAfter = false;
       }
 
@@ -1661,12 +1713,12 @@ std::pair<Node, Node> TheoryProof::identicalEqualitiesPrinterHelper(
     // If the length is even, we need to apply transitivity for the "correct"
     // hand of the equality.
 
-    Trace("pf::" + theoryName) << "Equality sequence of even length"
-                               << std::endl;
+    Trace("pf::" + theoryName)
+        << "Equality sequence of even length" << std::endl;
     Trace("pf::" + theoryName) << "n1 is: " << n << std::endl;
     Trace("pf::" + theoryName) << "pf-d_node is: " << pf.d_node << std::endl;
-    Trace("pf::" + theoryName) << "Next node is: " << nodeAfterEqualitySequence
-                               << std::endl;
+    Trace("pf::" + theoryName)
+        << "Next node is: " << nodeAfterEqualitySequence << std::endl;
 
     (*outStream) << "(trans _ _ _ _ ";
 
@@ -1729,8 +1781,8 @@ std::pair<Node, Node> TheoryProof::identicalEqualitiesPrinterHelper(
   }
   else
   {
-    Trace("pf::" + theoryName) << "Equality sequence length is odd!"
-                               << std::endl;
+    Trace("pf::" + theoryName)
+        << "Equality sequence length is odd!" << std::endl;
     (*outStream).str(subproofStr);
   }
 

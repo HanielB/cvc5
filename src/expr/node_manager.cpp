@@ -53,7 +53,6 @@ struct ScopedBool {
 
   ScopedBool(bool& value) :
     d_value(value) {
-
     Trace("gc") << ">> setting ScopedBool\n";
     d_value = true;
   }
@@ -73,7 +72,6 @@ struct NVReclaim {
 
   NVReclaim(NodeValue*& deletionField) :
     d_deletionField(deletionField) {
-
     Trace("gc") << ">> setting NVRECLAIM field\n";
   }
 
@@ -219,16 +217,15 @@ NodeManager::~NodeManager() {
 
   poolRemove( &expr::NodeValue::null() );
 
-  if(Trace.isOn("gc:leaks")) {
+  if (Trace.isOn("gc:leaks"))
+  {
     Trace("gc:leaks") << "still in pool:" << endl;
     for(NodeValuePool::const_iterator i = d_nodeValuePool.begin(),
           iend = d_nodeValuePool.end();
         i != iend;
         ++i) {
-      Trace("gc:leaks") << "  " << *i
-                        << " id=" << (*i)->d_id
-                        << " rc=" << (*i)->d_rc
-                        << " " << **i << endl;
+      Trace("gc:leaks") << "  " << *i << " id=" << (*i)->d_id
+                        << " rc=" << (*i)->d_rc << " " << **i << endl;
     }
     Trace("gc:leaks") << ":end:" << endl;
   }
@@ -312,9 +309,10 @@ void NodeManager::reclaimZombies() {
 
     // collect ONLY IF still zero
     if(nv->d_rc == 0) {
-      if(Trace.isOn("gc")) {
-        Trace("gc") << "deleting node value " << nv
-                    << " [" << nv->d_id << "]: ";
+      if (Trace.isOn("gc"))
+      {
+        Trace("gc") << "deleting node value " << nv << " [" << nv->d_id
+                    << "]: ";
         nv->printAst(Trace("gc"));
         Trace("gc") << endl;
       }
@@ -424,8 +422,9 @@ TypeNode NodeManager::getType(TNode n, bool check)
   bool hasType = getAttribute(n, TypeAttr(), typeNode);
   bool needsCheck = check && !getAttribute(n, TypeCheckedAttr());
 
-
-  Trace("getType") << this << " getting type for " << &n << " " << n << ", check=" << check << ", needsCheck = " << needsCheck << ", hasType = " << hasType << endl;
+  Trace("getType") << this << " getting type for " << &n << " " << n
+                   << ", check=" << check << ", needsCheck = " << needsCheck
+                   << ", hasType = " << hasType << endl;
 
 #ifdef CVC4_DEBUG
   // already did type check eagerly upon creation in node builder
@@ -478,7 +477,8 @@ TypeNode NodeManager::getType(TNode n, bool check)
   /* The check should have happened, if we asked for it. */
   Assert(!check || getAttribute(n, TypeCheckedAttr()));
 
-  Trace("getType") << "type of " << &n << " " <<  n << " is " << typeNode << endl;
+  Trace("getType") << "type of " << &n << " " << n << " is " << typeNode
+                   << endl;
   return typeNode;
 }
 

@@ -20,7 +20,8 @@
 namespace CVC4 {
 
 void SkolemizationManager::registerSkolem(Node disequality, Node skolem) {
-  Trace("pf::pm") << "SkolemizationManager: registerSkolem: disequality = " << disequality << ", skolem = " << skolem << std::endl;
+  Trace("pf::pm") << "SkolemizationManager: registerSkolem: disequality = "
+                  << disequality << ", skolem = " << skolem << std::endl;
 
   if (isSkolem(skolem)) {
     Assert(d_skolemToDisequality[skolem] == disequality);
@@ -39,7 +40,8 @@ Node SkolemizationManager::getSkolem(Node disequality) {
   Trace("pf::pm") << "SkolemizationManager: getSkolem( ";
   Assert(d_disequalityToSkolem.find(disequality)
          != d_disequalityToSkolem.end());
-  Trace("pf::pm") << disequality << " ) = " << d_disequalityToSkolem[disequality] << std::endl;
+  Trace("pf::pm") << disequality
+                  << " ) = " << d_disequalityToSkolem[disequality] << std::endl;
   return d_disequalityToSkolem[disequality];
 }
 

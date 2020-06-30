@@ -157,23 +157,22 @@ void ContextObj::update()
 
   // Link the "saved" object in place of this ContextObj in the scope
   // we're moving it FROM.
-  Trace("context") << "in update(" << this
-                   << "): next() == " << next() << std::endl;
+  Trace("context") << "in update(" << this << "): next() == " << next()
+                   << std::endl;
   if(next() != NULL) {
     Trace("context") << "in update(" << this
                      << "): next()->prev() == " << next()->prev() << std::endl;
     next()->prev() = &pContextObjSaved->next();
-    Trace("context") << "in update(" << this
-                     << "): next()->prev() is now "
+    Trace("context") << "in update(" << this << "): next()->prev() is now "
                      << next()->prev() << std::endl;
   }
-  Trace("context") << "in update(" << this
-                   << "): prev() == " << prev() << std::endl;
-  Trace("context") << "in update(" << this
-                   << "): *prev() == " << *prev() << std::endl;
+  Trace("context") << "in update(" << this << "): prev() == " << prev()
+                   << std::endl;
+  Trace("context") << "in update(" << this << "): *prev() == " << *prev()
+                   << std::endl;
   *prev() = pContextObjSaved;
-  Trace("context") << "in update(" << this
-                   << "): *prev() is now " << *prev() << std::endl;
+  Trace("context") << "in update(" << this << "): *prev() is now " << *prev()
+                   << std::endl;
 
   Trace("context") << "in update(" << this << ") with restore "
                    << pContextObjSaved << ": waypoint 3" << std::endl
@@ -240,7 +239,8 @@ void ContextObj::destroy()
   /* Context can be big and complicated, so we only want to process this output
    * if we're really going to use it. (Same goes below.) */
   Trace("context") << "before destroy " << this << " (level " << getLevel()
-                   << "):" << std::endl << *getContext() << std::endl;
+                   << "):" << std::endl
+                   << *getContext() << std::endl;
 
   for(;;) {
     // If valgrind reports invalid writes on the next few lines,
@@ -272,7 +272,8 @@ ContextObj::ContextObj(Context* pContext) :
   d_ppContextObjPrev(NULL) {
   Assert(pContext != NULL) << "NULL context pointer";
 
-  Trace("context") << "create new ContextObj(" << this << " inCMM=false)" << std::endl;
+  Trace("context") << "create new ContextObj(" << this << " inCMM=false)"
+                   << std::endl;
   d_pScope = pContext->getBottomScope();
   d_pScope->addToChain(this);
 }
@@ -285,7 +286,8 @@ ContextObj::ContextObj(bool allocatedInCMM, Context* pContext) :
   d_ppContextObjPrev(NULL) {
   Assert(pContext != NULL) << "NULL context pointer";
 
-  Trace("context") << "create new ContextObj(" << this << " inCMM=" << allocatedInCMM << ")" << std::endl;
+  Trace("context") << "create new ContextObj(" << this
+                   << " inCMM=" << allocatedInCMM << ")" << std::endl;
   if(allocatedInCMM) {
     d_pScope = pContext->getTopScope();
   } else {

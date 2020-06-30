@@ -242,8 +242,8 @@ inline std::string AntlrInput::tokenText(pANTLR3_COMMON_TOKEN token) {
    * of (end-start+1) bytes beginning at start. */
   std::string txt( (const char *)start, end-start+1 );
   Trace("parser-extra") << "tokenText: start=" << start << std::endl
-                        <<  "end=" << end << std::endl
-                        <<  "txt='" << txt << "'" << std::endl;
+                        << "end=" << end << std::endl
+                        << "txt='" << txt << "'" << std::endl;
   return txt;
 }
 

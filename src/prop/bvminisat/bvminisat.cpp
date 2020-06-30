@@ -58,7 +58,7 @@ void BVMinisatSatSolver::setNotify(BVSatSolverNotify* notify) {
 
 ClauseId BVMinisatSatSolver::addClause(SatClause& clause,
                                        bool removable) {
-  Trace("sat::minisat") << "Add clause " << clause <<"\n";
+  Trace("sat::minisat") << "Add clause " << clause << "\n";
   BVMinisat::vec<BVMinisat::Lit> minisat_clause;
   toMinisatClause(clause, minisat_clause);
   // for(unsigned i = 0; i < minisat_clause.size(); ++i) {

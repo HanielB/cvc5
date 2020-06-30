@@ -260,8 +260,7 @@ void BoolToBV::visit(const TNode& n, bool allowIteIntroduction)
                            fromCache(n),
                            bv::utils::mkOne(1),
                            bv::utils::mkZero(1)));
-    Trace("bool-to-bv") << "BoolToBV::visit forcing " << n
-                        << " =>\n"
+    Trace("bool-to-bv") << "BoolToBV::visit forcing " << n << " =>\n"
                         << fromCache(n) << std::endl;
     ++(d_statistics.d_numIntroducedItes);
     return;
@@ -280,16 +279,14 @@ void BoolToBV::visit(const TNode& n, bool allowIteIntroduction)
     // with ITE introductions
     updateCache(
         n, nm->mkNode(kind::ITE, n, bv::utils::mkOne(1), bv::utils::mkZero(1)));
-    Trace("bool-to-bv") << "BoolToBV::visit forcing " << n
-                        << " =>\n"
+    Trace("bool-to-bv") << "BoolToBV::visit forcing " << n << " =>\n"
                         << fromCache(n) << std::endl;
     ++(d_statistics.d_numIntroducedItes);
   }
   else
   {
     // do nothing
-    Trace("bool-to-bv") << "BoolToBV::visit skipping: " << n
-                        << std::endl;
+    Trace("bool-to-bv") << "BoolToBV::visit skipping: " << n << std::endl;
   }
 }
 

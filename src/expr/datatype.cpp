@@ -277,7 +277,8 @@ void Datatype::addSygusConstructor(Expr op,
   DatatypeConstructor c(name, cweight);
   c.setSygus(op, spc);
   for( unsigned j=0; j<cargs.size(); j++ ){
-    Trace("parser-sygus-debug") << "  arg " << j << " : " << cargs[j] << std::endl;
+    Trace("parser-sygus-debug")
+        << "  arg " << j << " : " << cargs[j] << std::endl;
     std::stringstream sname;
     sname << name << "_" << j;
     c.addArg(sname.str(), cargs[j]);

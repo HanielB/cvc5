@@ -87,7 +87,7 @@ SatLiteral DecisionEngine::getNext(bool& stopSearch)
 
 bool DecisionEngine::isRelevant(SatVariable var)
 {
-  Trace("decision") << "isRelevant(" << var <<")" << std::endl;
+  Trace("decision") << "isRelevant(" << var << ")" << std::endl;
   if (d_relevancyStrategy != nullptr)
   {
     //Assert(d_cnfStream->hasNode(var));
@@ -101,7 +101,7 @@ bool DecisionEngine::isRelevant(SatVariable var)
 
 SatValue DecisionEngine::getPolarity(SatVariable var)
 {
-  Trace("decision") << "getPolarity(" << var <<")" << std::endl;
+  Trace("decision") << "getPolarity(" << var << ")" << std::endl;
   if (d_relevancyStrategy != nullptr)
   {
     Assert(isRelevant(var));

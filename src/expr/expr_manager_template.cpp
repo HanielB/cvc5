@@ -1098,7 +1098,8 @@ TypeNode exportTypeInternal(TypeNode n, NodeManager* from, NodeManager* to, Expr
   Type from_t = from->toType(n);
   Type& to_t = vmap.d_typeMap[from_t];
   if(! to_t.isNull()) {
-    Trace("export") << "+ mapped `" << from_t << "' to `" << to_t << "'" << std::endl;
+    Trace("export") << "+ mapped `" << from_t << "' to `" << to_t << "'"
+                    << std::endl;
     return *Type::getTypeNode(to_t);
   }
   NodeBuilder<> children(to, n.getKind());

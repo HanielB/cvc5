@@ -380,7 +380,8 @@ bool Solver::satisfied(const Clause& clause) const
 //
 void Solver::cancelUntil(int level) {
     if (decisionLevel() > level){
-      Trace("bvminisat::explain") << OUTPUT_TAG << " backtracking to " << level << std::endl;
+      Trace("bvminisat::explain")
+          << OUTPUT_TAG << " backtracking to " << level << std::endl;
       for (int clause = trail.size() - 1; clause >= trail_lim[level]; clause--)
       {
         Var x = var(trail[clause]);
@@ -1103,7 +1104,8 @@ lbool Solver::search(int nof_conflicts, UIP uip)
               }
               analyzeFinal(p, conflict);
               if(d_bvp){ d_bvp->endBVConflict(conflict); }
-              Trace("bvminisat::search") << OUTPUT_TAG << " conflict on assumptions " << std::endl;
+              Trace("bvminisat::search")
+                  << OUTPUT_TAG << " conflict on assumptions " << std::endl;
               return l_False;
             }
 
@@ -1171,15 +1173,18 @@ lbool Solver::search(int nof_conflicts, UIP uip)
 
             // Simplify the set of problem clauses:
             if (decisionLevel() == 0 && !simplify()) {
-                Trace("bvminisat::search") << OUTPUT_TAG << " base level conflict, we're unsat" << std::endl;
-                return l_False;
+              Trace("bvminisat::search")
+                  << OUTPUT_TAG << " base level conflict, we're unsat"
+                  << std::endl;
+              return l_False;
             }
 
             // We can't erase clauses if there is unprocessed assumptions, there might be some
             // propagationg we need to redu
             if (decisionLevel() >= assumptions.size() && learnts.size()-nAssigns() >= max_learnts) {
                 // Reduce the set of learnt clauses:
-                Trace("bvminisat::search") << OUTPUT_TAG << " cleaning up database" << std::endl;
+                Trace("bvminisat::search")
+                    << OUTPUT_TAG << " cleaning up database" << std::endl;
                 reduceDB();
             }
 
@@ -1196,7 +1201,9 @@ lbool Solver::search(int nof_conflicts, UIP uip)
                     if(d_bvp){  d_bvp->markAssumptionConflict(); }
                     analyzeFinal(~p, conflict);
                     if(d_bvp){ d_bvp->endBVConflict(conflict); }
-                    Trace("bvminisat::search") << OUTPUT_TAG << " assumption false, we're unsat" << std::endl;
+                    Trace("bvminisat::search")
+                        << OUTPUT_TAG << " assumption false, we're unsat"
+                        << std::endl;
                     return l_False;
                 }else{
                     marker[var(p)] = 2;
@@ -1208,7 +1215,9 @@ lbool Solver::search(int nof_conflicts, UIP uip)
             if (next == lit_Undef){
 
                 if (only_bcp) {
-                  Trace("bvminisat::search") << OUTPUT_TAG << " only bcp, skipping rest of the problem" << std::endl;
+                  Trace("bvminisat::search")
+                      << OUTPUT_TAG << " only bcp, skipping rest of the problem"
+                      << std::endl;
                   return l_True;
                 }
 
@@ -1217,9 +1226,10 @@ lbool Solver::search(int nof_conflicts, UIP uip)
                 next = pickBranchLit();
 
                 if (next == lit_Undef) {
-                    Trace("bvminisat::search") << OUTPUT_TAG << " satisfiable" << std::endl;
-                    // Model found:
-                    return l_True;
+                  Trace("bvminisat::search")
+                      << OUTPUT_TAG << " satisfiable" << std::endl;
+                  // Model found:
+                  return l_True;
                 }
             }
 
@@ -1276,28 +1286,39 @@ static double luby(double y, int x){
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve_()
 {
-    Trace("bvminisat") <<"BVMinisat::Solving learned clauses " << learnts.size() <<"\n";
-    Trace("bvminisat") <<"BVMinisat::Solving assumptions " << assumptions.size() <<"\n";
+  Trace("bvminisat") << "BVMinisat::Solving learned clauses " << learnts.size()
+                     << "\n";
+  Trace("bvminisat") << "BVMinisat::Solving assumptions " << assumptions.size()
+                     << "\n";
 
-    model.clear();
-    conflict.clear();
+  model.clear();
+  conflict.clear();
 
-    ccmin_mode = 0;
-    
-    if (!ok) return l_False;
+  ccmin_mode = 0;
 
-    solves++;
+  if (!ok) return l_False;
 
-    max_learnts               = nClauses() * learntsize_factor;
-    learntsize_adjust_confl   = learntsize_adjust_start_confl;
-    learntsize_adjust_cnt     = (int)learntsize_adjust_confl;
-    lbool   status            = l_Undef;
+  solves++;
 
-    if (verbosity >= 1){
-        printf("============================[ Search Statistics ]==============================\n");
-        printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
-        printf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
-        printf("===============================================================================\n");
+  max_learnts = nClauses() * learntsize_factor;
+  learntsize_adjust_confl = learntsize_adjust_start_confl;
+  learntsize_adjust_cnt = (int)learntsize_adjust_confl;
+  lbool status = l_Undef;
+
+  if (verbosity >= 1)
+  {
+    printf(
+        "============================[ Search Statistics "
+        "]==============================\n");
+    printf(
+        "| Conflicts |          ORIGINAL         |          LEARNT          | "
+        "Progress |\n");
+    printf(
+        "|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |  "
+        "        |\n");
+    printf(
+        "======================================================================"
+        "=========\n");
     }
 
     // Search:
@@ -1327,7 +1348,8 @@ lbool Solver::solve_()
 // 
 
 void Solver::explain(Lit p, std::vector<Lit>& explanation) {
-  Trace("bvminisat::explain") << OUTPUT_TAG << "starting explain of " << p << std::endl;
+  Trace("bvminisat::explain")
+      << OUTPUT_TAG << "starting explain of " << p << std::endl;
 
   // top level fact, no explanation necessary
   if (level(var(p)) == 0) {
@@ -1525,8 +1547,8 @@ void Solver::garbageCollect()
 {
     // Initialize the next region to a size corresponding to the estimated utilization degree. This
     // is not precise but should avoid some unnecessary reallocations for the new region:
-    ClauseAllocator to(ca.size() - ca.wasted()); 
-    Trace("bvminisat") << " BVMinisat::Garbage collection \n"; 
+    ClauseAllocator to(ca.size() - ca.wasted());
+    Trace("bvminisat") << " BVMinisat::Garbage collection \n";
     relocAll(to);
     if (verbosity >= 2)
         printf("|  Garbage collection:   %12d bytes => %12d bytes             |\n", 

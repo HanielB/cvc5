@@ -46,8 +46,8 @@ void BitVectorProof::setBitblaster(theory::bv::TBitblaster<Node>* bb)
 
 void BitVectorProof::registerTermBB(Expr term)
 {
-  Trace("pf::bv") << "BitVectorProof::registerTermBB( " << term
-                  << " )" << std::endl;
+  Trace("pf::bv") << "BitVectorProof::registerTermBB( " << term << " )"
+                  << std::endl;
 
   if (d_seenBBTerms.find(term) != d_seenBBTerms.end()) return;
 
@@ -68,8 +68,8 @@ void BitVectorProof::registerTermBB(Expr term)
 }
 
 void BitVectorProof::registerAtomBB(Expr atom, Expr atom_bb) {
-  Trace("pf::bv") << "BitVectorProof::registerAtomBB( " << atom
-                  << ", " << atom_bb << " )" << std::endl;
+  Trace("pf::bv") << "BitVectorProof::registerAtomBB( " << atom << ", "
+                  << atom_bb << " )" << std::endl;
 
   Expr def = atom.eqExpr(atom_bb);
   d_bbAtoms.insert(std::make_pair(atom, def));
@@ -414,7 +414,8 @@ void BitVectorProof::printAliasingDeclarations(std::ostream& os,
   ExprToString::const_iterator end = d_assignedAliases.end();
 
   for (; it != end; ++it) {
-    Trace("pf::bv") << "Printing aliasing declaration for: " << *it << std::endl;
+    Trace("pf::bv") << "Printing aliasing declaration for: " << *it
+                    << std::endl;
     std::stringstream declaration;
     declaration << ".fbvd" << d_aliasToBindDeclaration.size();
     d_aliasToBindDeclaration[it->second] = declaration.str();

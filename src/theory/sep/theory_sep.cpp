@@ -103,10 +103,11 @@ Theory::PPAssertStatus TheorySep::ppAssert(TNode in, SubstitutionMap& outSubstit
 
 bool TheorySep::propagate(TNode literal)
 {
-  Trace("sep") << "TheorySep::propagate(" << literal  << ")" << std::endl;
+  Trace("sep") << "TheorySep::propagate(" << literal << ")" << std::endl;
   // If already in conflict, no more propagation
   if (d_conflict) {
-    Trace("sep") << "TheorySep::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("sep") << "TheorySep::propagate(" << literal
+                 << "): already in conflict" << std::endl;
     return false;
   }
   bool ok = d_out->propagate(literal);

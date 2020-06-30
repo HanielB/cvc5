@@ -100,7 +100,8 @@ void BitblastSolver::bitblastQueue() {
   while (!d_bitblastQueue.empty()) {
     TNode atom = d_bitblastQueue.front();
     d_bitblastQueue.pop();
-    Trace("bv-bitblast-queue") << "BitblastSolver::bitblastQueue (" << atom << ")\n";
+    Trace("bv-bitblast-queue")
+        << "BitblastSolver::bitblastQueue (" << atom << ")\n";
     if (options::bvAbstraction() &&
         d_abstractionModule->isLemmaAtom(atom)) {
       // don't bit-blast lemma atoms
@@ -109,7 +110,7 @@ void BitblastSolver::bitblastQueue() {
     if( !utils::isBitblastAtom(atom) ){
       continue;
     }
-    Trace("bitblast-queue") << "Bitblasting atom " << atom <<"\n";
+    Trace("bitblast-queue") << "Bitblasting atom " << atom << "\n";
     {
       TimerStat::CodeTimer codeTimer(d_bitblaster->d_statistics.d_bitblastTimer);
       d_bitblaster->bbAtom(atom);

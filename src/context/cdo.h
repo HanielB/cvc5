@@ -70,10 +70,10 @@ protected:
    */
   void restore(ContextObj* pContextObj) override
   {
-    //Trace("context") << "restore cdo " << this;
+    // Trace("context") << "restore cdo " << this;
     CDO<T>* p = static_cast<CDO<T>*>(pContextObj);
     d_data = p->d_data;
-    //Trace("context") << " to " << get() << std::endl;
+    // Trace("context") << " to " << get() << std::endl;
     // Explicitly call destructor as it will not otherwise get called.
     p->d_data.~T();
   }

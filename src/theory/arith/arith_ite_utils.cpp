@@ -434,7 +434,6 @@ bool ArithIteUtils::solveBinOr(TNode binor){
     }
     Trace("arith::ite") << "selected " << sel << endl;
     if(sel.isVar() && sel.getKind() != kind::SKOLEM){
-
       Trace("arith::ite") << "others l:" << otherL << " r " << otherR << endl;
       Node useForCmpL = selectForCmp(otherL);
       Node useForCmpR = selectForCmp(otherR);

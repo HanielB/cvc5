@@ -276,9 +276,10 @@ class NodeManager {
 
     // if d_reclaiming is set, make sure we don't call
     // reclaimZombies(), because it's already running.
-    if(Trace.isOn("gc")) {
-      Trace("gc") << "zombifying node value " << nv
-                  << " [" << nv->d_id << "]: ";
+    if (Trace.isOn("gc"))
+    {
+      Trace("gc") << "zombifying node value " << nv << " [" << nv->d_id
+                  << "]: ";
       nv->printAst(Trace("gc"));
       Trace("gc") << (d_inReclaimZombies ? " [CURRENTLY-RECLAIMING]" : "")
                   << std::endl;
@@ -309,9 +310,10 @@ class NodeManager {
    */
   inline void markRefCountMaxedOut(expr::NodeValue* nv) {
     Assert(nv->HasMaximizedReferenceCount());
-    if(Trace.isOn("gc")) {
-      Trace("gc") << "marking node value " << nv
-                  << " [" << nv->d_id << "]: as maxed out" << std::endl;
+    if (Trace.isOn("gc"))
+    {
+      Trace("gc") << "marking node value " << nv << " [" << nv->d_id
+                  << "]: as maxed out" << std::endl;
     }
     d_maxedOut.push_back(nv);
   }
@@ -1047,8 +1049,8 @@ public:
     //Assert(nm != NULL);
     NodeManager::s_current = nm;
     //Options::s_current = nm ? nm->d_options : NULL;
-    Trace("current") << "node manager scope: "
-                     << NodeManager::s_current << "\n";
+    Trace("current") << "node manager scope: " << NodeManager::s_current
+                     << "\n";
   }
 
   ~NodeManagerScope() {
@@ -1143,8 +1145,8 @@ inline TypeNode NodeManager::mkArrayType(TypeNode indexType,
                 constituentType,
                 "cannot store types that are not first-class in arrays. Try "
                 "option --uf-ho.");
-  Trace("arrays") << "making array type " << indexType << " "
-                  << constituentType << std::endl;
+  Trace("arrays") << "making array type " << indexType << " " << constituentType
+                  << std::endl;
   return mkTypeNode(kind::ARRAY_TYPE, indexType, constituentType);
 }
 
@@ -1554,9 +1556,9 @@ NodeClass NodeManager::mkConstInternal(const T& val) {
   new (&nv->d_children) T(val);
 
   poolInsert(nv);
-  if(Trace.isOn("gc")) {
-    Trace("gc") << "creating node value " << nv
-                << " [" << nv->d_id << "]: ";
+  if (Trace.isOn("gc"))
+  {
+    Trace("gc") << "creating node value " << nv << " [" << nv->d_id << "]: ";
     nv->printAst(Trace("gc"));
     Trace("gc") << std::endl;
   }

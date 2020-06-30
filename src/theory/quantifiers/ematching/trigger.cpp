@@ -110,8 +110,8 @@ int Trigger::addInstantiations()
   if( addedLemmas>0 ){
     if (Trace.isOn("inst-trigger"))
     {
-      Trace("inst-trigger") << "Added " << addedLemmas
-                            << " lemmas, trigger was ";
+      Trace("inst-trigger")
+          << "Added " << addedLemmas << " lemmas, trigger was ";
       for (unsigned i = 0; i < d_nodes.size(); i++)
       {
         Trace("inst-trigger") << d_nodes[i] << " ";

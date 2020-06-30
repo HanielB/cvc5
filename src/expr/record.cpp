@@ -44,7 +44,8 @@ Record::Record(const FieldVector& fields)
 Record::Record(const Record& other)
     : d_fields(new FieldVector(other.getFields()))
 {
-  Trace("record") << "copy constructor " << this << " " << d_fields << std::endl;
+  Trace("record") << "copy constructor " << this << " " << d_fields
+                  << std::endl;
 }
 
 Record::~Record() {

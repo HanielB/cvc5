@@ -590,7 +590,9 @@ public:
 
   void getPropagatedLiterals(std::vector<TNode>& literals) {
     for (; d_propagatedLiteralsIndex < d_propagatedLiterals.size(); d_propagatedLiteralsIndex = d_propagatedLiteralsIndex + 1) {
-      Trace("getPropagatedLiterals") << "TheoryEngine::getPropagatedLiterals: propagating: " << d_propagatedLiterals[d_propagatedLiteralsIndex] << std::endl;
+      Trace("getPropagatedLiterals")
+          << "TheoryEngine::getPropagatedLiterals: propagating: "
+          << d_propagatedLiterals[d_propagatedLiteralsIndex] << std::endl;
       literals.push_back(d_propagatedLiterals[d_propagatedLiteralsIndex]);
     }
   }

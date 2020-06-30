@@ -351,9 +351,7 @@ void Monomial::combineAdjacentMonomials(std::vector<Monomial>& monos) {
   Assert(isStrictlySorted(monos));
 }
 
-void Monomial::print() const {
-  Trace("normal-form") <<  getNode() << std::endl;
-}
+void Monomial::print() const { Trace("normal-form") << getNode() << std::endl; }
 
 void Monomial::printList(const std::vector<Monomial>& list) {
   for(vector<Monomial>::const_iterator i = list.begin(), end = list.end(); i != end; ++i) {
@@ -1059,7 +1057,8 @@ bool Comparison::isNormalEqualityOrDisequality() const {
             return false;
           }else{
             Monomial absMinRight = varRight.selectAbsMinimum();
-            Trace("nf::tmp") << mleft.getNode() << " " << absMinRight.getNode() << endl;
+            Trace("nf::tmp")
+                << mleft.getNode() << " " << absMinRight.getNode() << endl;
             if( mleft.absCmp(absMinRight) < 0){
               return true;
             }else{
@@ -1069,11 +1068,10 @@ bool Comparison::isNormalEqualityOrDisequality() const {
         }
       }else{
         if(mleft.coefficientIsOne()){
-          Trace("nf::tmp")
-            << "dfklj " << mleft.getNode() << endl
-            << pright.getNode() << endl
-            << pright.variableMonomialAreStrictlyGreater(mleft)
-            << endl;
+          Trace("nf::tmp") << "dfklj " << mleft.getNode() << endl
+                           << pright.getNode() << endl
+                           << pright.variableMonomialAreStrictlyGreater(mleft)
+                           << endl;
           return pright.variableMonomialAreStrictlyGreater(mleft);
         }else{
           return false;

@@ -67,7 +67,8 @@ void TheoryQuantifiers::preRegisterTerm(TNode n) {
   {
     return;
   }
-  Trace("quantifiers-prereg") << "TheoryQuantifiers::preRegisterTerm() " << n << endl;
+  Trace("quantifiers-prereg")
+      << "TheoryQuantifiers::preRegisterTerm() " << n << endl;
   // Preregister the quantified formula.
   // This initializes the modules used for handling n in this user context.
   getQuantifiersEngine()->preRegisterQuantifier(n);
@@ -106,7 +107,8 @@ bool TheoryQuantifiers::collectModelInfo(TheoryModel* m)
     }
     else
     {
-      Trace("quantifiers::collectModelInfo") << "got quant TRUE : " << *i << endl;
+      Trace("quantifiers::collectModelInfo")
+          << "got quant TRUE : " << *i << endl;
       if (!m->assertPredicate(*i, true))
       {
         return false;

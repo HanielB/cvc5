@@ -48,7 +48,6 @@ void TheoryUFTim::preRegisterTerm(TNode n) {
 }
 
 void TheoryUFTim::registerTerm(TNode n) {
-
   Trace("uf") << "uf: begin registerTerm(" << n << ")" << std::endl;
 
   d_registered.push_back(n);
@@ -136,7 +135,6 @@ void TheoryUFTim::registerTerm(TNode n) {
     }
   }
   Trace("uf") << "uf: end registerTerm(" << n << ")" << std::endl;
-
 }
 
 bool TheoryUFTim::sameCongruenceClass(TNode x, TNode y) {
@@ -299,7 +297,8 @@ void TheoryUFTim::check(Effort level) {
     default: Unhandled() << assertion.getKind();
     }
 
-    Trace("uf") << "TheoryUFTim::check(): done = " << (done() ? "true" : "false") << std::endl;
+    Trace("uf") << "TheoryUFTim::check(): done = "
+                << (done() ? "true" : "false") << std::endl;
   }
 
   //Make sure all outstanding merges are completed.

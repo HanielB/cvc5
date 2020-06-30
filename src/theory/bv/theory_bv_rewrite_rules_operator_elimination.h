@@ -198,7 +198,8 @@ inline bool RewriteRule<RepeatEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<RepeatEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<RepeatEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<RepeatEliminate>(" << node << ")"
+                      << std::endl;
   TNode a = node[0];
   unsigned amount =
       node.getOperator().getConst<BitVectorRepeat>().d_repeatAmount;
@@ -223,7 +224,8 @@ inline bool RewriteRule<RotateLeftEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<RotateLeftEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<RotateLeftEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<RotateLeftEliminate>(" << node << ")"
+                      << std::endl;
   TNode a = node[0];
   unsigned amount =
       node.getOperator().getConst<BitVectorRotateLeft>().d_rotateLeftAmount;
@@ -248,7 +250,8 @@ inline bool RewriteRule<RotateRightEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<RotateRightEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<RotateRightEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<RotateRightEliminate>(" << node << ")"
+                      << std::endl;
   TNode a = node[0];
   unsigned amount =
       node.getOperator().getConst<BitVectorRotateRight>().d_rotateRightAmount;
@@ -273,7 +276,8 @@ inline bool RewriteRule<BVToNatEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<BVToNatEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<BVToNatEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<BVToNatEliminate>(" << node << ")"
+                      << std::endl;
 
   //if( node[0].isConst() ){
     //TODO? direct computation instead of term construction+rewriting
@@ -290,7 +294,8 @@ inline bool RewriteRule<IntToBVEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<IntToBVEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<IntToBVEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<IntToBVEliminate>(" << node << ")"
+                      << std::endl;
 
   //if( node[0].isConst() ){
     //TODO? direct computation instead of term construction+rewriting
@@ -506,7 +511,8 @@ inline bool RewriteRule<ZeroExtendEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<ZeroExtendEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<ZeroExtendEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<ZeroExtendEliminate>(" << node << ")"
+                      << std::endl;
 
   TNode bv = node[0];
   unsigned amount =
@@ -529,7 +535,8 @@ inline bool RewriteRule<SignExtendEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<SignExtendEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<SignExtendEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<SignExtendEliminate>(" << node << ")"
+                      << std::endl;
 
   unsigned amount =
       node.getOperator().getConst<BitVectorSignExtend>().d_signExtendAmount;
@@ -552,7 +559,8 @@ inline bool RewriteRule<RedorEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<RedorEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<RedorEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<RedorEliminate>(" << node << ")"
+                      << std::endl;
   TNode a = node[0];
   unsigned size = utils::getSize(node[0]); 
   Node result = NodeManager::currentNM()->mkNode(kind::EQUAL, a, utils::mkConst( size, 0 ) );
@@ -568,7 +576,8 @@ inline bool RewriteRule<RedandEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<RedandEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<RedandEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<RedandEliminate>(" << node << ")"
+                      << std::endl;
   TNode a = node[0];
   unsigned size = utils::getSize(node[0]); 
   Node result = NodeManager::currentNM()->mkNode(kind::EQUAL, a, utils::mkOnes( size ) );

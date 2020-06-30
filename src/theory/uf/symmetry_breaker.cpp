@@ -83,13 +83,15 @@ bool SymmetryBreaker::Template::matchRecursive(TNode t, TNode n) {
   if(t.getNumChildren() == 0) {
     if(t.isConst()) {
       Assert(n.isConst());
-      Trace("ufsymm:match") << "UFSYMM we have constants, failing match" << endl;
+      Trace("ufsymm:match")
+          << "UFSYMM we have constants, failing match" << endl;
       return false;
     }
     Assert(t.isVar() && n.isVar());
     t = find(t);
     n = find(n);
-    Trace("ufsymm:match") << "UFSYMM variable match " << t << " , " << n << endl;
+    Trace("ufsymm:match") << "UFSYMM variable match " << t << " , " << n
+                          << endl;
     Trace("ufsymm:match") << "UFSYMM sets: " << t << " =>";
     if(d_sets.find(t) != d_sets.end()) {
       for(set<TNode>::iterator i = d_sets[t].begin(); i != d_sets[t].end(); ++i) {
@@ -107,18 +109,21 @@ bool SymmetryBreaker::Template::matchRecursive(TNode t, TNode n) {
       Trace("ufsymm:match") << endl;
 
       if(d_sets.find(t) == d_sets.end()) {
-        Trace("ufsymm:match") << "UFSYMM inserting " << t << " in with " << n << endl;
+        Trace("ufsymm:match")
+            << "UFSYMM inserting " << t << " in with " << n << endl;
         d_reps[t] = n;
         d_sets[n].insert(t);
       } else {
         if(d_sets.find(n) != d_sets.end()) {
-          Trace("ufsymm:match") << "UFSYMM merging " << n << " and " << t << " in with " << n << endl;
+          Trace("ufsymm:match") << "UFSYMM merging " << n << " and " << t
+                                << " in with " << n << endl;
           d_sets[n].insert(d_sets[t].begin(), d_sets[t].end());
           d_sets[n].insert(t);
           d_reps[t] = n;
           d_sets.erase(t);
         } else {
-          Trace("ufsymm:match") << "UFSYMM inserting " << n << " in with " << t << endl;
+          Trace("ufsymm:match")
+              << "UFSYMM inserting " << n << " in with " << t << endl;
           d_sets[t].insert(n);
           d_reps[n] = t;
         }
@@ -129,7 +134,9 @@ bool SymmetryBreaker::Template::matchRecursive(TNode t, TNode n) {
 
   if(t.getMetaKind() == kind::metakind::PARAMETERIZED) {
     if(t.getOperator() != n.getOperator()) {
-      Trace("ufsymm:match") << "UFSYMM BAD MATCH on operators: " << t.getOperator() << " != " << n.getOperator() << endl;
+      Trace("ufsymm:match")
+          << "UFSYMM BAD MATCH on operators: " << t.getOperator()
+          << " != " << n.getOperator() << endl;
       return false;
     }
   }
@@ -189,7 +196,11 @@ class SBGuard {
   bool d_old;
 public:
   SBGuard(bool& b) : d_ref(b), d_old(b) {}
-  ~SBGuard() { Trace("uf") << "reset to " << d_old << std::endl; d_ref = d_old; }
+  ~SBGuard()
+  {
+    Trace("uf") << "reset to " << d_old << std::endl;
+    d_ref = d_old;
+  }
 };/* class SBGuard */
 
 void SymmetryBreaker::rerunAssertionsIfNecessary() {
@@ -254,7 +265,8 @@ Node SymmetryBreaker::normInternal(TNode n, size_t level) {
               if(level == 0) {
                 d_termEqsOnly[(*i)[0]].insert((*i)[1]);
                 d_termEqsOnly[(*i)[1]].insert((*i)[0]);
-                Trace("ufsymm:eq") << "UFSYMM " << (*i)[0] << " <==> " << (*i)[1] << endl;
+                Trace("ufsymm:eq")
+                    << "UFSYMM " << (*i)[0] << " <==> " << (*i)[1] << endl;
               }
             }
           } else {
@@ -263,7 +275,8 @@ Node SymmetryBreaker::normInternal(TNode n, size_t level) {
         }
       }
     } while(!work.empty());
-    Trace("ufsymm:norm") << "UFSYMM got " << kids.size() << " kids for the " << k << "-kinded Node" << endl;
+    Trace("ufsymm:norm") << "UFSYMM got " << kids.size() << " kids for the "
+                         << k << "-kinded Node" << endl;
     sort(kids.begin(), kids.end());
     return result = NodeManager::currentNM()->mkNode(k, kids);
   }
@@ -345,8 +358,10 @@ Node SymmetryBreaker::normInternal(TNode n, size_t level) {
       }
     } while(!work.empty());
     if(!matchingTerm.isNull()) {
-      if(Trace.isOn("ufsymm:eq")) {
-        Trace("ufsymm:eq") << "UFSYMM here we can conclude that " << matchingTerm << " is one of {";
+      if (Trace.isOn("ufsymm:eq"))
+      {
+        Trace("ufsymm:eq") << "UFSYMM here we can conclude that "
+                           << matchingTerm << " is one of {";
         for(vector<TNode>::const_iterator i = matchingTermEquals.begin(); i != matchingTermEquals.end(); ++i) {
           Trace("ufsymm:eq") << " " << *i;
         }
@@ -354,7 +369,8 @@ Node SymmetryBreaker::normInternal(TNode n, size_t level) {
       }
       d_termEqsOnly[matchingTerm].insert(matchingTermEquals.begin(), matchingTermEquals.end());
     }
-    Trace("ufsymm:norm") << "UFSYMM got " << kids.size() << " kids for the " << k << "-kinded Node" << endl;
+    Trace("ufsymm:norm") << "UFSYMM got " << kids.size() << " kids for the "
+                         << k << "-kinded Node" << endl;
     sort(kids.begin(), kids.end());
     return result = NodeManager::currentNM()->mkNode(k, kids);
   }
@@ -420,13 +436,15 @@ void SymmetryBreaker::assertFormula(TNode phi) {
   if(!d_template.match(phi)) {
     // we hit a bad match, extract the partitions and reset the template
     unordered_map<TNode, set<TNode>, TNodeHashFunction>& ps = d_template.partitions();
-    Trace("ufsymm") << "UFSYMM hit a bad match---have " << ps.size() << " partitions:" << endl;
+    Trace("ufsymm") << "UFSYMM hit a bad match---have " << ps.size()
+                    << " partitions:" << endl;
     for(unordered_map<TNode, set<TNode>, TNodeHashFunction>::iterator i = ps.begin();
         i != ps.end();
         ++i) {
       Trace("ufsymm") << "UFSYMM partition: " << (*i).first;
       set<TNode>& p = (*i).second;
-      if(Trace.isOn("ufsymm")) {
+      if (Trace.isOn("ufsymm"))
+      {
         for(set<TNode>::iterator j = p.begin();
             j != p.end();
             ++j) {
@@ -457,8 +475,9 @@ void SymmetryBreaker::clear() {
 void SymmetryBreaker::apply(std::vector<Node>& newClauses) {
   rerunAssertionsIfNecessary();
   guessPermutations();
-  Trace("ufsymm") << "UFSYMM =====================================================" << endl
-                  << "UFSYMM have " << d_permutations.size() << " permutation sets" << endl;
+  Trace("ufsymm")
+      << "UFSYMM =====================================================" << endl
+      << "UFSYMM have " << d_permutations.size() << " permutation sets" << endl;
   if(!d_permutations.empty()) {
     { TimerStat::CodeTimer codeTimer(d_stats.d_initNormalizationTimer);
       // normalize d_phi
@@ -482,13 +501,16 @@ void SymmetryBreaker::apply(std::vector<Node>& newClauses) {
         selectTerms(p);
         set<Node> cts;
         while(!d_terms.empty() && cts.size() <= n) {
-          Trace("ufsymm") << "UFSYMM ==== top of loop, d_terms.size() == " << d_terms.size() << " , cts.size() == " << cts.size() << " , n == " << n << endl;
+          Trace("ufsymm") << "UFSYMM ==== top of loop, d_terms.size() == "
+                          << d_terms.size() << " , cts.size() == " << cts.size()
+                          << " , n == " << n << endl;
           Terms::iterator ti = selectMostPromisingTerm(d_terms);
           Node t = *ti;
           Trace("ufsymm") << "UFSYMM promising term is " << t << endl;
           d_terms.erase(ti);
           insertUsedIn(t, p, cts);
-          if(Trace.isOn("ufsymm")) {
+          if (Trace.isOn("ufsymm"))
+          {
             if(cts.empty()) {
               Trace("ufsymm") << "UFSYMM cts is empty" << endl;
             } else {
@@ -498,7 +520,8 @@ void SymmetryBreaker::apply(std::vector<Node>& newClauses) {
             }
           }
           TNode c;
-          Trace("ufsymm") << "UFSYMM looking for c \\in " << p << " \\ cts" << endl;
+          Trace("ufsymm") << "UFSYMM looking for c \\in " << p << " \\ cts"
+                          << endl;
           set<TNode>::const_iterator i;
           for(i = p.begin(); i != p.end(); ++i) {
             if(cts.find(*i) == cts.end()) {
@@ -512,7 +535,8 @@ void SymmetryBreaker::apply(std::vector<Node>& newClauses) {
             }
           }
           if(c.isNull()) {
-            Trace("ufsymm") << "UFSYMM can't find a c, restart outer loop" << endl;
+            Trace("ufsymm")
+                << "UFSYMM can't find a c, restart outer loop" << endl;
             break;
           }
           Trace("ufsymm") << "UFSYMM inserting into cts: " << c << endl;
@@ -543,16 +567,23 @@ void SymmetryBreaker::apply(std::vector<Node>& newClauses) {
               disj.clear();
               ++(d_stats.d_units);
             }
-            if(Trace.isOn("ufsymm")) {
-              Trace("ufsymm") << "UFSYMM symmetry-breaking clause: " << d << endl;
-            } else {
-              Trace("ufsymm:clauses") << "UFSYMM symmetry-breaking clause: " << d << endl;
+            if (Trace.isOn("ufsymm"))
+            {
+              Trace("ufsymm")
+                  << "UFSYMM symmetry-breaking clause: " << d << endl;
+            }
+            else
+            {
+              Trace("ufsymm:clauses")
+                  << "UFSYMM symmetry-breaking clause: " << d << endl;
             }
             newClauses.push_back(d);
           } else {
             Trace("ufsymm") << "UFSYMM cts == p" << endl;
           }
-          Trace("ufsymm") << "UFSYMM ==== end of loop, d_terms.size() == " << d_terms.size() << " , cts.size() == " << cts.size() << " , n == " << n << endl;
+          Trace("ufsymm") << "UFSYMM ==== end of loop, d_terms.size() == "
+                          << d_terms.size() << " , cts.size() == " << cts.size()
+                          << " , n == " << n << endl;
         }
       }
     }
@@ -671,7 +702,9 @@ bool SymmetryBreaker::invariantByPermutations(const Permutation& p) {
     }
     Trace("ufsymm") << "UFSYMM P_circ is an inv perm op for " << p << endl;
   } else {
-    Trace("ufsymm") << "UFSYMM no need to check P_circ, since P_circ == P_swap for perm sets of size 2" << endl;
+    Trace("ufsymm") << "UFSYMM no need to check P_circ, since P_circ == P_swap "
+                       "for perm sets of size 2"
+                    << endl;
   }
 
   return true;
@@ -681,14 +714,15 @@ bool SymmetryBreaker::invariantByPermutations(const Permutation& p) {
 template <class T1, class T2>
 static bool isSubset(const T1& s, const T2& t) {
   if(s.size() > t.size()) {
-    //Trace("ufsymm") << "DEBUG ASSERTION FAIL: s not a subset of t "
+    // Trace("ufsymm") << "DEBUG ASSERTION FAIL: s not a subset of t "
     //                << "because size(s) > size(t)" << endl;
     return false;
   }
   for(typename T1::const_iterator si = s.begin(); si != s.end(); ++si) {
     if(t.find(*si) == t.end()) {
-      //Trace("ufsymm") << "DEBUG ASSERTION FAIL: s not a subset of t "
-      //                << "because s element \"" << *si << "\" not in t" << endl;
+      // Trace("ufsymm") << "DEBUG ASSERTION FAIL: s not a subset of t "
+      //                << "because s element \"" << *si << "\" not in t" <<
+      //                endl;
       return false;
     }
   }
@@ -723,12 +757,16 @@ void SymmetryBreaker::selectTerms(const Permutation& p) {
         Trace("ufsymm") << " } is subset of p " << p << std::endl;
         d_terms.insert(d_terms.end(), *i);
       } else {
-        if(Trace.isOn("ufsymm")) {
-          Trace("ufsymm") << "UFSYMM selectTerms() threw away candidate: " << *i << endl;
-          Trace("ufsymm:eq") << "UFSYMM selectTerms() #teq == " << teq.size() << " #p == " << p.size() << endl;
+        if (Trace.isOn("ufsymm"))
+        {
+          Trace("ufsymm") << "UFSYMM selectTerms() threw away candidate: " << *i
+                          << endl;
+          Trace("ufsymm:eq") << "UFSYMM selectTerms() #teq == " << teq.size()
+                             << " #p == " << p.size() << endl;
           TermEq::iterator j;
           for(j = teq.begin(); j != teq.end(); ++j) {
-            Trace("ufsymm:eq") << "UFSYMM              -- teq " << *j << " in " << p << " ?" << endl;
+            Trace("ufsymm:eq") << "UFSYMM              -- teq " << *j << " in "
+                               << p << " ?" << endl;
             if(p.find(*j) == p.end()) {
               Trace("ufsymm") << "UFSYMM              -- because its teq " << *j
                               << " isn't in " << p << endl;
@@ -742,10 +780,12 @@ void SymmetryBreaker::selectTerms(const Permutation& p) {
         }
       }
     } else {
-      Trace("ufsymm") << "selectTerms: don't have data for " << *i << " so can't conclude anything" << endl;
+      Trace("ufsymm") << "selectTerms: don't have data for " << *i
+                      << " so can't conclude anything" << endl;
     }
   }
-  if(Trace.isOn("ufsymm")) {
+  if (Trace.isOn("ufsymm"))
+  {
     for(list<Term>::iterator i = d_terms.begin(); i != d_terms.end(); ++i) {
       Trace("ufsymm") << "UFSYMM selectTerms() returning: " << *i << endl;
     }
@@ -790,7 +830,7 @@ SymmetryBreaker::selectMostPromisingTerm(Terms& terms) {
 
 void SymmetryBreaker::insertUsedIn(Term term, const Permutation& p, set<Node>& cts) {
   // insert terms from p used in term into cts
-  //Trace("ufsymm") << "UFSYMM usedIn(): " << term << " , " << p << endl;
+  // Trace("ufsymm") << "UFSYMM usedIn(): " << term << " , " << p << endl;
   if (p.find(term) != p.end()) {
     cts.insert(term);
   } else {

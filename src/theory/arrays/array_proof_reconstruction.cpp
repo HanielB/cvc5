@@ -42,9 +42,8 @@ void ArrayProofReconstruction::setExtMergeTag(unsigned tag) {
 void ArrayProofReconstruction::notify(
     unsigned reasonType, Node reason, Node a, Node b,
     std::vector<TNode>& equalities, eq::EqProof* proof) const {
-  Trace("pf::array") << "ArrayProofReconstruction::notify( "
-                     << reason << ", " << a << ", " << b << std::endl;
-
+  Trace("pf::array") << "ArrayProofReconstruction::notify( " << reason << ", "
+                     << a << ", " << b << std::endl;
 
   if (reasonType == d_reasonExt) {
     if (proof) {
@@ -100,8 +99,8 @@ void ArrayProofReconstruction::notify(
           Assert(a[0][0] == b[0]);
         }
 
-        Trace("pf::ee") << "Getting explanation for ROW guard: "
-                        << indexOne << " != " << indexTwo << std::endl;
+        Trace("pf::ee") << "Getting explanation for ROW guard: " << indexOne
+                        << " != " << indexTwo << std::endl;
 
         std::shared_ptr<eq::EqProof> childProof =
             std::make_shared<eq::EqProof>();
@@ -173,11 +172,14 @@ void ArrayProofReconstruction::notify(
         Node indexOne = a;
         Node indexTwo = b;
 
-        Trace("pf::ee") << "The two indices are: " << indexOne << ", " << indexTwo << std::endl
-                        << "The reason for the edge is: " << reason << std::endl;
+        Trace("pf::ee") << "The two indices are: " << indexOne << ", "
+                        << indexTwo << std::endl
+                        << "The reason for the edge is: " << reason
+                        << std::endl;
 
         Assert(reason.getNumChildren() == 2);
-        Trace("pf::ee") << "Getting explanation for ROW guard: " << reason[1] << std::endl;
+        Trace("pf::ee") << "Getting explanation for ROW guard: " << reason[1]
+                        << std::endl;
 
         std::shared_ptr<eq::EqProof> childProof =
             std::make_shared<eq::EqProof>();

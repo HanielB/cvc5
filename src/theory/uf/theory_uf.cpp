@@ -127,7 +127,8 @@ void TheoryUF::check(Effort level) {
     TNode fact = assertion.d_assertion;
 
     Trace("uf") << "TheoryUF::check(): processing " << fact << std::endl;
-    Trace("uf") << "Term's theory: " << theory::Theory::theoryOf(fact.toExpr()) << std::endl;
+    Trace("uf") << "Term's theory: " << theory::Theory::theoryOf(fact.toExpr())
+                << std::endl;
 
     if (d_thss != NULL) {
       bool isDecision = d_valuation.isSatLiteral(fact) && d_valuation.isDecision(fact);
@@ -263,10 +264,12 @@ void TheoryUF::preRegisterTerm(TNode node) {
 }/* TheoryUF::preRegisterTerm() */
 
 bool TheoryUF::propagate(TNode literal) {
-  Trace("uf::propagate") << "TheoryUF::propagate(" << literal  << ")" << std::endl;
+  Trace("uf::propagate") << "TheoryUF::propagate(" << literal << ")"
+                         << std::endl;
   // If already in conflict, no more propagation
   if (d_conflict) {
-    Trace("uf::propagate") << "TheoryUF::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("uf::propagate") << "TheoryUF::propagate(" << literal
+                           << "): already in conflict" << std::endl;
     return false;
   }
   // Propagate out
@@ -531,7 +534,9 @@ void TheoryUF::addCarePairs(TNodeTrie* t1,
       Node f1 = t1->getData();
       Node f2 = t2->getData();
       if( !d_equalityEngine.areEqual( f1, f2 ) ){
-        Trace("uf::sharing") << "TheoryUf::computeCareGraph(): checking function " << f1 << " and " << f2 << std::endl;
+        Trace("uf::sharing")
+            << "TheoryUf::computeCareGraph(): checking function " << f1
+            << " and " << f2 << std::endl;
         vector< pair<TNode, TNode> > currentPairs;
         unsigned arg_start_index = getArgumentStartIndexForApplyTerm( f1 );
         for (unsigned k = arg_start_index; k < f1.getNumChildren(); ++ k) {
@@ -550,7 +555,9 @@ void TheoryUF::addCarePairs(TNodeTrie* t1,
           }
         }
         for (unsigned c = 0; c < currentPairs.size(); ++ c) {
-          Trace("uf::sharing") << "TheoryUf::computeCareGraph(): adding to care-graph" << std::endl;
+          Trace("uf::sharing")
+              << "TheoryUf::computeCareGraph(): adding to care-graph"
+              << std::endl;
           addCarePair(currentPairs[c].first, currentPairs[c].second);
         }
       }
@@ -602,7 +609,8 @@ void TheoryUF::computeCareGraph() {
 
   if (d_sharedTerms.size() > 0) {
     //use term indexing
-    Trace("uf::sharing") << "TheoryUf::computeCareGraph(): Build term indices..." << std::endl;
+    Trace("uf::sharing")
+        << "TheoryUf::computeCareGraph(): Build term indices..." << std::endl;
     std::map<Node, TNodeTrie> index;
     std::map< Node, unsigned > arity;
     unsigned functionTerms = d_functionsTerms.size();
@@ -630,7 +638,8 @@ void TheoryUF::computeCareGraph() {
                            << tt.first << "..." << std::endl;
       addCarePairs(&tt.second, nullptr, arity[tt.first], 0);
     }
-    Trace("uf::sharing") << "TheoryUf::computeCareGraph(): finished." << std::endl;
+    Trace("uf::sharing") << "TheoryUf::computeCareGraph(): finished."
+                         << std::endl;
   }
 }/* TheoryUF::computeCareGraph() */
 

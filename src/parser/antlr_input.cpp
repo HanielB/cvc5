@@ -446,9 +446,11 @@ std::string parseErrorHelper(const char* lineStart, int charPositionInLine, cons
         // we found the right place
         string word = slice.substr(caretPos, (caretPosOrig - caretPos + 1));
         size_t matchLoc = wholeWordMatch(message, word, isSimpleChar);
-        Trace("friendlyparser") << "[friendlyparser] matchLoc = " << matchLoc << endl;
+        Trace("friendlyparser")
+            << "[friendlyparser] matchLoc = " << matchLoc << endl;
         if( matchLoc != string::npos ) {
-          Trace("friendlyparser") << "[friendlyparser] Feeling good." << std::endl;
+          Trace("friendlyparser")
+              << "[friendlyparser] Feeling good." << std::endl;
         }
       }
     } else {
@@ -469,11 +471,14 @@ std::string parseErrorHelper(const char* lineStart, int charPositionInLine, cons
           }
           string word = slice.substr(nearestWordSt, (nearestWordEn - nearestWordSt + 1));
           size_t matchLoc = wholeWordMatch(message, word, isSimpleChar);
-          Trace("friendlyparser") << "[friendlyparser] nearest word = " << word << std::endl;
-          Trace("friendlyparser") << "[friendlyparser] matchLoc = " << matchLoc << endl;
+          Trace("friendlyparser")
+              << "[friendlyparser] nearest word = " << word << std::endl;
+          Trace("friendlyparser")
+              << "[friendlyparser] matchLoc = " << matchLoc << endl;
           if( matchLoc != string::npos ) {
-            Trace("friendlyparser") << "[friendlyparser] strong evidence that caret should be at "
-                                    << nearestWordSt << std::endl;
+            Trace("friendlyparser")
+                << "[friendlyparser] strong evidence that caret should be at "
+                << nearestWordSt << std::endl;
             foundCaretPos = true;
           }
           caretPos = nearestWordSt;
@@ -506,10 +511,11 @@ void AntlrInput::parseError(const std::string& message, bool eofException)
                                            message);
 
   Trace("parser") << "Throwing exception: "
-      << (const char*)d_lexer->rec->state->tokSource->fileName->chars << ":"
-      << d_lexer->getLine(d_lexer) << "."
-      << d_lexer->getCharPositionInLine(d_lexer) << ": "
-      << updatedMessage << endl;
+                  << (const char*)
+                         d_lexer->rec->state->tokSource->fileName->chars
+                  << ":" << d_lexer->getLine(d_lexer) << "."
+                  << d_lexer->getCharPositionInLine(d_lexer) << ": "
+                  << updatedMessage << endl;
   if(eofException) {
     throw ParserEndOfFileException(message,
                                    (const char*)d_lexer->rec->state->tokSource->fileName->chars,

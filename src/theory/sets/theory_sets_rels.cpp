@@ -1317,7 +1317,10 @@ void TheorySetsRels::check(Theory::Effort level)
 
   void TupleTrie::debugPrint( const char * c, Node n, unsigned depth ) {
     for( std::map< Node, TupleTrie >::iterator it = d_data.begin(); it != d_data.end(); ++it ){
-      for( unsigned i=0; i<depth; i++ ){ Trace(c) << "  "; }
+      for (unsigned i = 0; i < depth; i++)
+      {
+        Trace(c) << "  ";
+      }
       Trace(c) << it->first << std::endl;
       it->second.debugPrint( c, n, depth+1 );
     }

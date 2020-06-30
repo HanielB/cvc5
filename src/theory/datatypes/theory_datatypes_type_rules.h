@@ -45,8 +45,8 @@ struct DatatypeConstructorTypeRule {
     }
     if (t.isParametricDatatype())
     {
-      Trace("typecheck-idt") << "typecheck parameterized datatype " << n
-                             << std::endl;
+      Trace("typecheck-idt")
+          << "typecheck parameterized datatype " << n << std::endl;
       TypeMatcher m(t);
       for (; child_it != child_it_end; ++child_it, ++tchild_it) {
         TypeNode childType = (*child_it).getType(check);
@@ -114,8 +114,8 @@ struct DatatypeSelectorTypeRule {
     }
     if (t.isParametricDatatype())
     {
-      Trace("typecheck-idt") << "typecheck parameterized sel: " << n
-                             << std::endl;
+      Trace("typecheck-idt")
+          << "typecheck parameterized sel: " << n << std::endl;
       TypeMatcher m(t);
       TypeNode childType = n[0].getType(check);
       if (!childType.isInstantiatedDatatype()) {
@@ -169,8 +169,8 @@ struct DatatypeTesterTypeRule {
       Assert(t.isDatatype());
       if (t.isParametricDatatype())
       {
-        Trace("typecheck-idt") << "typecheck parameterized tester: " << n
-                               << std::endl;
+        Trace("typecheck-idt")
+            << "typecheck parameterized tester: " << n << std::endl;
         TypeMatcher m(t);
         if (!m.doMatching(testType[0], childType)) {
           throw TypeCheckingExceptionPrivate(

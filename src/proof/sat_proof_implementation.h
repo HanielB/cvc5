@@ -122,7 +122,8 @@ bool resolve(const typename Solver::TLit v,
   if (s) {
     // literal appears positive in the first clause
     if (!clause2.count(~var)) {
-      if (Trace.isOn("proof:sat")) {
+      if (Trace.isOn("proof:sat"))
+      {
         Trace("proof:sat") << "proof:resolve: Missing literal ";
         printLit<Solver>(var);
         Trace("proof:sat") << std::endl;
@@ -138,7 +139,8 @@ bool resolve(const typename Solver::TLit v,
   } else {
     // literal appears negative in the first clause
     if (!clause1.count(~var) || !clause2.count(var)) {
-      if (Trace.isOn("proof:sat")) {
+      if (Trace.isOn("proof:sat"))
+      {
         Trace("proof:sat") << "proof:resolve: Missing literal ";
         printLit<Solver>(var);
         Trace("proof:sat") << std::endl;
@@ -308,7 +310,8 @@ bool TSatProof<Solver>::checkResolution(ClauseId id) {
     for (unsigned i = 0; i < c.size(); ++i) {
       int count = clause1.erase(c[i]);
       if (count == 0) {
-        if (Trace.isOn("proof:sat")) {
+        if (Trace.isOn("proof:sat"))
+        {
           Trace("proof:sat")
               << "proof:checkResolution::literal not in computed result ";
           printLit<Solver>(c[i]);
@@ -319,7 +322,8 @@ bool TSatProof<Solver>::checkResolution(ClauseId id) {
     }
     validRes = clause1.empty();
     if (!validRes) {
-      if (Trace.isOn("proof:sat")) {
+      if (Trace.isOn("proof:sat"))
+      {
         Trace("proof:sat") << "proof:checkResolution::Invalid Resolution, "
                               "unremoved literals: \n";
         printLitSet<Solver>(clause1);
@@ -480,7 +484,8 @@ template <class Solver>
 void TSatProof<Solver>::printRes(const ResolutionChain& res) const {
   ClauseId start_id = res.getStart();
 
-  if (Trace.isOn("proof:sat")) {
+  if (Trace.isOn("proof:sat"))
+  {
     Trace("proof:sat") << "(";
     print(start_id);
   }
@@ -490,7 +495,8 @@ void TSatProof<Solver>::printRes(const ResolutionChain& res) const {
     typename Solver::TLit v = steps[i].lit;
     ClauseId id = steps[i].id;
 
-    if (Trace.isOn("proof:sat")) {
+    if (Trace.isOn("proof:sat"))
+    {
       Trace("proof:sat") << "[";
       printLit<Solver>(v);
       Trace("proof:sat") << "] ";
@@ -518,9 +524,9 @@ ClauseId TSatProof<Solver>::registerClause(typename Solver::TCRef clause,
     if (kind == THEORY_LEMMA) {
       Assert(d_lemmaClauses.find(newId) == d_lemmaClauses.end());
       d_lemmaClauses.insert(newId);
-      Trace("pf::sat") << "TSatProof::registerClause registering a new lemma clause: "
-                       << newId << " = " << *buildClause(newId)
-                       << std::endl;
+      Trace("pf::sat")
+          << "TSatProof::registerClause registering a new lemma clause: "
+          << newId << " = " << *buildClause(newId) << std::endl;
     }
   }
 
@@ -528,9 +534,9 @@ ClauseId TSatProof<Solver>::registerClause(typename Solver::TCRef clause,
   Assert(kind != INPUT || d_inputClauses.count(id));
   Assert(kind != THEORY_LEMMA || d_lemmaClauses.count(id));
 
-  Trace("proof:sat:detailed") << "registerClause CRef: " << clause
-                              << " id: " << d_clauseId[clause]
-                              << "                kind: " << kind << "\n";
+  Trace("proof:sat:detailed")
+      << "registerClause CRef: " << clause << " id: " << d_clauseId[clause]
+      << "                kind: " << kind << "\n";
   // ProofManager::currentPM()->setRegisteredClauseId( d_clauseId[clause] );
   return id;
 }
@@ -557,17 +563,17 @@ ClauseId TSatProof<Solver>::registerUnitClause(typename Solver::TLit lit,
     }
     if (kind == THEORY_LEMMA) {
       Assert(d_lemmaClauses.find(newId) == d_lemmaClauses.end());
-      Trace("pf::sat") << "TSatProof::registerUnitClause: registering a new lemma (UNIT CLAUSE): "
-                       << lit
-                       << std::endl;
+      Trace("pf::sat") << "TSatProof::registerUnitClause: registering a new "
+                          "lemma (UNIT CLAUSE): "
+                       << lit << std::endl;
       d_lemmaClauses.insert(newId);
     }
   }
   ClauseId id = d_unitId[toInt(lit)];
   Assert(kind != INPUT || d_inputClauses.count(id));
   Assert(kind != THEORY_LEMMA || d_lemmaClauses.count(id));
-  Trace("proof:sat:detailed") << "registerUnitClause id: " << id
-                              << " kind: " << kind << "\n";
+  Trace("proof:sat:detailed")
+      << "registerUnitClause id: " << id << " kind: " << kind << "\n";
   // ProofManager::currentPM()->setRegisteredClauseId( d_unitId[toInt(lit)] );
   return id;
 }
@@ -616,7 +622,8 @@ ClauseId TSatProof<Solver>::registerAssumptionConflict(
   for (int i = 0; i < confl.size(); ++i) {
     vec_confl->operator[](i) = confl[i];
   }
-  if (Trace.isOn("proof:sat:detailed")) {
+  if (Trace.isOn("proof:sat:detailed"))
+  {
     printClause<Solver>(*vec_confl);
     Trace("proof:sat:detailed") << "\n";
   }
@@ -705,7 +712,8 @@ void TSatProof<Solver>::registerResolution(ClauseId id, ResChain<Solver>* res) {
 
   d_resolutionChains.insert(id, res);
 
-  if (Trace.isOn("proof:sat")) {
+  if (Trace.isOn("proof:sat"))
+  {
     printRes(id);
   }
   if (d_checkRes) {
@@ -829,8 +837,8 @@ ClauseId TSatProof<Solver>::storeUnitConflict(
   Trace("cores") << "STORE UNIT CONFLICT" << std::endl;
   Assert(!d_unitConflictId.isSet());
   d_unitConflictId.set(registerUnitClause(conflict_lit, kind));
-  Trace("proof:sat:detailed") << "storeUnitConflict " << d_unitConflictId.get()
-                              << "\n";
+  Trace("proof:sat:detailed")
+      << "storeUnitConflict " << d_unitConflictId.get() << "\n";
   return d_unitConflictId.get();
 }
 
@@ -855,7 +863,8 @@ void TSatProof<Solver>::finalizeProof(typename Solver::TCRef conflict_ref) {
     conflict_id = registerClause(conflict_ref, LEARNT);  // FIXME
   }
 
-  if (Trace.isOn("proof:sat")) {
+  if (Trace.isOn("proof:sat"))
+  {
     Trace("proof:sat") << "proof::finalizeProof Final Conflict ";
     print(conflict_id);
     Trace("proof:sat") << std::endl;

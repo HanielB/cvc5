@@ -91,11 +91,10 @@ Node RewriteRule<EvalXor>::apply(TNode node) {
 
 // template<> inline
 // Node RewriteRule<EvalXnor>::apply(TNode node) {
-//   Trace("bv-rewrite") << "RewriteRule<EvalXnor>(" << node << ")" << std::endl;
-//   BitVector a = node[0].getConst<BitVector>();
-//   BitVector b = node[1].getConst<BitVector>();
-//   BitVector res = ~ (a ^ b);
-  
+//   Trace("bv-rewrite") << "RewriteRule<EvalXnor>(" << node << ")" <<
+//   std::endl; BitVector a = node[0].getConst<BitVector>(); BitVector b =
+//   node[1].getConst<BitVector>(); BitVector res = ~ (a ^ b);
+
 //   return utils::mkConst(res);
 // }
 template<> inline
@@ -120,16 +119,14 @@ Node RewriteRule<EvalNot>::apply(TNode node) {
 
 // template<> inline
 // Node RewriteRule<EvalComp>::apply(TNode node) {
-//   Trace("bv-rewrite") << "RewriteRule<EvalComp>(" << node << ")" << std::endl;
-//   BitVector a = node[0].getConst<BitVector>();
-//   BitVector b = node[1].getConst<BitVector>();
-//   BitVector res;
-//   if (a == b) {
+//   Trace("bv-rewrite") << "RewriteRule<EvalComp>(" << node << ")" <<
+//   std::endl; BitVector a = node[0].getConst<BitVector>(); BitVector b =
+//   node[1].getConst<BitVector>(); BitVector res; if (a == b) {
 //     res = BitVector(1, Integer(1));
 //   } else {
-//     res = BitVector(1, Integer(0)); 
+//     res = BitVector(1, Integer(0));
 //   }
-  
+
 //   return utils::mkConst(res);
 // }
 
@@ -179,7 +176,7 @@ Node RewriteRule<EvalPlus>::apply(TNode node) {
 //   BitVector a = node[0].getConst<BitVector>();
 //   BitVector b = node[1].getConst<BitVector>();
 //   BitVector res = a - b;
-  
+
 //   return utils::mkConst(res);
 // }
 template<> inline
@@ -352,7 +349,8 @@ Node RewriteRule<EvalSltBv>::apply(TNode node) {
 
 template<> inline
 bool RewriteRule<EvalITEBv>::applies(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<EvalITEBv>::applies(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalITEBv>::applies(" << node << ")"
+                      << std::endl;
   return (node.getKind() == kind::BITVECTOR_ITE &&
           utils::isBvConstTerm(node));
 }
@@ -414,7 +412,8 @@ bool RewriteRule<EvalExtract>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalExtract>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<EvalExtract>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalExtract>(" << node << ")"
+                      << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   unsigned lo = utils::getExtractLow(node);
   unsigned hi = utils::getExtractHigh(node);
@@ -450,7 +449,8 @@ bool RewriteRule<EvalSignExtend>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<EvalSignExtend>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<EvalSignExtend>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<EvalSignExtend>(" << node << ")"
+                      << std::endl;
   BitVector a = node[0].getConst<BitVector>();
   unsigned amount =
       node.getOperator().getConst<BitVectorSignExtend>().d_signExtendAmount;

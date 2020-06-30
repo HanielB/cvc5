@@ -466,7 +466,8 @@ public:
 protected:
 
   void addEntry(RowIndex row, ArithVar col, const T& coeff){
-    Trace("tableau") << "addEntry(" << row << "," << col <<"," << coeff << ")" << std::endl;
+    Trace("tableau") << "addEntry(" << row << "," << col << "," << coeff << ")"
+                     << std::endl;
 
     Assert(coeff != 0);
     Assert(row < d_rows.size());
@@ -640,9 +641,8 @@ public:
     Assert(d_rowInMergeBuffer != ROW_INDEX_SENTINEL);
     Assert(to != ROW_INDEX_SENTINEL);
 
-    Trace("tableau") << "rowPlusRowTimesConstant("
-                     << to << "," << mult << "," << d_rowInMergeBuffer << ")"
-                     << std::endl;
+    Trace("tableau") << "rowPlusRowTimesConstant(" << to << "," << mult << ","
+                     << d_rowInMergeBuffer << ")" << std::endl;
 
     Assert(debugNoZeroCoefficients(to));
     Assert(debugNoZeroCoefficients(d_rowInMergeBuffer));
@@ -691,7 +691,10 @@ public:
 
     Assert(mergeBufferIsClear());
 
-    if(Trace.isOn("matrix")) { printMatrix(); }
+    if (Trace.isOn("matrix"))
+    {
+      printMatrix();
+    }
   }
 
   /**  to += mult * buffer. */
@@ -699,9 +702,8 @@ public:
     Assert(d_rowInMergeBuffer != ROW_INDEX_SENTINEL);
     Assert(to != ROW_INDEX_SENTINEL);
 
-    Trace("tableau") << "rowPlusRowTimesConstant("
-                     << to << "," << mult << "," << d_rowInMergeBuffer << ")"
-                     << std::endl;
+    Trace("tableau") << "rowPlusRowTimesConstant(" << to << "," << mult << ","
+                     << d_rowInMergeBuffer << ")" << std::endl;
 
     Assert(debugNoZeroCoefficients(to));
     Assert(debugNoZeroCoefficients(d_rowInMergeBuffer));
@@ -758,7 +760,10 @@ public:
 
     Assert(mergeBufferIsClear());
 
-    if(Trace.isOn("matrix")) { printMatrix(); }
+    if (Trace.isOn("matrix"))
+    {
+      printMatrix();
+    }
   }
 
   bool mergeBufferIsClear() const{
@@ -831,9 +836,7 @@ public:
       printRow(i, out);
     }
   }
-  void printMatrix() const {
-    printMatrix(Trace("matrix"));
-  }
+  void printMatrix() const { printMatrix(Trace("matrix")); }
 
   void printRow(RowIndex rid, std::ostream& out) const {
     out << "{" << rid << ":";
@@ -846,9 +849,7 @@ public:
     }
     out << "}" << std::endl;
   }
-  void printRow(RowIndex rid) const {
-    printRow(rid, Trace("matrix"));
-  }
+  void printRow(RowIndex rid) const { printRow(rid, Trace("matrix")); }
 
   void printEntry(const MatrixEntry<T>& entry, std::ostream& out) const {
     out << entry.getColVar() << "*" << entry.getCoefficient();
@@ -966,9 +967,9 @@ protected:
       const Entry& entry = *i;
       ArithVar colVar = entry.getColVar();
       uint32_t count = debugCountColLength(colVar);
-      Trace("tableau") << "debugMatchingCountsForRow "
-                       << ridx << ":" << colVar << " " << count
-                       <<" "<< getColLength(colVar) << std::endl;
+      Trace("tableau") << "debugMatchingCountsForRow " << ridx << ":" << colVar
+                       << " " << count << " " << getColLength(colVar)
+                       << std::endl;
       if( count != getColLength(colVar) ){
         return false;
       }
@@ -981,7 +982,8 @@ protected:
     uint32_t count = 0;
     for(ColIterator i=getColumn(var).begin(); !i.atEnd(); ++i){
       const Entry& entry = *i;
-      Trace("tableau") << "(" << entry.getRowIndex() << ", " << i.getID() << ") ";
+      Trace("tableau") << "(" << entry.getRowIndex() << ", " << i.getID()
+                       << ") ";
       ++count;
     }
     Trace("tableau") << std::endl;

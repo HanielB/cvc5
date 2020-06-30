@@ -84,11 +84,13 @@ Result::Sat AttemptSolutionSDP::attempt(const ApproximateSimplex::Solution& sol)
   ++instance;
 
   if(processSignals()){
-    Trace("arith::findModel") << "attemptSolution("<< instance <<") early conflict" << endl;
+    Trace("arith::findModel")
+        << "attemptSolution(" << instance << ") early conflict" << endl;
     d_conflictVariables.purge();
     return Result::UNSAT;
   }else if(d_errorSet.errorEmpty()){
-    Trace("arith::findModel") << "attemptSolution("<< instance <<") fixed itself" << endl;
+    Trace("arith::findModel")
+        << "attemptSolution(" << instance << ") fixed itself" << endl;
     return Result::SAT;
   }
 

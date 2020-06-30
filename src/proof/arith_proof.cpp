@@ -128,7 +128,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
 
       // Handle congruence closures over equalities.
       else if (pf.d_children[i]->d_id==theory::eq::MERGED_THROUGH_CONGRUENCE && pf.d_children[i]->d_node.isNull()) {
-        Trace("pf::arith") << "Handling congruence over equalities" << std::endl;
+        Trace("pf::arith") << "Handling congruence over equalities"
+                           << std::endl;
 
         // Gather the sequence of consecutive congruence closures.
         std::vector<std::shared_ptr<const theory::eq::EqProof>> congruenceClosures;
@@ -144,7 +145,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
           congruenceClosures.push_back(pf.d_children[i+count]);
         }
 
-        Trace("pf::arith") << "Total number of congruences found: " << congruenceClosures.size() << std::endl;
+        Trace("pf::arith") << "Total number of congruences found: "
+                           << congruenceClosures.size() << std::endl;
 
         // Determine if the "target" of the congruence sequence appears right before or right after the sequence.
         bool targetAppearsBefore = true;
@@ -216,12 +218,15 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
     Node n1;
     std::stringstream ss;
     //Assert(subTrans->d_children.size() == pf.d_children.size() - 1);
-    Trace("pf::arith") << "\nsubtrans has " << subTrans->d_children.size() << " children\n";
+    Trace("pf::arith") << "\nsubtrans has " << subTrans->d_children.size()
+                       << " children\n";
     if(pf.d_children.size() > 2) {
       n1 = toStreamRecLFSC(ss, tp, *subTrans, 1, map);
     } else {
       n1 = toStreamRecLFSC(ss, tp, *(subTrans->d_children[0]), 1, map);
-      Trace("pf::arith") << "\nsubTrans unique child " << subTrans->d_children[0]->d_id << " was proven\ngot: " << n1 << std::endl;
+      Trace("pf::arith") << "\nsubTrans unique child "
+                         << subTrans->d_children[0]->d_id
+                         << " was proven\ngot: " << n1 << std::endl;
     }
 
     Node n2 = pf.d_children[neg]->d_node;
@@ -230,8 +235,14 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
     Trace("pf::arith") << "\nhave proven: " << n1 << std::endl;
     Trace("pf::arith") << "n2 is " << n2[0] << std::endl;
 
-    if (n2[0].getNumChildren() > 0) { Trace("pf::arith") << "\nn2[0]: " << n2[0][0] << std::endl; }
-    if (n1.getNumChildren() > 1) { Trace("pf::arith") << "n1[1]: " << n1[1] << std::endl; }
+    if (n2[0].getNumChildren() > 0)
+    {
+      Trace("pf::arith") << "\nn2[0]: " << n2[0][0] << std::endl;
+    }
+    if (n1.getNumChildren() > 1)
+    {
+      Trace("pf::arith") << "n1[1]: " << n1[1] << std::endl;
+    }
 
     if(n2[0].getKind() == kind::APPLY_UF) {
       out << "(trans _ _ _ _ ";
@@ -279,7 +290,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
     out << " ";
     std::stringstream ss;
     Node n2 = toStreamRecLFSC(ss, tp, *(pf2->d_children[1]), tb + 1, map);
-    Trace("pf::arith") << "\nok, in FIRST cong[" << stk.size() << "]" << "\n";
+    Trace("pf::arith") << "\nok, in FIRST cong[" << stk.size() << "]"
+                       << "\n";
     pf2->debug_print("pf::arith");
     Trace("pf::arith") << "looking at " << pf2->d_node << "\n";
     Trace("pf::arith") << "           " << n1 << "\n";
@@ -295,8 +307,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
       Trace("pf::arith") << "SIDE IS 1\n";
       //}
       if(!match(pf2->d_node, n1[1])) {
-      Trace("pf::arith") << "IN BAD CASE, our first subproof is\n";
-      pf2->d_children[0]->debug_print("pf::arith");
+        Trace("pf::arith") << "IN BAD CASE, our first subproof is\n";
+        pf2->d_children[0]->debug_print("pf::arith");
       }
       Assert(match(pf2->d_node, n1[1]));
       side = 1;
@@ -322,7 +334,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
       b2 << n1[1-side];
     }
     Trace("pf::arith") << "pf2->d_node " << pf2->d_node << std::endl;
-    Trace("pf::arith") << "b1.getNumChildren() " << b1.getNumChildren() << std::endl;
+    Trace("pf::arith") << "b1.getNumChildren() " << b1.getNumChildren()
+                       << std::endl;
     Trace("pf::arith") << "n1 " << n1 << std::endl;
     Trace("pf::arith") << "n2 " << n2 << std::endl;
     Trace("pf::arith") << "side " << side << std::endl;
@@ -344,7 +357,7 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
     out << ")";
     while(!stk.empty()) {
       if(tb == 1) {
-      Trace("pf::arith") << "\nMORE TO DO\n";
+        Trace("pf::arith") << "\nMORE TO DO\n";
       }
       pf2 = stk.top();
       stk.pop();
@@ -352,7 +365,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
       out << " ";
       ss.str("");
       n2 = toStreamRecLFSC(ss, tp, *(pf2->d_children[1]), tb + 1, map);
-      Trace("pf::arith") << "\nok, in cong[" << stk.size() << "]" << "\n";
+      Trace("pf::arith") << "\nok, in cong[" << stk.size() << "]"
+                         << "\n";
       Trace("pf::arith") << "looking at " << pf2->d_node << "\n";
       Trace("pf::arith") << "           " << n1 << "\n";
       Trace("pf::arith") << "           " << n2 << "\n";
@@ -372,7 +386,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
     }
     n1 = b1;
     n2 = b2;
-    Trace("pf::arith") << "at end assert, got " << pf2->d_node << "  and  " << n1 << std::endl;
+    Trace("pf::arith") << "at end assert, got " << pf2->d_node << "  and  "
+                       << n1 << std::endl;
     if(pf2->d_node.getKind() == kind::PARTIAL_APPLY_UF) {
       Assert(n1 == pf2->d_node);
     }
@@ -385,7 +400,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
       }
       b1.append(n1.begin(), n1.end());
       n1 = b1;
-      Trace("pf::arith") << "at[2] end assert, got " << pf2->d_node << "  and  " << n1 << std::endl;
+      Trace("pf::arith") << "at[2] end assert, got " << pf2->d_node << "  and  "
+                         << n1 << std::endl;
       if(pf2->d_node.getKind() == kind::APPLY_UF) {
         Assert(n1 == pf2->d_node);
       }
@@ -402,7 +418,7 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
     }
     Node n = (side == 0 ? eqNode(n1, n2) : eqNode(n2, n1));
     if(tb == 1) {
-    Trace("pf::arith") << "\ncong proved: " << n << "\n";
+      Trace("pf::arith") << "\ncong proved: " << n << "\n";
     }
     return n;
   }
@@ -468,13 +484,16 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
         if (((n1[0] == n2[0]) && (n1[1] == n2[1])) || ((n1[0] == n2[1]) && (n1[1] == n2[0]))) {
           // We are in a sequence of identical equalities
 
-          Trace("pf::arith") << "Detected identical equalities: " << std::endl << "\t" << n1 << std::endl;
+          Trace("pf::arith") << "Detected identical equalities: " << std::endl
+                             << "\t" << n1 << std::endl;
 
           if (!identicalEqualities) {
             // The sequence of identical equalities has started just now
             identicalEqualities = true;
 
-            Trace("pf::arith") << "The sequence is just beginning. Determining length..." << std::endl;
+            Trace("pf::arith")
+                << "The sequence is just beginning. Determining length..."
+                << std::endl;
 
             // Determine whether the length of this sequence is odd or even.
             evenLengthSequence = true;
@@ -499,11 +518,13 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
             if (evenLengthSequence) {
               // If the length is even, we need to apply transitivity for the "correct" hand of the equality.
 
-              Trace("pf::arith") << "Equality sequence of even length" << std::endl;
+              Trace("pf::arith")
+                  << "Equality sequence of even length" << std::endl;
               Trace("pf::arith") << "n1 is: " << n1 << std::endl;
               Trace("pf::arith") << "n2 is: " << n2 << std::endl;
               Trace("pf::arith") << "pf-d_node is: " << pf.d_node << std::endl;
-              Trace("pf::arith") << "Next node is: " << nodeAfterEqualitySequence << std::endl;
+              Trace("pf::arith")
+                  << "Next node is: " << nodeAfterEqualitySequence << std::endl;
 
               ss << "(trans _ _ _ _ ";
 
@@ -516,7 +537,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
                   n1 = eqNode(n1[1], n1[1]);
                   ss << " (symm _ _ _ " << ss1.str() << ")" << ss1.str();
                 } else {
-                  Trace("pf::arith") << "Error: identical equalities over, but hands don't match what we're proving."
+                  Trace("pf::arith") << "Error: identical equalities over, but "
+                                        "hands don't match what we're proving."
                                      << std::endl;
                   Assert(false);
                 }
@@ -538,7 +560,9 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
                   n1 = eqNode(n1[1], n1[1]);
 
                 } else {
-                  Trace("pf::arith") << "Error: even length sequence, but I don't know which hand to keep!" << std::endl;
+                  Trace("pf::arith") << "Error: even length sequence, but I "
+                                        "don't know which hand to keep!"
+                                     << std::endl;
                   Assert(false);
                 }
               }
@@ -546,7 +570,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
               ss << ")";
 
             } else {
-              Trace("pf::arith") << "Equality sequence length is odd!" << std::endl;
+              Trace("pf::arith")
+                  << "Equality sequence length is odd!" << std::endl;
               ss.str(ss1.str());
             }
 
@@ -567,11 +592,13 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
 
       Trace("pf::arith") << "\ndoing trans proof, got n2 " << n2 << "\n";
       if(tb == 1) {
-        Trace("pf::arith") << "\ntrans proof[" << i << "], got n2 " << n2 << "\n";
+        Trace("pf::arith") << "\ntrans proof[" << i << "], got n2 " << n2
+                           << "\n";
         Trace("pf::arith") << (n2.getKind() == kind::EQUAL) << "\n";
 
         if ((n1.getNumChildren() >= 2) && (n2.getNumChildren() >= 2)) {
-          Trace("pf::arith") << n1[0].getId() << " " << n1[1].getId() << " / " << n2[0].getId() << " " << n2[1].getId() << "\n";
+          Trace("pf::arith") << n1[0].getId() << " " << n1[1].getId() << " / "
+                             << n2[0].getId() << " " << n2[1].getId() << "\n";
           Trace("pf::arith") << n1[0].getId() << " " << n1[0] << "\n";
           Trace("pf::arith") << n1[1].getId() << " " << n1[1] << "\n";
           Trace("pf::arith") << n2[0].getId() << " " << n2[0] << "\n";
@@ -588,20 +615,35 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
         // Both elements of the transitivity rule are equalities/iffs
       {
         if(n1[0] == n2[0]) {
-            if(tb == 1) { Trace("pf::arith") << "case 1\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::arith") << "case 1\n";
+          }
             n1 = eqNode(n1[1], n2[1]);
             ss << "(symm _ _ _ " << ss1.str() << ") " << ss2.str();
         } else if(n1[1] == n2[1]) {
-          if(tb == 1) { Trace("pf::arith") << "case 2\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::arith") << "case 2\n";
+          }
           n1 = eqNode(n1[0], n2[0]);
           ss << ss1.str() << " (symm _ _ _ " << ss2.str() << ")";
         } else if(n1[0] == n2[1]) {
-            if(tb == 1) { Trace("pf::arith") << "case 3\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::arith") << "case 3\n";
+          }
             n1 = eqNode(n2[0], n1[1]);
             ss << ss2.str() << " " << ss1.str();
-            if(tb == 1) { Trace("pf::arith") << "++ proved " << n1 << "\n"; }
+            if (tb == 1)
+            {
+              Trace("pf::arith") << "++ proved " << n1 << "\n";
+            }
         } else if(n1[1] == n2[0]) {
-          if(tb == 1) { Trace("pf::arith") << "case 4\n"; }
+          if (tb == 1)
+          {
+            Trace("pf::arith") << "case 4\n";
+          }
           n1 = eqNode(n1[0], n2[1]);
           ss << ss1.str() << " " << ss2.str();
         } else {
@@ -613,7 +655,8 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
           Warning() << "\n\n";
           Unreachable();
         }
-        Trace("pf::arith") << "++ trans proof[" << i << "], now have " << n1 << std::endl;
+        Trace("pf::arith") << "++ trans proof[" << i << "], now have " << n1
+                           << std::endl;
       } else if(n1.getKind() == kind::EQUAL) {
         // n1 is an equality/iff, but n2 is a predicate
         if(n1[0] == n2) {
@@ -644,14 +687,16 @@ Node ProofArith::toStreamRecLFSC(std::ostream& out,
       ss << ")";
     }
     out << ss.str();
-    Trace("pf::arith") << "\n++ trans proof done, have proven " << n1 << std::endl;
+    Trace("pf::arith") << "\n++ trans proof done, have proven " << n1
+                       << std::endl;
     return n1;
   }
 
   default:
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
-    Trace("pf::arith") << "theory proof: " << pf.d_node << " by rule " << int(pf.d_id) << std::endl;
+    Trace("pf::arith") << "theory proof: " << pf.d_node << " by rule "
+                       << int(pf.d_id) << std::endl;
     AlwaysAssert(false);
     return pf.d_node;
   }
@@ -665,8 +710,9 @@ ArithProof::ArithProof(theory::arith::TheoryArith* arith, TheoryProofEngine* pe)
 
 theory::TheoryId ArithProof::getTheoryId() { return theory::THEORY_ARITH; }
 void ArithProof::registerTerm(Expr term) {
-  Trace("pf::arith") << "Arith register term: " << term << ". Kind: " << term.getKind()
-                            << ". Type: " << term.getType() << std::endl;
+  Trace("pf::arith") << "Arith register term: " << term
+                     << ". Kind: " << term.getKind()
+                     << ". Type: " << term.getType() << std::endl;
 
   if (term.getType().isReal() && !term.getType().isInteger()) {
     Trace("pf::arith") << "Entering real mode" << std::endl;
@@ -688,9 +734,11 @@ void LFSCArithProof::printOwnedTermAsType(Expr term,
                                           const ProofLetMap& map,
                                           TypeNode expectedType)
 {
-  Trace("pf::arith") << "Arith print term: " << term << ". Kind: " << term.getKind()
+  Trace("pf::arith") << "Arith print term: " << term
+                     << ". Kind: " << term.getKind()
                      << ". Type: " << term.getType()
-                     << ". Number of children: " << term.getNumChildren() << std::endl;
+                     << ". Number of children: " << term.getNumChildren()
+                     << std::endl;
 
   // !d_realMode <--> term.getType().isInteger()
 
@@ -1065,10 +1113,13 @@ void LFSCArithProof::printTheoryLemmaProof(std::vector<Expr>& lemma,
                                            const ProofLetMap& map)
 {
   Trace("pf::arith") << "Printing proof for lemma " << lemma << std::endl;
-  if (Trace.isOn("pf::arith::printTheoryLemmaProof")) {
-    Trace("pf::arith::printTheoryLemmaProof") << "Printing proof for lemma:" << std::endl;
+  if (Trace.isOn("pf::arith::printTheoryLemmaProof"))
+  {
+    Trace("pf::arith::printTheoryLemmaProof")
+        << "Printing proof for lemma:" << std::endl;
     for (const auto & conjunct : lemma) {
-      Trace("pf::arith::printTheoryLemmaProof") << "  " << conjunct << std::endl;
+      Trace("pf::arith::printTheoryLemmaProof")
+          << "  " << conjunct << std::endl;
     }
   }
   // Prefixes for the names of linearity witnesses
@@ -1097,7 +1148,8 @@ void LFSCArithProof::printTheoryLemmaProof(std::vector<Expr>& lemma,
     const size_t nAntecedents = conflict.getNumChildren();
 
     // Print proof
-    if (Trace.isOn("pf::arith::printTheoryLemmaProof")) {
+    if (Trace.isOn("pf::arith::printTheoryLemmaProof"))
+    {
       os << "Farkas:" << std::endl;
       for (const auto & n : *farkasCoefficients) {
         os << "  " << n << std::endl;

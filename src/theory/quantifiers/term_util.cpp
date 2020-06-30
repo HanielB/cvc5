@@ -51,7 +51,8 @@ TermUtil::~TermUtil(){
 
 void TermUtil::registerQuantifier( Node q ){
   if( d_inst_constants.find( q )==d_inst_constants.end() ){
-    Trace("quantifiers-engine") << "Instantiation constants for " << q << " : " << std::endl;
+    Trace("quantifiers-engine")
+        << "Instantiation constants for " << q << " : " << std::endl;
     for( unsigned i=0; i<q[0].getNumChildren(); i++ ){
       d_vars[q].push_back( q[0][i] );
       d_var_num[q][q[0][i]] = i;

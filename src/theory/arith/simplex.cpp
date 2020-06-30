@@ -65,12 +65,9 @@ bool SimplexDecisionProcedure::standardProcessSignals(TimerStat &timer, IntStat&
       Assert(d_linEq.basicIsTracked(curr));
 
       if(!d_conflictVariables.isMember(curr) && checkBasicForConflict(curr)){
-
         Trace("recentlyViolated")
-          << "It worked? "
-          << conflicts.getData()
-          << " " << curr
-          << " "  << checkBasicForConflict(curr) << endl;
+            << "It worked? " << conflicts.getData() << " " << curr << " "
+            << checkBasicForConflict(curr) << endl;
         reportConflict(curr);
         ++conflicts;
       }
@@ -191,7 +188,8 @@ void SimplexDecisionProcedure::removeFromInfeasFunc(TimerStat& timer, ArithVar i
 }
 
 ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& timer, const ArithVarVec& set){
-  Trace("constructInfeasiblityFunction") << "constructInfeasiblityFunction start" << endl;
+  Trace("constructInfeasiblityFunction")
+      << "constructInfeasiblityFunction start" << endl;
 
   TimerStat::CodeTimer codeTimer(timer);
   Assert(!d_errorSet.focusEmpty());
@@ -216,7 +214,6 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
     variables.push_back(e);
 
     Trace("constructInfeasiblityFunction") << violatedCoeff << " " << e << endl;
-
   }
   d_tableau.addRow(inf, coeffs, variables);
   DeltaRational newAssignment = d_linEq.computeRowValue(inf, false);
@@ -226,7 +223,8 @@ ArithVar SimplexDecisionProcedure::constructInfeasiblityFunction(TimerStat& time
   d_linEq.trackRowIndex(d_tableau.basicToRowIndex(inf));
 
   Trace("constructInfeasiblityFunction") << inf << " " << newAssignment << endl;
-  Trace("constructInfeasiblityFunction") << "constructInfeasiblityFunction done" << endl;
+  Trace("constructInfeasiblityFunction")
+      << "constructInfeasiblityFunction done" << endl;
   return inf;
 }
 

@@ -155,7 +155,7 @@ public:
     const Key& front = d_keys.front();
     d_hashMap.erase(front);
 
-    Trace("TrailHashMap") <<"TrailHashMap pop_front " << size() << std::endl;
+    Trace("TrailHashMap") << "TrailHashMap pop_front " << size() << std::endl;
     d_keys.pop_front();
   }
 
@@ -167,7 +167,7 @@ public:
     const Key& back = d_keys.back();
     d_hashMap.erase(back);
 
-    Trace("TrailHashMap") <<"TrailHashMap pop_back " << size() << std::endl;
+    Trace("TrailHashMap") << "TrailHashMap pop_back " << size() << std::endl;
     d_keys.pop_back();
   }
 
@@ -209,9 +209,8 @@ private:
     d_size(l.d_size),
     d_pushFronts(l.d_pushFronts)
   {
-    Trace("CDInsertHashMap") << "copy ctor: " << this
-                    << " from " << &l
-                    << " size " << d_size << std::endl;
+    Trace("CDInsertHashMap") << "copy ctor: " << this << " from " << &l
+                             << " size " << d_size << std::endl;
   }
   CDInsertHashMap& operator=(const CDInsertHashMap&) = delete;
 
@@ -225,11 +224,10 @@ private:
   ContextObj* save(ContextMemoryManager* pCMM) override
   {
     ContextObj* data = new(pCMM) CDInsertHashMap<Key, Data, HashFcn>(*this);
-    Trace("CDInsertHashMap") << "save " << this
-                            << " at level " << this->getContext()->getLevel()
-                            << " size at " << this->d_size
-                            << " d_list is " << this->d_insertMap
-                            << " data:" << data << std::endl;
+    Trace("CDInsertHashMap")
+        << "save " << this << " at level " << this->getContext()->getLevel()
+        << " size at " << this->d_size << " d_list is " << this->d_insertMap
+        << " data:" << data << std::endl;
     return data;
   }
 protected:

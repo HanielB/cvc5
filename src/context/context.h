@@ -644,7 +644,8 @@ class ContextObj {
    * ContextMemoryManager as an argument.
    */
   void deleteSelf() {
-    Trace("context") << "deleteSelf(" << this << ") " << typeid(*this).name() << std::endl;
+    Trace("context") << "deleteSelf(" << this << ") " << typeid(*this).name()
+                     << std::endl;
     this->~ContextObj();
     ::operator delete(this);
   }

@@ -946,9 +946,9 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() {
     nv->d_id = d_nm->next_id++;// FIXME multithreading
     nv->d_rc = 0;
     setUsed();
-    if(Trace.isOn("gc")) {
-      Trace("gc") << "creating node value " << nv
-                  << " [" << nv->d_id << "]: ";
+    if (Trace.isOn("gc"))
+    {
+      Trace("gc") << "creating node value " << nv << " [" << nv->d_id << "]: ";
       nv->printAst(Trace("gc"));
       Trace("gc") << std::endl;
     }
@@ -1032,9 +1032,10 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      if(Trace.isOn("gc")) {
-        Trace("gc") << "creating node value " << nv
-                    << " [" << nv->d_id << "]: ";
+      if (Trace.isOn("gc"))
+      {
+        Trace("gc") << "creating node value " << nv << " [" << nv->d_id
+                    << "]: ";
         nv->printAst(Trace("gc"));
         Trace("gc") << std::endl;
       }
@@ -1081,8 +1082,8 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      Trace("gc") << "creating node value " << nv
-                  << " [" << nv->d_id << "]: " << *nv << "\n";
+      Trace("gc") << "creating node value " << nv << " [" << nv->d_id
+                  << "]: " << *nv << "\n";
       return nv;
     }
   }
@@ -1125,8 +1126,8 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() const {
     nv->d_kind = d_nv->d_kind;
     nv->d_id = d_nm->next_id++;// FIXME multithreading
     nv->d_rc = 0;
-    Trace("gc") << "creating node value " << nv
-                << " [" << nv->d_id << "]: " << *nv << "\n";
+    Trace("gc") << "creating node value " << nv << " [" << nv->d_id
+                << "]: " << *nv << "\n";
     return nv;
   }
 
@@ -1212,8 +1213,8 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() const {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      Trace("gc") << "creating node value " << nv
-                  << " [" << nv->d_id << "]: " << *nv << "\n";
+      Trace("gc") << "creating node value " << nv << " [" << nv->d_id
+                  << "]: " << *nv << "\n";
       return nv;
     }
   } else {
@@ -1266,8 +1267,8 @@ expr::NodeValue* NodeBuilder<nchild_thresh>::constructNV() const {
 
       //poolNv = nv;
       d_nm->poolInsert(nv);
-      Trace("gc") << "creating node value " << nv
-                  << " [" << nv->d_id << "]: " << *nv << "\n";
+      Trace("gc") << "creating node value " << nv << " [" << nv->d_id
+                  << "]: " << *nv << "\n";
       return nv;
     }
   }

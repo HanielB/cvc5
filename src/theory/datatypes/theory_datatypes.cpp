@@ -371,7 +371,8 @@ void TheoryDatatypes::check(Effort e) {
   }
 
   Trace("datatypes-check") << "Finished check effort " << e << std::endl;
-  if( Trace.isOn("datatypes") || Trace.isOn("datatypes-split") ) {
+  if (Trace.isOn("datatypes") || Trace.isOn("datatypes-split"))
+  {
     Notice() << "TheoryDatatypes::check(): done" << endl;
   }
 }
@@ -522,7 +523,8 @@ void TheoryDatatypes::assertFact( Node fact, Node exp ){
 }
 
 void TheoryDatatypes::preRegisterTerm(TNode n) {
-  Trace("datatypes-prereg") << "TheoryDatatypes::preRegisterTerm() " << n << endl;
+  Trace("datatypes-prereg")
+      << "TheoryDatatypes::preRegisterTerm() " << n << endl;
   collectTerms( n );
   switch (n.getKind()) {
   case kind::EQUAL:
@@ -721,10 +723,11 @@ Node TheoryDatatypes::ppRewrite(TNode in)
 }
 
 void TheoryDatatypes::addSharedTerm(TNode t) {
-  Trace("datatypes") << "TheoryDatatypes::addSharedTerm(): "
-                     << t << " " << t.getType().isBoolean() << endl;
+  Trace("datatypes") << "TheoryDatatypes::addSharedTerm(): " << t << " "
+                     << t.getType().isBoolean() << endl;
   d_equalityEngine.addTriggerTerm(t, THEORY_DATATYPES);
-  Trace("datatypes") << "TheoryDatatypes::addSharedTerm() finished" << std::endl;
+  Trace("datatypes") << "TheoryDatatypes::addSharedTerm() finished"
+                     << std::endl;
 }
 
 /** propagate */
@@ -734,10 +737,12 @@ void TheoryDatatypes::propagate(Effort effort){
 
 /** propagate */
 bool TheoryDatatypes::propagate(TNode literal){
-  Trace("dt::propagate") << "TheoryDatatypes::propagate(" << literal  << ")" << std::endl;
+  Trace("dt::propagate") << "TheoryDatatypes::propagate(" << literal << ")"
+                         << std::endl;
   // If already in conflict, no more propagation
   if (d_conflict) {
-    Trace("dt::propagate") << "TheoryDatatypes::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("dt::propagate") << "TheoryDatatypes::propagate(" << literal
+                           << "): already in conflict" << std::endl;
     return false;
   }
   Trace("dt-prop") << "dtPropagate " << literal << std::endl;
@@ -1071,7 +1076,8 @@ void TheoryDatatypes::addTester(
     unsigned ttindex, Node t, EqcInfo* eqc, Node n, Node t_arg)
 {
   Trace("datatypes-debug") << "Add tester : " << t << " to eqc(" << n << ")" << std::endl;
-  Trace("datatypes-labels") << "Add tester " << t << " " << n << " " << eqc << std::endl;
+  Trace("datatypes-labels")
+      << "Add tester " << t << " " << n << " " << eqc << std::endl;
   bool tpolarity = t.getKind()!=NOT;
   Node j, jt;
   bool makeConflict = false;
@@ -1141,7 +1147,8 @@ void TheoryDatatypes::addTester(
       n_lbl++;
 
       const DType& dt = t_arg.getType().getDType();
-      Trace("datatypes-labels") << "Labels at " << n_lbl << " / " << dt.getNumConstructors() << std::endl;
+      Trace("datatypes-labels") << "Labels at " << n_lbl << " / "
+                                << dt.getNumConstructors() << std::endl;
       if( tpolarity ){
         instantiate( eqc, n );
         for (unsigned i = 0, ncons = dt.getNumConstructors(); i < ncons; i++)

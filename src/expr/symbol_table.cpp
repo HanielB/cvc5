@@ -448,10 +448,12 @@ void SymbolTable::Implementation::bindType(const string& name, Type t,
 void SymbolTable::Implementation::bindType(const string& name,
                                            const vector<Type>& params, Type t,
                                            bool levelZero) {
-  if (Trace.isOn("sort")) {
+  if (Trace.isOn("sort"))
+  {
     Trace("sort") << "bindType(" << name << ", [";
     if (params.size() > 0) {
-      copy(params.begin(), params.end() - 1,
+      copy(params.begin(),
+           params.end() - 1,
            ostream_iterator<Type>(Trace("sort"), ", "));
       Trace("sort") << params.back();
     }
@@ -489,13 +491,16 @@ Type SymbolTable::Implementation::lookupType(const string& name,
     return p.second;
   }
   if (p.second.isSortConstructor()) {
-    if (Trace.isOn("sort")) {
+    if (Trace.isOn("sort"))
+    {
       Trace("sort") << "instantiating using a sort constructor" << endl;
       Trace("sort") << "have formals [";
-      copy(p.first.begin(), p.first.end() - 1,
+      copy(p.first.begin(),
+           p.first.end() - 1,
            ostream_iterator<Type>(Trace("sort"), ", "));
       Trace("sort") << p.first.back() << "]" << endl << "parameters   [";
-      copy(params.begin(), params.end() - 1,
+      copy(params.begin(),
+           params.end() - 1,
            ostream_iterator<Type>(Trace("sort"), ", "));
       Trace("sort") << params.back() << "]" << endl
                     << "type ctor    " << name << endl
@@ -512,13 +517,16 @@ Type SymbolTable::Implementation::lookupType(const string& name,
                         "expected parametric datatype");
     return DatatypeType(p.second).instantiate(params);
   } else {
-    if (Trace.isOn("sort")) {
+    if (Trace.isOn("sort"))
+    {
       Trace("sort") << "instantiating using a sort substitution" << endl;
       Trace("sort") << "have formals [";
-      copy(p.first.begin(), p.first.end() - 1,
+      copy(p.first.begin(),
+           p.first.end() - 1,
            ostream_iterator<Type>(Trace("sort"), ", "));
       Trace("sort") << p.first.back() << "]" << endl << "parameters   [";
-      copy(params.begin(), params.end() - 1,
+      copy(params.begin(),
+           params.end() - 1,
            ostream_iterator<Type>(Trace("sort"), ", "));
       Trace("sort") << params.back() << "]" << endl
                     << "type ctor    " << name << endl

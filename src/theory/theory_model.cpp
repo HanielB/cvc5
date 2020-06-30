@@ -147,7 +147,8 @@ Node TheoryModel::getValue(TNode n) const
 {
   //apply substitutions
   Node nn = d_substitutions.apply(n);
-  Trace("model-getvalue-debug") << "[model-getvalue] getValue : substitute " << n << " to " << nn << std::endl;
+  Trace("model-getvalue-debug") << "[model-getvalue] getValue : substitute "
+                                << n << " to " << nn << std::endl;
   //get value in model
   nn = getModelValue(nn);
   if (nn.isNull()) return nn;
@@ -155,7 +156,8 @@ Node TheoryModel::getValue(TNode n) const
     //normalize
     nn = Rewriter::rewrite(nn);
   }
-  Trace("model-getvalue") << "[model-getvalue] getValue( " << n << " ): " << std::endl
+  Trace("model-getvalue") << "[model-getvalue] getValue( " << n
+                          << " ): " << std::endl
                           << "[model-getvalue] returning " << nn << std::endl;
   return nn;
 }
@@ -183,14 +185,18 @@ Cardinality TheoryModel::getCardinality( Type t ) const{
   //for now, we only handle cardinalities for uninterpreted sorts
   if( tn.isSort() ){
     if( d_rep_set.hasType( tn ) ){
-      Trace("model-getvalue-debug") << "Get cardinality sort, #rep : " << d_rep_set.getNumRepresentatives( tn ) << std::endl;
+      Trace("model-getvalue-debug")
+          << "Get cardinality sort, #rep : "
+          << d_rep_set.getNumRepresentatives(tn) << std::endl;
       return Cardinality( d_rep_set.getNumRepresentatives( tn ) );
     }else{
-      Trace("model-getvalue-debug") << "Get cardinality sort, unconstrained, return 1." << std::endl;
+      Trace("model-getvalue-debug")
+          << "Get cardinality sort, unconstrained, return 1." << std::endl;
       return Cardinality( 1 );
     }
   }else{
-      Trace("model-getvalue-debug") << "Get cardinality other sort, unknown." << std::endl;
+    Trace("model-getvalue-debug")
+        << "Get cardinality other sort, unknown." << std::endl;
     return Cardinality( CardinalityUnknown() );
   }
 }
@@ -365,7 +371,8 @@ Node TheoryModel::getModelValue(TNode n) const
 /** add substitution */
 void TheoryModel::addSubstitution( TNode x, TNode t, bool invalidateCache ){
   if( !d_substitutions.hasSubstitution( x ) ){
-    Trace("model") << "Add substitution in model " << x << " -> " << t << std::endl;
+    Trace("model") << "Add substitution in model " << x << " -> " << t
+                   << std::endl;
     d_substitutions.addSubstitution( x, t, invalidateCache );
   } else {
 #ifdef CVC4_ASSERTIONS

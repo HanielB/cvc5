@@ -310,7 +310,8 @@ void ModelEngine::exhaustiveInstantiate( Node f, int effort ){
               break;
             }
           }else{
-            Trace("fmf-model-eval") << "* Failed Add instantiation " << m << std::endl;
+            Trace("fmf-model-eval")
+                << "* Failed Add instantiation " << m << std::endl;
           }
           riter.increment();
         }

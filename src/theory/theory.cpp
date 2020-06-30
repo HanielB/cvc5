@@ -223,8 +223,10 @@ TheoryId Theory::theoryOf(options::TheoryOfMode mode, TNode node)
 }
 
 void Theory::addSharedTermInternal(TNode n) {
-  Trace("sharing") << "Theory::addSharedTerm<" << getId() << ">(" << n << ")" << endl;
-  Trace("theory::assertions") << "Theory::addSharedTerm<" << getId() << ">(" << n << ")" << endl;
+  Trace("sharing") << "Theory::addSharedTerm<" << getId() << ">(" << n << ")"
+                   << endl;
+  Trace("theory::assertions")
+      << "Theory::addSharedTerm<" << getId() << ">(" << n << ")" << endl;
   d_sharedTerms.push_back(n);
   addSharedTerm(n);
 }

@@ -59,7 +59,9 @@ struct ArrayStoreTypeRule {
           throw TypeCheckingExceptionPrivate(n, "array store not indexed with correct type for array");
         }
         if(!valueType.isSubtypeOf(arrayType.getArrayConstituentType())){
-          Trace("array-types") << "array type: "<< arrayType.getArrayConstituentType() << std::endl;
+          Trace("array-types")
+              << "array type: " << arrayType.getArrayConstituentType()
+              << std::endl;
           Trace("array-types") << "value types: " << valueType << std::endl;
           throw TypeCheckingExceptionPrivate(n, "array store not assigned with correct type for array");
         }

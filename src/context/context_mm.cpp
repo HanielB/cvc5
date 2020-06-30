@@ -108,9 +108,8 @@ void* ContextMemoryManager::newData(size_t size) {
     AlwaysAssert(d_nextFree <= d_endChunk)
         << "Request is bigger than memory chunk size";
   }
-  Trace("context") << "ContextMemoryManager::newData(" << size
-                   << ") returning " << res << " at level "
-                   << d_chunkList.size() << std::endl;
+  Trace("context") << "ContextMemoryManager::newData(" << size << ") returning "
+                   << res << " at level " << d_chunkList.size() << std::endl;
 
 #ifdef CVC4_VALGRIND
   VALGRIND_MEMPOOL_ALLOC(this, static_cast<char*>(res), size);

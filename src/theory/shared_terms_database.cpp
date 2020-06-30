@@ -52,7 +52,9 @@ void SharedTermsDatabase::addEqualityToPropagate(TNode equality) {
 
 
 void SharedTermsDatabase::addSharedTerm(TNode atom, TNode term, Theory::Set theories) {
-  Trace("register") << "SharedTermsDatabase::addSharedTerm(" << atom << ", " << term << ", " << Theory::setToString(theories) << ")" << std::endl;
+  Trace("register") << "SharedTermsDatabase::addSharedTerm(" << atom << ", "
+                    << term << ", " << Theory::setToString(theories) << ")"
+                    << std::endl;
 
   std::pair<TNode, TNode> search_pair(atom, term);
   SharedTermsTheoriesMap::iterator find = d_termsToTheories.find(search_pair);
@@ -124,7 +126,9 @@ Theory::Set SharedTermsDatabase::getNotifiedTheories(TNode term) const {
 
 bool SharedTermsDatabase::propagateSharedEquality(TheoryId theory, TNode a, TNode b, bool value)
 {
-  Trace("shared-terms-database") << "SharedTermsDatabase::newEquality(" << theory << "," << a << "," << b << ", " << (value ? "true" : "false") << ")" << endl;
+  Trace("shared-terms-database")
+      << "SharedTermsDatabase::newEquality(" << theory << "," << a << "," << b
+      << ", " << (value ? "true" : "false") << ")" << endl;
 
   if (d_inConflict) {
     return false;
@@ -157,7 +161,8 @@ void SharedTermsDatabase::markNotified(TNode term, Theory::Set theories) {
     return;
   }
 
-  Trace("shared-terms-database") << "SharedTermsDatabase::markNotified(" << term << ")" << endl;
+  Trace("shared-terms-database")
+      << "SharedTermsDatabase::markNotified(" << term << ")" << endl;
 
   // First update the set of notified theories for this term
   d_alreadyNotifiedMap[term] = Theory::setUnion(newlyNotified, alreadyNotified);
@@ -196,7 +201,9 @@ bool SharedTermsDatabase::areDisequal(TNode a, TNode b) const {
 
 void SharedTermsDatabase::assertEquality(TNode equality, bool polarity, TNode reason)
 {
-  Trace("shared-terms-database::assert") << "SharedTermsDatabase::assertEquality(" << equality << ", " << (polarity ? "true" : "false") << ", " << reason << ")" << endl;
+  Trace("shared-terms-database::assert")
+      << "SharedTermsDatabase::assertEquality(" << equality << ", "
+      << (polarity ? "true" : "false") << ", " << reason << ")" << endl;
   // Add it to the equality engine
   d_equalityEngine.assertEquality(equality, polarity, reason);
   // Check for conflict

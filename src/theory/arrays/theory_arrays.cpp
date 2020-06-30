@@ -391,11 +391,14 @@ Theory::PPAssertStatus TheoryArrays::ppAssert(TNode in, SubstitutionMap& outSubs
 
 bool TheoryArrays::propagate(TNode literal)
 {
-  Trace("arrays") << spaces(getSatContext()->getLevel()) << "TheoryArrays::propagate(" << literal  << ")" << std::endl;
+  Trace("arrays") << spaces(getSatContext()->getLevel())
+                  << "TheoryArrays::propagate(" << literal << ")" << std::endl;
 
   // If already in conflict, no more propagation
   if (d_conflict) {
-    Trace("arrays") << spaces(getSatContext()->getLevel()) << "TheoryArrays::propagate(" << literal << "): already in conflict" << std::endl;
+    Trace("arrays") << spaces(getSatContext()->getLevel())
+                    << "TheoryArrays::propagate(" << literal
+                    << "): already in conflict" << std::endl;
     return false;
   }
 
@@ -428,7 +431,8 @@ void TheoryArrays::explain(TNode literal, std::vector<TNode>& assumptions,
     proof->debug_print("pf::array");
   }
 
-  Trace("pf::array") << "Array: explain( " << literal << " ):" << std::endl << "\t";
+  Trace("pf::array") << "Array: explain( " << literal << " ):" << std::endl
+                     << "\t";
   for (unsigned i = 0; i < assumptions.size(); ++i) {
     Trace("pf::array") << assumptions[i] << " ";
   }
@@ -658,7 +662,9 @@ void TheoryArrays::preRegisterTermInternal(TNode node)
   if (d_conflict) {
     return;
   }
-  Trace("arrays") << spaces(getSatContext()->getLevel()) << "TheoryArrays::preRegisterTerm(" << node << ")" << std::endl;
+  Trace("arrays") << spaces(getSatContext()->getLevel())
+                  << "TheoryArrays::preRegisterTerm(" << node << ")"
+                  << std::endl;
   switch (node.getKind()) {
   case kind::EQUAL:
     // Add the trigger for equality
@@ -869,7 +875,9 @@ Node TheoryArrays::explain(TNode literal, eq::EqProof* proof) {
 
 
 void TheoryArrays::addSharedTerm(TNode t) {
-  Trace("arrays::sharing") << spaces(getSatContext()->getLevel()) << "TheoryArrays::addSharedTerm(" << t << ")" << std::endl;
+  Trace("arrays::sharing") << spaces(getSatContext()->getLevel())
+                           << "TheoryArrays::addSharedTerm(" << t << ")"
+                           << std::endl;
   d_equalityEngine.addTriggerTerm(t, THEORY_ARRAYS);
   if (t.getType().isArray()) {
     d_sharedArrays.insert(t);
@@ -899,7 +907,9 @@ EqualityStatus TheoryArrays::getEqualityStatus(TNode a, TNode b) {
 
 void TheoryArrays::checkPair(TNode r1, TNode r2)
 {
-  Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): checking reads " << r1 << " and " << r2 << std::endl;
+  Trace("arrays::sharing")
+      << "TheoryArrays::computeCareGraph(): checking reads " << r1 << " and "
+      << r2 << std::endl;
 
   TNode x = r1[1];
   TNode y = r2[1];
@@ -907,13 +917,16 @@ void TheoryArrays::checkPair(TNode r1, TNode r2)
 
   if (d_equalityEngine.hasTerm(x) && d_equalityEngine.hasTerm(y) &&
       (d_equalityEngine.areEqual(x,y) || d_equalityEngine.areDisequal(x,y,false))) {
-    Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): equality known, skipping" << std::endl;
+    Trace("arrays::sharing")
+        << "TheoryArrays::computeCareGraph(): equality known, skipping"
+        << std::endl;
     return;
   }
 
   // If the terms are already known to be equal, we are also in good shape
   if (d_equalityEngine.areEqual(r1, r2)) {
-    Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): equal, skipping" << std::endl;
+    Trace("arrays::sharing")
+        << "TheoryArrays::computeCareGraph(): equal, skipping" << std::endl;
     return;
   }
 
@@ -923,7 +936,9 @@ void TheoryArrays::checkPair(TNode r1, TNode r2)
            && d_mayEqualEqualityEngine.hasTerm(r2[0]));
     if (r1[0].getType() != r2[0].getType() ||
         d_equalityEngine.areDisequal(r1[0], r2[0], false)) {
-      Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): arrays can't be equal, skipping" << std::endl;
+      Trace("arrays::sharing")
+          << "TheoryArrays::computeCareGraph(): arrays can't be equal, skipping"
+          << std::endl;
       return;
     }
     else if (!d_mayEqualEqualityEngine.areEqual(r1[0], r2[0])) {
@@ -932,7 +947,9 @@ void TheoryArrays::checkPair(TNode r1, TNode r2)
   }
 
   if (!d_equalityEngine.isTriggerTerm(y, THEORY_ARRAYS)) {
-    Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): not connected to shared terms, skipping" << std::endl;
+    Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): not "
+                                "connected to shared terms, skipping"
+                             << std::endl;
     return;
   }
 
@@ -947,7 +964,9 @@ void TheoryArrays::checkPair(TNode r1, TNode r2)
       break;
     case EQUALITY_TRUE:
       // Missed propagation - need to add the pair so that theory engine can force propagation
-      Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): missed propagation" << std::endl;
+      Trace("arrays::sharing")
+          << "TheoryArrays::computeCareGraph(): missed propagation"
+          << std::endl;
       break;
     case EQUALITY_FALSE_AND_PROPAGATED:
       // Should have been propagated to us
@@ -955,7 +974,9 @@ void TheoryArrays::checkPair(TNode r1, TNode r2)
     case EQUALITY_FALSE:
     case EQUALITY_FALSE_IN_MODEL:
       // This is unlikely, but I think it could happen
-      Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): checkPair called when false in model" << std::endl;
+      Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): checkPair "
+                                  "called when false in model"
+                               << std::endl;
       return;
     default:
       // Covers EQUALITY_TRUE_IN_MODEL (common case) and EQUALITY_UNKNOWN
@@ -963,7 +984,8 @@ void TheoryArrays::checkPair(TNode r1, TNode r2)
   }
 
   // Add this pair
-  Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): adding to care-graph" << std::endl;
+  Trace("arrays::sharing")
+      << "TheoryArrays::computeCareGraph(): adding to care-graph" << std::endl;
   addCarePair(x_shared, y_shared);
 }
 
@@ -1006,12 +1028,16 @@ void TheoryArrays::computeCareGraph()
     for (unsigned i = 0; i < size; ++ i) {
       TNode r1 = d_reads[i];
 
-      Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): checking read " << r1 << std::endl;
+      Trace("arrays::sharing")
+          << "TheoryArrays::computeCareGraph(): checking read " << r1
+          << std::endl;
       Assert(d_equalityEngine.hasTerm(r1));
       TNode x = r1[1];
 
       if (!d_equalityEngine.isTriggerTerm(x, THEORY_ARRAYS)) {
-        Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): not connected to shared terms, skipping" << std::endl;
+        Trace("arrays::sharing") << "TheoryArrays::computeCareGraph(): not "
+                                    "connected to shared terms, skipping"
+                                 << std::endl;
         continue;
       }
       Node x_shared = d_equalityEngine.getTriggerTermRepresentative(x, THEORY_ARRAYS);
@@ -1328,7 +1354,9 @@ void TheoryArrays::check(Effort e) {
     Assertion assertion = get();
     TNode fact = assertion.d_assertion;
 
-    Trace("arrays") << spaces(getSatContext()->getLevel()) << "TheoryArrays::check(): processing " << fact << std::endl;
+    Trace("arrays") << spaces(getSatContext()->getLevel())
+                    << "TheoryArrays::check(): processing " << fact
+                    << std::endl;
 
     bool polarity = fact.getKind() != kind::NOT;
     TNode atom = polarity ? fact : fact[0];
@@ -1364,7 +1392,11 @@ void TheoryArrays::check(Effort e) {
 
           // Apply ArrDiseq Rule if diseq is between arrays
           if(fact[0][0].getType().isArray() && !d_conflict) {
-            if (d_conflict) { Trace("pf::array") << "Entering the skolemization branch" << std::endl; }
+            if (d_conflict)
+            {
+              Trace("pf::array")
+                  << "Entering the skolemization branch" << std::endl;
+            }
 
             NodeManager* nm = NodeManager::currentNM();
             TypeNode indexType = fact[0][0].getType()[0];
@@ -1372,7 +1404,9 @@ void TheoryArrays::check(Effort e) {
             TNode k;
             // k is the skolem for this disequality.
             if (!d_proofsEnabled) {
-              Trace("pf::array") << "Check: kind::NOT: array theory making a skolem" << std::endl;
+              Trace("pf::array")
+                  << "Check: kind::NOT: array theory making a skolem"
+                  << std::endl;
 
               // If not in replay mode, generate a fresh skolem variable
               k = getSkolem(fact,
@@ -1411,9 +1445,10 @@ void TheoryArrays::check(Effort e) {
             if (options::arraysPropagate() > 0 && d_equalityEngine.hasTerm(ak) && d_equalityEngine.hasTerm(bk)) {
               // Propagate witness disequality - might produce a conflict
               d_permRef.push_back(lemma);
-              Trace("pf::array") << "Asserting to the equality engine:" << std::endl
-                                 << "\teq = " << eq << std::endl
-                                 << "\treason = " << fact << std::endl;
+              Trace("pf::array")
+                  << "Asserting to the equality engine:" << std::endl
+                  << "\teq = " << eq << std::endl
+                  << "\treason = " << fact << std::endl;
 
               d_equalityEngine.assertEquality(eq, false, fact, d_reasonExt);
               ++d_numProp;
@@ -1427,7 +1462,9 @@ void TheoryArrays::check(Effort e) {
               ++d_numExt;
             }
           } else {
-            Trace("pf::array") << "Check: kind::NOT: array theory NOT making a skolem" << std::endl;
+            Trace("pf::array")
+                << "Check: kind::NOT: array theory NOT making a skolem"
+                << std::endl;
             d_modelConstraints.push_back(fact);
           }
         }
@@ -1469,7 +1506,8 @@ void TheoryArrays::check(Effort e) {
     for (; i != readsEnd; ++i) {
       const TNode& r = *i;
 
-      Trace("arrays::weak") << "TheoryArrays::check(): checking read " << r << std::endl;
+      Trace("arrays::weak")
+          << "TheoryArrays::check(): checking read " << r << std::endl;
 
       // Find the bucket for this read.
       mayRep = d_mayEqualEqualityEngine.getRepresentative(r[0]);
@@ -1998,7 +2036,8 @@ void TheoryArrays::checkRowLemmas(TNode a, TNode b)
 
 void TheoryArrays::propagate(RowLemmaType lem)
 {
-  Trace("pf::array") << "TheoryArrays: RowLemma Propagate called. options::arraysPropagate() = "
+  Trace("pf::array") << "TheoryArrays: RowLemma Propagate called. "
+                        "options::arraysPropagate() = "
                      << options::arraysPropagate() << std::endl;
 
   TNode a, b, i, j;

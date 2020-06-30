@@ -170,7 +170,7 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
     case LEQ: { // (ite (<= x y) x y)
       Node nLeqX = NodeBuilder<2>(LEQ) << n << t;
       Node nLeqY = NodeBuilder<2>(LEQ) << n << e;
-      Trace("arith::static") << n << "is a min =>"  << nLeqX << nLeqY << endl;
+      Trace("arith::static") << n << "is a min =>" << nLeqX << nLeqY << endl;
       learned << nLeqX << nLeqY;
       ++(d_statistics.d_iteMinMaxApplications);
       break;
@@ -179,7 +179,7 @@ void ArithStaticLearner::iteMinMax(TNode n, NodeBuilder<>& learned){
     case GEQ: { // (ite (>= x y) x y)
       Node nGeqX = NodeBuilder<2>(GEQ) << n << t;
       Node nGeqY = NodeBuilder<2>(GEQ) << n << e;
-      Trace("arith::static") << n << "is a max =>"  << nGeqX << nGeqY << endl;
+      Trace("arith::static") << n << "is a max =>" << nGeqX << nGeqY << endl;
       learned << nGeqX << nGeqY;
       ++(d_statistics.d_iteMinMaxApplications);
       break;
@@ -208,7 +208,7 @@ void ArithStaticLearner::iteConstant(TNode n, NodeBuilder<>& learned){
         nGeqMin = NodeBuilder<2>(kind::GT) << n << mkRationalNode(min.getNoninfinitesimalPart());
       }
       learned << nGeqMin;
-      Trace("arith::static") << n << " iteConstant"  << nGeqMin << endl;
+      Trace("arith::static") << n << " iteConstant" << nGeqMin << endl;
       ++(d_statistics.d_iteConstantApplications);
     }
   }
@@ -227,7 +227,7 @@ void ArithStaticLearner::iteConstant(TNode n, NodeBuilder<>& learned){
         nLeqMax = NodeBuilder<2>(kind::LT) << n << mkRationalNode(max.getNoninfinitesimalPart());
       }
       learned << nLeqMax;
-      Trace("arith::static") << n << " iteConstant"  << nLeqMax << endl;
+      Trace("arith::static") << n << " iteConstant" << nLeqMax << endl;
       ++(d_statistics.d_iteConstantApplications);
     }
   }

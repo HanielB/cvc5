@@ -67,7 +67,8 @@ Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){
   d_pivots = 0;
 
   if(d_errorSet.errorEmpty() && !d_errorSet.moreSignals()){
-    Trace("arith::findModel") << "dualFindModel("<< instance <<") trivial" << endl;
+    Trace("arith::findModel")
+        << "dualFindModel(" << instance << ") trivial" << endl;
     return Result::SAT;
   }
 
@@ -78,15 +79,18 @@ Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){
   if(processSignals()){
     d_conflictVariables.purge();
 
-    Trace("arith::findModel") << "dualFindModel("<< instance <<") early conflict" << endl;
+    Trace("arith::findModel")
+        << "dualFindModel(" << instance << ") early conflict" << endl;
     return Result::UNSAT;
   }else if(d_errorSet.errorEmpty()){
-    Trace("arith::findModel") << "dualFindModel("<< instance <<") fixed itself" << endl;
+    Trace("arith::findModel")
+        << "dualFindModel(" << instance << ") fixed itself" << endl;
     Assert(!d_errorSet.moreSignals());
     return Result::SAT;
   }
 
-  Trace("arith::findModel") << "dualFindModel(" << instance <<") start non-trivial" << endl;
+  Trace("arith::findModel")
+      << "dualFindModel(" << instance << ") start non-trivial" << endl;
 
   Result::Sat result = Result::SAT_UNKNOWN;
 
@@ -154,7 +158,8 @@ Result::Sat DualSimplexDecisionProcedure::dualFindModel(bool exactResult){
   // ensure that the conflict variable is still in the queue.
   d_conflictVariables.purge();
 
-  Trace("arith::findModel") << "end findModel() " << instance << " " << result <<  endl;
+  Trace("arith::findModel")
+      << "end findModel() " << instance << " " << result << endl;
 
   return result;
 }
@@ -168,11 +173,15 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
   Assert(remainingIterations > 0);
 
   while(remainingIterations > 0 && !d_errorSet.focusEmpty()){
-    if(Trace.isOn("paranoid:check_tableau")){ d_linEq.debugCheckTableau(); }
+    if (Trace.isOn("paranoid:check_tableau"))
+    {
+      d_linEq.debugCheckTableau();
+    }
     Assert(d_conflictVariables.empty());
     ArithVar x_i = d_errorSet.topFocusVariable();
 
-    Trace("arith::update::select") << "selectSmallestInconsistentVar()=" << x_i << endl;
+    Trace("arith::update::select")
+        << "selectSmallestInconsistentVar()=" << x_i << endl;
     if(x_i == ARITHVAR_SENTINEL){
       Trace("arith::update") << "No inconsistent variables" << endl;
       return false; //sat
@@ -185,12 +194,9 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
       d_pivotsInRound.add(x_i);
     }
 
-
-    Trace("arith::update")
-      << "pivots in rounds: " <<  d_pivotsInRound.count(x_i)
-      << " use " << useVarOrderPivot
-      << " threshold " << options::arithPivotThreshold()
-      << endl;
+    Trace("arith::update") << "pivots in rounds: " << d_pivotsInRound.count(x_i)
+                           << " use " << useVarOrderPivot << " threshold "
+                           << options::arithPivotThreshold() << endl;
 
     LinearEqualityModule::VarPreferenceFunction pf = useVarOrderPivot ?
       &LinearEqualityModule::minVarOrder : &LinearEqualityModule::minBoundAndColLength;
@@ -237,15 +243,13 @@ bool DualSimplexDecisionProcedure::searchForFeasibleSolution(uint32_t remainingI
     int32_t currErrorSize CVC4_UNUSED = d_errorSet.errorSize();
     d_pivots++;
 
-    if(Trace.isOn("arith::dual")){
-      Trace("arith::dual")
-        << "#" << d_pivots
-        << " c" << conflict
-        << " d" << (prevErrorSize - currErrorSize)
-        << " f"  << d_errorSet.inError(x_j)
-        << " h" << d_conflictVariables.isMember(x_j)
-        << " " << x_i << "->" << x_j
-        << endl;
+    if (Trace.isOn("arith::dual"))
+    {
+      Trace("arith::dual") << "#" << d_pivots << " c" << conflict << " d"
+                           << (prevErrorSize - currErrorSize) << " f"
+                           << d_errorSet.inError(x_j) << " h"
+                           << d_conflictVariables.isMember(x_j) << " " << x_i
+                           << "->" << x_j << endl;
     }
 
     if(conflict){

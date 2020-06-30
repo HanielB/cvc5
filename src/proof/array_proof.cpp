@@ -114,7 +114,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
 
     Node n1;
     std::stringstream ss, ss2;
-    Trace("mgdx") << "\nsubtrans has " << subTrans->d_children.size() << " children\n";
+    Trace("mgdx") << "\nsubtrans has " << subTrans->d_children.size()
+                  << " children\n";
     bool disequalityFound = (neg >= 0);
 
     if (!disequalityFound || pf.d_children.size() > 2)
@@ -136,8 +137,14 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
       Trace("mgdx") << "n2->d_id is " << pf.d_children[neg]->d_id << std::endl;
       Trace("mgdx") << "n2[0] is " << n2[0] << std::endl;
 
-      if (n2[0].getNumChildren() > 0) { Trace("mgdx") << "\nn2[0]: " << n2[0][0] << std::endl; }
-      if (n1.getNumChildren() > 1) { Trace("mgdx") << "n1[1]: " << n1[1] << std::endl; }
+      if (n2[0].getNumChildren() > 0)
+      {
+        Trace("mgdx") << "\nn2[0]: " << n2[0][0] << std::endl;
+      }
+      if (n1.getNumChildren() > 1)
+      {
+        Trace("mgdx") << "n1[1]: " << n1[1] << std::endl;
+      }
 
       if ((pf.d_children[neg]->d_id == d_reasonExt) ||
           (pf.d_children[neg]->d_id == theory::eq::MERGED_THROUGH_TRANS)) {
@@ -159,8 +166,9 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
         } else {
           out << ss.str();
         }
-        Trace("pf::array") << "ArrayProof::toStream: getLitName( " << n2[0] << " ) = " <<
-          ProofManager::getLitName(n2[0]) << std::endl;
+        Trace("pf::array") << "ArrayProof::toStream: getLitName( " << n2[0]
+                           << " ) = " << ProofManager::getLitName(n2[0])
+                           << std::endl;
 
         out << " " << ProofManager::getLitName(n2[0]);
       }
@@ -308,14 +316,17 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
     Trace("mgd") << "b1.getNumChildren() " << b1.getNumChildren() << std::endl;
     Trace("mgd") << "n1 " << n1 << std::endl;
     Trace("mgd") << "n2 " << n2 << std::endl;
-    // These debug prints can cause a problem if we're constructing a SELECT node and it doesn't have enough
-    // children yet.
-    // Trace("mgd") << "b1 " << b1 << std::endl;
-    // Trace("mgd") << "b2 " << b2 << std::endl;
+    // These debug prints can cause a problem if we're constructing a SELECT
+    // node and it doesn't have enough children yet. Trace("mgd") << "b1 " << b1
+    // << std::endl; Trace("mgd") << "b2 " << b2 << std::endl;
     Trace("mgd") << "side " << side << std::endl;
-    Trace("mgd") << "pf2->d_node's number of children: " << pf2->d_node.getNumChildren() << std::endl;
-    Trace("mgd") << "pf2->d_node's meta kind: " << pf2->d_node.getMetaKind() << std::endl;
-    Trace("mgd") << "Is this meta kind considered parameterized? " << (pf2->d_node.getMetaKind() == kind::metakind::PARAMETERIZED) << std::endl;
+    Trace("mgd") << "pf2->d_node's number of children: "
+                 << pf2->d_node.getNumChildren() << std::endl;
+    Trace("mgd") << "pf2->d_node's meta kind: " << pf2->d_node.getMetaKind()
+                 << std::endl;
+    Trace("mgd") << "Is this meta kind considered parameterized? "
+                 << (pf2->d_node.getMetaKind() == kind::metakind::PARAMETERIZED)
+                 << std::endl;
 
     if(pf2->d_node[b1.getNumChildren() +
                    (n1[side].getKind() == kind::PARTIAL_SELECT_0 ? 1 : 0) +
@@ -345,7 +356,6 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
 
     out << ")";
     while(!stk.empty()) {
-
       Trace("mgd") << "\nMORE TO DO\n";
 
       pf2 = stk.top();
@@ -355,7 +365,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
       ss.str("");
       n2 = toStreamRecLFSC(ss, tp, *(pf2->d_children[1]), tb + 1, map);
 
-      Trace("mgd") << "\nok, in cong[" << stk.size() << "]" << "\n";
+      Trace("mgd") << "\nok, in cong[" << stk.size() << "]"
+                   << "\n";
       Trace("mgd") << "looking at " << pf2->d_node << "\n";
       Trace("mgd") << "           " << n1 << "\n";
       Trace("mgd") << "           " << n2 << "\n";
@@ -387,8 +398,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
 
     Trace("mgd") << "n1.getOperator().getType().getNumChildren() = "
                  << n1.getOperator().getType().getNumChildren() << std::endl;
-    Trace("mgd") << "n1.getNumChildren() + 1 = "
-                 << n1.getNumChildren() + 1 << std::endl;
+    Trace("mgd") << "n1.getNumChildren() + 1 = " << n1.getNumChildren() + 1
+                 << std::endl;
 
     Assert(!(
         (n1.getKind() == kind::PARTIAL_SELECT_0 && n1.getNumChildren() == 2)));
@@ -407,7 +418,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
       }
       b1.append(n1.begin(), n1.end());
       n1 = b1;
-      Trace("mgd") << "at[2] end assert, got " << pf2->d_node << "  and  " << n1 << std::endl;
+      Trace("mgd") << "at[2] end assert, got " << pf2->d_node << "  and  " << n1
+                   << std::endl;
       if(pf2->d_node.getKind() == kind::APPLY_UF) {
         Assert(n1 == pf2->d_node);
       }
@@ -415,8 +427,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
 
     Trace("mgd") << "n2.getOperator().getType().getNumChildren() = "
                  << n2.getOperator().getType().getNumChildren() << std::endl;
-    Trace("mgd") << "n2.getNumChildren() + 1 = "
-                 << n2.getNumChildren() + 1 << std::endl;
+    Trace("mgd") << "n2.getNumChildren() + 1 = " << n2.getNumChildren() + 1
+                 << std::endl;
 
     Assert(!(
         (n2.getKind() == kind::PARTIAL_SELECT_0 && n2.getNumChildren() == 2)));
@@ -454,8 +466,10 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
   {
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
-    Trace("pf::array") << "ArrayProof::toStream: getLitName( " << pf.d_node.negate() << " ) = " <<
-      ProofManager::getLitName(pf.d_node.negate()) << std::endl;
+    Trace("pf::array") << "ArrayProof::toStream: getLitName( "
+                       << pf.d_node.negate() << " ) = "
+                       << ProofManager::getLitName(pf.d_node.negate())
+                       << std::endl;
     out << ProofManager::getLitName(pf.d_node.negate());
     return pf.d_node;
   }
@@ -654,15 +668,24 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
         // Both elements of the transitivity rule are equalities/iffs
       {
         if(n1[0] == n2[0]) {
-          if(tb == 1) { Trace("mgdx") << "case 1\n"; }
+          if (tb == 1)
+          {
+            Trace("mgdx") << "case 1\n";
+          }
           n1 = n1[1].eqNode(n2[1]);
           ss << (firstNeg ? "(negsymm _ _ _ " : "(symm _ _ _ ") << ss1.str() << ") " << ss2.str();
         } else if(n1[1] == n2[1]) {
-          if(tb == 1) { Trace("mgdx") << "case 2\n"; }
+          if (tb == 1)
+          {
+            Trace("mgdx") << "case 2\n";
+          }
           n1 = n1[0].eqNode(n2[0]);
           ss << ss1.str() << (secondNeg ? " (negsymm _ _ _ " : " (symm _ _ _ " ) << ss2.str() << ")";
         } else if(n1[0] == n2[1]) {
-          if(tb == 1) { Trace("mgdx") << "case 3\n"; }
+          if (tb == 1)
+          {
+            Trace("mgdx") << "case 3\n";
+          }
           if(!firstNeg && !secondNeg) {
             n1 = n2[0].eqNode(n1[1]);
             ss << ss2.str() << " " << ss1.str();
@@ -674,9 +697,15 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
             n1 = n1[1].eqNode(n2[0]);
             ss << " (symm _ _ _ " << ss1.str() << ") (negsymm _ _ _ " << ss2.str() << ")";
           }
-          if(tb == 1) { Trace("mgdx") << "++ proved " << n1 << "\n"; }
+          if (tb == 1)
+          {
+            Trace("mgdx") << "++ proved " << n1 << "\n";
+          }
         } else if(n1[1] == n2[0]) {
-          if(tb == 1) { Trace("mgdx") << "case 4\n"; }
+          if (tb == 1)
+          {
+            Trace("mgdx") << "case 4\n";
+          }
           n1 = n1[0].eqNode(n2[1]);
           ss << ss1.str() << " " << ss2.str();
         } else {
@@ -688,7 +717,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
           Warning() << "\n\n";
           Unreachable();
         }
-        Trace("mgd") << "++ trans proof[" << i << "], now have " << n1 << std::endl;
+        Trace("mgd") << "++ trans proof[" << i << "], now have " << n1
+                     << std::endl;
       } else if(n1.getKind() == kind::EQUAL) {
         // n1 is an equality/iff, but n2 is a predicate
         if(n1[0] == n2) {
@@ -1066,7 +1096,8 @@ Node ProofArray::toStreamRecLFSC(std::ostream& out,
   else {
     Assert(!pf.d_node.isNull());
     Assert(pf.d_children.empty());
-    Trace("mgd") << "theory proof: " << pf.d_node << " by rule " << int(pf.d_id) << std::endl;
+    Trace("mgd") << "theory proof: " << pf.d_node << " by rule " << int(pf.d_id)
+                 << std::endl;
     AlwaysAssert(false);
     return pf.d_node;
   }
@@ -1116,7 +1147,8 @@ void ArrayProof::registerTerm(Expr term) {
 }
 
 std::string ArrayProof::skolemToLiteral(Expr skolem) {
-  Trace("pf::array") << "ArrayProof::skolemToLiteral( " << skolem << ")" << std::endl;
+  Trace("pf::array") << "ArrayProof::skolemToLiteral( " << skolem << ")"
+                     << std::endl;
   Assert(d_skolemToLiteral.find(skolem) != d_skolemToLiteral.end());
   return d_skolemToLiteral[skolem];
 }
@@ -1209,14 +1241,17 @@ void LFSCArrayProof::printOwnedTermAsType(Expr term,
 }
 
 void LFSCArrayProof::printOwnedSort(Type type, std::ostream& os) {
-  Trace("pf::array") << std::endl << "(pf::array) LFSCArrayProof::printOwnedSort: type is: " << type << std::endl;
+  Trace("pf::array") << std::endl
+                     << "(pf::array) LFSCArrayProof::printOwnedSort: type is: "
+                     << type << std::endl;
   Assert(type.isArray() || type.isSort());
   if (type.isArray()){
     ArrayType array_type(type);
 
-    Trace("pf::array") << "LFSCArrayProof::printOwnedSort: type is an array. Index type: "
-                       << array_type.getIndexType()
-                       << ", element type: " << array_type.getConstituentType() << std::endl;
+    Trace("pf::array")
+        << "LFSCArrayProof::printOwnedSort: type is an array. Index type: "
+        << array_type.getIndexType()
+        << ", element type: " << array_type.getConstituentType() << std::endl;
 
     os << "(Array ";
     printSort(array_type.getIndexType(), os);
@@ -1258,15 +1293,15 @@ void LFSCArrayProof::printTermDeclarations(std::ostream& os, std::ostream& paren
     Assert(term.getType().isArray() || term.isVariable());
 
     Trace("pf::array") << "LFSCArrayProof::printDeclarations: term is: " << term
-                       << ". It's type is: " << term.getType()
-                       << std::endl;
+                       << ". It's type is: " << term.getType() << std::endl;
 
     if (term.getType().isArray()){
       ArrayType array_type(term.getType());
 
-      Trace("pf::array") << "LFSCArrayProof::printDeclarations: term is an array. Index type: "
-                         << array_type.getIndexType()
-                         << ", element type: " << array_type.getConstituentType() << std::endl;
+      Trace("pf::array")
+          << "LFSCArrayProof::printDeclarations: term is an array. Index type: "
+          << array_type.getIndexType()
+          << ", element type: " << array_type.getConstituentType() << std::endl;
 
       os << "(% " << ProofManager::sanitize(term) << " ";
       os << "(term ";
@@ -1296,14 +1331,16 @@ void LFSCArrayProof::printTermDeclarations(std::ostream& os, std::ostream& paren
 }
 
 void LFSCArrayProof::printDeferredDeclarations(std::ostream& os, std::ostream& paren) {
-  Trace("pf::array") << "Array: print deferred declarations called" << std::endl;
+  Trace("pf::array") << "Array: print deferred declarations called"
+                     << std::endl;
 
   unsigned count = 1;
   for (ExprSet::const_iterator it = d_skolemDeclarations.begin(); it != d_skolemDeclarations.end(); ++it) {
     Expr term = *it;
     Node equality = ProofManager::getSkolemizationManager()->getDisequality(*it);
 
-    Trace("pf::array") << "LFSCArrayProof::printDeferredDeclarations: term is: " << *it << std::endl
+    Trace("pf::array") << "LFSCArrayProof::printDeferredDeclarations: term is: "
+                       << *it << std::endl
                        << "It is a witness for: " << equality << std::endl;
 
     std::ostringstream newSkolemLiteral;
@@ -1312,7 +1349,9 @@ void LFSCArrayProof::printDeferredDeclarations(std::ostream& os, std::ostream& p
 
     d_skolemToLiteral[*it] = skolemLiteral;
 
-    Trace("pf::array") << "LFSCArrayProof::printDeferredDeclarations: new skolem literal is: " << skolemLiteral << std::endl;
+    Trace("pf::array")
+        << "LFSCArrayProof::printDeferredDeclarations: new skolem literal is: "
+        << skolemLiteral << std::endl;
 
     Assert(equality.getKind() == kind::NOT);
     Assert(equality[0].getKind() == kind::EQUAL);

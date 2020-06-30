@@ -652,8 +652,8 @@ Node AbstractionModule::getInterpretation(TNode node) {
   Node result = substituteArguments(sig, apply, index, seen);
   Assert(result.getType().isBoolean());
   Assert(index == apply.getNumChildren());
-  // Trace("bv-abstraction") << "AbstractionModule::getInterpretation " << node << "\n";
-  // Trace("bv-abstraction") << "    => " << result << "\n";
+  // Trace("bv-abstraction") << "AbstractionModule::getInterpretation " << node
+  // << "\n"; Trace("bv-abstraction") << "    => " << result << "\n";
   return result;
 }
 
@@ -700,7 +700,8 @@ Node AbstractionModule::simplifyConflict(TNode conflict) {
     Dump("bv-abstraction") << PopCommand();
   }
 
-  Trace("bv-abstraction-dbg") << "AbstractionModule::simplifyConflict " << conflict << "\n";
+  Trace("bv-abstraction-dbg")
+      << "AbstractionModule::simplifyConflict " << conflict << "\n";
   if (conflict.getKind() != kind::AND)
     return conflict;
 
@@ -739,8 +740,9 @@ Node AbstractionModule::simplifyConflict(TNode conflict) {
   }
   Node new_conflict = Rewriter::rewrite(utils::mkAnd(conjuncts));
 
-  Trace("bv-abstraction") << "AbstractionModule::simplifyConflict conflict " << conflict <<"\n";
-  Trace("bv-abstraction") << "   => " << new_conflict <<"\n";
+  Trace("bv-abstraction") << "AbstractionModule::simplifyConflict conflict "
+                          << conflict << "\n";
+  Trace("bv-abstraction") << "   => " << new_conflict << "\n";
 
   if (Dump.isOn("bv-abstraction")) {
 
@@ -760,17 +762,17 @@ void DebugPrintInstantiations(
     const std::vector<TNode>& functions)
 {
   // print header
-  Trace("bv-abstraction-dbg") <<"[ ";
+  Trace("bv-abstraction-dbg") << "[ ";
   for (unsigned i = 0; i < functions.size(); ++i) {
     for (unsigned j = 1; j < functions[i].getNumChildren(); ++j) {
-      Trace("bv-abstraction-dgb") << functions[i][j] <<" ";
+      Trace("bv-abstraction-dgb") << functions[i][j] << " ";
     }
     Trace("bv-abstraction-dgb") << " || ";
   }
-  Trace("bv-abstraction-dbg") <<"]\n";
+  Trace("bv-abstraction-dbg") << "]\n";
 
   for (unsigned i = 0; i < instantiations.size(); ++i) {
-    Trace("bv-abstraction-dbg") <<"[";
+    Trace("bv-abstraction-dbg") << "[";
     const std::vector<ArgsVec>& inst = instantiations[i];
     for (unsigned j = 0; j < inst.size(); ++j) {
       for (unsigned k = 0; k < inst[j].size(); ++k) {
@@ -778,12 +780,13 @@ void DebugPrintInstantiations(
       }
       Trace("bv-abstraction-dbg") << " || ";
     }
-    Trace("bv-abstraction-dbg") <<"]\n";
+    Trace("bv-abstraction-dbg") << "]\n";
   }
 }
 
 void AbstractionModule::generalizeConflict(TNode conflict, std::vector<Node>& lemmas) {
-  Trace("bv-abstraction") << "AbstractionModule::generalizeConflict " << conflict << "\n";
+  Trace("bv-abstraction") << "AbstractionModule::generalizeConflict "
+                          << conflict << "\n";
   std::vector<TNode> functions;
 
   // collect abstract functions
@@ -921,7 +924,8 @@ bool AbstractionModule::LemmaInstantiatior::accept(const vector<int>& stack) {
 
 void AbstractionModule::LemmaInstantiatior::mkLemma() {
   Node lemma = d_subst.apply(d_conflict);
-  // Trace("bv-abstraction-gen") << "AbstractionModule::LemmaInstantiatior::mkLemma " << lemma <<"\n";
+  // Trace("bv-abstraction-gen") <<
+  // "AbstractionModule::LemmaInstantiatior::mkLemma " << lemma <<"\n";
   d_lemmas.push_back(lemma);
 }
 
@@ -948,12 +952,13 @@ void AbstractionModule::LemmaInstantiatior::backtrack(vector<int>& stack) {
 
 
 void AbstractionModule::LemmaInstantiatior::generateInstantiations(std::vector<Node>& lemmas) {
-  Trace("bv-abstraction-gen") << "AbstractionModule::LemmaInstantiatior::generateInstantiations ";
+  Trace("bv-abstraction-gen")
+      << "AbstractionModule::LemmaInstantiatior::generateInstantiations ";
 
   std::vector<int> stack;
   backtrack(stack);
   Assert(d_ctx->getLevel() == 0);
-  Trace("bv-abstraction-gen") << "numLemmas=" << d_lemmas.size() <<"\n";
+  Trace("bv-abstraction-gen") << "numLemmas=" << d_lemmas.size() << "\n";
   lemmas.swap(d_lemmas);
 }
 
@@ -1001,20 +1006,20 @@ void AbstractionModule::makeFreshArgs(TNode func, std::vector<Node>& fresh_args)
 Node AbstractionModule::tryMatching(const std::vector<Node>& ss, const std::vector<TNode>& tt, TNode conflict) {
   Assert(ss.size() == tt.size());
 
-  Trace("bv-abstraction-dbg") << "AbstractionModule::tryMatching conflict = " << conflict << "\n";
-  if (Trace.isOn("bv-abstraction-dbg")) {
+  Trace("bv-abstraction-dbg")
+      << "AbstractionModule::tryMatching conflict = " << conflict << "\n";
+  if (Trace.isOn("bv-abstraction-dbg"))
+  {
     Trace("bv-abstraction-dbg") << "  Match: ";
     for (unsigned i = 0; i < ss.size(); ++i) {
-      Trace("bv-abstraction-dbg") << ss[i] <<" ";
-
+      Trace("bv-abstraction-dbg") << ss[i] << " ";
     }
     Trace("bv-abstraction-dbg") << "\n  To: ";
     for (unsigned i = 0; i < tt.size(); ++i) {
-      Trace("bv-abstraction-dbg") << tt[i] <<" ";
+      Trace("bv-abstraction-dbg") << tt[i] << " ";
     }
-    Trace("bv-abstraction-dbg") <<"\n";
+    Trace("bv-abstraction-dbg") << "\n";
   }
-
 
   SubstitutionMap subst(new context::Context());
 
@@ -1052,7 +1057,7 @@ Node AbstractionModule::tryMatching(const std::vector<Node>& ss, const std::vect
   }
 
   Node res = subst.apply(conflict);
-  Trace("bv-abstraction-dbg") << "  Lemma: " << res <<"\n";
+  Trace("bv-abstraction-dbg") << "  Lemma: " << res << "\n";
   return res;
 }
 

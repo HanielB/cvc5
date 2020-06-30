@@ -43,17 +43,21 @@ AtomRequests::atom_iterator AtomRequests::getAtomIterator(TNode trigger) const {
 }
 
 void AtomRequests::add(TNode triggerAtom, TNode atomToSend, theory::TheoryId toTheory) {
-
-  Trace("theory::atoms") << "AtomRequests::add(" << triggerAtom << ", " << atomToSend << ", " << toTheory << ")" << std::endl;
+  Trace("theory::atoms") << "AtomRequests::add(" << triggerAtom << ", "
+                         << atomToSend << ", " << toTheory << ")" << std::endl;
 
   Request request(atomToSend, toTheory);
 
   if (d_allRequests.find(request) != d_allRequests.end()) {
     // Have it already
-    Trace("theory::atoms") << "AtomRequests::add(" << triggerAtom << ", " << atomToSend << ", " << toTheory << "): already there" << std::endl;
+    Trace("theory::atoms") << "AtomRequests::add(" << triggerAtom << ", "
+                           << atomToSend << ", " << toTheory
+                           << "): already there" << std::endl;
     return;
   }
-  Trace("theory::atoms") << "AtomRequests::add(" << triggerAtom << ", " << atomToSend << ", " << toTheory << "): adding" << std::endl;
+  Trace("theory::atoms") << "AtomRequests::add(" << triggerAtom << ", "
+                         << atomToSend << ", " << toTheory << "): adding"
+                         << std::endl;
 
   /// Mark the new request
   d_allRequests.insert(request);

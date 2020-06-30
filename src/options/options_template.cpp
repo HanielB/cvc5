@@ -536,7 +536,8 @@ std::vector<std::string> Options::parseOptions(Options* options,
 
   std::vector<std::string> nonoptions;
   parseOptionsRecursive(options, argc, argv, &nonoptions);
-  if(Trace.isOn("options")){
+  if (Trace.isOn("options"))
+  {
     for(std::vector<std::string>::const_iterator i = nonoptions.begin(),
           iend = nonoptions.end(); i != iend; ++i){
       Trace("options") << "nonoptions " << *i << std::endl;
@@ -551,10 +552,10 @@ void Options::parseOptionsRecursive(Options* options,
                                     char* argv[],
                                     std::vector<std::string>* nonoptions)
 {
-
-  if(Trace.isOn("options")) {
-    Trace("options") << "starting a new parseOptionsRecursive with "
-                     << argc << " arguments" << std::endl;
+  if (Trace.isOn("options"))
+  {
+    Trace("options") << "starting a new parseOptionsRecursive with " << argc
+                     << " arguments" << std::endl;
     for( int i = 0; i < argc ; i++ ){
       Assert(argv[i] != NULL);
       Trace("options") << "  argv[" << i << "] = " << argv[i] << std::endl;
@@ -597,7 +598,6 @@ void Options::parseOptionsRecursive(Options* options,
       continue;
     }
 
-
     Trace("options") << "[ before, main_optind == " << main_optind << " ]"
                      << std::endl;
     Trace("options") << "[ before, optind == " << optind << " ]" << std::endl;
@@ -622,7 +622,8 @@ void Options::parseOptionsRecursive(Options* options,
     }
 
     if ( c == -1 ) {
-      if(Trace.isOn("options")) {
+      if (Trace.isOn("options"))
+      {
         Trace("options") << "done with option parsing" << std::endl;
         for(int index = optind; index < argc; ++index) {
           Trace("options") << "remaining " << argv[index] << std::endl;
@@ -634,8 +635,8 @@ void Options::parseOptionsRecursive(Options* options,
     option = argv[old_optind == 0 ? 1 : old_optind];
     optionarg = (optarg == NULL) ? "" : optarg;
 
-    Trace("preemptGetopt") << "processing option " << c
-                           << " (`" << char(c) << "'), " << option << std::endl;
+    Trace("preemptGetopt") << "processing option " << c << " (`" << char(c)
+                           << "'), " << option << std::endl;
 
     switch(c) {
 ${options_handler}$
@@ -654,8 +655,8 @@ ${options_handler}$
     }
   }
 
-  Trace("options") << "got " << nonoptions->size()
-                   << " non-option arguments." << std::endl;
+  Trace("options") << "got " << nonoptions->size() << " non-option arguments."
+                   << std::endl;
 }
 
 std::string Options::suggestCommandLineOptions(const std::string& optionName)

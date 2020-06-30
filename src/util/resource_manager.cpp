@@ -79,8 +79,11 @@ bool Timer::expired() const {
   if (d_wall_time) {
     timeval tv;
     gettimeofday(&tv, NULL);
-    Trace("limit") << "Timer::expired(): current wall time is " << tv.tv_sec << "," << tv.tv_usec << std::endl;
-    Trace("limit") << "Timer::expired(): limit wall time is " << d_wall_limit.tv_sec << "," << d_wall_limit.tv_usec << std::endl;
+    Trace("limit") << "Timer::expired(): current wall time is " << tv.tv_sec
+                   << "," << tv.tv_usec << std::endl;
+    Trace("limit") << "Timer::expired(): limit wall time is "
+                   << d_wall_limit.tv_sec << "," << d_wall_limit.tv_usec
+                   << std::endl;
     if(d_wall_limit.tv_sec < tv.tv_sec ||
        (d_wall_limit.tv_sec == tv.tv_sec && d_wall_limit.tv_usec <= tv.tv_usec)) {
       Trace("limit") << "Timer::expired(): OVER LIMIT!" << std::endl;
@@ -92,10 +95,12 @@ bool Timer::expired() const {
 
   // cpu time
   double current = ((double)clock())/(CLOCKS_PER_SEC*0.001);
-  Trace("limit") << "Timer::expired(): current cpu time is " << current <<  std::endl;
-  Trace("limit") << "Timer::expired(): limit cpu time is " << d_cpu_limit <<  std::endl;
+  Trace("limit") << "Timer::expired(): current cpu time is " << current
+                 << std::endl;
+  Trace("limit") << "Timer::expired(): limit cpu time is " << d_cpu_limit
+                 << std::endl;
   if (current >= d_cpu_limit) {
-    Trace("limit") << "Timer::expired(): OVER LIMIT!" << current <<  std::endl;
+    Trace("limit") << "Timer::expired(): OVER LIMIT!" << current << std::endl;
     return true;
   }
   return false;

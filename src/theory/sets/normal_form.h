@@ -49,8 +49,8 @@ class NormalForm {
   }
 
   static bool checkNormalConstant(TNode n) {
-    Trace("sets-checknormal") << "[sets-checknormal] checkNormal " << n << " :"
-                              << std::endl;
+    Trace("sets-checknormal")
+        << "[sets-checknormal] checkNormal " << n << " :" << std::endl;
     if (n.getKind() == kind::EMPTYSET) {
       return true;
     } else if (n.getKind() == kind::SINGLETON) {

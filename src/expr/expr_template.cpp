@@ -193,7 +193,8 @@ private:
       Expr from_e(d_from, new Node(n));
       Expr& to_e = d_vmap.d_typeMap[from_e];
       if(! to_e.isNull()) {
-        Trace("export") << "+ mapped `" << from_e << "' to `" << to_e << "'" << std::endl;
+        Trace("export") << "+ mapped `" << from_e << "' to `" << to_e << "'"
+                        << std::endl;
         return to_e.getNode();
       } else {
         // construct new variable in other manager:
@@ -242,7 +243,11 @@ private:
             Unhandled();
           }
 
-          Trace("export") << "+ exported var `" << from_e << "'[" << from_e.getId() << "] with name `" << name << "' and type `" << from_e.getType() << "' to `" << to_e << "'[" << to_e.getId() << "] with type `" << type << "'" << std::endl;
+          Trace("export") << "+ exported var `" << from_e << "'["
+                          << from_e.getId() << "] with name `" << name
+                          << "' and type `" << from_e.getType() << "' to `"
+                          << to_e << "'[" << to_e.getId() << "] with type `"
+                          << type << "'" << std::endl;
         } else {
           if (n.getKind() == kind::BOUND_VARIABLE)
           {
@@ -264,7 +269,10 @@ private:
             NodeManagerScope nullScope(nullptr);
             to_e = d_to->mkVar(type);  // FIXME thread safety
           }
-          Trace("export") << "+ exported unnamed var `" << from_e << "' with type `" << from_e.getType() << "' to `" << to_e << "' with type `" << type << "'" << std::endl;
+          Trace("export") << "+ exported unnamed var `" << from_e
+                          << "' with type `" << from_e.getType() << "' to `"
+                          << to_e << "' with type `" << type << "'"
+                          << std::endl;
         }
         uint64_t to_int = (uint64_t)(to_e.getNode().d_nv);
         uint64_t from_int = (uint64_t)(from_e.getNode().d_nv);
@@ -287,7 +295,8 @@ private:
       std::vector<Node> children;
       Trace("export") << "n: " << n << std::endl;
       if(n.getMetaKind() == kind::metakind::PARAMETERIZED) {
-        Trace("export") << "+ parameterized, op is " << n.getOperator() << std::endl;
+        Trace("export") << "+ parameterized, op is " << n.getOperator()
+                        << std::endl;
         children.reserve(n.getNumChildren() + 1);
         children.push_back(exportInternal(n.getOperator()));
       } else {
@@ -297,7 +306,8 @@ private:
         Trace("export") << "+ child: " << *i << std::endl;
         children.push_back(exportInternal(*i));
       }
-      if(Trace.isOn("export")) {
+      if (Trace.isOn("export"))
+      {
         Trace("export") << "children for export from " << n << std::endl;
 
         // `n` belongs to the `from` ExprManager, so begin ExprManagerScope

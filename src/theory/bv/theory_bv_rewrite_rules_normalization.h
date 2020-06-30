@@ -46,7 +46,8 @@ bool RewriteRule<ExtractBitwise>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<ExtractBitwise>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<ExtractBitwise>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<ExtractBitwise>(" << node << ")"
+                      << std::endl;
   unsigned high = utils::getExtractHigh(node);
   unsigned low = utils::getExtractLow(node);
   std::vector<Node> children; 
@@ -1159,7 +1160,8 @@ bool RewriteRule<FlattenAssocCommutNoDuplicates>::applies(TNode node) {
   
 template<> inline
 Node RewriteRule<FlattenAssocCommutNoDuplicates>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<FlattenAssocCommut>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<FlattenAssocCommut>(" << node << ")"
+                      << std::endl;
   std::vector<Node> processingStack;
   processingStack.push_back(node);
   std::unordered_set<TNode, TNodeHashFunction> processed;
@@ -1566,9 +1568,6 @@ inline Node RewriteRule<NormalizeEqPlusNeg>::apply(TNode node)
 //   Trace("bv-rewrite") << "RewriteRule<>(" << node << ")" << std::endl;
 //   return resultNode;
 // }
-
-
-
 }
 }
 }

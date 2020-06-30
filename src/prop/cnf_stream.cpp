@@ -187,11 +187,13 @@ void TseitinCnfStream::ensureLiteral(TNode n, bool noPreregistration) {
   }
 
   Assert(hasLiteral(n) && getNode(lit) == n);
-  Trace("ensureLiteral") << "CnfStream::ensureLiteral(): out lit is " << lit << std::endl;
+  Trace("ensureLiteral") << "CnfStream::ensureLiteral(): out lit is " << lit
+                         << std::endl;
 }
 
 SatLiteral CnfStream::newLiteral(TNode node, bool isTheoryAtom, bool preRegister, bool canEliminate) {
-  Trace("cnf") << d_name << "::newLiteral(" << node << ", " << isTheoryAtom << ")" << endl;
+  Trace("cnf") << d_name << "::newLiteral(" << node << ", " << isTheoryAtom
+               << ")" << endl;
   Assert(node.getKind() != kind::NOT);
 
   // Get the literal for this node
@@ -236,7 +238,8 @@ SatLiteral CnfStream::newLiteral(TNode node, bool isTheoryAtom, bool preRegister
 
 TNode CnfStream::getNode(const SatLiteral& literal) {
   Trace("cnf") << "getNode(" << literal << ")" << endl;
-  Trace("cnf") << "getNode(" << literal << ") => " << d_literalToNodeMap[literal] << endl;
+  Trace("cnf") << "getNode(" << literal << ") => "
+               << d_literalToNodeMap[literal] << endl;
   return d_literalToNodeMap[literal];
 }
 
@@ -283,7 +286,8 @@ SatLiteral CnfStream::getLiteral(TNode node) {
       << "Literal not in the CNF Cache: " << node << "\n";
 
   SatLiteral literal = d_nodeToLiteralMap[node];
-  Trace("cnf") << "CnfStream::getLiteral(" << node << ") => " << literal << std::endl;
+  Trace("cnf") << "CnfStream::getLiteral(" << node << ") => " << literal
+               << std::endl;
   return literal;
 }
 
@@ -454,7 +458,8 @@ SatLiteral TseitinCnfStream::handleIte(TNode iteNode) {
   Assert(iteNode.getNumChildren() == 3);
   Assert(!d_removable) << "Removable clauses can not contain Boolean structure";
 
-  Trace("cnf") << "handleIte(" << iteNode[0] << " " << iteNode[1] << " " << iteNode[2] << ")" << endl;
+  Trace("cnf") << "handleIte(" << iteNode[0] << " " << iteNode[1] << " "
+               << iteNode[2] << ")" << endl;
 
   SatLiteral condLit = toCNF(iteNode[0]);
   SatLiteral thenLit = toCNF(iteNode[1]);
@@ -487,7 +492,8 @@ SatLiteral TseitinCnfStream::handleIte(TNode iteNode) {
 
 
 SatLiteral TseitinCnfStream::toCNF(TNode node, bool negated) {
-  Trace("cnf") << "toCNF(" << node << ", negated = " << (negated ? "true" : "false") << ")" << endl;
+  Trace("cnf") << "toCNF(" << node
+               << ", negated = " << (negated ? "true" : "false") << ")" << endl;
 
   SatLiteral nodeLit;
   Node negatedNode = node.notNode();

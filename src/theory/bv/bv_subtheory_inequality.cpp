@@ -30,7 +30,7 @@ using namespace CVC4::theory::bv;
 using namespace CVC4::theory::bv::utils;
 
 bool InequalitySolver::check(Theory::Effort e) {
-  Trace("bv-subtheory-inequality") << "InequalitySolveR::check("<< e <<")\n";
+  Trace("bv-subtheory-inequality") << "InequalitySolveR::check(" << e << ")\n";
   TimerStat::CodeTimer inequalityTimer(d_statistics.d_solveTime);
   ++(d_statistics.d_numCallstoCheck);
   d_bv->spendResource(ResourceManager::Resource::TheoryCheckStep);
@@ -38,7 +38,7 @@ bool InequalitySolver::check(Theory::Effort e) {
   bool ok = true;
   while (!done() && ok) {
     TNode fact = get();
-    Trace("bv-subtheory-inequality") << "  "<< fact <<"\n";
+    Trace("bv-subtheory-inequality") << "  " << fact << "\n";
     if (fact.getKind() == kind::EQUAL) {
       TNode a = fact[0];
       if( a.getType().isBitVector() ){
@@ -91,7 +91,8 @@ bool InequalitySolver::check(Theory::Effort e) {
     d_inequalityGraph.getConflict(conflict);
     Node confl = utils::flattenAnd(conflict);
     d_bv->setConflict(confl);
-    Trace("bv-subtheory-inequality") << "InequalitySolver::conflict:  "<< confl <<"\n";
+    Trace("bv-subtheory-inequality")
+        << "InequalitySolver::conflict:  " << confl << "\n";
     return false;
   }
 
@@ -185,7 +186,8 @@ void InequalitySolver::explain(TNode literal, std::vector<TNode>& assumptions) {
   Assert(d_explanations.find(literal) != d_explanations.end());
   TNode explanation = d_explanations[literal];
   assumptions.push_back(explanation);
-  Trace("bv-inequality-explain") << "InequalitySolver::explain " << literal << " with " << explanation <<"\n";
+  Trace("bv-inequality-explain") << "InequalitySolver::explain " << literal
+                                 << " with " << explanation << "\n";
 }
 
 void InequalitySolver::propagate(Theory::Effort e) { Assert(false); }
@@ -206,7 +208,7 @@ bool InequalitySolver::collectModelInfo(TheoryModel* m, bool fullModel)
 
 Node InequalitySolver::getModelValue(TNode var) {
   Assert(isInequalityOnly(var));
-  Trace("bitvector-model") << "InequalitySolver::getModelValue (" << var <<")";
+  Trace("bitvector-model") << "InequalitySolver::getModelValue (" << var << ")";
   Assert(isComplete());
   Node result = Node();
   if (!d_inequalityGraph.hasValueInModel(var)) {
@@ -215,7 +217,7 @@ Node InequalitySolver::getModelValue(TNode var) {
     BitVector val = d_inequalityGraph.getValueInModel(var);
     result = utils::mkConst(val);
   }
-  Trace("bitvector-model") << " => " << result <<"\n";
+  Trace("bitvector-model") << " => " << result << "\n";
   return result;
 }
 

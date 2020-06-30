@@ -60,7 +60,8 @@ class TheoryDatatypes : public Theory {
     NotifyClass(TheoryDatatypes& dt): d_dt(dt) {}
     bool eqNotifyTriggerEquality(TNode equality, bool value) override
     {
-      Trace("dt") << "NotifyClass::eqNotifyTriggerEquality(" << equality << ", " << (value ? "true" : "false" )<< ")" << std::endl;
+      Trace("dt") << "NotifyClass::eqNotifyTriggerEquality(" << equality << ", "
+                  << (value ? "true" : "false") << ")" << std::endl;
       if (value) {
         return d_dt.propagate(equality);
       } else {
@@ -70,7 +71,8 @@ class TheoryDatatypes : public Theory {
     }
     bool eqNotifyTriggerPredicate(TNode predicate, bool value) override
     {
-      Trace("dt") << "NotifyClass::eqNotifyTriggerPredicate(" << predicate << ", " << (value ? "true" : "false") << ")" << std::endl;
+      Trace("dt") << "NotifyClass::eqNotifyTriggerPredicate(" << predicate
+                  << ", " << (value ? "true" : "false") << ")" << std::endl;
       if (value) {
         return d_dt.propagate(predicate);
       } else {
@@ -82,7 +84,8 @@ class TheoryDatatypes : public Theory {
                                      TNode t2,
                                      bool value) override
     {
-      Trace("dt") << "NotifyClass::eqNotifyTriggerTermMerge(" << tag << ", " << t1 << ", " << t2 << ")" << std::endl;
+      Trace("dt") << "NotifyClass::eqNotifyTriggerTermMerge(" << tag << ", "
+                  << t1 << ", " << t2 << ")" << std::endl;
       if (value) {
         return d_dt.propagate(t1.eqNode(t2));
       } else {
@@ -91,7 +94,8 @@ class TheoryDatatypes : public Theory {
     }
     void eqNotifyConstantTermMerge(TNode t1, TNode t2) override
     {
-      Trace("dt") << "NotifyClass::eqNotifyConstantTermMerge(" << t1 << ", " << t2 << ")" << std::endl;
+      Trace("dt") << "NotifyClass::eqNotifyConstantTermMerge(" << t1 << ", "
+                  << t2 << ")" << std::endl;
       d_dt.conflict(t1, t2);
     }
     void eqNotifyNewClass(TNode t) override
@@ -101,17 +105,20 @@ class TheoryDatatypes : public Theory {
     }
     void eqNotifyPreMerge(TNode t1, TNode t2) override
     {
-      Trace("dt") << "NotifyClass::eqNotifyPreMerge(" << t1 << ", " << t2 << ")" << std::endl;
+      Trace("dt") << "NotifyClass::eqNotifyPreMerge(" << t1 << ", " << t2 << ")"
+                  << std::endl;
       d_dt.eqNotifyPreMerge(t1, t2);
     }
     void eqNotifyPostMerge(TNode t1, TNode t2) override
     {
-      Trace("dt") << "NotifyClass::eqNotifyPostMerge(" << t1 << ", " << t2 << ")" << std::endl;
+      Trace("dt") << "NotifyClass::eqNotifyPostMerge(" << t1 << ", " << t2
+                  << ")" << std::endl;
       d_dt.eqNotifyPostMerge(t1, t2);
     }
     void eqNotifyDisequal(TNode t1, TNode t2, TNode reason) override
     {
-      Trace("dt") << "NotifyClass::eqNotifyDisequal(" << t1 << ", " << t2 << ", " << reason << ")" << std::endl;
+      Trace("dt") << "NotifyClass::eqNotifyDisequal(" << t1 << ", " << t2
+                  << ", " << reason << ")" << std::endl;
       d_dt.eqNotifyDisequal(t1, t2, reason);
     }
   };/* class TheoryDatatypes::NotifyClass */

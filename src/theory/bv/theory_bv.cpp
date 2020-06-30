@@ -196,7 +196,8 @@ void TheoryBV::finishInit()
 
 Node TheoryBV::expandDefinition(Node node)
 {
-  Trace("bitvector-expandDefinition") << "TheoryBV::expandDefinition(" << node << ")" << std::endl;
+  Trace("bitvector-expandDefinition")
+      << "TheoryBV::expandDefinition(" << node << ")" << std::endl;
 
   switch (node.getKind()) {
   case kind::BITVECTOR_SDIV:
@@ -236,7 +237,8 @@ Node TheoryBV::expandDefinition(Node node)
 
 void TheoryBV::preRegisterTerm(TNode node) {
   d_calledPreregister = true;
-  Trace("bitvector-preregister") << "TheoryBV::preRegister(" << node << ")" << std::endl;
+  Trace("bitvector-preregister")
+      << "TheoryBV::preRegister(" << node << ")" << std::endl;
 
   if (options::bitblastMode() == options::BitblastMode::EAGER)
   {
@@ -268,7 +270,8 @@ void TheoryBV::sendConflict() {
   if (d_conflictNode.isNull()) {
     return;
   } else {
-    Trace("bitvector") << indent() << "TheoryBV::check(): conflict " << d_conflictNode << std::endl;
+    Trace("bitvector") << indent() << "TheoryBV::check(): conflict "
+                       << d_conflictNode << std::endl;
     d_out->conflict(d_conflictNode);
     d_statistics.d_avgConflictSize.addEntry(d_conflictNode.getNumChildren());
     d_conflictNode = Node::null();
@@ -564,13 +567,16 @@ void TheoryBV::propagate(Effort e) {
     TNode literal = d_literalsToPropagate[d_literalsToPropagateIndex];
     // temporary fix for incremental bit-blasting
     if (d_valuation.isSatLiteral(literal)) {
-      Trace("bitvector::propagate") << "TheoryBV:: propagating " << literal <<"\n";
+      Trace("bitvector::propagate")
+          << "TheoryBV:: propagating " << literal << "\n";
       ok = d_out->propagate(literal);
     }
   }
 
   if (!ok) {
-    Trace("bitvector::propagate") << indent() << "TheoryBV::propagate(): conflict from theory engine" << std::endl;
+    Trace("bitvector::propagate")
+        << indent() << "TheoryBV::propagate(): conflict from theory engine"
+        << std::endl;
     setConflict();
   }
 }
@@ -801,12 +807,17 @@ static int prop_count = 0;
 
 bool TheoryBV::storePropagation(TNode literal, SubTheory subtheory)
 {
-  Trace("bitvector::propagate") << indent() << getSatContext()->getLevel() << " " << "TheoryBV::storePropagation(" << literal << ", " << subtheory << ")" << std::endl;
+  Trace("bitvector::propagate")
+      << indent() << getSatContext()->getLevel() << " "
+      << "TheoryBV::storePropagation(" << literal << ", " << subtheory << ")"
+      << std::endl;
   prop_count++;
 
   // If already in conflict, no more propagation
   if (d_conflict) {
-    Trace("bitvector::propagate") << indent() << "TheoryBV::storePropagation(" << literal << ", " << subtheory << "): already in conflict" << std::endl;
+    Trace("bitvector::propagate")
+        << indent() << "TheoryBV::storePropagation(" << literal << ", "
+        << subtheory << "): already in conflict" << std::endl;
     return false;
   }
 
@@ -853,7 +864,8 @@ void TheoryBV::explain(TNode literal, std::vector<TNode>& assumptions) {
 
 
 Node TheoryBV::explain(TNode node) {
-  Trace("bitvector::explain") << "TheoryBV::explain(" << node << ")" << std::endl;
+  Trace("bitvector::explain")
+      << "TheoryBV::explain(" << node << ")" << std::endl;
   std::vector<TNode> assumptions;
 
   // Ask for the explanation
@@ -864,14 +876,16 @@ Node TheoryBV::explain(TNode node) {
   }
   // return the explanation
   Node explanation = utils::mkAnd(assumptions);
-  Trace("bitvector::explain") << "TheoryBV::explain(" << node << ") => " << explanation << std::endl;
+  Trace("bitvector::explain")
+      << "TheoryBV::explain(" << node << ") => " << explanation << std::endl;
   Trace("bitvector::explain") << "TheoryBV::explain done. \n";
   return explanation;
 }
 
 
 void TheoryBV::addSharedTerm(TNode t) {
-  Trace("bitvector::sharing") << indent() << "TheoryBV::addSharedTerm(" << t << ")" << std::endl;
+  Trace("bitvector::sharing")
+      << indent() << "TheoryBV::addSharedTerm(" << t << ")" << std::endl;
   d_sharedTermsSet.insert(t);
   if (options::bitvectorEqualitySolver()) {
     for (unsigned i = 0; i < d_subtheories.size(); ++i) {

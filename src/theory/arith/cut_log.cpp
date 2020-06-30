@@ -349,7 +349,8 @@ int NodeLog::getUpId() const{
 void NodeLog::addSelected(int ord, int sel){
   Assert(d_rowIdsSelected.find(ord) == d_rowIdsSelected.end());
   d_rowIdsSelected[ord] = sel;
-  Trace("approx::nodelog") << "addSelected("<< ord << ", "<< sel << ")" << endl;
+  Trace("approx::nodelog") << "addSelected(" << ord << ", " << sel << ")"
+                           << endl;
 }
 void NodeLog::applySelected() {
   CutSet::iterator iter = d_cuts.begin(), iend = d_cuts.end(), todelete;
@@ -371,7 +372,9 @@ void NodeLog::applySelected() {
       d_cuts.erase(todelete);
       delete curr;
     }else{
-      Trace("approx::nodelog") << "applySelected " << curr->getId() << " " << poolOrd << "->" << d_rowIdsSelected[poolOrd] << endl;
+      Trace("approx::nodelog")
+          << "applySelected " << curr->getId() << " " << poolOrd << "->"
+          << d_rowIdsSelected[poolOrd] << endl;
       curr->setRowId( d_rowIdsSelected[poolOrd] );
       ++iter;
     }
@@ -387,13 +390,14 @@ void NodeLog::applyRowsDeleted(const RowsDeleted& rd) {
   sortedRemoved.push_back(INT_MAX);
   std::sort(sortedRemoved.begin(), sortedRemoved.end());
 
-  if(Trace.isOn("approx::nodelog")){
-    Trace("approx::nodelog") << "Removing #" << sortedRemoved.size()<< "...";
+  if (Trace.isOn("approx::nodelog"))
+  {
+    Trace("approx::nodelog") << "Removing #" << sortedRemoved.size() << "...";
     for(unsigned k = 0; k<sortedRemoved.size(); k++){
       Trace("approx::nodelog") << ", " << sortedRemoved[k];
     }
     Trace("approx::nodelog") << endl;
-    Trace("approx::nodelog") << "cv.len" << cv.len  << endl;
+    Trace("approx::nodelog") << "cv.len" << cv.len << endl;
   }
 
   int min = sortedRemoved.front();
@@ -443,11 +447,13 @@ void NodeLog::applyRowsDeleted(const RowsDeleted& rd) {
     if(headRemovedOrd == origOrd){
 
       if(ci == NULL){
-        Trace("approx::nodelog") << "deleting from above because of " << rd << endl;
+        Trace("approx::nodelog")
+            << "deleting from above because of " << rd << endl;
         Trace("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
         d_rowId2ArithVar.erase(origOrd);
       }else{
-        Trace("approx::nodelog") << "deleting " << ci << " because of " << rd << endl;
+        Trace("approx::nodelog")
+            << "deleting " << ci << " because of " << rd << endl;
         Trace("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
         d_rowId2ArithVar.erase(origOrd);
         ci->setRowId(-1);
@@ -460,13 +466,16 @@ void NodeLog::applyRowsDeleted(const RowsDeleted& rd) {
       if(ci == NULL){
         Trace("approx::nodelog") << "shifting above down due to " << rd << endl;
         Trace("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
-        Trace("approx::nodelog") << "now have " << newOrd << " <-> " << v << endl;
+        Trace("approx::nodelog")
+            << "now have " << newOrd << " <-> " << v << endl;
         d_rowId2ArithVar.erase(origOrd);
         mapRowId(newOrd, v);
       }else{
-        Trace("approx::nodelog") << "shifting " << ci << " down due to " << rd << endl;
+        Trace("approx::nodelog")
+            << "shifting " << ci << " down due to " << rd << endl;
         Trace("approx::nodelog") << "had " << origOrd << " <-> " << v << endl;
-        Trace("approx::nodelog") << "now have " << newOrd << " <-> " << v << endl;
+        Trace("approx::nodelog")
+            << "now have " << newOrd << " <-> " << v << endl;
         ci->setRowId(newOrd);
         d_rowId2ArithVar.erase(origOrd);
         mapRowId(newOrd, v);
@@ -522,9 +531,8 @@ ArithVar NodeLog::lookupRowId(int rowId) const{
 
 void NodeLog::mapRowId(int rowId, ArithVar v){
   Assert(lookupRowId(rowId) == ARITHVAR_SENTINEL);
-  Trace("approx::nodelog")
-    << "On " << getNodeId()
-    << " adding row id " << rowId << " <-> " << v << endl;
+  Trace("approx::nodelog") << "On " << getNodeId() << " adding row id " << rowId
+                           << " <-> " << v << endl;
   d_rowId2ArithVar[rowId] = v;
 }
 

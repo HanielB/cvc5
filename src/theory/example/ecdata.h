@@ -62,8 +62,8 @@ struct Link {
   Link(context::Context* context, TNode n, Link* l = NULL) :
     d_next(true, context, l),
     d_data(n) {
-    Trace("context") << "Link: " << this
-                     << " so cdo is " << &d_next << std::endl;
+    Trace("context") << "Link: " << this << " so cdo is " << &d_next
+                     << std::endl;
   }
 
   /**

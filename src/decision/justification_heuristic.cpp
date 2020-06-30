@@ -125,10 +125,11 @@ CVC4::prop::SatLiteral JustificationHeuristic::getNextThresh(bool &stopSearch, D
       curass = curass[0];
     alljustified &= checkJustified(curass);
 
-    if(Trace.isOn("decision")) {
+    if (Trace.isOn("decision"))
+    {
       if(!checkJustified(curass))
-        Trace("decision") << "****** Not justified [i="<<i<<"]: "
-                          << d_assertions[i] << std::endl;
+        Trace("decision") << "****** Not justified [i=" << i
+                          << "]: " << d_assertions[i] << std::endl;
     }
   }
   Assert(alljustified || d_curThreshold != 0);
@@ -369,7 +370,8 @@ TNode JustificationHeuristic::getChildByWeight(TNode n, int i, bool polarity) {
 
 SatValue JustificationHeuristic::tryGetSatValue(Node n)
 {
-  Trace("decision") << "   "  << n << " has sat value " << " ";
+  Trace("decision") << "   " << n << " has sat value "
+                    << " ";
   if(d_decisionEngine->hasSatLiteral(n) ) {
     Trace("decision") << d_decisionEngine->getSatValue(n) << std::endl;
     return d_decisionEngine->getSatValue(n);
@@ -453,7 +455,8 @@ JustificationHeuristic::findSplitterRec(TNode node, SatValue desiredVal)
   // We don't always have a sat literal, so remember that. Will need
   // it for some assertions we make.
   bool litPresent = d_decisionEngine->hasSatLiteral(node);
-  if(Trace.isOn("decision")) {
+  if (Trace.isOn("decision"))
+  {
     if(!litPresent) {
       Trace("decision") << "no sat literal for this node" << std::endl;
     }
@@ -674,8 +677,8 @@ JustificationHeuristic::SearchResult JustificationHeuristic::handleBinaryHard(TN
 
 JustificationHeuristic::SearchResult JustificationHeuristic::handleITE(TNode node, SatValue desiredVal)
 {
-  Trace("decision::jh") << " handleITE (" << node << ", "
-                              << desiredVal << std::endl;
+  Trace("decision::jh") << " handleITE (" << node << ", " << desiredVal
+                        << std::endl;
 
   //[0]: if, [1]: then, [2]: else
   SatValue ifVal = tryGetSatValue(node[0]);

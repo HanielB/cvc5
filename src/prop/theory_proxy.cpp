@@ -67,7 +67,8 @@ void TheoryProxy::theoryPropagate(std::vector<SatLiteral>& output) {
   std::vector<TNode> outputNodes;
   d_theoryEngine->getPropagatedLiterals(outputNodes);
   for (unsigned i = 0, i_end = outputNodes.size(); i < i_end; ++ i) {
-    Trace("prop-explain") << "theoryPropagate() => " << outputNodes[i] << std::endl;
+    Trace("prop-explain") << "theoryPropagate() => " << outputNodes[i]
+                          << std::endl;
     output.push_back(d_cnfStream->getLiteral(outputNodes[i]));
   }
 }
@@ -85,15 +86,17 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
       ProofManager::getCnfProof()->pushCurrentAssertion(theoryExplanation);
       ProofManager::getCnfProof()->setProofRecipe(proofRecipe);
 
-      Trace("pf::sat") << "TheoryProxy::explainPropagation: setting lemma recipe to: "
-                       << std::endl;
+      Trace("pf::sat")
+          << "TheoryProxy::explainPropagation: setting lemma recipe to: "
+          << std::endl;
       proofRecipe->dump("pf::sat");
 
       delete proofRecipe;
       proofRecipe = NULL;
     });
 
-  Trace("prop-explain") << "explainPropagation() => " << theoryExplanation << std::endl;
+  Trace("prop-explain") << "explainPropagation() => " << theoryExplanation
+                        << std::endl;
   if (theoryExplanation.getKind() == kind::AND) {
     Node::const_iterator it = theoryExplanation.begin();
     Node::const_iterator it_end = theoryExplanation.end();
@@ -109,7 +112,8 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
 
 void TheoryProxy::enqueueTheoryLiteral(const SatLiteral& l) {
   Node literalNode = d_cnfStream->getNode(l);
-  Trace("prop") << "enqueueing theory literal " << l << " " << literalNode << std::endl;
+  Trace("prop") << "enqueueing theory literal " << l << " " << literalNode
+                << std::endl;
   Assert(!literalNode.isNull());
   d_queue.push(literalNode);
 }

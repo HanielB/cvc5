@@ -153,10 +153,10 @@ void Region::setEqual( Node a, Node b ){
 }
 
 void Region::setDisequal( Node n1, Node n2, int type, bool valid ){
-  //Trace("uf-ss-region-debug") << "set disequal " << n1 << " " << n2 << " "
+  // Trace("uf-ss-region-debug") << "set disequal " << n1 << " " << n2 << " "
   //                            << type << " " << valid << std::endl;
-  //debugPrint("uf-ss-region-debug");
-  //Assert( isDisequal( n1, n2, type )!=valid );
+  // debugPrint("uf-ss-region-debug");
+  // Assert( isDisequal( n1, n2, type )!=valid );
   if( isDisequal( n1, n2, type )!=valid ){    //DO_THIS: make assertion
     d_nodes[ n1 ]->get(type)->setDisequal( n2, valid );
     if( type==0 ){
@@ -169,8 +169,8 @@ void Region::setDisequal( Node n1, Node n2, int type, bool valid ){
             d_testClique.find( n2 )!=d_testClique.end() && d_testClique[n2] ){
           Node eq = NodeManager::currentNM()->mkNode( EQUAL, n1, n2 );
           if( d_splits.find( eq )!=d_splits.end() && d_splits[ eq ] ){
-            Trace("uf-ss-debug") << "removing split for " << n1 << " " << n2
-                                 << std::endl;
+            Trace("uf-ss-debug")
+                << "removing split for " << n1 << " " << n2 << std::endl;
             d_splits[ eq ] = false;
             d_splitsSize = d_splitsSize - 1;
           }
@@ -331,8 +331,8 @@ bool Region::check( Theory::Effort level, int cardinality,
         }
         //check splits internal to new members
         for( int j=0; j<(int)newClique.size(); j++ ){
-          Trace("uf-ss-debug") << "Choose to add clique member "
-                               << newClique[j] << std::endl;
+          Trace("uf-ss-debug")
+              << "Choose to add clique member " << newClique[j] << std::endl;
           for( int k=(j+1); k<(int)newClique.size(); k++ ){
             if( !isDisequal( newClique[j], newClique[k], 1 ) ){
               Node at_j = newClique[j];
@@ -396,49 +396,49 @@ void Region::getNumExternalDisequalities(
 }
 
 void Region::debugPrint( const char* c, bool incClique ) {
-  Trace( c ) << "Num reps: " << d_reps_size << std::endl;
+  Trace(c) << "Num reps: " << d_reps_size << std::endl;
   for( Region::iterator it = begin(); it != end(); ++it ){
     RegionNodeInfo* rni = it->second;
     if( rni->valid() ){
       Node n = it->first;
-      Trace( c ) << "   " << n << std::endl;
+      Trace(c) << "   " << n << std::endl;
       for( int i=0; i<2; i++ ){
-        Trace( c ) << "      " << ( i==0 ? "Ext" : "Int" ) << " disequal:";
+        Trace(c) << "      " << (i == 0 ? "Ext" : "Int") << " disequal:";
         DiseqList* del = rni->get(i);
         for( DiseqList::iterator it2 = del->begin(); it2 != del->end(); ++it2 ){
           if( (*it2).second ){
-            Trace( c ) << " " << (*it2).first;
+            Trace(c) << " " << (*it2).first;
           }
         }
-        Trace( c ) << ", total = " << del->size() << std::endl;
+        Trace(c) << ", total = " << del->size() << std::endl;
       }
     }
   }
-  Trace( c ) << "Total disequal: " << d_total_diseq_external << " external,";
-  Trace( c ) << " " << d_total_diseq_internal << " internal." << std::endl;
+  Trace(c) << "Total disequal: " << d_total_diseq_external << " external,";
+  Trace(c) << " " << d_total_diseq_internal << " internal." << std::endl;
 
   if( incClique ){
     if( !d_testClique.empty() ){
-      Trace( c ) << "Candidate clique members: " << std::endl;
-      Trace( c ) << "   ";
+      Trace(c) << "Candidate clique members: " << std::endl;
+      Trace(c) << "   ";
       for( NodeBoolMap::iterator it = d_testClique.begin();
            it != d_testClique.end(); ++ it ){
         if( (*it).second ){
-          Trace( c ) << (*it).first << " ";
+          Trace(c) << (*it).first << " ";
         }
       }
-      Trace( c ) << ", size = " << d_testCliqueSize << std::endl;
+      Trace(c) << ", size = " << d_testCliqueSize << std::endl;
     }
     if( !d_splits.empty() ){
-      Trace( c ) << "Required splits: " << std::endl;
-      Trace( c ) << "   ";
+      Trace(c) << "Required splits: " << std::endl;
+      Trace(c) << "   ";
       for( NodeBoolMap::iterator it = d_splits.begin(); it != d_splits.end();
            ++ it ){
         if( (*it).second ){
-          Trace( c ) << (*it).first << " ";
+          Trace(c) << (*it).first << " ";
         }
       }
-      Trace( c ) << ", size = " << d_splitsSize << std::endl;
+      Trace(c) << ", size = " << d_splitsSize << std::endl;
     }
   }
 }
@@ -535,8 +535,8 @@ void SortModel::newEqClass( Node n ){
         d_regions_map[n] = d_regions_index;
         Trace("uf-ss") << "CardinalityExtension: New Eq Class " << n
                        << std::endl;
-        Trace("uf-ss-debug") << d_regions_index << " "
-                             << (int)d_regions.size() << std::endl;
+        Trace("uf-ss-debug")
+            << d_regions_index << " " << (int)d_regions.size() << std::endl;
         if( d_regions_index<d_regions.size() ){
           d_regions[ d_regions_index ]->debugPrint("uf-ss-debug",true);
           d_regions[ d_regions_index ]->setValid(true);
@@ -622,12 +622,14 @@ void SortModel::assertDisequal( Node a, Node b, Node reason ){
       int ai = d_regions_map[a];
       int bi = d_regions_map[b];
       if( !d_regions[ai]->isDisequal( a, b, ai==bi ) ){
-        Trace("uf-ss") << "Assert disequal " << a << " != " << b << "..." << std::endl;
+        Trace("uf-ss") << "Assert disequal " << a << " != " << b << "..."
+                       << std::endl;
         //if( reason.getKind()!=NOT || reason[0].getKind()!=EQUAL ||
         //    a!=reason[0][0] || b!=reason[0][1] ){
         //  Notice() << "Assert disequal " << a << " != " << b << ", reason = " << reason << "..." << std::endl;
         //}
-        Trace("uf-ss-disequal") << "Assert disequal " << a << " != " << b << "..." << std::endl;
+        Trace("uf-ss-disequal")
+            << "Assert disequal " << a << " != " << b << "..." << std::endl;
         //add to list of disequalities
         if( d_disequalities_index<d_disequalities.size() ){
           d_disequalities[d_disequalities_index] = reason;
@@ -677,14 +679,19 @@ void SortModel::check( Theory::Effort level, OutputChannel* out ){
                    << std::endl;
     if( level==Theory::EFFORT_FULL ){
       Trace("fmf-full-check") << std::endl;
-      Trace("fmf-full-check") << "Full check for SortModel " << d_type << ", status : " << std::endl;
+      Trace("fmf-full-check") << "Full check for SortModel " << d_type
+                              << ", status : " << std::endl;
       debugPrint("fmf-full-check");
       Trace("fmf-full-check") << std::endl;
     }
     if( d_reps<=(unsigned)d_cardinality ){
-      Trace("uf-ss-debug") << "We have " << d_reps << " representatives for type " << d_type << ", <= " << d_cardinality << std::endl;
+      Trace("uf-ss-debug") << "We have " << d_reps
+                           << " representatives for type " << d_type
+                           << ", <= " << d_cardinality << std::endl;
       if( level==Theory::EFFORT_FULL ){
-        Trace("uf-ss-sat") << "We have " << d_reps << " representatives for type " << d_type << ", <= " << d_cardinality << std::endl;
+        Trace("uf-ss-sat") << "We have " << d_reps
+                           << " representatives for type " << d_type
+                           << ", <= " << d_cardinality << std::endl;
         //Notice() << "We have " << d_reps << " representatives for type " << d_type << ", <= " << cardinality << std::endl;
         //Notice() << "Model size for " << d_type << " is " << cardinality << std::endl;
         //Notice() << cardinality << " ";
@@ -747,7 +754,8 @@ void SortModel::check( Theory::Effort level, OutputChannel* out ){
                   Node op = d_regions[i]->frontKey();
                   int sort_id = si->getSortId(op);
                   if( sortsFound.find( sort_id )!=sortsFound.end() ){
-                    Trace("fmf-full-check") << "Combined regions " << i << " " << sortsFound[sort_id] << std::endl;
+                    Trace("fmf-full-check") << "Combined regions " << i << " "
+                                            << sortsFound[sort_id] << std::endl;
                     combineRegions( sortsFound[sort_id], i );
                     recheck = true;
                     break;
@@ -762,7 +770,8 @@ void SortModel::check( Theory::Effort level, OutputChannel* out ){
               for( int i=0; i<(int)d_regions_index; i++ ){
                 if( d_regions[i]->valid() ){
                   int fcr = forceCombineRegion( i, false );
-                  Trace("fmf-full-check") << "Combined regions " << i << " " << fcr << std::endl;
+                  Trace("fmf-full-check")
+                      << "Combined regions " << i << " " << fcr << std::endl;
                   Trace("uf-ss-debug") << "Combined regions " << i << " " << fcr << std::endl;
                   recheck = true;
                   break;
@@ -920,8 +929,10 @@ int SortModel::forceCombineRegion( int ri, bool useDensity ){
     return -1;
   }else{
     //this region must merge with another
-    if( Trace.isOn("uf-ss-check-region") ){
-      Trace("uf-ss-check-region") << "We must combine Region #" << ri << ". " << std::endl;
+    if (Trace.isOn("uf-ss-check-region"))
+    {
+      Trace("uf-ss-check-region")
+          << "We must combine Region #" << ri << ". " << std::endl;
       d_regions[ri]->debugPrint("uf-ss-check-region");
     }
     //take region with maximum disequality density
@@ -930,7 +941,8 @@ int SortModel::forceCombineRegion( int ri, bool useDensity ){
     std::map< int, int > regions_diseq;
     getDisequalitiesToRegions( ri, regions_diseq );
     for( std::map< int, int >::iterator it = regions_diseq.begin(); it != regions_diseq.end(); ++it ){
-      Trace("uf-ss-check-region") << it->first << " : " << it->second << std::endl;
+      Trace("uf-ss-check-region")
+          << it->first << " : " << it->second << std::endl;
     }
     for( std::map< int, int >::iterator it = regions_diseq.begin(); it != regions_diseq.end(); ++it ){
       Assert(it->first != ri);
@@ -943,8 +955,10 @@ int SortModel::forceCombineRegion( int ri, bool useDensity ){
       }
     }
     if( maxRegion!=-1 ){
-      if( Trace.isOn("uf-ss-check-region") ){
-        Trace("uf-ss-check-region") << "Combine with region #" << maxRegion << ":" << std::endl;
+      if (Trace.isOn("uf-ss-check-region"))
+      {
+        Trace("uf-ss-check-region")
+            << "Combine with region #" << maxRegion << ":" << std::endl;
         d_regions[maxRegion]->debugPrint("uf-ss-check-region");
       }
       return combineRegions( ri, maxRegion );
@@ -960,7 +974,8 @@ int SortModel::combineRegions( int ai, int bi ){
     return combineRegions( bi, ai );
   }
 #endif
-  Trace("uf-ss-region") << "uf-ss: Combine Region #" << bi << " with Region #" << ai << std::endl;
+  Trace("uf-ss-region") << "uf-ss: Combine Region #" << bi << " with Region #"
+                        << ai << std::endl;
   Assert(isValid(ai) && isValid(bi));
   Region* region_bi = d_regions[bi];
   for(Region::iterator it = region_bi->begin(); it != region_bi->end(); ++it){
@@ -976,7 +991,8 @@ int SortModel::combineRegions( int ai, int bi ){
 }
 
 void SortModel::moveNode( Node n, int ri ){
-  Trace("uf-ss-region") << "uf-ss: Move node " << n << " to Region #" << ri << std::endl;
+  Trace("uf-ss-region") << "uf-ss: Move node " << n << " to Region #" << ri
+                        << std::endl;
   Assert(isValid(d_regions_map[n]));
   Assert(isValid(ri));
   //move node to region ri
@@ -1154,21 +1170,22 @@ bool SortModel::doSendLemma( Node lem ) {
 }
 
 void SortModel::debugPrint( const char* c ){
-  if( Trace.isOn( c ) ){
-    Trace( c ) << "Number of reps = " << d_reps << std::endl;
-    Trace( c ) << "Cardinality req = " << d_cardinality << std::endl;
+  if (Trace.isOn(c))
+  {
+    Trace(c) << "Number of reps = " << d_reps << std::endl;
+    Trace(c) << "Cardinality req = " << d_cardinality << std::endl;
     unsigned debugReps = 0;
     for( unsigned i=0; i<d_regions_index; i++ ){
       Region* region = d_regions[i]; 
       if( region->valid() ){
-        Trace( c ) << "Region #" << i << ": " << std::endl;
+        Trace(c) << "Region #" << i << ": " << std::endl;
         region->debugPrint( c, true );
-        Trace( c ) << std::endl;
+        Trace(c) << std::endl;
         for( Region::iterator it = region->begin(); it != region->end(); ++it ){
           if( it->second->valid() ){
             if( d_regions_map[ it->first ]!=(int)i ){
-              Trace( c ) << "***Bad regions map : " << it->first
-                         << " " << d_regions_map[ it->first ].get() << std::endl;
+              Trace(c) << "***Bad regions map : " << it->first << " "
+                       << d_regions_map[it->first].get() << std::endl;
             }
           }
         }
@@ -1177,8 +1194,8 @@ void SortModel::debugPrint( const char* c ){
     }
 
     if( debugReps!=d_reps ){
-      Trace( c ) << "***Bad reps: " << d_reps << ", "
-                 << "actual = " << debugReps << std::endl;
+      Trace(c) << "***Bad reps: " << d_reps << ", "
+               << "actual = " << debugReps << std::endl;
     }
   }
 }
@@ -1707,16 +1724,18 @@ void CardinalityExtension::preRegisterTerm(TNode n)
         //getOutputChannel().lemma( n.eqNode( rm->getCardinalityTerm() ) );
       }else{
         /*
-        if( tn==NodeManager::currentNM()->integerType() || tn==NodeManager::currentNM()->realType() ){
-          Trace("uf-ss-na") << "Error: Cannot perform finite model finding on arithmetic quantifier";
+        if( tn==NodeManager::currentNM()->integerType() ||
+        tn==NodeManager::currentNM()->realType() ){ Trace("uf-ss-na") << "Error:
+        Cannot perform finite model finding on arithmetic quantifier";
           Trace("uf-ss-na") << " (" << f << ")";
           Trace("uf-ss-na") << std::endl;
-          Unimplemented() << "Cannot perform finite model finding on arithmetic quantifier";
-        }else if( tn.isDatatype() ){
-          Trace("uf-ss-na") << "Error: Cannot perform finite model finding on datatype quantifier";
+          Unimplemented() << "Cannot perform finite model finding on arithmetic
+        quantifier"; }else if( tn.isDatatype() ){ Trace("uf-ss-na") << "Error:
+        Cannot perform finite model finding on datatype quantifier";
           Trace("uf-ss-na") << " (" << f << ")";
           Trace("uf-ss-na") << std::endl;
-          Unimplemented() << "Cannot perform finite model finding on datatype quantifier";
+          Unimplemented() << "Cannot perform finite model finding on datatype
+        quantifier";
         }
         */
       }
@@ -1772,9 +1791,10 @@ int CardinalityExtension::getCardinality(TypeNode tn)
 void CardinalityExtension::debugPrint(const char* c)
 {
   for( std::map< TypeNode, SortModel* >::iterator it = d_rep_model.begin(); it != d_rep_model.end(); ++it ){
-    Trace( c ) << "Conflict find structure for " << it->first << ": " << std::endl;
+    Trace(c) << "Conflict find structure for " << it->first << ": "
+             << std::endl;
     it->second->debugPrint( c );
-    Trace( c ) << std::endl;
+    Trace(c) << std::endl;
   }
 }
 

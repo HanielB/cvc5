@@ -313,7 +313,8 @@ void Parser::defineParameterizedType(const std::string& name,
                                      const std::vector<api::Sort>& params,
                                      const api::Sort& type)
 {
-  if (Trace.isOn("parser")) {
+  if (Trace.isOn("parser"))
+  {
     Trace("parser") << "defineParameterizedType(" << name << ", "
                     << params.size() << ", [";
     if (params.size() > 0) {

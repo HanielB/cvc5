@@ -333,7 +333,8 @@ bool RewriteRule<LshrByConst>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<LshrByConst>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<LshrByConst>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<LshrByConst>(" << node << ")"
+                      << std::endl;
   Integer amount = node[1].getConst<BitVector>().toInteger();
   if (amount == 0) {
     return node[0]; 
@@ -374,7 +375,8 @@ bool RewriteRule<AshrByConst>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<AshrByConst>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<AshrByConst>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<AshrByConst>(" << node << ")"
+                      << std::endl;
   Integer amount = node[1].getConst<BitVector>().toInteger();
   if (amount == 0) {
     return node[0]; 
@@ -424,7 +426,8 @@ bool RewriteRule<BitwiseIdemp>::applies(TNode node) {
 template<> inline
 Node RewriteRule<BitwiseIdemp>::apply(TNode node) {
   Unreachable();
-  Trace("bv-rewrite") << "RewriteRule<BitwiseIdemp>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<BitwiseIdemp>(" << node << ")"
+                      << std::endl;
   return node[0]; 
 }
 
@@ -634,7 +637,7 @@ template<> inline
 Node RewriteRule<OrZero>::apply(TNode node) {
   Unreachable();
   Trace("bv-rewrite") << "RewriteRule<OrZero>(" << node << ")" << std::endl;
-  
+
   unsigned size = utils::getSize(node); 
   if (node[0] == utils::mkConst(size, 0)) {
     return node[1]; 
@@ -689,7 +692,8 @@ bool RewriteRule<XorDuplicate>::applies(TNode node) {
 template<> inline
 Node RewriteRule<XorDuplicate>::apply(TNode node) {
   Unreachable();
-  Trace("bv-rewrite") << "RewriteRule<XorDuplicate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<XorDuplicate>(" << node << ")"
+                      << std::endl;
   return utils::mkZero(utils::getSize(node));
 }
 
@@ -806,7 +810,8 @@ bool RewriteRule<BitwiseNotAnd>::applies(TNode node) {
 template<> inline
 Node RewriteRule<BitwiseNotAnd>::apply(TNode node) {
   Unreachable();
-  Trace("bv-rewrite") << "RewriteRule<BitwiseNegAnd>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<BitwiseNegAnd>(" << node << ")"
+                      << std::endl;
   return utils::mkZero(utils::getSize(node));
 }
 
@@ -830,7 +835,8 @@ bool RewriteRule<BitwiseNotOr>::applies(TNode node) {
 template<> inline
 Node RewriteRule<BitwiseNotOr>::apply(TNode node) {
   Unreachable();
-  Trace("bv-rewrite") << "RewriteRule<BitwiseNotOr>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<BitwiseNotOr>(" << node << ")"
+                      << std::endl;
   uint32_t size = utils::getSize(node);
   return utils::mkOnes(size);
 }
@@ -1314,7 +1320,8 @@ bool RewriteRule<ExtractMultLeadingBit>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<ExtractMultLeadingBit>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<MultLeadingBit>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<MultLeadingBit>(" << node << ")"
+                      << std::endl;
 
   unsigned bitwidth = utils::getSize(node); 
   
@@ -1617,7 +1624,8 @@ bool RewriteRule<MergeSignExtend>::applies(TNode node) {
 
 template<> inline
 Node RewriteRule<MergeSignExtend>::apply(TNode node) {
-  Trace("bv-rewrite") << "RewriteRule<MergeSignExtend>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<MergeSignExtend>(" << node << ")"
+                      << std::endl;
   unsigned amount1 =
       node.getOperator().getConst<BitVectorSignExtend>().d_signExtendAmount;
 

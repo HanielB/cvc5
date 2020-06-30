@@ -236,7 +236,7 @@ void TLazyBitblaster::bbTerm(TNode node, Bits& bits) {
   Assert(node.getType().isBitVector());
 
   d_bv->spendResource(ResourceManager::Resource::BitblastStep);
-  Trace("bitvector-bitblast") << "Bitblasting term " << node <<"\n";
+  Trace("bitvector-bitblast") << "Bitblasting term " << node << "\n";
   ++d_statistics.d_numTerms;
 
   d_termBBStrategies[node.getKind()] (node, bits,this);
@@ -303,8 +303,12 @@ bool TLazyBitblaster::assertToSat(TNode lit, bool propagate) {
     markerLit = ~markerLit;
   }
 
-  Trace("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat asserting node: " << atom <<"\n";
-  Trace("bitvector-bb") << "TheoryBV::TLazyBitblaster::assertToSat with literal:   " << markerLit << "\n";
+  Trace("bitvector-bb")
+      << "TheoryBV::TLazyBitblaster::assertToSat asserting node: " << atom
+      << "\n";
+  Trace("bitvector-bb")
+      << "TheoryBV::TLazyBitblaster::assertToSat with literal:   " << markerLit
+      << "\n";
 
   prop::SatValue ret = d_satSolver->assertAssumption(markerLit, propagate);
 
@@ -328,7 +332,8 @@ bool TLazyBitblaster::solve() {
       Trace("bitvector") << "     " << d_cnfStream->getNode(*it) << "\n";
     }
   }
-  Trace("bitvector") << "TLazyBitblaster::solve() asserted atoms " << d_assertedAtoms->size() <<"\n";
+  Trace("bitvector") << "TLazyBitblaster::solve() asserted atoms "
+                     << d_assertedAtoms->size() << "\n";
   d_fullModelAssertionLevel.set(d_bv->numAssertions());
   return prop::SAT_VALUE_TRUE == d_satSolver->solve();
 }
@@ -341,7 +346,8 @@ prop::SatValue TLazyBitblaster::solveWithBudget(unsigned long budget) {
       Trace("bitvector") << "     " << d_cnfStream->getNode(*it) << "\n";
     }
   }
-  Trace("bitvector") << "TLazyBitblaster::solveWithBudget() asserted atoms " << d_assertedAtoms->size() <<"\n";
+  Trace("bitvector") << "TLazyBitblaster::solveWithBudget() asserted atoms "
+                     << d_assertedAtoms->size() << "\n";
   return d_satSolver->solve(budget);
 }
 
@@ -555,9 +561,9 @@ bool TLazyBitblaster::collectModelInfo(TheoryModel* m, bool fullModel)
     Node const_value = getModelFromSatSolver(var, true);
     Assert(const_value.isNull() || const_value.isConst());
     if(const_value != Node()) {
-      Trace("bitvector-model") << "TLazyBitblaster::collectModelInfo (assert (= "
-                               << var << " "
-                               << const_value << "))\n";
+      Trace("bitvector-model")
+          << "TLazyBitblaster::collectModelInfo (assert (= " << var << " "
+          << const_value << "))\n";
       if (!m->assertEquality(var, const_value, true))
       {
         return false;

@@ -37,7 +37,8 @@ ErrorInformation::ErrorInformation()
   , d_amount(NULL)
   , d_metric(0)
 {
-  Trace("arith::error::mem") << "def constructor " << d_variable << " "  << d_amount << endl;
+  Trace("arith::error::mem")
+      << "def constructor " << d_variable << " " << d_amount << endl;
 }
 
 ErrorInformation::ErrorInformation(ArithVar var, ConstraintP vio, int sgn)
@@ -51,7 +52,8 @@ ErrorInformation::ErrorInformation(ArithVar var, ConstraintP vio, int sgn)
   , d_metric(0)
 {
   Assert(debugInitialized());
-  Trace("arith::error::mem") << "constructor " << d_variable << " "  << d_amount << endl;
+  Trace("arith::error::mem")
+      << "constructor " << d_variable << " " << d_amount << endl;
 }
 
 
@@ -59,7 +61,8 @@ ErrorInformation::~ErrorInformation() {
   Assert(d_relaxed != true);
   if(d_amount != NULL){
     Trace("arith::error::mem") << d_amount << endl;
-    Trace("arith::error::mem") << "destroy " << d_variable << " "  << d_amount << endl;
+    Trace("arith::error::mem")
+        << "destroy " << d_variable << " " << d_amount << endl;
     delete d_amount;
     d_amount = NULL;
   }
@@ -79,7 +82,8 @@ ErrorInformation::ErrorInformation(const ErrorInformation& ei)
   }else{
     d_amount = new DeltaRational(*ei.d_amount);
   }
-  Trace("arith::error::mem") << "copy const " << d_variable << " "  << d_amount << endl;
+  Trace("arith::error::mem")
+      << "copy const " << d_variable << " " << d_amount << endl;
 }
 
 ErrorInformation& ErrorInformation::operator=(const ErrorInformation& ei){
@@ -91,13 +95,16 @@ ErrorInformation& ErrorInformation::operator=(const ErrorInformation& ei){
   d_handle = (ei.d_handle);
   d_metric = ei.d_metric;
   if(d_amount != NULL && ei.d_amount != NULL){
-    Trace("arith::error::mem") << "assignment assign " << d_variable << " "  << d_amount << endl;
+    Trace("arith::error::mem")
+        << "assignment assign " << d_variable << " " << d_amount << endl;
     *d_amount = *ei.d_amount;
   }else if(ei.d_amount != NULL){
     d_amount = new DeltaRational(*ei.d_amount);
-    Trace("arith::error::mem") << "assignment alloc " << d_variable << " "  << d_amount << endl;
+    Trace("arith::error::mem")
+        << "assignment alloc " << d_variable << " " << d_amount << endl;
   }else if(d_amount != NULL){
-    Trace("arith::error::mem") << "assignment release " << d_variable << " "  << d_amount << endl;
+    Trace("arith::error::mem")
+        << "assignment release " << d_variable << " " << d_amount << endl;
     delete d_amount;
     d_amount = NULL;
   }else{
@@ -114,7 +121,8 @@ void ErrorInformation::reset(ConstraintP c, int sgn){
 
   if(d_amount != NULL){
     delete d_amount;
-    Trace("arith::error::mem") << "reset " << d_variable << " "  << d_amount << endl;
+    Trace("arith::error::mem")
+        << "reset " << d_variable << " " << d_amount << endl;
     d_amount = NULL;
   }
 }
@@ -122,7 +130,8 @@ void ErrorInformation::reset(ConstraintP c, int sgn){
 void ErrorInformation::setAmount(const DeltaRational& am){
   if(d_amount == NULL){
     d_amount = new DeltaRational;
-    Trace("arith::error::mem") << "setAmount " << d_variable << " "  << d_amount << endl;
+    Trace("arith::error::mem")
+        << "setAmount " << d_variable << " " << d_amount << endl;
   }
   (*d_amount) = am;
 }

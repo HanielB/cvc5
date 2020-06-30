@@ -1099,7 +1099,9 @@ int InstMatchGeneratorSimple::addInstantiations(Node q,
       tat = nullptr;
     }
   }
-  Trace("simple-trigger-debug") << "Adding instantiations based on " << tat << " from " << d_op << " " << d_eqc << std::endl;
+  Trace("simple-trigger-debug")
+      << "Adding instantiations based on " << tat << " from " << d_op << " "
+      << d_eqc << std::endl;
   if (tat && !qe->inConflict())
   {
     InstMatch m( q );
@@ -1114,7 +1116,8 @@ void InstMatchGeneratorSimple::addInstantiations(InstMatch& m,
                                                  unsigned argIndex,
                                                  TNodeTrie* tat)
 {
-  Trace("simple-trigger-debug") << "Add inst " << argIndex << " " << d_match_pattern << std::endl;
+  Trace("simple-trigger-debug")
+      << "Add inst " << argIndex << " " << d_match_pattern << std::endl;
   if (argIndex == d_match_pattern.getNumChildren())
   {
     Assert(!tat->d_data.empty());
@@ -1127,7 +1130,8 @@ void InstMatchGeneratorSimple::addInstantiations(InstMatch& m,
     {
       if( it->second>=0 ){
         Assert(it->first < t.getNumChildren());
-        Trace("simple-trigger") << "...set " << it->second << " " << t[it->first] << std::endl;
+        Trace("simple-trigger")
+            << "...set " << it->second << " " << t[it->first] << std::endl;
         m.setValue( it->second, t[it->first] );
       }
     }

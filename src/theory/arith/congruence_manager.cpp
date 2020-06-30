@@ -85,7 +85,9 @@ ArithCongruenceManager::ArithCongruenceNotify::ArithCongruenceNotify(ArithCongru
 {}
 
 bool ArithCongruenceManager::ArithCongruenceNotify::eqNotifyTriggerEquality(TNode equality, bool value) {
-  Trace("arith::congruences") << "ArithCongruenceNotify::eqNotifyTriggerEquality(" << equality << ", " << (value ? "true" : "false") << ")" << std::endl;
+  Trace("arith::congruences")
+      << "ArithCongruenceNotify::eqNotifyTriggerEquality(" << equality << ", "
+      << (value ? "true" : "false") << ")" << std::endl;
   if (value) {
     return d_acm.propagate(equality);
   } else {
@@ -97,7 +99,9 @@ bool ArithCongruenceManager::ArithCongruenceNotify::eqNotifyTriggerPredicate(TNo
 }
 
 bool ArithCongruenceManager::ArithCongruenceNotify::eqNotifyTriggerTermEquality(TheoryId tag, TNode t1, TNode t2, bool value) {
-  Trace("arith::congruences") << "ArithCongruenceNotify::eqNotifyTriggerTermEquality(" << t1 << ", " << t2 << ", " << (value ? "true" : "false") << ")" << std::endl;
+  Trace("arith::congruences")
+      << "ArithCongruenceNotify::eqNotifyTriggerTermEquality(" << t1 << ", "
+      << t2 << ", " << (value ? "true" : "false") << ")" << std::endl;
   if (value) {
     return d_acm.propagate(t1.eqNode(t2));
   } else {
@@ -105,7 +109,9 @@ bool ArithCongruenceManager::ArithCongruenceNotify::eqNotifyTriggerTermEquality(
   }
 }
 void ArithCongruenceManager::ArithCongruenceNotify::eqNotifyConstantTermMerge(TNode t1, TNode t2) {
-  Trace("arith::congruences") << "ArithCongruenceNotify::eqNotifyConstantTermMerge(" << t1 << ", " << t2 << std::endl;
+  Trace("arith::congruences")
+      << "ArithCongruenceNotify::eqNotifyConstantTermMerge(" << t1 << ", " << t2
+      << std::endl;
   d_acm.propagate(t1.eqNode(t2));
 }
 void ArithCongruenceManager::ArithCongruenceNotify::eqNotifyNewClass(TNode t) {
@@ -119,7 +125,8 @@ void ArithCongruenceManager::ArithCongruenceNotify::eqNotifyDisequal(TNode t1, T
 
 void ArithCongruenceManager::raiseConflict(Node conflict){
   Assert(!inConflict());
-  Trace("arith::conflict") << "difference manager conflict   " << conflict << std::endl;
+  Trace("arith::conflict") << "difference manager conflict   " << conflict
+                           << std::endl;
   d_inConflict.raise();
   d_raiseConflict.raiseEEConflict(conflict);
 }
@@ -222,7 +229,8 @@ void ArithCongruenceManager::watchedVariableCannotBeZero(ConstraintCP c){
 
 
 bool ArithCongruenceManager::propagate(TNode x){
-  Trace("arith::congruenceManager")<< "ArithCongruenceManager::propagate("<<x<<")"<<std::endl;
+  Trace("arith::congruenceManager")
+      << "ArithCongruenceManager::propagate(" << x << ")" << std::endl;
   if(inConflict()){
     return true;
   }
@@ -240,7 +248,9 @@ bool ArithCongruenceManager::propagate(TNode x){
 
       Node conf = flattenAnd(explainInternal(x));
       raiseConflict(conf);
-      Trace("arith::congruenceManager") << "rewritten to false "<<x<<" with explanation "<< conf << std::endl;
+      Trace("arith::congruenceManager")
+          << "rewritten to false " << x << " with explanation " << conf
+          << std::endl;
       return false;
     }
   }
@@ -255,11 +265,9 @@ bool ArithCongruenceManager::propagate(TNode x){
     Assert(c != NullConstraint);
   }
 
-  Trace("arith::congruenceManager")<< "x is "
-                                   <<  c->hasProof() << " "
-                                   << (x == rewritten) << " "
-                                   << c->canBePropagated() << " "
-                                   << c->negationHasProof() << std::endl;
+  Trace("arith::congruenceManager")
+      << "x is " << c->hasProof() << " " << (x == rewritten) << " "
+      << c->canBePropagated() << " " << c->negationHasProof() << std::endl;
 
   if(c->negationHasProof()){
     Node expC = explainInternal(x);
@@ -270,7 +278,8 @@ bool ArithCongruenceManager::propagate(TNode x){
 
     ++(d_statistics.d_conflicts);
     raiseConflict(final);
-    Trace("arith::congruenceManager") << "congruenceManager found a conflict " << final << std::endl;
+    Trace("arith::congruenceManager")
+        << "congruenceManager found a conflict " << final << std::endl;
     return false;
   }
 
@@ -373,8 +382,7 @@ void ArithCongruenceManager::addWatchedPair(ArithVar s, TNode x, TNode y){
   Assert(!isWatchedVariable(s));
 
   Trace("arith::congruenceManager")
-    << "addWatchedPair(" << s << ", " << x << ", " << y << ")" << std::endl;
-
+      << "addWatchedPair(" << s << ", " << x << ", " << y << ")" << std::endl;
 
   ++(d_statistics.d_watchedVariables);
 

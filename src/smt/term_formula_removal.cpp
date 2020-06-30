@@ -57,7 +57,8 @@ void RemoveTermFormulas::run(std::vector<Node>& output, IteSkolemMap& iteSkolemM
 Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
                     IteSkolemMap& iteSkolemMap, bool inQuant, bool inTerm) {
   // Current node
-  Trace("ite") << "removeITEs(" << node << ")" << " " << inQuant << " " << inTerm << endl;
+  Trace("ite") << "removeITEs(" << node << ")"
+               << " " << inQuant << " " << inTerm << endl;
 
   //if(node.isVar() || node.isConst()){
   //   (options::biasedITERemoval() && !containsTermITE(node))){
@@ -213,7 +214,8 @@ Node RemoveTermFormulas::run(TNode node, std::vector<Node>& output,
     inQuant = true;
   }else if( !inTerm && hasNestedTermChildren( node ) ){
     // Remember if we're inside a term
-    Trace("ite") << "In term because of " << node << " " << node.getKind() << std::endl;
+    Trace("ite") << "In term because of " << node << " " << node.getKind()
+                 << std::endl;
     inTerm = true;
   }
 

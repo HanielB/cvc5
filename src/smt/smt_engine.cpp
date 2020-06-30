@@ -1234,7 +1234,8 @@ void SmtEngine::defineFunction(Expr func,
   // Permit (check-sat) (define-fun ...) (get-value ...) sequences.
   // Otherwise, (check-sat) (get-value ((! foo :named bar))) breaks
   // d_haveAdditions = true;
-  Trace("smt") << "definedFunctions insert " << funcNode << " " << formNode << endl;
+  Trace("smt") << "definedFunctions insert " << funcNode << " " << formNode
+               << endl;
 
   if (global)
   {
@@ -2689,7 +2690,8 @@ void SmtEngine::checkModel(bool hardFailure) {
       }
 
       // (4) checks complete, add the substitution
-      Trace("boolean-terms") << "cm: adding subs " << func << " :=> " << val << endl;
+      Trace("boolean-terms")
+          << "cm: adding subs " << func << " :=> " << val << endl;
       substitutions.addSubstitution(func, val);
     }
   }

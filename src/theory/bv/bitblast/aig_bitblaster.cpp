@@ -177,14 +177,14 @@ AigBitblaster::~AigBitblaster() {}
 
 Abc_Obj_t* AigBitblaster::bbFormula(TNode node) {
   Assert(node.getType().isBoolean());
-  Trace("bitvector-bitblast") << "AigBitblaster::bbFormula "<< node << "\n"; 
-  
+  Trace("bitvector-bitblast") << "AigBitblaster::bbFormula " << node << "\n";
+
   if (hasAig(node))
     return getAig(node);
   
   Abc_Obj_t* result = NULL;
-  
-  Trace("bitvector-aig") << "AigBitblaster::convertToAig " << node <<"\n"; 
+
+  Trace("bitvector-aig") << "AigBitblaster::convertToAig " << node << "\n";
   switch (node.getKind()) {
   case kind::AND:
     {
@@ -264,7 +264,8 @@ Abc_Obj_t* AigBitblaster::bbFormula(TNode node) {
   }
 
   cacheAig(node, result);
-  Trace("bitvector-aig") << "AigBitblaster::bbFormula done " << node << " => " << result <<"\n"; 
+  Trace("bitvector-aig") << "AigBitblaster::bbFormula done " << node << " => "
+                         << result << "\n";
   return result; 
 }
 
@@ -273,13 +274,13 @@ void AigBitblaster::bbAtom(TNode node) {
     return;
   }
 
-  Trace("bitvector-bitblast") << "Bitblasting atom " << node <<"\n";
+  Trace("bitvector-bitblast") << "Bitblasting atom " << node << "\n";
 
   // the bitblasted definition of the atom
   Node normalized = Rewriter::rewrite(node);
   Abc_Obj_t* atom_bb = (d_atomBBStrategies[normalized.getKind()])(normalized, this);
   storeBBAtom(node, atom_bb);
-  Trace("bitvector-bitblast") << "Done bitblasting atom " << node <<"\n";
+  Trace("bitvector-bitblast") << "Done bitblasting atom " << node << "\n";
 }
 
 void AigBitblaster::bbTerm(TNode node, Bits& bits) {
@@ -289,7 +290,7 @@ void AigBitblaster::bbTerm(TNode node, Bits& bits) {
   }
   Assert(node.getType().isBitVector());
 
-  Trace("bitvector-bitblast") << "Bitblasting term " << node <<"\n";
+  Trace("bitvector-bitblast") << "Bitblasting term " << node << "\n";
   d_termBBStrategies[node.getKind()] (node, bits, this);
 
   Assert(bits.size() == utils::getSize(node));
@@ -306,7 +307,8 @@ bool AigBitblaster::hasAig(TNode node) {
 }
 Abc_Obj_t* AigBitblaster::getAig(TNode node) {
   Assert(hasAig(node));
-  Trace("bitvector-aig") << "AigSimplifer::getAig " << node << " => " << d_aigCache.find(node)->second <<"\n"; 
+  Trace("bitvector-aig") << "AigSimplifer::getAig " << node << " => "
+                         << d_aigCache.find(node)->second << "\n";
   return d_aigCache.find(node)->second; 
 }
 
@@ -327,7 +329,8 @@ Abc_Obj_t* AigBitblaster::mkInput(TNode input) {
   Abc_Obj_t* aig_input = Abc_NtkCreatePi(currentAigNtk());
   // d_aigCache.insert(std::make_pair(input, aig_input));
   d_nodeToAigInput.insert(std::make_pair(input, aig_input));
-  Trace("bitvector-aig") << "AigSimplifer::mkInput " << input << " " << aig_input <<"\n"; 
+  Trace("bitvector-aig") << "AigSimplifer::mkInput " << input << " "
+                         << aig_input << "\n";
   return aig_input; 
 }
 
