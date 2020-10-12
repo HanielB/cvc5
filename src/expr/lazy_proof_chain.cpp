@@ -129,7 +129,8 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
       for (const std::pair<const Node, std::vector<std::shared_ptr<ProofNode>>>&
                fap : famap)
       {
-        freeAssumptions.push_back(fap.first);
+        bool processed = false;
+        // freeAssumptions.push_back(fap.first);
         // check cycles
         if (d_cyclic)
         {
@@ -139,39 +140,50 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
           auto itToConnect = toConnect.find(fap.first);
           if (itToConnect != toConnect.end())
           {
+            processed = true;
             // one possibility is that we are *currently* processing the proof
-            // of this assumption, i.e., this assumption has been pre-traversed
-            // but not yet post-traversed
+            // of this assumption, i.e., this assumption has been
+            // pre-traversed but not yet post-traversed
             if (!visited[fap.first])
             {
               cyclic = true;
               toConnect.erase(itToConnect);
             }
-            else
-            {
-              // another is that this assumption has been fully processed but
-              // one of the assumptions of its full proof fits the bill
-              // above. To check this we compute the assumptions in the limit
-              const std::vector<Node>& limit = limitAssumptions[fap.first];
-              for (const Node& n : limit)
-              {
-                auto ittToConnect = toConnect.find(n);
-                if (ittToConnect != toConnect.end() && !visited[n])
-                {
-                  cyclic = true;
-                  toConnect.erase(itToConnect);
-                  break;
-                }
-              }
-            }
+            // else
+            // {
+            //   Trace("lazy-cdproofchain")
+            //       << push
+            //       << "LazyCDProofChain::getProofFor: check if processed pf of "
+            //       << fap.first << " has cycles\n";
+            //   // another is that this assumption has been fully processed but
+            //   // one of the assumptions of its full proof fits the bill
+            //   // above. To check this we compute the assumptions in the limit
+            //   const std::vector<Node>& limit = limitAssumptions[fap.first];
+            //   for (const Node& n : limit)
+            //   {
+            //     Trace("lazy-cdproofchain")
+            //         << "LazyCDProofChain::getProofFor: limit assump - " << n
+            //         << "\n";
+            //     auto ittToConnect = toConnect.find(n);
+            //     if (ittToConnect != toConnect.end() && !visited[n])
+            //     {
+            //       AlwaysAssert(false);
+            //       cyclic = true;
+            //       toConnect.erase(itToConnect);
+            //       break;
+            //     }
+            //   }
+            //   Trace("lazy-cdproofchain") << pop;
+            //   AlwaysAssert(false) << fap.first << "\n";
+            // }
             if (cyclic)
             {
-              // Since we have a cycle with an assumption, this fact will be an
-              // assumption in the final proof node produced by this method.
-              // Thus we mark the proof node it results on, i.e. its value in
-              // the toConnect map, as an assumption proof node. Note that we
-              // don't assign visited[fap.first] to true so that we properly pop
-              // the traces previously pushed.
+              // Since we have a cycle with an assumption, this fact will be
+              // an assumption in the final proof node produced by this
+              // method. Thus we mark the proof node it results on, i.e. its
+              // value in the toConnect map, as an assumption proof node. Note
+              // that we don't assign visited[fap.first] to true so that we
+              // properly pop the traces previously pushed.
               Trace("lazy-cdproofchain") << "LazyCDProofChain::getProofFor: "
                                             "removing cyclic assumption "
                                          << fap.first << " from expansion\n";
@@ -199,14 +211,18 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
         //
         // in which a2 has a1 as an assumption, which has a2 an assumption,
         // would not be captured if we did not revisit a1, which is an
-        // assumption of n and this already occur in assumptionsToExpand when it
-        // shows up again as an assumption of a2.
-        auto it = assumptionsToExpand.find(fap.first);
-        if (d_cyclic || it == assumptionsToExpand.end())
+        // assumption of n and this already occur in assumptionsToExpand when
+        // it shows up again as an assumption of a2.
+        if (!processed)
         {
-          Trace("lazy-cdproofchain")
-              << "LazyCDProofChain::getProofFor: eagerly visit " << fap.first
-              << "\n";
+          auto it = std::find(visit.begin(), visit.end(), fap.first);
+          if (it != visit.end())
+          {
+            Trace("lazy-cdproofchain")
+                << "LazyCDProofChain::getProofFor: revisit " << fap.first
+                << "\n";
+            visit.erase(it);
+          }
           visit.push_back(fap.first);
         }
         // add assumption proof nodes to be updated
@@ -219,9 +235,10 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
       {
         Trace("lazy-cdproofchain") << push;
         Trace("lazy-cdproofchain-debug") << push;
-        faBackup[cur].insert(faBackup[cur].end(),
-                             freeAssumptions.begin(),
-                             freeAssumptions.end());
+        // for (const Node& n : freeAssumptions)
+        // {
+        //   faBackup[cur].push_back(n);
+        // }
       }
     }
     else if (!itVisited->second)
@@ -231,24 +248,24 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
       Trace("lazy-cdproofchain-debug") << pop;
       Trace("lazy-cdproofchain")
           << "LazyCDProofChain::getProofFor: post-visited " << cur << "\n";
-      auto it = faBackup.find(cur);
-      Assert(it != faBackup.end());
-      // retrieve free assumptions in the limit
-      std::vector<Node> limit;
-      for (const Node& n: it->second)
-      {
-        auto itt = limitAssumptions.find(n);
-        if (itt == limitAssumptions.end())
-        {
-          limit.push_back(n);
-        }
-        else
-        {
-          limit.insert(limit.end(), itt->second.begin(), itt->second.end());
-        }
-      }
-      limitAssumptions[cur] = limit;
-      faBackup.erase(it);
+      // auto it = faBackup.find(cur);
+      // Assert(it != faBackup.end());
+      // // retrieve free assumptions in the limit
+      // std::vector<Node> limit;
+      // for (const Node& n: it->second)
+      // {
+      //   auto itt = limitAssumptions.find(n);
+      //   if (itt == limitAssumptions.end())
+      //   {
+      //     limit.push_back(n);
+      //   }
+      //   else
+      //   {
+      //     limit.insert(limit.end(), itt->second.begin(), itt->second.end());
+      //   }
+      // }
+      // limitAssumptions[cur] = limit;
+      // faBackup.erase(it);
     }
     else
     {
@@ -257,6 +274,7 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
           << "\n";
     }
   } while (!visit.empty());
+  // AlwaysAssert(false);
   // expand all assumptions marked to be connected
   for (const std::pair<const Node, std::shared_ptr<ProofNode>>& npfn :
        toConnect)
