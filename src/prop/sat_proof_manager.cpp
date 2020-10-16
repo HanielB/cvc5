@@ -334,6 +334,8 @@ void SatProofManager::endResChain(
   d_resLinks.clear();
 }
 
+bool cmp(pair<T1, T2>& a, pair<T1, T2>& b) { return a.second < b.second; }
+
 bool SatProofManager::processCrowdingLits(
     const std::vector<Node>& clauseLits,
     const std::vector<Node>& targetClauseLits,
@@ -350,11 +352,6 @@ bool SatProofManager::processCrowdingLits(
         == targetClauseLits.end())
     {
       offending[clauseLits[i]]++;
-      if (visited.count(clauseLits[i]))
-      {
-        Unreachable() << "looping with " << clauseLits[i] << "\n";
-      }
-      visited.insert(clauseLits[i]);
     }
   }
   if (offending.empty())
@@ -362,6 +359,17 @@ bool SatProofManager::processCrowdingLits(
     return false;
   }
   Trace("sat-proof") << push;
+  // check if loop
+  for (const std::pair<const Node&, unsigned>& pair : offending)
+  {
+    if (visited.count(pair.first))
+    {
+      Trace("sat-proof")
+          << "SatProofManager::processCrowdingLits: looping with " << pair.first
+          << "\n";
+      Unreachable();
+    }
+  }
   if (Trace.isOn("sat-proof"))
   {
     Trace("sat-proof")
@@ -372,32 +380,69 @@ bool SatProofManager::processCrowdingLits(
                          << "}\n";
     }
   }
+  // for each offending literal, which link last included it?
+  std::vector<std::pair<Node, unsigned>> lastInclusion;
   // for each offending lit, get the link in which it is eliminated
   for (const std::pair<const Node&, unsigned>& offn : offending)
   {
-    // first link does not eliminate, so we start from the second. A link
-    // eliminates a literal l if its pivot is l and the posFirst = false and a
-    // literal (not l) if its pivot is l and posFirst = true.
-    for (unsigned i = 1, size = d_resLinks.size(); i < size; ++i)
+    // find the last link that eliminates the offending literal. A literal l is
+    // eliminated by a link if it contains a literal l' with opposito polarity
+    // to l.
+    for (unsigned i = d_resLinks.size() -1; i > 0; --i)
     {
       Node clause, pivot;
       bool posFirst;
       std::tie(clause, pivot, posFirst) = d_resLinks[i];
-      // To eliminate offn.first, the clause must contain it with oposity
+      // notice that only non-unit clauses may be introducing the offending
+      // literal, so we don't need to differentiate unit from non-unit
+      if (clause.getKind() != kind::OR)
+      {
+        continue;
+      }
+      if (std::find(clause.begin(), clause.end(), offn.first) != clause.end())
+      {
+        lastInclusion.push_back(std::make_pair(offn.first, i));
+        break;
+      }
+    }
+    Assert(std::find(lastInclusion.begin(), lastInclusion.end(), offn.first)
+           != lastInclusion.end());
+  }
+  // order map so that we process offending literals in the order of the clauses
+  // that introduce them
+  auto cmp = [=](std::pair<Node, unsigned>& a, std::pair<Node, unsigned>& b) {
+    return a.second < b.second;
+  };
+  std::sort(lastInclusion.begin(), lastInclusion.end(), cmp);
+  // for each offending lit, get the link in which it is eliminated
+  for (const std::pair<const Node&, unsigned>& offnOccurrence : lastInclusion)
+  {
+    Assert(offnOccurrence < d_resLinks.size() - 1);
+    Node offLit = offnOccurrence.first;
+    // find the last link that eliminates the offending literal. A literal l is
+    // eliminated by a link if it contains a literal l' with opposito polarity
+    // to l.
+    for (unsigned i = offnOccurrence + 1, size = d_resLinks.size(); i < size;
+         ++i)
+    {
+      Node clause, pivot;
+      bool posFirst;
+      std::tie(clause, pivot, posFirst) = d_resLinks[i];
+      // To eliminate offLit, the clause must contain it with oposity
       // polarity. There are three successful cases, according to the pivot and
       // its sign
       //
-      // - offn.first is the same as the pivot and posFirst is true, which means
+      // - offLit is the same as the pivot and posFirst is true, which means
       //   that the clause contains its negation and eliminates it
       //
-      // - the pivot is equal to offn.first negated and posFirst is false, which
-      //   means that the clause contains the negation of offn.first
+      // - the pivot is equal to offLit negated and posFirst is false, which
+      //   means that the clause contains the negation of offLit
       //
-      // - offn.first is the negation of the pivot and posFirst is false, so the
-      //   clause contains the node whose negation is offn.first
-      if ((offn.first == pivot && posFirst)
-          || (offn.first.notNode() == pivot && !posFirst)
-          || (pivot.notNode() == offn.first && !posFirst))
+      // - offLit is the negation of the pivot and posFirst is false, so the
+      //   clause contains the node whose negation is offLit
+      if ((offLit == pivot && posFirst)
+          || (offLit.notNode() == pivot && !posFirst)
+          || (pivot.notNode() == offLit && !posFirst))
       {
         Node posFirstNode = posFirst ? d_true : d_false;
         // get respective position for clause/pivot to double
@@ -416,30 +461,33 @@ bool SatProofManager::processCrowdingLits(
         Assert(k < sizePremises);
         Trace("sat-proof") << "SatProofManager::processCrowdingLits: found "
                               "killer of offending lit "
-                           << offn.first << " as " << k << "-th premise "
+                           << offLit << " as " << k << "-th premise "
                            << premises[k] << "\n";
-        // literals that resolving against clause would introduce are its
-        // literals minus pivot. If the clause is the literal to eliminated
-        // itself, nothing to be done
+        // literals introduced by resolving against clause are its literals
+        // minus pivot. If the clause is itself the literal to eliminate,
+        // nothing to be done
         bool unit = false;
         Node elim = posFirst ? pivot.notNode() : pivot;
-        std::vector<Node> newLits;
-        if (clause == elim)
+        if (clause != elim)
         {
-          unit = true;
-        }
-        else
-        {
+          // for each literal that is not the one to be eliminated and that is
+          // not in the conclusion, we increment its count in offending
+          // multiplied by the number of times this clause will be introduced,
+          // which is offending[offLit]
+
           newLits.insert(newLits.end(), clause.begin(), clause.end());
+          // removing pivot
           auto it = std::find(newLits.begin(), newLits.end(), elim);
           Assert(it != newLits.end());
           newLits.erase(it);
+          for each literal not in the conclusion
         }
+
         // for each ocurrence, we add the new literals from the respective link
         // to a multiset of literals
         std::vector<Node> multNewLits;
         // for each occurrence, replicate the link in the premises/pivots
-        unsigned occurrences = offn.second;
+        unsigned occurrences = offnOccurrence.second;
         while (occurrences-- > 0)
         {
           premises.insert(premises.begin() + k, clause);
@@ -450,6 +498,8 @@ bool SatProofManager::processCrowdingLits(
                 multNewLits.end(), newLits.begin(), newLits.end());
           }
         }
+        // mark for loop check
+        visited.insert(offLit);
         // repeat the process to the new literals. There can only be new
         // processing if this is not a unit clause
         if (!unit)
@@ -457,6 +507,7 @@ bool SatProofManager::processCrowdingLits(
           processCrowdingLits(
               multNewLits, targetClauseLits, premises, pivots, visited);
         }
+        break;
       }
     }
   }
