@@ -68,6 +68,12 @@ class BoolProofCheckerBlack : public CxxTest::TestSuite
 
   void testChainResolution()
   {
+    /* check that
+
+        l0 v l0 v l0 v l1 v l2    ~l0     ~l1
+        ---------------------------------------CHAIN_RES_{true, l0, true, l1}
+                    l0 v l0 v l2
+    */
     Node l0 = d_nm->mkVar("l0", d_nm->booleanType());
     Node l1 = d_nm->mkVar("l1", d_nm->booleanType());
     Node l2 = d_nm->mkVar("l2", d_nm->booleanType());
@@ -88,6 +94,12 @@ class BoolProofCheckerBlack : public CxxTest::TestSuite
         PfRule::CHAIN_RESOLUTION, children, args, Node::null(), "");
     TS_ASSERT(res == resChecker);
 
+    /* check that
+
+        l0 v l0 v l0 v ~l1 v l2    ~l0     l1
+        ---------------------------------------CHAIN_RES_{true, l0, false, l1}
+                    l0 v l0 v l2
+    */
     c1Nodes.clear();
     c1Nodes.push_back(l0);
     c1Nodes.push_back(l0);
@@ -108,5 +120,53 @@ class BoolProofCheckerBlack : public CxxTest::TestSuite
     resChecker = d_checker->checkDebug(
         PfRule::CHAIN_RESOLUTION, children, args, Node::null(), "");
     TS_ASSERT(res == resChecker);
+
+    /* check that
+
+      l0 v l0 v l2 v ~l3   ~l0 v ~l3   l3
+      ------------------------------------CHAIN_RES_{true, l0, false, l3}
+          l0 v l2 v ~l3
+    */
+    c1Nodes.clear();
+    c1Nodes.push_back(l0);
+    c1Nodes.push_back(l0);
+    c1Nodes.push_back(l2);
+    c1Nodes.push_back(l3.notNode());
+
+    std::vector<Node> c2Nodes{l0.notNode(), l3.notNode()};
+
+    children.clear();
+    children.push_back(d_nm->mkNode(kind::OR, c1Nodes));
+    children.push_back(d_nm->mkNode(kind::OR, c2Nodes));
+    children.push_back(l3);
+
+    args.clear();
+    args.push_back(d_nm->mkConst(true));
+    args.push_back(l0);
+    args.push_back(d_nm->mkConst(false));
+    args.push_back(l3);
+
+    resNodes.clear();
+    resNodes.push_back(l0);
+    resNodes.push_back(l2);
+    resNodes.push_back(l3.notNode());
+    res = d_nm->mkNode(kind::OR, resNodes);
+
+    resChecker = d_checker->checkDebug(
+        PfRule::CHAIN_RESOLUTION, children, args, Node::null(), "");
+    TS_ASSERT(res == resChecker);
+
+// add test for
+
+// chain_res for 2, a
+//   ~6, ~9 : (or (not (or a (and b c))) (not (and (or a b) (or a c))))
+//   {0} [9] 9, ~7, ~8 : {0} [(and (or a b) (or a c))] (or (and (or a b) (or a c)) (not (or a b)) (not (or a c)))
+//   {0} [6] 6, ~5 : {0} [(or a (and b c))] (or (or a (and b c)) (not (and b c)))
+//   {0} [8] 8, ~4 : {0} [(or a c)] (or (or a c) (not c))
+//   {0} [5] 5, ~3, ~4 : {0} [(and b c)] (or (and b c) (not b) (not c))
+//   {0} [4] 2, 4 : {0} [c] (or a c)
+//   {0} [7] 7, ~3 : {0} [(or a b)] (or (or a b) (not b))
+//   {0} [3] 2, 3 : {0} [b] (or a b)
+
   }
 };
