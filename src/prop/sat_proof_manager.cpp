@@ -36,6 +36,7 @@ SatProofManager::SatProofManager(Minisat::Solver* solver,
       d_conflictLit(undefSatVariable)
 {
   d_false = NodeManager::currentNM()->mkConst(false);
+  d_true = NodeManager::currentNM()->mkConst(true);
 }
 
 void SatProofManager::printClause(const Minisat::Clause& clause)
@@ -150,7 +151,7 @@ void SatProofManager::endResChain(const Minisat::Clause& clause)
     Trace("sat-proof") << "SatProofManager::endResChain: chain_res for ";
     printClause(clause);
   }
-  std::set<SatLiteral> clauseLits;
+  std::multiset<SatLiteral> clauseLits;
   for (unsigned i = 0, size = clause.size(); i < size; ++i)
   {
     clauseLits.insert(MinisatSatSolver::toSatLiteral(clause[i]));
@@ -158,8 +159,8 @@ void SatProofManager::endResChain(const Minisat::Clause& clause)
   endResChain(getClauseNode(clause), clauseLits);
 }
 
-void SatProofManager::endResChain(Node conclusion,
-                                  const std::set<SatLiteral>& conclusionLits)
+void SatProofManager::endResChain(
+    Node conclusion, const std::multiset<SatLiteral>& conclusionLits)
 {
   Trace("sat-proof") << ", " << conclusion << "\n";
   // first process redundant literals
@@ -212,14 +213,12 @@ void SatProofManager::endResChain(Node conclusion,
     Trace("sat-proof") << " : ";
     if (i > 0)
     {
-      args.push_back(nm->mkConst(posFirst));
+      args.push_back(posFirst ? d_true : d_false);
       args.push_back(pivot);
       Trace("sat-proof") << "{" << posFirst << "} [" << pivot << "] ";
     }
     Trace("sat-proof") << clause << "\n";
   }
-  // clearing
-  d_resLinks.clear();
   // whether no-op
   if (children.size() == 1)
   {
@@ -233,20 +232,76 @@ void SatProofManager::endResChain(Node conclusion,
     Trace("sat-proof") << "SatProofManager::endResChain: replacing proof of "
                        << conclusion << "\n";
   }
+  // buffer for steps
+  theory::TheoryProofStepBuffer psb;
   // since the conclusion can be both reordered and without duplicates and the
   // SAT solver does not record this information, we must recompute it here so
   // the proper CHAIN_RESOLUTION step can be created
-  // compute chain resolution conclusion
+  //
+  // compute initial chain resolution conclusion
   Node chainConclusion = d_pnm->getChecker()->checkDebug(
       PfRule::CHAIN_RESOLUTION, children, args, Node::null(), "");
-  Trace("sat-proof")
-      << "SatProofManager::endResChain: creating step for computed conclusion "
-      << chainConclusion << "\n";
-  // buffer steps
-  theory::TheoryProofStepBuffer psb;
-  psb.addStep(PfRule::CHAIN_RESOLUTION, children, args, chainConclusion);
   if (chainConclusion != conclusion)
   {
+    // there are three differences that may exist between the computed
+    // conclusion above and the actual conclusion:
+    //
+    // 1 - chainConclusion may contains literals not in the conclusion, which
+    //     means that some resolution links are being used more than once to
+    //     eliminate such literals.
+    // 2 - duplicates
+    // 3 - order.
+    //
+    // Both 2 and 3 are handled by factorReorderElimDoubleNeg.
+    //
+    // To fix 1 we get the literals in chainCoclusion not in conclusion, look
+    // for the resolution link that eliminates it and add that clause as a
+    // premise as many times as the offending literal occurs. Note that if this
+    // link contains literals not in chainConclusion, we have to repeat this
+    // process, recursively, for all such literals.
+    std::vector<Node> chainConclusionLits{chainConclusion.begin(),
+                                          chainConclusion.end()};
+    std::vector<Node> conclusionLitsVec;
+    // whether conclusion is unit
+    if (conclusionLits.size() == 1)
+    {
+      conclusionLitsVec.push_back(conclusion);
+    }
+    else
+    {
+      conclusionLitsVec.insert(
+          conclusionLitsVec.end(), conclusion.begin(), conclusion.end());
+    }
+    std::set<Node> visited;
+    if (processCrowdingLits(
+            chainConclusionLits, conclusionLitsVec, children, args, visited))
+    {
+      // added more resolution steps, so recompute conclusion
+      chainConclusion = d_pnm->getChecker()->checkDebug(
+          PfRule::CHAIN_RESOLUTION, children, args, Node::null(), "");
+      Trace("sat-proof") << "SatProofManager::endResChain: previous conclusion "
+                            "crowded, new steps:\n";
+      if (Trace.isOn("sat-proof"))
+      {
+        for (unsigned i = 0, size = children.size(); i < size; ++i)
+        {
+          Trace("sat-proof") << "SatProofManager::endResChain:   ";
+          if (i > 0)
+          {
+            Trace("sat-proof") << "{" << (args[2 * (i - 1)] == d_true ? 1 : 0)
+                               << "} [" << args[(2 * i) - 1] << "] ";
+          }
+          Trace("sat-proof") << children[i] << "\n";
+        }
+      }
+      Trace("sat-proof")
+          << "SatProofManager::endResChain: new computed conclusion: "
+          << chainConclusion << "\n";
+    }
+    Trace("sat-proof") << "SatProofManager::endResChain: creating step for "
+                          "computed conclusion "
+                       << chainConclusion << "\n";
+    psb.addStep(PfRule::CHAIN_RESOLUTION, children, args, chainConclusion);
     // if this happens that chainConclusion needs to be factored and/or
     // reordered, which in either case can be done only if it's not a unit
     // clause.
@@ -256,6 +311,13 @@ void SatProofManager::endResChain(Node conclusion,
         << "original conclusion " << conclusion
         << "\nis different from computed conclusion " << chainConclusion
         << "\nafter factorReorderElimDoubleNeg " << reducedChainConclusion;
+  }
+  else
+  {
+    Trace("sat-proof") << "SatProofManager::endResChain: creating step for "
+                          "computed conclusion "
+                       << chainConclusion << "\n";
+    psb.addStep(PfRule::CHAIN_RESOLUTION, children, args, chainConclusion);
   }
   // buffer the steps in the resolution chain proof generator
   const std::vector<std::pair<Node, ProofStep>>& steps = psb.getSteps();
@@ -268,11 +330,143 @@ void SatProofManager::endResChain(Node conclusion,
     // not pass assumptions to check closedness
     d_resChains.addLazyStep(step.first, &d_resChainPg);
   }
+  // clearing
+  d_resLinks.clear();
+}
+
+bool SatProofManager::processCrowdingLits(
+    const std::vector<Node>& clauseLits,
+    const std::vector<Node>& targetClauseLits,
+    std::vector<Node>& premises,
+    std::vector<Node>& pivots,
+    std::set<Node>& visited)
+{
+  // offending lits and how many times they occur
+  std::map<Node, unsigned> offending;
+  for (unsigned i = 0, size = clauseLits.size(); i < size; ++i)
+  {
+    if (std::find(
+            targetClauseLits.begin(), targetClauseLits.end(), clauseLits[i])
+        == targetClauseLits.end())
+    {
+      offending[clauseLits[i]]++;
+      if (visited.count(clauseLits[i]))
+      {
+        Unreachable() << "looping with " << clauseLits[i] << "\n";
+      }
+      visited.insert(clauseLits[i]);
+    }
+  }
+  if (offending.empty())
+  {
+    return false;
+  }
+  Trace("sat-proof") << push;
+  if (Trace.isOn("sat-proof"))
+  {
+    Trace("sat-proof")
+        << "SatProofManager::processCrowdingLits: offending lits:\n";
+    for (const std::pair<const Node&, unsigned>& pair : offending)
+    {
+      Trace("sat-proof") << "\t- " << pair.first << " {" << pair.second
+                         << "}\n";
+    }
+  }
+  // for each offending lit, get the link in which it is eliminated
+  for (const std::pair<const Node&, unsigned>& offn : offending)
+  {
+    // first link does not eliminate, so we start from the second. A link
+    // eliminates a literal l if its pivot is l and the posFirst = false and a
+    // literal (not l) if its pivot is l and posFirst = true.
+    for (unsigned i = 1, size = d_resLinks.size(); i < size; ++i)
+    {
+      Node clause, pivot;
+      bool posFirst;
+      std::tie(clause, pivot, posFirst) = d_resLinks[i];
+      // To eliminate offn.first, the clause must contain it with oposity
+      // polarity. There are three successful cases, according to the pivot and
+      // its sign
+      //
+      // - offn.first is the same as the pivot and posFirst is true, which means
+      //   that the clause contains its negation and eliminates it
+      //
+      // - the pivot is equal to offn.first negated and posFirst is false, which
+      //   means that the clause contains the negation of offn.first
+      //
+      // - offn.first is the negation of the pivot and posFirst is false, so the
+      //   clause contains the node whose negation is offn.first
+      if ((offn.first == pivot && posFirst)
+          || (offn.first.notNode() == pivot && !posFirst)
+          || (pivot.notNode() == offn.first && !posFirst))
+      {
+        Node posFirstNode = posFirst ? d_true : d_false;
+        // get respective position for clause/pivot to double
+        unsigned k, sizePremises;
+        for (k = 0, sizePremises = premises.size(); k < sizePremises; ++k)
+        {
+          if (premises[k] == clause)
+          {
+            Assert(pivots[2 * (k-1)] == posFirstNode
+                   && pivots[(2 * k) - 1] == pivot)
+                << posFirstNode << ", " << pivot << "\n"
+                << pivots[2 * (k-1)] << ", " << pivots[(2 * k) - 1];
+            break;
+          }
+        }
+        Assert(k < sizePremises);
+        Trace("sat-proof") << "SatProofManager::processCrowdingLits: found "
+                              "killer of offending lit "
+                           << offn.first << " as " << k << "-th premise "
+                           << premises[k] << "\n";
+        // literals that resolving against clause would introduce are its
+        // literals minus pivot. If the clause is the literal to eliminated
+        // itself, nothing to be done
+        bool unit = false;
+        Node elim = posFirst ? pivot.notNode() : pivot;
+        std::vector<Node> newLits;
+        if (clause == elim)
+        {
+          unit = true;
+        }
+        else
+        {
+          newLits.insert(newLits.end(), clause.begin(), clause.end());
+          auto it = std::find(newLits.begin(), newLits.end(), elim);
+          Assert(it != newLits.end());
+          newLits.erase(it);
+        }
+        // for each ocurrence, we add the new literals from the respective link
+        // to a multiset of literals
+        std::vector<Node> multNewLits;
+        // for each occurrence, replicate the link in the premises/pivots
+        unsigned occurrences = offn.second;
+        while (occurrences-- > 0)
+        {
+          premises.insert(premises.begin() + k, clause);
+          pivots.insert(pivots.begin() + 2 * (k - 1), {posFirstNode, pivot});
+          if (!unit)
+          {
+            multNewLits.insert(
+                multNewLits.end(), newLits.begin(), newLits.end());
+          }
+        }
+        // repeat the process to the new literals. There can only be new
+        // processing if this is not a unit clause
+        if (!unit)
+        {
+          processCrowdingLits(
+              multNewLits, targetClauseLits, premises, pivots, visited);
+        }
+      }
+    }
+  }
+  Trace("sat-proof") << pop;
+  return true;
 }
 
 void SatProofManager::processRedundantLit(
     SatLiteral lit,
-    const std::set<SatLiteral>& conclusionLits,
+    const std::multiset<SatLiteral>& conclusionLits,
     std::set<SatLiteral>& visited,
     unsigned pos)
 {
@@ -398,7 +592,7 @@ void SatProofManager::explainLit(
     // note this is the opposite of what is done in addResolutionStep. This is
     // because here the clause, which contains the literal being analyzed, is
     // the first clause rather than the second
-    args.push_back(nm->mkConst(!negated));
+    args.push_back(!negated? d_true : d_false);
     args.push_back(negated ? currLitNode[0] : currLitNode);
     // add child premises and the child itself
     premises.insert(childPremises.begin(), childPremises.end());
@@ -555,7 +749,7 @@ void SatProofManager::finalizeProof(Node inConflictNode,
     // note this is the opposite of what is done in addResolutionStep. This is
     // because here the clause, which contains the literal being analyzed, is
     // the first clause rather than the second
-    args.push_back(nm->mkConst(!negated));
+    args.push_back(!negated? d_true : d_false);
     args.push_back(negated ? litNode[0] : litNode);
     // add child premises and the child itself
     premises.insert(childPremises.begin(), childPremises.end());

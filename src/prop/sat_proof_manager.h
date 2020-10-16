@@ -403,9 +403,10 @@ class SatProofManager
    * generator for lazy step added to d_resChains for the conclusion.
    *
    * @param conclusion the node-level conclusion of the resolution chain
-   * @param conclusionLits the set of literals in the conclusion
+   * @param conclusionLits the multiset of literals in the conclusion
    */
-  void endResChain(Node conclusion, const std::set<SatLiteral>& conclusionLits);
+  void endResChain(Node conclusion,
+                   const std::multiset<SatLiteral>& conclusionLits);
 
   /** Explain redundant literal and generate corresponding resolution steps
    *
@@ -445,9 +446,15 @@ class SatProofManager
    * processing redundant literals
    */
   void processRedundantLit(SatLiteral lit,
-                           const std::set<SatLiteral>& conclusionLits,
+                           const std::multiset<SatLiteral>& conclusionLits,
                            std::set<SatLiteral>& visited,
                            unsigned pos);
+  bool processCrowdingLits(const std::vector<Node>& clauseLits,
+                           const std::vector<Node>& targetClauseLits,
+                           std::vector<Node>& premises,
+                           std::vector<Node>& pivots,
+                           std::set<Node>& visited);
+
   /** Explain literal if it is propagated in the SAT solver
    *
    * If a literal is propagated, i.e., it has a reason in the SAT solver, that
@@ -562,6 +569,8 @@ class SatProofManager
 
   /** The false node */
   Node d_false;
+  /** The true node */
+  Node d_true;
 
   /** All clauses added to the SAT solver, kept in a context-dependent manner.
    */
