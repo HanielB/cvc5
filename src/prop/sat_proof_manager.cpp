@@ -272,9 +272,8 @@ void SatProofManager::endResChain(
       conclusionLitsVec.insert(
           conclusionLitsVec.end(), conclusion.begin(), conclusion.end());
     }
-    std::set<Node> visited;
     if (processCrowdingLits(
-            chainConclusionLits, conclusionLitsVec, children, args, visited))
+            chainConclusionLits, conclusionLitsVec, children, args))
     {
       // added more resolution steps, so recompute conclusion
       chainConclusion = d_pnm->getChecker()->checkDebug(
@@ -334,14 +333,33 @@ void SatProofManager::endResChain(
   d_resLinks.clear();
 }
 
-bool cmp(pair<T1, T2>& a, pair<T1, T2>& b) { return a.second < b.second; }
+unsigned SatProofManager::findLastInclusion(Node lit)
+{
+  // find the last link that introduces the offending literal
+  for (unsigned i = d_resLinks.size(); i > 0; --i)
+  {
+    Node clause, pivot;
+    bool posFirst;
+    std::tie(clause, pivot, posFirst) = d_resLinks[i-1];
+    // notice that only non-unit clauses may be introducing the offending
+    // literal, so we don't need to differentiate unit from non-unit
+    if (clause.getKind() != kind::OR)
+    {
+      continue;
+    }
+    if (std::find(clause.begin(), clause.end(), lit) != clause.end())
+    {
+      return i - 1;
+    }
+  }
+  return d_resLinks.size();
+}
 
 bool SatProofManager::processCrowdingLits(
     const std::vector<Node>& clauseLits,
     const std::vector<Node>& targetClauseLits,
     std::vector<Node>& premises,
-    std::vector<Node>& pivots,
-    std::set<Node>& visited)
+    std::vector<Node>& pivots)
 {
   // offending lits and how many times they occur
   std::map<Node, unsigned> offending;
@@ -359,17 +377,6 @@ bool SatProofManager::processCrowdingLits(
     return false;
   }
   Trace("sat-proof") << push;
-  // check if loop
-  for (const std::pair<const Node&, unsigned>& pair : offending)
-  {
-    if (visited.count(pair.first))
-    {
-      Trace("sat-proof")
-          << "SatProofManager::processCrowdingLits: looping with " << pair.first
-          << "\n";
-      Unreachable();
-    }
-  }
   if (Trace.isOn("sat-proof"))
   {
     Trace("sat-proof")
@@ -382,31 +389,14 @@ bool SatProofManager::processCrowdingLits(
   }
   // for each offending literal, which link last included it?
   std::vector<std::pair<Node, unsigned>> lastInclusion;
+  std::map<Node, unsigned> lastInclusionMap;
   // for each offending lit, get the link in which it is eliminated
   for (const std::pair<const Node&, unsigned>& offn : offending)
   {
-    // find the last link that eliminates the offending literal. A literal l is
-    // eliminated by a link if it contains a literal l' with opposito polarity
-    // to l.
-    for (unsigned i = d_resLinks.size() -1; i > 0; --i)
-    {
-      Node clause, pivot;
-      bool posFirst;
-      std::tie(clause, pivot, posFirst) = d_resLinks[i];
-      // notice that only non-unit clauses may be introducing the offending
-      // literal, so we don't need to differentiate unit from non-unit
-      if (clause.getKind() != kind::OR)
-      {
-        continue;
-      }
-      if (std::find(clause.begin(), clause.end(), offn.first) != clause.end())
-      {
-        lastInclusion.push_back(std::make_pair(offn.first, i));
-        break;
-      }
-    }
-    Assert(std::find(lastInclusion.begin(), lastInclusion.end(), offn.first)
-           != lastInclusion.end());
+    unsigned index = findLastInclusion(offn.first);
+    Assert(index < d_resLinks.size());
+    lastInclusion.push_back(std::make_pair(offn.first, index));
+    lastInclusionMap[offn.first] = index;
   }
   // order map so that we process offending literals in the order of the clauses
   // that introduce them
@@ -414,20 +404,38 @@ bool SatProofManager::processCrowdingLits(
     return a.second < b.second;
   };
   std::sort(lastInclusion.begin(), lastInclusion.end(), cmp);
-  // for each offending lit, get the link in which it is eliminated
-  for (const std::pair<const Node&, unsigned>& offnOccurrence : lastInclusion)
+  if (Trace.isOn("sat-proof"))
   {
-    Assert(offnOccurrence < d_resLinks.size() - 1);
-    Node offLit = offnOccurrence.first;
+    Trace("sat-proof") << "SatProofManager::processCrowdingLits: offending "
+                          "lits last inclusion:\n";
+    for (const std::pair<const Node&, unsigned>& pair : lastInclusion)
+    {
+      Trace("sat-proof") << "\t- [" << pair.second << "] : " << pair.first
+                         << "\n";
+    }
+  }
+  std::set<Node> processed;
+  // for each offending lit, get the link in which it is eliminated. The size is
+  // *not* cached because we add elements to this vector
+  for (unsigned i = 0; i < lastInclusion.size(); ++i)
+  {
+    Assert(lastInclusion[i].second < d_resLinks.size() - 1);
+    Node offLit = lastInclusion[i].first;
+    Trace("sat-proof") << "SatProofManager::processCrowdingLits: eliminate {"
+                       << offending[offLit] << "} " << offLit << " from link "
+                       << lastInclusion[i].second + 1 << " on\n";
+    AlwaysAssert(!processed.count(offLit));
+    processed.insert(offLit);
     // find the last link that eliminates the offending literal. A literal l is
     // eliminated by a link if it contains a literal l' with opposito polarity
     // to l.
-    for (unsigned i = offnOccurrence + 1, size = d_resLinks.size(); i < size;
-         ++i)
+    for (unsigned j = lastInclusion[i].second + 1, sizeResL = d_resLinks.size();
+         j < sizeResL;
+         ++j)
     {
       Node clause, pivot;
       bool posFirst;
-      std::tie(clause, pivot, posFirst) = d_resLinks[i];
+      std::tie(clause, pivot, posFirst) = d_resLinks[j];
       // To eliminate offLit, the clause must contain it with oposity
       // polarity. There are three successful cases, according to the pivot and
       // its sign
@@ -446,66 +454,87 @@ bool SatProofManager::processCrowdingLits(
       {
         Node posFirstNode = posFirst ? d_true : d_false;
         // get respective position for clause/pivot to double
-        unsigned k, sizePremises;
-        for (k = 0, sizePremises = premises.size(); k < sizePremises; ++k)
+        unsigned k;
+        for (k = premises.size() - 1; k > 0; --k)
         {
           if (premises[k] == clause)
           {
-            Assert(pivots[2 * (k-1)] == posFirstNode
+            Assert(pivots[2 * (k - 1)] == posFirstNode
                    && pivots[(2 * k) - 1] == pivot)
                 << posFirstNode << ", " << pivot << "\n"
-                << pivots[2 * (k-1)] << ", " << pivots[(2 * k) - 1];
+                << pivots[2 * (k - 1)] << ", " << pivots[(2 * k) - 1];
             break;
           }
         }
-        Assert(k < sizePremises);
+        Assert(k > 0);
         Trace("sat-proof") << "SatProofManager::processCrowdingLits: found "
                               "killer of offending lit "
                            << offLit << " as " << k << "-th premise "
                            << premises[k] << "\n";
+        // get number of occurrences of offending literal
+        unsigned occurrences = offending[offLit];
         // literals introduced by resolving against clause are its literals
         // minus pivot. If the clause is itself the literal to eliminate,
         // nothing to be done
-        bool unit = false;
         Node elim = posFirst ? pivot.notNode() : pivot;
         if (clause != elim)
         {
           // for each literal that is not the one to be eliminated and that is
           // not in the conclusion, we increment its count in offending
           // multiplied by the number of times this clause will be introduced,
-          // which is offending[offLit]
-
-          newLits.insert(newLits.end(), clause.begin(), clause.end());
-          // removing pivot
-          auto it = std::find(newLits.begin(), newLits.end(), elim);
-          Assert(it != newLits.end());
-          newLits.erase(it);
-          for each literal not in the conclusion
+          // which is offending[offLit]. Note that this literal may not be in
+          // current set, in which case it's added.
+          for (const Node& lit : clause)
+          {
+            if (lit == elim
+                || std::find(
+                       targetClauseLits.begin(), targetClauseLits.end(), lit)
+                       != targetClauseLits.end())
+            {
+              continue;
+            }
+            auto it = lastInclusionMap.find(lit);
+            if (it == lastInclusionMap.end())
+            {
+              Trace("sat-proof") << push;
+              unsigned index = findLastInclusion(lit);
+              Assert(index < d_resLinks.size());
+              Trace("sat-proof")
+                  << "SatProofManager::processCrowdingLits: new offending lit "
+                  << lit << " from link " << index << "\n";
+              lastInclusionMap[lit] = index;
+              offending[lit] = 0;
+              // insert in correct position in vector
+              for (unsigned l = lastInclusion.size(); l > 0; --l)
+              {
+                if (index > lastInclusion[l-1].second)
+                {
+                  lastInclusion.insert(lastInclusion.begin() + l,
+                                       std::make_pair(lit, index));
+                  Trace("sat-proof")
+                      << "SatProofManager::processCrowdingLits: adding after "
+                      << lastInclusion[l - 1].second << "\n";
+                  break;
+                }
+              }
+              Trace("sat-proof")  << pop;
+            }
+            Assert(lastInclusionMap[lit] > lastInclusionMap[offLit])
+                << "lit [" << lastInclusionMap[lit] << "] " << lit
+                << " previous to offLit [" << lastInclusionMap[offLit] << "] "
+                << offLit;
+            Trace("sat-proof")
+                << "SatProofManager::processCrowdingLits: adding "
+                << occurrences << " to lit " << lit << " current "
+                << offending[lit] << "\n";
+            offending[lit] += occurrences;
+          }
         }
-
-        // for each ocurrence, we add the new literals from the respective link
-        // to a multiset of literals
-        std::vector<Node> multNewLits;
         // for each occurrence, replicate the link in the premises/pivots
-        unsigned occurrences = offnOccurrence.second;
         while (occurrences-- > 0)
         {
           premises.insert(premises.begin() + k, clause);
           pivots.insert(pivots.begin() + 2 * (k - 1), {posFirstNode, pivot});
-          if (!unit)
-          {
-            multNewLits.insert(
-                multNewLits.end(), newLits.begin(), newLits.end());
-          }
-        }
-        // mark for loop check
-        visited.insert(offLit);
-        // repeat the process to the new literals. There can only be new
-        // processing if this is not a unit clause
-        if (!unit)
-        {
-          processCrowdingLits(
-              multNewLits, targetClauseLits, premises, pivots, visited);
         }
         break;
       }
@@ -643,7 +672,7 @@ void SatProofManager::explainLit(
     // note this is the opposite of what is done in addResolutionStep. This is
     // because here the clause, which contains the literal being analyzed, is
     // the first clause rather than the second
-    args.push_back(!negated? d_true : d_false);
+    args.push_back(!negated ? d_true : d_false);
     args.push_back(negated ? currLitNode[0] : currLitNode);
     // add child premises and the child itself
     premises.insert(childPremises.begin(), childPremises.end());
@@ -800,7 +829,7 @@ void SatProofManager::finalizeProof(Node inConflictNode,
     // note this is the opposite of what is done in addResolutionStep. This is
     // because here the clause, which contains the literal being analyzed, is
     // the first clause rather than the second
-    args.push_back(!negated? d_true : d_false);
+    args.push_back(!negated ? d_true : d_false);
     args.push_back(negated ? litNode[0] : litNode);
     // add child premises and the child itself
     premises.insert(childPremises.begin(), childPremises.end());

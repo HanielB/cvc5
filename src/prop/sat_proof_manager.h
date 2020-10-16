@@ -452,8 +452,8 @@ class SatProofManager
   bool processCrowdingLits(const std::vector<Node>& clauseLits,
                            const std::vector<Node>& targetClauseLits,
                            std::vector<Node>& premises,
-                           std::vector<Node>& pivots,
-                           std::set<Node>& visited);
+                           std::vector<Node>& pivots);
+  unsigned findLastInclusion(Node lit);
 
   /** Explain literal if it is propagated in the SAT solver
    *
