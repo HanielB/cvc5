@@ -6,10 +6,6 @@
 ; EXPECT: IP
 ; EXPECT: IP
 ; EXPECT: IP
-; EXPECT: IP
-; EXPECT: IP
-; EXPECT: IP
-; EXPECT: IP
 ; EXPECT: )
 (set-logic ALL)
 (set-option :produce-unsat-cores true)
