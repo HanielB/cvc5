@@ -364,6 +364,7 @@ void EqualityEngine::addTermInternal(TNode t, bool isOperator) {
         if (isConstant(getNodeId(t[i]))) {
           Debug("equality::evaluation") << d_name << "::eq::addTermInternal(" << t << "): evaluates " << t[i] << std::endl;
           subtermEvaluates(result);
+          // TODO here there would be a notification that t[i] is constant
         }
       }
     }
@@ -717,6 +718,12 @@ bool EqualityEngine::merge(EqualityNode& class1, EqualityNode& class2, std::vect
           // Get the actual term id
           TNode term = d_nodes[funId];
           subtermEvaluates(getNodeId(term));
+          // TODO notify that term[k] is constant
+          //
+          // - need to determine k, i.e., the position of currentId's node in
+          // the argument list of term.
+          //
+          // - Also not clear why the argument has to be non-internal.
         }
         // Check if there is an application with find arguments
         EqualityNodeId aNormalized = getEqualityNode(fun.d_a).getFind();
@@ -1863,7 +1870,8 @@ void EqualityEngine::processEvaluationQueue() {
     EqualityNodeId id = d_evaluationQueue.front();
     d_evaluationQueue.pop();
 
-    // Replace the children with their representatives (must be constants)
+    // Replace the children with their representatives (must be constants) and
+    // rewrite resulting node
     Node nodeEvaluated = evaluateTerm(d_nodes[id]);
     Debug("equality::evaluation") << d_name << "::eq::processEvaluationQueue(): " << d_nodes[id] << " evaluates to " << nodeEvaluated << std::endl;
     Assert(nodeEvaluated.isConst());
