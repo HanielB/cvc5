@@ -223,6 +223,54 @@ class Cegis : public SygusModule
    */
   bool d_usingSymCons;
   bool d_usingSymConsGround;
+  /**
+   * maps heads of applications of a unif function-to-synthesize to their tuple
+   * of arguments (which constitute a "data point" aka an "evaluation point")
+   */
+  std::map<Node, std::vector<Node>> d_hdToPt;
+  /** maps unif candidates to heads of their evaluation points */
+  std::map<Node, std::vector<Node>> d_candToEvalHds;
+
+  /**
+   * This is called on the refinement lemma and will rewrite applications of
+   * functions-to-synthesize to their respective purified form, i.e. such that
+   * all unification functions are applied over concrete values. Moreover
+   * unification functions are also rewritten such that every different tuple of
+   * arguments has a fresh function symbol applied to it.
+   *
+   * Non-unification functions are also equated to their model values when they
+   * occur as arguments of unification functions.
+   *
+   * A vector of guards with the (negated) equalities between the original
+   * arguments and their model values is populated accordingly.
+   *
+   * When the traversal encounters an application of a unification
+   * function-to-synthesize it will proceed to ensure that the arguments of that
+   * function application are constants (ensureConst becomes "true"). If an
+   * applicatin of a non-unif function-to-synthesize is reached, the requirement
+   * is lifted (ensureConst becomes "false"). This avoides introducing spurious
+   * equalities in model_guards.
+   *
+   * For example if "f" is being synthesized with a unification strategy and "g"
+   * is not then the application
+   *   f(g(f(g(0))))=1
+   * would be purified into
+   *   g(0) = c1 ^ g(f1(c1)) = c3 => f2(c3)
+   *
+   * Similarly
+   *   f(+(0,f(g(0))))
+   * would be purified into
+   *   g(0) = c1 ^ f1(c1) = c2 => f2(+(0,c2))
+   *
+   * This function also populates the maps between candidates, heads and
+   * evaluation points
+   */
+  Node purifyLemma(Node n,
+                   const std::vector<Node>& candidates,
+                   bool ensureConst,
+                   std::vector<Node>& modelGuards,
+                   std::pair<bool, Node>& cache);
+
   //---------------------------------end for symbolic constructors
 };
 

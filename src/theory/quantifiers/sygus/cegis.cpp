@@ -78,6 +78,7 @@ bool Cegis::processInitialize(Node conj,
   EnumeratorRole erole =
       csize == 1 ? ROLE_ENUM_SINGLE_SOLUTION : ROLE_ENUM_MULTI_SOLUTION;
   // initialize an enumerator for each candidate
+  bool[csize] hasAnyConst;
   for (unsigned i = 0; i < csize; i++)
   {
     Trace("cegis") << "...register enumerator " << candidates[i];
@@ -103,12 +104,187 @@ bool Cegis::processInitialize(Node conj,
         && d_usingSymCons && d_parent->isGround())
     {
       d_usingSymConsGround = true;
-      Trace("cegis") << " with ground conjecture and eval unfold handling";
+      Trace("cegis") << " with ground conjecture and eval unfold handling.";
     }
     Trace("cegis") << std::endl;
     d_tds->registerEnumerator(candidates[i], candidates[i], d_parent, erole);
   }
+      // collect all applications of function-to-sythesize. Each will be an
+      // application head. Also have the points
+
+if (d_usingSymConsGround)
+ {
+      std::vector<Node> modelGuards;
+      std::pair<bool, Node> cache;
+      Node plem = purifyLemma(lemma, candidates, false, modelGuards, cache);
+
+ }
   return true;
+}
+
+Node Cegis::purifyLemma(Node n,
+                        const std::vector<Node>& candidates,
+                        bool ensureConst,
+                        std::vector<Node>& modelGuards,
+                        std::pair<bool, Node>& cache)
+{
+  Trace("sygus-unif-rl-purify") << "PurifyLemma : " << n << "\n";
+  std::pair<bool, Node>::const_iterator it0 =
+      cache.find(std::pair<bool, Node>(ensureConst, n));
+  if (it0 != cache.end())
+  {
+    Trace("sygus-unif-rl-purify-debug") << "... already visited " << n << "\n";
+    return it0->second;
+  }
+  // Recurse
+  unsigned size = n.getNumChildren();
+  Kind k = n.getKind();
+  // We retrive model value now because purified node may not have a value
+  Node nv = n;
+  // Whether application of a function-to-synthesize
+  bool fapp = (n.getKind() == DT_SYGUS_EVAL);
+  bool u_fapp = false;
+  bool nu_fapp = false;
+  if (fapp)
+  {
+    Assert(std::find(d_candidates.begin(), d_candidates.end(), n[0])
+           != d_candidates.end());
+    // Whether application of a (non-)unification function-to-synthesize
+    u_fapp = usingUnif(n[0]);
+    nu_fapp = !usingUnif(n[0]);
+    // get model value of non-top level applications of functions-to-synthesize
+    // occurring under a unification function-to-synthesize
+    if (ensureConst)
+    {
+      std::map<Node, Node>::iterator it1 = d_cand_to_sol.find(n[0]);
+      // if function-to-synthesize, retrieve its built solution to replace in
+      // the application before computing the model value
+      AlwaysAssert(!u_fapp || it1 != d_cand_to_sol.end());
+      if (it1 != d_cand_to_sol.end())
+      {
+        TNode cand = n[0];
+        Node tmp = n.substitute(cand, it1->second);
+        // should be concrete, can just use the rewriter
+        nv = Rewriter::rewrite(tmp);
+        Trace("sygus-unif-rl-purify")
+            << "PurifyLemma : model value for " << tmp << " is " << nv << "\n";
+      }
+      else
+      {
+        nv = d_parent->getModelValue(n);
+        Trace("sygus-unif-rl-purify")
+            << "PurifyLemma : model value for " << n << " is " << nv << "\n";
+      }
+      Assert(n != nv);
+    }
+  }
+  // Travese to purify
+  bool childChanged = false;
+  std::vector<Node> children;
+  NodeManager* nm = NodeManager::currentNM();
+  for (unsigned i = 0; i < size; ++i)
+  {
+    if (i == 0 && fapp)
+    {
+      children.push_back(n[i]);
+      continue;
+    }
+    // Arguments of non-unif functions do not need to be constant
+    Node child = purifyLemma(
+        n[i], !nu_fapp && (ensureConst || u_fapp), model_guards, cache);
+    children.push_back(child);
+    childChanged = childChanged || child != n[i];
+  }
+  Node nb;
+  if (childChanged)
+  {
+    if (n.getMetaKind() == metakind::PARAMETERIZED)
+    {
+      Trace("sygus-unif-rl-purify-debug")
+          << "Node " << n << " is parameterized\n";
+      children.insert(children.begin(), n.getOperator());
+    }
+    if (Trace.isOn("sygus-unif-rl-purify-debug"))
+    {
+      Trace("sygus-unif-rl-purify-debug")
+          << "...rebuilding " << n << " with kind " << k << " and children:\n";
+      for (const Node& child : children)
+      {
+        Trace("sygus-unif-rl-purify-debug") << "...... " << child << "\n";
+      }
+    }
+    nb = NodeManager::currentNM()->mkNode(k, children);
+    Trace("sygus-unif-rl-purify")
+        << "PurifyLemma : transformed " << n << " into " << nb << "\n";
+  }
+  else
+  {
+    nb = n;
+  }
+  // Map to point enumerator every unification function-to-synthesize
+  if (u_fapp)
+  {
+    Node np;
+    std::map<Node, Node>::const_iterator it2 = d_app_to_purified.find(nb);
+    if (it2 == d_app_to_purified.end())
+    {
+      // Build purified head with fresh skolem and recreate node
+      std::stringstream ss;
+      ss << nb[0] << "_" << d_cand_to_hd_count[nb[0]]++;
+      Node new_f = nm->mkSkolem(ss.str(),
+                                nb[0].getType(),
+                                "head of unif evaluation point",
+                                NodeManager::SKOLEM_EXACT_NAME);
+      // Adds new enumerator to map from candidate
+      Trace("sygus-unif-rl-purify")
+          << "...new enum " << new_f << " for candidate " << nb[0] << "\n";
+      d_cand_to_eval_hds[nb[0]].push_back(new_f);
+      // Maps new enumerator to its respective tuple of arguments
+      d_hd_to_pt[new_f] =
+          std::vector<Node>(children.begin() + 1, children.end());
+      if (Trace.isOn("sygus-unif-rl-purify-debug"))
+      {
+        Trace("sygus-unif-rl-purify-debug") << "...[" << new_f << "] --> ( ";
+        for (const Node& pt_i : d_hd_to_pt[new_f])
+        {
+          Trace("sygus-unif-rl-purify-debug") << pt_i << " ";
+        }
+        Trace("sygus-unif-rl-purify-debug") << ")\n";
+      }
+      // replace first child and rebulid node
+      Assert(children.size() > 0);
+      children[0] = new_f;
+      Trace("sygus-unif-rl-purify-debug")
+          << "Make sygus eval app " << children << std::endl;
+      np = nm->mkNode(DT_SYGUS_EVAL, children);
+      d_app_to_purified[nb] = np;
+    }
+    else
+    {
+      np = it2->second;
+    }
+    Trace("sygus-unif-rl-purify")
+        << "PurifyLemma : purified head and transformed " << nb << " into "
+        << np << "\n";
+    nb = np;
+  }
+  // Add equality between purified fapp and model value
+  if (ensureConst && fapp)
+  {
+    model_guards.push_back(
+        NodeManager::currentNM()->mkNode(EQUAL, nv, nb).negate());
+    nb = nv;
+    Trace("sygus-unif-rl-purify")
+        << "PurifyLemma : adding model eq " << model_guards.back() << "\n";
+  }
+  nb = Rewriter::rewrite(nb);
+  // every non-top level application of function-to-synthesize must be reduced
+  // to a concrete constant
+  Assert(!ensureConst || nb.isConst());
+  Trace("sygus-unif-rl-purify-debug")
+      << "... caching [" << n << "] = " << nb << "\n";
+  cache[BoolNodePair(ensureConst, n)] = nb;
+  return nb;
 }
 
 void Cegis::getTermList(const std::vector<Node>& candidates,
