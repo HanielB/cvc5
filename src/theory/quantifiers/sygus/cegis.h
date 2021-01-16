@@ -230,6 +230,9 @@ class Cegis : public SygusModule
   std::map<Node, std::vector<Node>> d_hdToPt;
   /** maps unif candidates to heads of their evaluation points */
   std::map<Node, std::vector<Node>> d_candToEvalHds;
+  /** maps unif functions-to-synthesize to counters of heads of evaluation
+   * points */
+  std::map<Node, unsigned> d_candToHdCount;
 
   /**
    * This is called on the refinement lemma and will rewrite applications of
@@ -268,8 +271,7 @@ class Cegis : public SygusModule
   Node purifyLemma(Node n,
                    const std::vector<Node>& candidates,
                    bool ensureConst,
-                   std::vector<Node>& modelGuards,
-                   std::pair<bool, Node>& cache);
+                   std::map<Node, Node>& cache);
 
   //---------------------------------end for symbolic constructors
 };

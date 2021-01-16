@@ -78,7 +78,7 @@ bool Cegis::processInitialize(Node conj,
   EnumeratorRole erole =
       csize == 1 ? ROLE_ENUM_SINGLE_SOLUTION : ROLE_ENUM_MULTI_SOLUTION;
   // initialize an enumerator for each candidate
-  bool[csize] hasAnyConst;
+  std::vector<bool> hasAnyConst(csize, false);
   for (unsigned i = 0; i < csize; i++)
   {
     Trace("cegis") << "...register enumerator " << candidates[i];
@@ -95,6 +95,8 @@ bool Cegis::processInitialize(Node conj,
       {
         // remember that we are using symbolic constructors
         d_usingSymCons = true;
+        // mark the candidate that is using it
+        hasAnyConst[i] = true;
         Trace("cegis") << " (using symbolic constructors)";
       }
     }
@@ -109,31 +111,40 @@ bool Cegis::processInitialize(Node conj,
     Trace("cegis") << std::endl;
     d_tds->registerEnumerator(candidates[i], candidates[i], d_parent, erole);
   }
-      // collect all applications of function-to-sythesize. Each will be an
-      // application head. Also have the points
+  // collect all applications of function-to-sythesize. Each will be an
+  // application head. Also have the points
 
-if (d_usingSymConsGround)
- {
-      std::vector<Node> modelGuards;
-      std::pair<bool, Node> cache;
-      Node plem = purifyLemma(lemma, candidates, false, modelGuards, cache);
-
- }
+  if (d_usingSymConsGround)
+  {
+    std::map<Node, Node> cache;
+    // get candidates that symbolic constants in their sygus type
+    std::vector<Node> symbCandidates;
+    for (unsigned i = 0; i < csize; ++i)
+    {
+      if (hasAnyConst[i])
+      {
+        symbCandidates.push_back(candidates[i]);
+      }
+    }
+    Trace("cegis") << "Symbolic candidates: " << symbCandidates << "\n";
+    Node pConj = purifyLemma(n, symbCandidates, false, cache);
+    pConj = Rewriter::rewrite(pConj);
+    Trace("cegis") << "groundSymConst::purified conjecture : " << pConj << "\n";
+    lemmas.push_back(pConj);
+  }
   return true;
 }
 
 Node Cegis::purifyLemma(Node n,
                         const std::vector<Node>& candidates,
                         bool ensureConst,
-                        std::vector<Node>& modelGuards,
-                        std::pair<bool, Node>& cache)
+                        std::map<Node, Node>& cache)
 {
-  Trace("sygus-unif-rl-purify") << "PurifyLemma : " << n << "\n";
-  std::pair<bool, Node>::const_iterator it0 =
-      cache.find(std::pair<bool, Node>(ensureConst, n));
+  Trace("cegis-purify") << "PurifyLemma : " << n << "\n";
+  std::map<Node, Node>::const_iterator it0 = cache.find(n);
   if (it0 != cache.end())
   {
-    Trace("sygus-unif-rl-purify-debug") << "... already visited " << n << "\n";
+    Trace("cegis-purify-debug") << "... already visited " << n << "\n";
     return it0->second;
   }
   // Recurse
@@ -142,41 +153,19 @@ Node Cegis::purifyLemma(Node n,
   // We retrive model value now because purified node may not have a value
   Node nv = n;
   // Whether application of a function-to-synthesize
-  bool fapp = (n.getKind() == DT_SYGUS_EVAL);
+  bool fapp = k == DT_SYGUS_EVAL;
   bool u_fapp = false;
-  bool nu_fapp = false;
   if (fapp)
   {
-    Assert(std::find(d_candidates.begin(), d_candidates.end(), n[0])
-           != d_candidates.end());
-    // Whether application of a (non-)unification function-to-synthesize
-    u_fapp = usingUnif(n[0]);
-    nu_fapp = !usingUnif(n[0]);
-    // get model value of non-top level applications of functions-to-synthesize
-    // occurring under a unification function-to-synthesize
+    // if we are ensuring constants, we cannot do it for function applications,
+    // so we give up
     if (ensureConst)
     {
-      std::map<Node, Node>::iterator it1 = d_cand_to_sol.find(n[0]);
-      // if function-to-synthesize, retrieve its built solution to replace in
-      // the application before computing the model value
-      AlwaysAssert(!u_fapp || it1 != d_cand_to_sol.end());
-      if (it1 != d_cand_to_sol.end())
-      {
-        TNode cand = n[0];
-        Node tmp = n.substitute(cand, it1->second);
-        // should be concrete, can just use the rewriter
-        nv = Rewriter::rewrite(tmp);
-        Trace("sygus-unif-rl-purify")
-            << "PurifyLemma : model value for " << tmp << " is " << nv << "\n";
-      }
-      else
-      {
-        nv = d_parent->getModelValue(n);
-        Trace("sygus-unif-rl-purify")
-            << "PurifyLemma : model value for " << n << " is " << nv << "\n";
-      }
-      Assert(n != nv);
+      return Node::null();
     }
+    // Whether application of a (non-)anyConst function-to-synthesize
+    u_fapp = std::find(candidates.begin(), candidates.end(), n[0])
+             != candidates.end();
   }
   // Travese to purify
   bool childChanged = false;
@@ -190,8 +179,11 @@ Node Cegis::purifyLemma(Node n,
       continue;
     }
     // Arguments of non-unif functions do not need to be constant
-    Node child = purifyLemma(
-        n[i], !nu_fapp && (ensureConst || u_fapp), model_guards, cache);
+    Node child = purifyLemma(n[i], candidates, ensureConst || u_fapp, cache);
+    if (child.isNull())
+    {
+      return Node::null();
+    }
     children.push_back(child);
     childChanged = childChanged || child != n[i];
   }
@@ -200,22 +192,21 @@ Node Cegis::purifyLemma(Node n,
   {
     if (n.getMetaKind() == metakind::PARAMETERIZED)
     {
-      Trace("sygus-unif-rl-purify-debug")
-          << "Node " << n << " is parameterized\n";
+      Trace("cegis-purify-debug") << "Node " << n << " is parameterized\n";
       children.insert(children.begin(), n.getOperator());
     }
-    if (Trace.isOn("sygus-unif-rl-purify-debug"))
+    if (Trace.isOn("cegis-purify-debug"))
     {
-      Trace("sygus-unif-rl-purify-debug")
+      Trace("cegis-purify-debug")
           << "...rebuilding " << n << " with kind " << k << " and children:\n";
       for (const Node& child : children)
       {
-        Trace("sygus-unif-rl-purify-debug") << "...... " << child << "\n";
+        Trace("cegis-purify-debug") << "...... " << child << "\n";
       }
     }
     nb = NodeManager::currentNM()->mkNode(k, children);
-    Trace("sygus-unif-rl-purify")
-        << "PurifyLemma : transformed " << n << " into " << nb << "\n";
+    Trace("cegis-purify") << "PurifyLemma : transformed " << n << " into " << nb
+                          << "\n";
   }
   else
   {
@@ -225,65 +216,42 @@ Node Cegis::purifyLemma(Node n,
   if (u_fapp)
   {
     Node np;
-    std::map<Node, Node>::const_iterator it2 = d_app_to_purified.find(nb);
-    if (it2 == d_app_to_purified.end())
+    // Build purified head with fresh skolem, of the builtin type, and replace
+    std::stringstream ss;
+    ss << nb[0] << "_" << d_candToHdCount[nb[0]]++;
+    TypeNode ctn = nb[0].getType();
+    SygusTypeInfo& cti = d_tds->getTypeInfo(ctn);
+
+    Node newF = nm->mkSkolem(ss.str(),
+                              cti.getBuiltinType(),
+                              "head of anyConst synth-fun app",
+                              NodeManager::SKOLEM_EXACT_NAME);
+    // Adds new enumerator to map from candidate
+    Trace("cegis-purify") << "...new enum " << newF << " for candidate "
+                          << nb[0] << "\n";
+    d_candToEvalHds[nb[0]].push_back(newF);
+    // Maps new enumerator to its respective tuple of arguments
+    d_hdToPt[newF] = std::vector<Node>(++children.begin(), children.end());
+    if (Trace.isOn("cegis-purify-debug"))
     {
-      // Build purified head with fresh skolem and recreate node
-      std::stringstream ss;
-      ss << nb[0] << "_" << d_cand_to_hd_count[nb[0]]++;
-      Node new_f = nm->mkSkolem(ss.str(),
-                                nb[0].getType(),
-                                "head of unif evaluation point",
-                                NodeManager::SKOLEM_EXACT_NAME);
-      // Adds new enumerator to map from candidate
-      Trace("sygus-unif-rl-purify")
-          << "...new enum " << new_f << " for candidate " << nb[0] << "\n";
-      d_cand_to_eval_hds[nb[0]].push_back(new_f);
-      // Maps new enumerator to its respective tuple of arguments
-      d_hd_to_pt[new_f] =
-          std::vector<Node>(children.begin() + 1, children.end());
-      if (Trace.isOn("sygus-unif-rl-purify-debug"))
+      Trace("cegis-purify-debug") << "...[" << newF << "] --> ( ";
+      for (const Node& pt_i : d_hdToPt[newF])
       {
-        Trace("sygus-unif-rl-purify-debug") << "...[" << new_f << "] --> ( ";
-        for (const Node& pt_i : d_hd_to_pt[new_f])
-        {
-          Trace("sygus-unif-rl-purify-debug") << pt_i << " ";
-        }
-        Trace("sygus-unif-rl-purify-debug") << ")\n";
+        Trace("cegis-purify-debug") << pt_i << " ";
       }
-      // replace first child and rebulid node
-      Assert(children.size() > 0);
-      children[0] = new_f;
-      Trace("sygus-unif-rl-purify-debug")
-          << "Make sygus eval app " << children << std::endl;
-      np = nm->mkNode(DT_SYGUS_EVAL, children);
-      d_app_to_purified[nb] = np;
+      Trace("cegis-purify-debug") << ")\n";
     }
-    else
-    {
-      np = it2->second;
-    }
-    Trace("sygus-unif-rl-purify")
-        << "PurifyLemma : purified head and transformed " << nb << " into "
-        << np << "\n";
-    nb = np;
-  }
-  // Add equality between purified fapp and model value
-  if (ensureConst && fapp)
-  {
-    model_guards.push_back(
-        NodeManager::currentNM()->mkNode(EQUAL, nv, nb).negate());
-    nb = nv;
-    Trace("sygus-unif-rl-purify")
-        << "PurifyLemma : adding model eq " << model_guards.back() << "\n";
+    // replace original fApp by newF skolem
+    Trace("cegis-purify") << "PurifyLemma : purified head and transformed "
+                          << nb << " into " << newF << "\n";
+    nb = newF;
   }
   nb = Rewriter::rewrite(nb);
-  // every non-top level application of function-to-synthesize must be reduced
+  // everything under an anyConst of function-to-synthesize app must be reduced
   // to a concrete constant
   Assert(!ensureConst || nb.isConst());
-  Trace("sygus-unif-rl-purify-debug")
-      << "... caching [" << n << "] = " << nb << "\n";
-  cache[BoolNodePair(ensureConst, n)] = nb;
+  Trace("cegis-purify-debug") << "... caching [" << n << "] = " << nb << "\n";
+  cache[n] = nb;
   return nb;
 }
 
@@ -437,9 +405,9 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
   {
     // traverse candidates. If there is a candidate with symbolic constant then
     // that guy will be handled with our lemma stuff
-    for (const Node& v : candidates)
-      {
-
+    // for (const Node& v : candidates)
+    //   {
+    //   }
   }
   // if we are using grammar-based repair
   else if (d_usingSymCons && options::sygusRepairConst())
