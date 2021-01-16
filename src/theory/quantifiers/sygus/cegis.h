@@ -222,6 +222,7 @@ class Cegis : public SygusModule
    * constructors, such as the "any constant" constructor.
    */
   bool d_usingSymCons;
+  bool d_usingSymConsGround;
   //---------------------------------end for symbolic constructors
 };
 

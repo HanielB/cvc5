@@ -203,6 +203,18 @@ void SynthConjecture::assign(Node q)
     return;
   }
 
+  Assert(d_qe->getQuantAttributes()->isSygus(q));
+  // if the base instantiation is an existential, store its variables. Compute
+  // this before initializing the modules, as whether the conjecture is ground
+  // may be relevant for them.
+  if (d_base_inst.getKind() == NOT && d_base_inst[0].getKind() == FORALL)
+  {
+    for (const Node& v : d_base_inst[0][0])
+    {
+      d_inner_vars.push_back(v);
+    }
+  }
+
   // register this term with sygus database and other utilities that impact
   // the enumerative sygus search
   std::vector<Node> guarded_lemmas;
@@ -219,16 +231,6 @@ void SynthConjecture::assign(Node q)
       }
     }
     Assert(d_master != nullptr);
-  }
-
-  Assert(d_qe->getQuantAttributes()->isSygus(q));
-  // if the base instantiation is an existential, store its variables
-  if (d_base_inst.getKind() == NOT && d_base_inst[0].getKind() == FORALL)
-  {
-    for (const Node& v : d_base_inst[0][0])
-    {
-      d_inner_vars.push_back(v);
-    }
   }
 
   // register the strategy

@@ -32,7 +32,10 @@ namespace theory {
 namespace quantifiers {
 
 Cegis::Cegis(QuantifiersEngine* qe, SynthConjecture* p)
-    : SygusModule(qe, p), d_eval_unfold(nullptr), d_usingSymCons(false)
+    : SygusModule(qe, p),
+      d_eval_unfold(nullptr),
+      d_usingSymCons(false),
+      d_usingSymConsGround(false)
 {
   d_eval_unfold = qe->getTermDatabaseSygus()->getEvalUnfold();
 }
@@ -93,6 +96,14 @@ bool Cegis::processInitialize(Node conj,
         d_usingSymCons = true;
         Trace("cegis") << " (using symbolic constructors)";
       }
+    }
+    if (!options::sygusRepairConst()
+        && options::sygusGrammarConsMode()
+               == options::SygusGrammarConsMode::ANY_CONST
+        && d_usingSymCons && d_parent->isGround())
+    {
+      d_usingSymConsGround = true;
+      Trace("cegis") << " with ground conjecture and eval unfold handling";
     }
     Trace("cegis") << std::endl;
     d_tds->registerEnumerator(candidates[i], candidates[i], d_parent, erole);
@@ -207,7 +218,7 @@ bool Cegis::addEvalLemmas(const std::vector<Node>& candidates,
 }
 
 Node Cegis::getRefinementLemmaFormula()
-{
+  {
   std::vector<Node> conj;
   conj.insert(
       conj.end(), d_refinement_lemmas.begin(), d_refinement_lemmas.end());
@@ -246,8 +257,16 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
       Trace("cegis") << "\n";
     }
   }
+  if (d_usingSymConsGround)
+  {
+    // traverse candidates. If there is a candidate with symbolic constant then
+    // that guy will be handled with our lemma stuff
+    for (const Node& v : candidates)
+      {
+
+  }
   // if we are using grammar-based repair
-  if (d_usingSymCons && options::sygusRepairConst())
+  else if (d_usingSymCons && options::sygusRepairConst())
   {
     SygusRepairConst* src = d_parent->getRepairConst();
     Assert(src != nullptr);
