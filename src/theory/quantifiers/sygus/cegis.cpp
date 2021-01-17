@@ -135,7 +135,7 @@ bool Cegis::processInitialize(Node conj,
     }
     else
     {
-      pConj = Rewriter::rewrite(pConj);
+      pConj = Rewriter::rewrite(pConj.negate());
       Trace("cegis") << "groundSymConst::purified conjecture : " << pConj
                      << "\n";
       lemmas.push_back(pConj);
