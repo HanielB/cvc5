@@ -38,6 +38,7 @@ Cegis::Cegis(QuantifiersEngine* qe, SynthConjecture* p)
       d_usingSymConsGround(false)
 {
   d_eval_unfold = qe->getTermDatabaseSygus()->getEvalUnfold();
+  d_false = NodeManager::currentNM()->mkConst(false);
 }
 
 bool Cegis::initialize(Node conj,
@@ -149,6 +150,7 @@ bool Cegis::processInitialize(Node conj,
       pConj = Rewriter::rewrite(pConj.negate());
       Trace("cegis") << "groundSymConst::purified conjecture : " << pConj
                      << "\n";
+      d_purifiedLemma = pConj;
       lemmas.push_back(pConj);
       // save original conjecture (negation of given one) as refinement lemma
       addRefinementLemma(d_tds->getExtRewriter()->extendedRewrite(n.negate()));
@@ -496,6 +498,7 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
     // For each enumerator, equality with model value
     std::vector<Node> enumsExp;
     std::vector<Node> hdsExp;
+    std::vector<Node> hdsUnfold;
     std::map<Node, Node> enumToValue;
     SygusEvalUnfold* evUnfold = d_tds->getEvalUnfold();
 
@@ -527,13 +530,31 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
         eval = evUnfold->unfold(eval, enumToValue, tmpExp, true, true);
         Trace("cegis-unfold") << "  ...unfolded hd " << hd
                               << " to : " << Rewriter::rewrite(eval) << "\n";
+        hdsUnfold.push_back(eval);
         hdsExp.push_back(hd.eqNode(eval));
       }
-        // build lemma
-      std::vector<Node> children{
-          enumExp.negate(),
-          hdsExp.size() > 1 ? nm->mkNode(kind::AND, hdsExp) : hdsExp[0]};
-      lems.push_back(nm->mkNode(kind::OR, children));
+      // check if heads values lead to false
+      AlwaysAssert(d_refinement_lemmas.size() == 1);
+      Node tmp = d_purifiedLemma.substitute(d_candToEvalHds[enums[i]].begin(),
+                                            d_candToEvalHds[enums[i]].end(),
+                                            hdsUnfold.begin(),
+                                            hdsUnfold.end());
+      Trace("cegis-unfold") << "Lemma to rewrite: " << tmp << "\n";
+      Trace("cegis-unfold")
+          << "Lemma rewritten: "
+          << d_tds->getExtRewriter()->extendedRewrite(tmp) << "\n";
+      if (d_tds->getExtRewriter()->extendedRewrite(tmp) == d_false)
+      {
+        Trace("cegis") << "...Blocking skeleton\n";
+        lems.push_back(enumExp.negate());
+      }
+      else
+      {  // build lemma
+        std::vector<Node> children{
+            enumExp.negate(),
+            hdsExp.size() > 1 ? nm->mkNode(kind::AND, hdsExp) : hdsExp[0]};
+        lems.push_back(nm->mkNode(kind::OR, children));
+      }
       Trace("cegis-lemma") << "  Lemma: " << lems.back() << "\n";
     }
     return false;

@@ -234,6 +234,8 @@ class Cegis : public SygusModule
    * points */
   std::map<Node, unsigned> d_candToHdCount;
 
+  Node d_purifiedLemma;
+
   /**
    * This is called on the refinement lemma and will rewrite applications of
    * functions-to-synthesize to their respective purified form, i.e. such that
@@ -272,6 +274,8 @@ class Cegis : public SygusModule
                    const std::vector<Node>& candidates,
                    bool ensureConst,
                    std::map<Node, Node>& cache);
+
+  Node d_false;
 
   //---------------------------------end for symbolic constructors
 };
