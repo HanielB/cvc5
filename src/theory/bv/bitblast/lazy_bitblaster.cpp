@@ -316,14 +316,15 @@ bool TLazyBitblaster::assertToSat(TNode lit, bool propagate) {
  */
 
 bool TLazyBitblaster::solve() {
-  if (Trace.isOn("bitvector")) {
-    Trace("bitvector") << "TLazyBitblaster::solve() asserted atoms ";
+  if (Trace.isOn("bitvector-debug")) {
+    Trace("bitvector-debug") << "TLazyBitblaster::solve() asserted atoms ";
     context::CDList<prop::SatLiteral>::const_iterator it = d_assertedAtoms->begin();
     for (; it != d_assertedAtoms->end(); ++it) {
-      Trace("bitvector") << "     " << d_cnfStream->getNode(*it) << "\n";
+      Trace("bitvector-debug") << "     " << d_cnfStream->getNode(*it) << "\n";
     }
   }
-  Debug("bitvector") << "TLazyBitblaster::solve() asserted atoms " << d_assertedAtoms->size() <<"\n";
+  Trace("bitvector") << "TLazyBitblaster::solve() asserted atoms "
+                     << d_assertedAtoms->size() << "\n";
   d_fullModelAssertionLevel.set(d_bv->numAssertions());
   return prop::SAT_VALUE_TRUE == d_satSolver->solve();
 }

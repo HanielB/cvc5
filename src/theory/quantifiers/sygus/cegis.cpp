@@ -126,8 +126,19 @@ bool Cegis::processInitialize(Node conj,
         symbCandidates.push_back(candidates[i]);
       }
     }
-    Trace("cegis") << "Symbolic candidates: " << symbCandidates << "\n";
     Node pConj = purifyLemma(n, symbCandidates, false, cache);
+    if (Trace.isOn("cegis"))
+    {
+      Trace("cegis") << "Symbolic candidates:\n";
+      for (const auto& cand : symbCandidates)
+      {
+        Trace("cegis") << "...candidate: " << cand << "\n";
+        for (const auto& hd : d_candToEvalHds[cand])
+        {
+          Trace("cegis") << "......hd: " << hd << ", " << d_hdToPt[hd] << "\n";
+        }
+      }
+    }
     // could not purify
     if (pConj.isNull())
     {
@@ -413,15 +424,15 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
       Trace("cegis") << "    " << enums[i] << " -> ";
       TermDbSygus::toStreamSygus("cegis", enum_values[i]);
       Trace("cegis") << "\n";
-    if (d_usingSymConsGround)
-    {
-    Trace("cegis") << "  ...heads :\n";
-      for (const Node& hd : d_candToEvalHds[enums[i]])
+      if (d_usingSymConsGround)
       {
-        Trace("cegis") << "      " << hd << " -> " << d_parent->getModelValue(hd) << "\n";
+        Trace("cegis") << "  ...heads :\n";
+        for (const Node& hd : d_candToEvalHds[enums[i]])
+        {
+          Trace("cegis") << "      " << hd << " -> "
+                         << d_parent->getModelValue(hd) << "\n";
+        }
       }
-    }
-
     }
   }
   // if we are using grammar-based repair and conjecture is not ground
@@ -479,7 +490,7 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
   if (d_usingSymConsGround && addedEvalLemmas)
   {
     NodeManager* nm = NodeManager::currentNM();
-    Trace("cegis") << "  EvalLemmas : " << lems << "\n";
+    // Trace("cegis") << "  EvalLemmas : " << lems << "\n";
     // ignore these though. Just build a refinement lemma with everything
     lems.clear();
     // For each enumerator, equality with model value
@@ -508,14 +519,14 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
         AlwaysAssert(itPt != d_hdToPt.end());
         evalChildren.insert(
             evalChildren.end(), itPt->second.begin(), itPt->second.end());
-        Node eval = nm->mkNode(DT_SYGUS_EVAL, evalChildren);
+        Node eval = nm->mkNode(kind::DT_SYGUS_EVAL, evalChildren);
         // placeholder. The method has to be called with fourth argument true
         // (track_exp in the signature) because only in this mode the model
         // value is retrieved from the second argument.
         std::vector<Node> tmpExp;
         eval = evUnfold->unfold(eval, enumToValue, tmpExp, true, true);
-        Trace("cegis") << "  ...unfolded hd " << hd << ", " << itPt->second
-                       << " to : " << eval << "\n";
+        Trace("cegis-unfold") << "  ...unfolded hd " << hd
+                              << " to : " << Rewriter::rewrite(eval) << "\n";
         hdsExp.push_back(hd.eqNode(eval));
       }
         // build lemma
@@ -523,7 +534,7 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
           enumExp.negate(),
           hdsExp.size() > 1 ? nm->mkNode(kind::AND, hdsExp) : hdsExp[0]};
       lems.push_back(nm->mkNode(kind::OR, children));
-      Trace("cegis") << "  Lemma: " << lems.back() << "\n";
+      Trace("cegis-lemma") << "  Lemma: " << lems.back() << "\n";
     }
     return false;
   }
