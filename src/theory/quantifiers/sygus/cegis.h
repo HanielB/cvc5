@@ -234,6 +234,16 @@ class Cegis : public SygusModule
    * points */
   std::map<Node, unsigned> d_candToHdCount;
 
+  /** The applications of the candidate that has symbolic consructors in a given
+   * refinement lemma. */
+  std::map<Node, std::vector<Node>> d_refLemmaToRelCandApp;
+
+  /** Purified conjecture
+   *
+   * Every application of a function-to-synthesize, whose grammar has symbolic
+   * constructors, over constants is replaced by a fresh variable of the
+   * respective type. See purifyLemma.
+   */
   Node d_purifiedLemma;
 
   /**

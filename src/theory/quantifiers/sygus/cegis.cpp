@@ -176,7 +176,7 @@ Node Cegis::purifyLemma(Node n,
   Node nv = n;
   // Whether application of a function-to-synthesize
   bool fapp = k == DT_SYGUS_EVAL;
-  bool u_fapp = false;
+  bool acFapp = false;
   if (fapp)
   {
     // if we are ensuring constants, we cannot do it for function applications,
@@ -185,8 +185,8 @@ Node Cegis::purifyLemma(Node n,
     {
       return Node::null();
     }
-    // Whether application of a (non-)anyConst function-to-synthesize
-    u_fapp = std::find(candidates.begin(), candidates.end(), n[0])
+    // Whether application of a anyConst function-to-synthesize
+    acFapp = std::find(candidates.begin(), candidates.end(), n[0])
              != candidates.end();
   }
   // Travese to purify
@@ -200,8 +200,8 @@ Node Cegis::purifyLemma(Node n,
       children.push_back(n[i]);
       continue;
     }
-    // Arguments of non-unif functions do not need to be constant
-    Node child = purifyLemma(n[i], candidates, ensureConst || u_fapp, cache);
+    // Arguments of anyConst functions need to be constant
+    Node child = purifyLemma(n[i], candidates, ensureConst || acFapp, cache);
     if (child.isNull())
     {
       return Node::null();
@@ -235,7 +235,7 @@ Node Cegis::purifyLemma(Node n,
     nb = n;
   }
   // Map to point enumerator every unification function-to-synthesize
-  if (u_fapp)
+  if (acFapp)
   {
     Node np;
     // Build purified head with fresh skolem, of the builtin type, and replace
@@ -497,7 +497,17 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
   if (d_usingSymConsGround && addedEvalLemmas)
   {
     NodeManager* nm = NodeManager::currentNM();
-    // Trace("cegis") << "  EvalLemmas : " << lems << "\n";
+    Trace("cegis") << "  EvalLemmas : " << lems << "\n";
+    for (const auto& lem : lems)
+    {
+      auto it = d_refLemmaToRelCandApp.find(lem);
+      // compute applications and add to map
+      if (it == d_refLemmaToRelCandApp.end())
+      {
+        std::vector<Node> apps;
+        getApps(lem, apps);
+      }
+    }
     // ignore these though. Just build a refinement lemma with everything
     lems.clear();
     // For each enumerator, equality with model value
@@ -797,11 +807,11 @@ bool Cegis::getRefinementEvalLemmas(const std::vector<Node>& vs,
         // lemma will be built is custom way outside. Just store the refinement
         // lemma TODO use the invariance test etc below to optimize the
         // functions that were actually relevant for the conflict
-        if (d_usingSymConsGround)
-        {
-          lems.push_back(lem);
-          continue;
-        }
+        // if (d_usingSymConsGround)
+        // {
+        //   lems.push_back(lem);
+        //   continue;
+        // }
         std::vector<Node> msu;
         std::vector<Node> mexp;
         msu.insert(msu.end(), ms.begin(), ms.end());
