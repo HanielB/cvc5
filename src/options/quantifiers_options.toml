@@ -1134,7 +1134,6 @@ header = "options/quantifiers_options.h"
   long       = "sygus-active-gen=MODE"
   type       = "SygusActiveGenMode"
   default    = "AUTO"
-  read_only  = true
   help       = "mode for actively-generated sygus enumerators"
   help_mode  = "Modes for actively-generated sygus enumerators."
 [[option.mode.NONE]]

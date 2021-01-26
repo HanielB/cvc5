@@ -970,6 +970,15 @@ void setDefaults(LogicInfo& logic, bool isInternalSubsolver)
         options::sygusGrammarConsMode.set(
             options::SygusGrammarConsMode::ANY_CONST);
       }
+      // disable active generators
+      if (options::sygusActiveGenMode.wasSetByUser()
+          && options::sygusActiveGenMode() != options::SygusActiveGenMode::NONE)
+      {
+        throw OptionException(
+            "SyGuS actively-generated enumerators are incompatible with "
+            "constant repair via enumeration");
+      }
+      options::sygusActiveGenMode.set(options::SygusActiveGenMode::NONE);
     }
     if (options::sygusInference())
     {
