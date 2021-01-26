@@ -85,7 +85,7 @@ bool Cegis::processInitialize(Node conj,
     Trace("cegis") << "...register enumerator " << candidates[i];
     // We use symbolic constants if we are doing repair constants or if the
     // grammar construction was not simple.
-    if (options::sygusRepairConst()
+    if (options::sygusRepairConstMode() != options::SygusRepairConstMode::NONE
         || options::sygusGrammarConsMode()
                != options::SygusGrammarConsMode::SIMPLE)
     {
@@ -101,9 +101,7 @@ bool Cegis::processInitialize(Node conj,
         Trace("cegis") << " (using symbolic constructors)";
       }
     }
-    if (!options::sygusRepairConst()
-        && options::sygusGrammarConsMode()
-               == options::SygusGrammarConsMode::ANY_CONST
+    if (options::sygusRepairConstMode() == options::SygusRepairConstMode::ENUM
         && d_usingSymCons && d_parent->isGround())
     {
       d_usingSymConsGround = true;
@@ -437,8 +435,10 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
       }
     }
   }
-  // if we are using grammar-based repair and conjecture is not ground
-  else if (d_usingSymCons && !d_usingSymConsGround && options::sygusRepairConst())
+  // if we are using a subsolver to repair constants
+  if (d_usingSymCons
+           && options::sygusRepairConstMode()
+                  == options::SygusRepairConstMode::SUBSOLVER)
   {
     SygusRepairConst* src = d_parent->getRepairConst();
     Assert(src != nullptr);
@@ -489,6 +489,11 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
   // evaluate on refinement lemmas
   bool addedEvalLemmas = addEvalLemmas(enums, enum_values, lems);
 
+  // if we are in the special case of repairing constants via the enumerator and
+  // with a ground conjecture, we generate evaluation unfolding lemmas that
+  // determine the values the heads should have when the solution has the
+  // current shope, which will guide the enumerator in discarding this candidate
+  // or repairing the constants it depends on
   if (d_usingSymConsGround && addedEvalLemmas)
   {
     NodeManager* nm = NodeManager::currentNM();
@@ -502,7 +507,7 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
     std::map<Node, Node> enumToValue;
     SygusEvalUnfold* evUnfold = d_tds->getEvalUnfold();
 
-    for (unsigned i = 0, size = enums.size(); i < size; ++i)
+    for (size_t i = 0, size = enums.size(); i < size; ++i)
     {
       Node enumExp = d_tds->getExplain()->getExplanationForEquality(
           enums[i], enum_values[i]);

@@ -1,5 +1,5 @@
 ; EXPECT: unsat
-; COMMAND-LINE: --lang=sygus2 --sygus-out=status --sygus-repair-const
+; COMMAND-LINE: --lang=sygus2 --sygus-out=status --sygus-repair-const=subsolver
 (set-logic BV)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

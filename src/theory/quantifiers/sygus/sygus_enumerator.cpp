@@ -573,7 +573,8 @@ SygusEnumerator::TermEnum* SygusEnumerator::getMasterEnumForType(TypeNode tn)
     AlwaysAssert(ret);
     return &d_masterEnum[tn];
   }
-  if (options::sygusRepairConst())
+  if (options::sygusRepairConstMode()
+      == options::SygusRepairConstMode::SUBSOLVER)
   {
     std::map<TypeNode, TermEnumMasterFv>::iterator it = d_masterEnumFv.find(tn);
     if (it != d_masterEnumFv.end())

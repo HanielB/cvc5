@@ -952,11 +952,23 @@ void setDefaults(LogicInfo& logic, bool isInternalSubsolver)
     {
       options::cegqiBv.set(false);
     }
-    if (options::sygusRepairConst())
+    if (options::sygusRepairConstMode()
+        == options::SygusRepairConstMode::SUBSOLVER)
     {
       if (!options::cegqi.wasSetByUser())
       {
         options::cegqi.set(true);
+      }
+    }
+    else if (options::sygusRepairConstMode()
+             == options::SygusRepairConstMode::ENUM)
+    {
+      // if no symbolic constructor, set it
+      if (options::sygusGrammarConsMode()
+          == options::SygusGrammarConsMode::SIMPLE)
+      {
+        options::sygusGrammarConsMode.set(
+            options::SygusGrammarConsMode::ANY_CONST);
       }
     }
     if (options::sygusInference())

@@ -1,12 +1,12 @@
 ; EXPECT: unsat
-; COMMAND-LINE: --sygus-out=status --sygus-repair-const --lang=sygus2 --sygus-grammar-cons=any-const
+; COMMAND-LINE: --sygus-out=status --sygus-repair-const=subsolver --lang=sygus2 --sygus-grammar-cons=any-const
 (set-logic LIA)
 
 (synth-inv inv-f ((x Int) (y Int)) )
 
 
 (define-fun pre-f ((x Int) (y Int)) Bool
-  (and 
+  (and
     (= x 0)
     (= y 100)
   )
@@ -20,7 +20,7 @@
   )
 )
 
-(define-fun post-f ((x Int) (y Int)) Bool 
+(define-fun post-f ((x Int) (y Int)) Bool
   (=> (>= x 100) (>= y 200))
 )
 

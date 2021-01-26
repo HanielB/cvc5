@@ -536,7 +536,7 @@ header = "options/quantifiers_options.h"
   default    = "-1"
   read_only  = true
   help       = "maximum number of rounds of enumerative instantiation to apply (-1 means no limit)"
-  
+
 [[option]]
   name       = "fullSaturateInterleave"
   category   = "regular"
@@ -1096,12 +1096,22 @@ header = "options/quantifiers_options.h"
   help       = "use quantifier elimination as a preprocessing step for sygus"
 
 [[option]]
-  name       = "sygusRepairConst"
+  name       = "sygusRepairConstMode"
   category   = "regular"
-  long       = "sygus-repair-const"
-  type       = "bool"
-  default    = "false"
-  help       = "use approach to repair constants in sygus candidate solutions"
+  long       = "sygus-repair-const=MODE"
+  type       = "SygusRepairConstMode"
+  default    = "NONE"
+  help       = "mode for computing sygus constants with symbolic methods"
+  help_mode  = "Modes for repairing sygus constants."
+[[option.mode.NONE]]
+  name = "none"
+  help = "Do not use symbolic methods for computing sygus constants."
+[[option.mode.SUBSOLVER]]
+  name = "subsolver"
+  help = "Use a separete SMT solver call to repair candidate solutions wrong only on their constant values"
+[[option.mode.ENUM]]
+  name = "enum"
+  help = "Use enumerative solver to repair candidate solutions (requires sygus-grammar-cons != simple)."
 
 [[option]]
   name       = "sygusCoreConnective"

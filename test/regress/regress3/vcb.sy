@@ -1,5 +1,5 @@
 ; EXPECT: unsat
-; COMMAND-LINE: --lang=sygus2 --sygus-out=status --no-sygus-repair-const --decision=justification
+; COMMAND-LINE: --lang=sygus2 --sygus-out=status --no-sygus-repair-const=subsolver --decision=justification
 (set-logic LIA)
 
 (synth-fun f1 ((x1 Int) (x2 Int)) Int)

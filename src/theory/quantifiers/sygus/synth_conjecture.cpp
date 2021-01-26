@@ -179,7 +179,8 @@ void SynthConjecture::assign(Node q)
   Trace("cegqi") << "Base instantiation is :      " << d_base_inst << std::endl;
 
   // initialize the sygus constant repair utility
-  if (options::sygusRepairConst())
+  if (options::sygusRepairConstMode()
+      == options::SygusRepairConstMode::SUBSOLVER)
   {
     d_sygus_rconst->initialize(d_base_inst.negate(), d_candidates);
     if (options::sygusConstRepairAbort())
@@ -323,11 +324,12 @@ bool SynthConjecture::doCheck(std::vector<Node>& lems)
   std::vector<Node> candidate_values;
   bool constructed_cand = false;
 
-  // If a module is not trying to repair constants in solutions and the option
-  // sygusRepairConst  is true, we use a default scheme for trying to repair
-  // constants here.
-  bool doRepairConst =
-      options::sygusRepairConst() && !d_master->usingRepairConst();
+  // If a module is not trying to repair constants in solutions and the
+  // sygusRepairConstMode is to use a subsolver, we use a default scheme for
+  // trying to repair constants here.
+  bool doRepairConst = options::sygusRepairConstMode()
+                           == options::SygusRepairConstMode::SUBSOLVER
+                       && !d_master->usingRepairConst();
   if (doRepairConst)
   {
     // have we tried to repair the previous solution?

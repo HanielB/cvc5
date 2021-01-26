@@ -1,5 +1,5 @@
 ; EXPECT: unsat
-; COMMAND-LINE: --lang=sygus2 --sygus-out=status --sygus-repair-const --sygus-grammar-cons=any-const
+; COMMAND-LINE: --lang=sygus2 --sygus-out=status --sygus-repair-const=subsolver --sygus-grammar-cons=any-const
 (set-logic LIA)
 
 (synth-inv inv-f ((y Int) (z Int) (c Int)))
