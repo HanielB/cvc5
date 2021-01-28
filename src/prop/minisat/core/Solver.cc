@@ -315,8 +315,9 @@ void Solver::resizeVars(int newSize) {
   }
 }
 
-CRef Solver::reason(Var x) {
-  Trace("pf::sat") << "Solver::reason(" << x << ")" << std::endl;
+CRef Solver::reason(Var x)
+{
+  Trace("pf::sat") << "Solver::reason(" << x << ")\n";
 
   // If we already have a reason, just return it
   if (vardata[x].d_reason != CRef_Lazy)
@@ -362,87 +363,82 @@ CRef Solver::reason(Var x) {
 
   // Compute the assertion level for this clause
   int explLevel = 0;
-  if (assertionLevelOnly())
+
+  int i, j;
+  Lit prev = lit_Undef;
+  for (i = 0, j = 0; i < explanation.size(); ++i)
   {
-    explLevel = assertionLevel;
-    }
-    else
+    // This clause is valid theory propagation, so its level is the level of
+    // the top literal
+    explLevel = std::max(explLevel, intro_level(var(explanation[i])));
+
+    Assert(value(explanation[i]) != l_Undef);
+    Assert(i == 0
+           || trail_index(var(explanation[0]))
+                  > trail_index(var(explanation[i])));
+
+    // Always keep the first literal
+    if (i == 0)
     {
-      int i, j;
-      Lit prev = lit_Undef;
-      for (i = 0, j = 0; i < explanation.size(); ++i)
-      {
-        // This clause is valid theory propagation, so its level is the level of
-        // the top literal
-        explLevel = std::max(explLevel, intro_level(var(explanation[i])));
-
-        Assert(value(explanation[i]) != l_Undef);
-        Assert(i == 0
-               || trail_index(var(explanation[0]))
-                      > trail_index(var(explanation[i])));
-
-        // Always keep the first literal
-        if (i == 0)
-        {
-          prev = explanation[j++] = explanation[i];
-          continue;
-        }
-        // Ignore duplicate literals
-        if (explanation[i] == prev)
-        {
-          continue;
-        }
-        // Ignore zero level literals
-        if (level(var(explanation[i])) == 0
-            && user_level(var(explanation[i]) == 0))
-        {
-          continue;
-        }
-        // Keep this literal
-        prev = explanation[j++] = explanation[i];
-      }
-      explanation.shrink(i - j);
-
-      Trace("pf::sat") << "Solver::reason: explanation = ";
-      for (int k = 0; k < explanation.size(); ++k)
-      {
-        Trace("pf::sat") << explanation[k] << " ";
-      }
-      Trace("pf::sat") << std::endl;
-
-      // We need an explanation clause so we add a fake literal
-      if (j == 1)
-      {
-        // Add not TRUE to the clause
-        explanation.push(mkLit(varTrue, true));
-      }
+      prev = explanation[j++] = explanation[i];
+      continue;
     }
-
-    // Construct the reason
-    CRef real_reason = ca.alloc(explLevel, explanation, true);
-    // FIXME: at some point will need more information about where this explanation
-    // came from (ie. the theory/sharing)
-    Trace("pf::sat") << "Minisat::Solver registering a THEORY_LEMMA (1)"
-                     << std::endl;
-    if (options::unsatCores() && !isProofEnabled())
+    // Ignore duplicate literals
+    if (explanation[i] == prev)
     {
-      ClauseId id = ProofManager::getSatProof()->registerClause(real_reason,
-                                                                THEORY_LEMMA);
-      // map id to assertion, which may be required if looking for
-      // lemmas in unsat core
-      ProofManager::getCnfProof()->registerConvertedClause(id);
-      // explainPropagation() pushes the explanation on the assertion stack
-      // in CnfProof, so we need to pop it here. This is important because
-      // reason() may be called indirectly while adding a clause, which can
-      // lead to a wrong assertion being associated with the clause being
-      // added (see issue #2137).
-      ProofManager::getCnfProof()->popCurrentAssertion();
+      continue;
     }
-    vardata[x] = VarData(real_reason, level(x), user_level(x), intro_level(x), trail_index(x));
-    clauses_removable.push(real_reason);
-    attachClause(real_reason);
+    // Ignore zero level literals
+    if (level(var(explanation[i])) == 0 && user_level(var(explanation[i]) == 0))
+    {
+      continue;
+    }
+    // Keep this literal
+    prev = explanation[j++] = explanation[i];
+  }
+  explanation.shrink(i - j);
 
-    return real_reason;
+  if (Trace.isOn("pf::sat"))
+  {
+    Trace("pf::sat") << "Solver::reason: explanation = ";
+    for (int k = 0; k < explanation.size(); ++k)
+    {
+      Trace("pf::sat") << explanation[k] << " ";
+    }
+    Trace("pf::sat") << "\n";
+  }
+  // We need an explanation clause so we add a fake literal
+  if (j == 1)
+  {
+    // Add not TRUE to the clause
+    explanation.push(mkLit(varTrue, true));
+  }
+
+  // Construct the reason
+  CRef real_reason = ca.alloc(explLevel, explanation, true);
+  // FIXME: at some point will need more information about where this
+  // explanation came from (ie. the theory/sharing)
+  Trace("pf::sat") << "Minisat::Solver registering a THEORY_LEMMA (1)\n";
+  if (options::unsatCores() && !isProofEnabled())
+  {
+    ClauseId id =
+        ProofManager::getSatProof()->registerClause(real_reason, THEORY_LEMMA);
+    // map id to assertion, which may be required if looking for
+    // lemmas in unsat core
+    ProofManager::getCnfProof()->registerConvertedClause(id);
+    // explainPropagation() pushes the explanation on the assertion stack
+    // in CnfProof, so we need to pop it here. This is important because
+    // reason() may be called indirectly while adding a clause, which can
+    // lead to a wrong assertion being associated with the clause being
+    // added (see issue #2137).
+    ProofManager::getCnfProof()->popCurrentAssertion();
+  }
+  vardata[x] = VarData(
+      real_reason, level(x), user_level(x), intro_level(x), trail_index(x));
+  clauses_removable.push(real_reason);
+  attachClause(real_reason);
+
+  return real_reason;
 }
 
 bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
