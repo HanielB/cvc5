@@ -175,7 +175,7 @@ Node Cegis::purifyLemma(Node n,
   // We retrive model value now because purified node may not have a value
   Node nv = n;
   // Whether application of a function-to-synthesize
-  bool fapp = k == DT_SYGUS_EVAL;
+  bool fapp = k == kind::DT_SYGUS_EVAL;
   bool acFapp = false;
   if (fapp)
   {
@@ -212,6 +212,7 @@ Node Cegis::purifyLemma(Node n,
   Node nb;
   if (childChanged)
   {
+    AlwaysAssert(!acFapp);
     if (n.getMetaKind() == metakind::PARAMETERIZED)
     {
       Trace("cegis-purify-debug") << "Node " << n << " is parameterized\n";
@@ -252,6 +253,8 @@ Node Cegis::purifyLemma(Node n,
     Trace("cegis-purify") << "...new enum " << newF << " for candidate "
                           << nb[0] << "\n";
     d_candToEvalHds[nb[0]].push_back(newF);
+    Assert(d_evalToHd.find(n) == d_evalToHd.end());
+    d_evalToHd[n] = newF;
     // Maps new enumerator to its respective tuple of arguments
     d_hdToPt[newF] = std::vector<Node>(++children.begin(), children.end());
     if (Trace.isOn("cegis-purify-debug"))
@@ -275,6 +278,37 @@ Node Cegis::purifyLemma(Node n,
   Trace("cegis-purify-debug") << "... caching [" << n << "] = " << nb << "\n";
   cache[n] = nb;
   return nb;
+}
+
+void Cegis::getRelCandidateHds(Node n, std::map<Node, std::vector<Node>>& relCandHds)
+{
+  std::unordered_set<Node, NodeHashFunction> visited;
+  std::vector<Node> visit{n};
+  Node cur;
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    if (visited.count(cur))
+    {
+      continue;
+    }
+    visited.insert(cur);
+    if (cur.getKind() == kind::DT_SYGUS_EVAL)
+    {
+      auto it = d_evalToHd.find(cur);
+      if (it != d_evalToHd.end())
+      {
+        relCandHds[cur[0]].push_back(it->second);
+        // candidates is applied over constants, can ignore children
+        continue;
+      }
+    }
+    for (const auto& child : cur)
+    {
+      visit.push_back(child);
+    }
+  }while (!visit.empty());
 }
 
 void Cegis::getTermList(const std::vector<Node>& candidates,
@@ -497,18 +531,30 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
   if (d_usingSymConsGround && addedEvalLemmas)
   {
     NodeManager* nm = NodeManager::currentNM();
-    Trace("cegis") << "  EvalLemmas : " << lems << "\n";
+    Trace("cegis-lemma") << "  EvalLemmas : " << lems << "\n";
+    std::map<Node, std::vector<Node>> relCandHds;
     for (const auto& lem : lems)
     {
-      auto it = d_refLemmaToRelCandApp.find(lem);
+      auto it = d_refLemmaToRelCandHds.find(lem);
       // compute applications and add to map
-      if (it == d_refLemmaToRelCandApp.end())
+      if (it == d_refLemmaToRelCandHds.end())
       {
-        std::vector<Node> apps;
-        getApps(lem, apps);
+        std::map<Node, std::vector<Node>> lemRelCandHds;
+        getRelCandidateHds(lem, lemRelCandHds);
+        d_refLemmaToRelCandHds[lem] = lemRelCandHds;
+        it = d_refLemmaToRelCandHds.find(lem);
       }
+      relCandHds.insert(it->second.begin(), it->second.end());
     }
-    // ignore these though. Just build a refinement lemma with everything
+    if (Trace.isOn("cegis"))
+    {
+      Trace("cegis") << "  Relevant candidates : [ ";
+      for (const auto& pair : relCandHds)
+      {
+        Trace("cegis") << pair.first << ": " << pair.second << "";
+      }
+      Trace("cegis") << "]\n";
+    }
     lems.clear();
     // For each enumerator, equality with model value
     std::vector<Node> enumsExp;
@@ -516,23 +562,28 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
     std::vector<Node> hdsUnfold;
     std::map<Node, Node> enumToValue;
     SygusEvalUnfold* evUnfold = d_tds->getEvalUnfold();
-
+    // map enum to value
     for (size_t i = 0, size = enums.size(); i < size; ++i)
     {
-      Node enumExp = d_tds->getExplain()->getExplanationForEquality(
-          enums[i], enum_values[i]);
       enumToValue[enums[i]] = enum_values[i];
+    }
+    // Go through the relevant candidates
+    for (const auto& p : relCandHds)
+    {
+      Node e = p.first;
+      Node enumExp =
+          d_tds->getExplain()->getExplanationForEquality(e, enumToValue[e]);
       // get model values of heads. Note however that if there is an anyconst in
       // the enum value, we have to be smart, e.g.
       //
       //   is-any-constant(d) => f1 = d.0 ^ f2 = d.0 ^ f6 = d.0
-      for (const Node& hd : d_candToEvalHds[enums[i]])
+      for (const Node& hd : p.second)
       {
         // build (DT_SYGUS_EVAL enums[i] pt0 ... ptn), in which pti corresponds
         // to the point of hd. This will be unfolded so that we get the proper
         // value for this head in the case that enum_values[i] (retrieved by the
         // unfolding method from enumToValue) contains anyconst
-        std::vector<Node> evalChildren{enums[i]};
+        std::vector<Node> evalChildren{e};
         auto itPt = d_hdToPt.find(hd);
         AlwaysAssert(itPt != d_hdToPt.end());
         evalChildren.insert(
@@ -550,10 +601,8 @@ bool Cegis::constructCandidates(const std::vector<Node>& enums,
       }
       // check if heads values lead to false
       AlwaysAssert(d_refinement_lemmas.size() == 1);
-      Node tmp = d_purifiedLemma.substitute(d_candToEvalHds[enums[i]].begin(),
-                                            d_candToEvalHds[enums[i]].end(),
-                                            hdsUnfold.begin(),
-                                            hdsUnfold.end());
+      Node tmp = d_purifiedLemma.substitute(
+          p.second.begin(), p.second.end(), hdsUnfold.begin(), hdsUnfold.end());
       Trace("cegis-unfold") << "Lemma to rewrite: " << tmp << "\n";
       Trace("cegis-unfold")
           << "Lemma rewritten: "
@@ -804,14 +853,14 @@ bool Cegis::getRefinementEvalLemmas(const std::vector<Node>& vs,
       if (lemcsu.isConst() && !lemcsu.getConst<bool>())
       {
         ret = true;
-        // lemma will be built is custom way outside. Just store the refinement
+        // lemma will be built in custom way outside. Just store the refinement
         // lemma TODO use the invariance test etc below to optimize the
         // functions that were actually relevant for the conflict
-        // if (d_usingSymConsGround)
-        // {
-        //   lems.push_back(lem);
-        //   continue;
-        // }
+        if (d_usingSymConsGround)
+        {
+          lems.push_back(lem);
+          continue;
+        }
         std::vector<Node> msu;
         std::vector<Node> mexp;
         msu.insert(msu.end(), ms.begin(), ms.end());

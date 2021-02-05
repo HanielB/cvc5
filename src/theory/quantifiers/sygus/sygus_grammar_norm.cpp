@@ -424,6 +424,8 @@ TypeNode SygusGrammarNorm::normalizeSygusRec(TypeNode tn,
     // we need to do a lot of special symmetry breaking, e.g. for ensuring
     // any constant constructors are not the 1st children of ITEs.
     if (CegInstantiator::isCbqiSort(sygus_type) >= CEG_HANDLED
+        && options::sygusRepairConstMode()
+               != options::SygusRepairConstMode::NONE
         && !sygus_type.isBoolean())
     {
       Trace("sygus-grammar-normalize") << "...add any constant constructor.\n";
@@ -442,6 +444,8 @@ TypeNode SygusGrammarNorm::normalizeSygusRec(TypeNode tn,
       CegGrammarConstructor::mkSygusConstantsForType(sygus_type, ops);
       for (const Node& op : ops)
       {
+        Trace("sygus-grammar-normalize")
+            << "...add constant consructior " << op << "\n";
         std::stringstream ss;
         ss << op;
         std::vector<TypeNode> ctypes;

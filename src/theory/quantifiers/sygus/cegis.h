@@ -230,13 +230,15 @@ class Cegis : public SygusModule
   std::map<Node, std::vector<Node>> d_hdToPt;
   /** maps unif candidates to heads of their evaluation points */
   std::map<Node, std::vector<Node>> d_candToEvalHds;
+  /** maps application of candidate to head. */
+  std::map<Node, Node> d_evalToHd;
   /** maps unif functions-to-synthesize to counters of heads of evaluation
    * points */
   std::map<Node, unsigned> d_candToHdCount;
 
-  /** The applications of the candidate that has symbolic consructors in a given
-   * refinement lemma. */
-  std::map<Node, std::vector<Node>> d_refLemmaToRelCandApp;
+  /** The application heads of candidates that have symbolic constructors in a
+   * given refinement lemma. */
+  std::map<Node, std::map<Node, std::vector<Node>>> d_refLemmaToRelCandHds;
 
   /** Purified conjecture
    *
@@ -284,6 +286,14 @@ class Cegis : public SygusModule
                    const std::vector<Node>& candidates,
                    bool ensureConst,
                    std::map<Node, Node>& cache);
+
+  /**
+   * Traverse given node and collect, for each application of a
+   * function-to-synthesize candidates in it, the respective evaluation head, if
+   * any. The results are accumulated in cands.
+   */
+  void getRelCandidateHds(Node n,
+                          std::map<Node, std::vector<Node>>& relCandHds);
 
   Node d_false;
 
