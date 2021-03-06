@@ -141,6 +141,14 @@ void PfManager::printProof(std::ostream& out,
   else if (options::proofFormatMode() == options::ProofFormatMode::VERIT)
   {
     d_vpfpp.reset(new proof::VeritProofPostprocess(d_pnm.get(), false));
+    if (Trace.isOn("test-verit"))
+    {
+      std::shared_ptr<ProofNode> testPf = fp->getChildren()[0]->clone();
+      d_vpfpp->myProcess(testPf);
+      std::ostringstream tmp;
+      proof::veritPrinter(tmp, testPf);
+      Trace("test-verit") << tmp.str() << "\n============================\n\n";
+    }
     d_vpfpp->process(fp->getChildren()[0]);
     proof::veritPrinter(out, fp->getChildren()[0]);
   }

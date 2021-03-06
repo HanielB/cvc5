@@ -266,6 +266,7 @@ class VeritProofPostprocess
   ~VeritProofPostprocess();
   /** post-process */
   void process(std::shared_ptr<ProofNode> pf);
+  void myProcess(std::shared_ptr<ProofNode> pf);
  private:
   /** The proof node manager */
   ProofNodeManager* d_pnm;
