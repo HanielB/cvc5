@@ -3221,8 +3221,59 @@ bool MyVeritProofPostprocessCallback::update(Node res,
       // conclusion, if it's of the form (OR t1 ... tn), corresponds to the
       // clause (cl t1 ... tn) or to (cl (OR t1 ... tn)). The *only* way in
       // which the latter can happen is if res occurs as a child in one of the
-      // premises, and is *not* eliminated afterwards.
-
+      // premises, and is *not* eliminated afterwards. So we search for res as a
+      // subterm of some children, which would mark its last insertion into the
+      // resolution result. If res does not occur as the pivot to be eliminated
+      // in a subsequent premise, then, and only then, it is a singleton clause.
+      size_t i;
+      for (i = children.size(); i > 0; --i)
+      {
+        // only non-singleton clauses may be introducing
+        // res, so we only care about non-singleton OR nodes. We check then
+        // against the kind and whether the whole OR node occurs as a pivot of
+        // the respective resolution
+        if (children[i - 1].getKind() != kind::OR)
+        {
+          continue;
+        }
+        size_t pivotIndex = 2 * (i - 1);
+        if (args[pivotIndex] == children[i - 1]
+            || args[pivotIndex].notNode() == children[i - 1])
+        {
+          continue;
+        }
+        // if res occurs as a subterm of a non-singleton premise
+        if (std::find(children[i - 1].begin(), children[i - 1].end(), res)
+            != children[i - 1].end())
+        {
+          break;
+        }
+      }
+      // now see if any subsequent premise eliminates it
+      for (; i < children.size(); ++i)
+      {
+        bool posFirst = args[(2 * i) - 1] == trueNode;
+        Node pivot = args[(2 * i)];
+        // To eliminate res, the clause must contain it with opposite
+        // polarity. There are three successful cases, according to the pivot
+        // and its sign
+        //
+        // - res is the same as the pivot and posFirst is true, which means
+        //   that the clause contains its negation and eliminates it
+        //
+        // - res is the negation of the pivot and posFirst is false, so the
+        //   clause contains the node whose negation is res. Note that this
+        //   case may either be res.notNode() == pivot or res ==
+        //   pivot.notNode().
+        if ((res == pivot && posFirst)
+            || (res.notNode() == pivot && !posFirst)
+            || (pivot.notNode() == res && !posFirst))
+        {
+          break;
+        }
+      }
+      // if not eliminated (loop went to the end), then it's a singleton clause
+      bool singletonRes = i == children.size();
 
       // if ((child_rule == VeritRule::ASSUME
       //      || child_rule == VeritRule::EQ_RESOLUTION))
