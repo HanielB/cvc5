@@ -3255,27 +3255,50 @@ bool MyVeritProofPostprocessCallback::update(Node res,
             break;
           }
         }
-        // now see if any subsequent premise eliminates it
-        for (; i < children.size(); ++i)
+        // check if candidate is not eliminated by the *previous* premise, which
+        // could be the case e.g. if candidate is (or a b) and the premises are
+        //
+        // ...
+        // (or (not c) (not (or a b)) ...)
+        // (or (or a b) ...)
+        // ...
+        if (i > 0)
         {
-          bool posFirst = args[(2 * i) - 1] == trueNode;
-          Node pivot = args[(2 * i)];
-          // To eliminate res, the clause must contain it with opposite
-          // polarity. There are three successful cases, according to the pivot
-          // and its sign
-          //
-          // - res is the same as the pivot and posFirst is true, which means
-          //   that the clause contains its negation and eliminates it
-          //
-          // - res is the negation of the pivot and posFirst is false, so the
-          //   clause contains the node whose negation is res. Note that this
-          //   case may either be res.notNode() == pivot or res ==
-          //   pivot.notNode().
-          if ((res == pivot && posFirst)
-              || (res.notNode() == pivot && !posFirst)
-              || (pivot.notNode() == res && !posFirst))
+          bool posFirst = args[(2 * (i - 1)) - 2] == trueNode;
+          Node pivot = args[(2 * (i - 1)) - 1];
+          if ((res == pivot && !posFirst)
+              || (res.notNode() == pivot && posFirst)
+              || (pivot.notNode() == res && posFirst))
           {
-            break;
+            // it's only necessary to decrement because if i = children.size()
+            // the test of singletoness would fail
+            --i;
+          }
+          else
+          {
+            // now see if any subsequent premise eliminates it
+            for (; i < children.size(); ++i)
+            {
+              posFirst = args[(2 * i) - 2] == trueNode;
+              pivot = args[(2 * i) - 1];
+              // To eliminate res, the clause must contain it with opposite
+              // polarity. There are three successful cases, according to the
+              // pivot and its sign
+              //
+              // - res is the same as the pivot and posFirst is true, which
+              // means that the clause contains its negation and eliminates it
+              //
+              // - res is the negation of the pivot and posFirst is false, so
+              // the clause contains the node whose negation is res. Note that
+              // this case may either be res.notNode() == pivot or res ==
+              // pivot.notNode().
+              if ((res == pivot && posFirst)
+                  || (res.notNode() == pivot && !posFirst)
+                  || (pivot.notNode() == res && !posFirst))
+              {
+                break;
+              }
+            }
           }
         }
         // if not eliminated (loop went to the end), then it's a singleton
