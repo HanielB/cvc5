@@ -24,6 +24,9 @@ namespace CVC4 {
 namespace theory {
 namespace quantifiers {
 
+
+QuantifiersProofRuleChecker::~QuantifiersProofRuleChecker() {}
+
 void QuantifiersProofRuleChecker::registerTo(ProofChecker* pc)
 {
   // add checkers

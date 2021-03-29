@@ -25,6 +25,7 @@ namespace CVC4 {
 namespace expr {
 
 TermCanonize::TermCanonize() : d_op_id_count(0), d_typ_id_count(0) {}
+TermCanonize::~TermCanonize() {}
 
 int TermCanonize::getIdForOperator(Node op)
 {

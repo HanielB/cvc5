@@ -33,6 +33,8 @@ ProofNodeManager::ProofNodeManager(ProofChecker* pc)
   d_true = NodeManager::currentNM()->mkConst(true);
 }
 
+ProofNodeManager::~ProofNodeManager() {}
+
 std::shared_ptr<ProofNode> ProofNodeManager::mkNode(
     PfRule id,
     const std::vector<std::shared_ptr<ProofNode>>& children,

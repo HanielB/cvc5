@@ -35,6 +35,7 @@ class TermCanonize
  public:
   TermCanonize();
   ~TermCanonize() {}
+  ~TermCanonize();
 
   /** Maps operators to an identifier, useful for ordering. */
   int getIdForOperator(Node op);

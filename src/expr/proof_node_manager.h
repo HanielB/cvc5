@@ -54,7 +54,7 @@ class ProofNodeManager
 {
  public:
   ProofNodeManager(ProofChecker* pc = nullptr);
-  ~ProofNodeManager() {}
+  ~ProofNodeManager();
   /**
    * This constructs a ProofNode with the given arguments. The expected
    * argument, when provided, indicates the formula that the returned node

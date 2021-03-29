@@ -30,7 +30,7 @@ class QuantifiersProofRuleChecker : public ProofRuleChecker
 {
  public:
   QuantifiersProofRuleChecker() {}
-  ~QuantifiersProofRuleChecker() {}
+  ~QuantifiersProofRuleChecker();
 
   /** Register all rules owned by this rule checker into pc. */
   void registerTo(ProofChecker* pc) override;
