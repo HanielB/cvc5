@@ -1,9 +1,8 @@
-; REQUIRES: proof
-; COMMAND-LINE: --dump-proofs --proof-format-mode=lfsc 
+; COMMAND-LINE: --dump-proofs --proof-format-mode=lfsc
 ; EXIT: 0
-; SCRUBBER: grep -v -E '.*' 
+; SCRUBBER: grep -v -E '.*'
 (set-logic QF_UF)
-(set-info :smt-lib-version 2.0)
+(set-info :smt-lib-version 2.6)
 (set-info :category "crafted")
 
 (declare-sort U 0)
