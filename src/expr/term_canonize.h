@@ -21,6 +21,14 @@
 #include "expr/node.h"
 
 namespace CVC4 {
+
+class ProofNodeManager;
+class TConvProofGenerator;
+
+namespace theory {
+class TrustNode;
+}
+
 namespace expr {
 
 /** TermCanonize
@@ -33,8 +41,7 @@ namespace expr {
 class TermCanonize
 {
  public:
-  TermCanonize();
-  ~TermCanonize() {}
+  TermCanonize(ProofNodeManager* pnm = nullptr, bool hoVar = false);
   ~TermCanonize();
 
   /** Maps operators to an identifier, useful for ordering. */
@@ -64,8 +71,16 @@ class TermCanonize
    * the second leftmost is the second, and so on, for each type T.
    */
   Node getCanonicalTerm(TNode n,
-                        bool apply_torder = false,
-                        bool doHoVar = true);
+                             bool applyTOrder = false,
+                             bool doHoVar = true);
+
+  /**
+   * As above but stores in the given map the substitution performed by the
+   * canonizer and yields a proof node. */
+  theory::TrustNode getCanonicalTerm(TNode n,
+                                     std::map<Node, Node>& subs,
+                                     bool applyTOrder = false,
+                                     bool doHoVar = true);
 
  private:
   /** the number of ids we have allocated for operators */
@@ -87,17 +102,12 @@ class TermCanonize
    * exist.
    */
   size_t getIndexForFreeVariable(Node v) const;
-  /** get canonical term
-   *
-   * This is a helper function for getCanonicalTerm above. We maintain a
-   * counter of how many variables we have allocated for each type (var_count),
-   * and a cache of visited nodes (visited).
-   */
-  Node getCanonicalTerm(TNode n,
-                        bool apply_torder,
-                        bool doHoVar,
-                        std::map<TypeNode, unsigned>& var_count,
-                        std::map<TNode, Node>& visited);
+
+  /** Are proofs enabled for this object? */
+  bool isProofEnabled() const;
+
+  /** The proof generator of the transformations done by this class. */
+  std::unique_ptr<TConvProofGenerator> d_tcpg;
 };
 
 }  // namespace expr

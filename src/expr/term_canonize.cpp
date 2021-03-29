@@ -16,15 +16,34 @@
 
 #include <sstream>
 
+#include "expr/proof_node_manager.h"
+#include "expr/term_conversion_proof_generator.h"
+
+#include "theory/builtin/proof_checker.h"
+#include "theory/trust_node.h"
 // TODO #1216: move the code in this include
 #include "theory/quantifiers/term_util.h"
+
 
 using namespace CVC4::kind;
 
 namespace CVC4 {
 namespace expr {
 
-TermCanonize::TermCanonize() : d_op_id_count(0), d_typ_id_count(0) {}
+TermCanonize::TermCanonize(ProofNodeManager* pnm, bool hoVar)
+    : d_op_id_count(0),
+      d_typ_id_count(0),
+      d_tcpg(pnm ? new TConvProofGenerator(pnm,
+                                           nullptr,
+                                           TConvPolicy::FIXPOINT,
+                                           TConvCachePolicy::NEVER,
+                                           "TermCanonizer::TConvProofGenerator",
+                                           nullptr,
+                                           true)
+                 : nullptr)
+{
+}
+
 TermCanonize::~TermCanonize() {}
 
 int TermCanonize::getIdForOperator(Node op)
@@ -131,83 +150,153 @@ struct sortTermOrder
   bool operator()(Node i, Node j) { return d_tu->getTermOrder(i, j); }
 };
 
-Node TermCanonize::getCanonicalTerm(TNode n,
-                                    bool apply_torder,
-                                    bool doHoVar,
-                                    std::map<TypeNode, unsigned>& var_count,
-                                    std::map<TNode, Node>& visited)
+theory::TrustNode TermCanonize::getCanonicalTerm(TNode n,
+                                                 std::map<Node, Node>& subs,
+                                                 bool applyTOrder,
+                                                 bool doHoVar)
 {
-  std::map<TNode, Node>::iterator it = visited.find(n);
-  if (it != visited.end())
+  // counter for creating canonical variables per type
+  std::map<TypeNode, unsigned> varCount;
+  // visiting stuff
+  std::vector<TNode> visit{n};
+  std::unordered_map<TNode, Node, TNodeHashFunction> visited;
+  std::unordered_map<TNode, Node, TNodeHashFunction>::iterator it;
+  TNode cur;
+  NodeManager* nm = NodeManager::currentNM();
+  do
   {
-    return it->second;
-  }
-
-  Trace("canon-term-debug") << "Get canonical term for " << n << std::endl;
-  if (n.getKind() == BOUND_VARIABLE)
-  {
-    TypeNode tn = n.getType();
-    // allocate variable
-    unsigned vn = var_count[tn];
-    var_count[tn]++;
-    Node fv = getCanonicalFreeVar(tn, vn);
-    visited[n] = fv;
-    Trace("canon-term-debug") << "...allocate variable." << std::endl;
-    return fv;
-  }
-  else if (n.getNumChildren() > 0)
-  {
-    // collect children
-    Trace("canon-term-debug") << "Collect children" << std::endl;
-    std::vector<Node> cchildren;
-    for (const Node& cn : n)
+    cur = visit.back();
+    visit.pop_back();
+    it = visited.find(cur);
+    if (it == visited.end())
     {
-      cchildren.push_back(cn);
-    }
-    // if applicable, first sort by term order
-    if (apply_torder && theory::quantifiers::TermUtil::isComm(n.getKind()))
-    {
-      Trace("canon-term-debug")
-          << "Sort based on commutative operator " << n.getKind() << std::endl;
-      sortTermOrder sto;
-      sto.d_tu = this;
-      std::sort(cchildren.begin(), cchildren.end(), sto);
-    }
-    // now make canonical
-    Trace("canon-term-debug") << "Make canonical children" << std::endl;
-    for (unsigned i = 0, size = cchildren.size(); i < size; i++)
-    {
-      cchildren[i] = getCanonicalTerm(
-          cchildren[i], apply_torder, doHoVar, var_count, visited);
-    }
-    if (n.getMetaKind() == metakind::PARAMETERIZED)
-    {
-      Node op = n.getOperator();
-      if (doHoVar)
+      visited[cur] = Node::null();
+      Trace("canon-term-debug") << "Get canonical term for " << cur << "\n";
+      if (cur.getKind() == BOUND_VARIABLE)
       {
-        op = getCanonicalTerm(op, apply_torder, doHoVar, var_count, visited);
+        TypeNode tn = cur.getType();
+        // allocate variable
+        unsigned vn = varCount[tn];
+        varCount[tn]++;
+        Node fv = getCanonicalFreeVar(tn, vn);
+        visited[cur] = fv;
+        subs[cur] = fv;
+        Trace("canon-term-debug") << "...allocate variable.\n";
+        if (isProofEnabled())
+        {
+          // substitutions are pre-rewrites
+          d_tcpg->addRewriteStep(
+              cur, fv, PfRule::ASSUME, {}, {cur.eqNode(fv)}, true);
+        }
       }
-      Trace("canon-term-debug") << "Insert operator " << op << std::endl;
-      cchildren.insert(cchildren.begin(), op);
+      else if (cur.getNumChildren() > 0)
+      {
+        visit.push_back(cur);
+        // collect children
+        Trace("canon-term-debug") << "Collect children\n";
+        if (cur.getMetaKind() == metakind::PARAMETERIZED)
+        {
+          Node op = cur.getOperator();
+          if (doHoVar)
+          {
+            visit.push_back(op);
+          }
+          else
+          {
+            visited[op] = op;
+          }
+        }
+        for (const Node& cn : cur)
+        {
+          visit.push_back(cn);
+        }
+      }
+      else
+      {
+        visited[cur] = cur;
+      }
     }
-    Trace("canon-term-debug")
-        << "...constructing for " << n << "." << std::endl;
-    Node ret = NodeManager::currentNM()->mkNode(n.getKind(), cchildren);
-    Trace("canon-term-debug")
-        << "...constructed " << ret << " for " << n << "." << std::endl;
-    visited[n] = ret;
-    return ret;
-  }
-  Trace("canon-term-debug") << "...return 0-child term." << std::endl;
-  return n;
+    else if (it->second.isNull())
+    {
+      // post-visit, rebuild
+      Trace("canon-term-debug") << "Post-visit " << cur << "\n";
+      bool changed = false;
+      std::vector<Node> cchildren;
+      if (cur.getMetaKind() == metakind::PARAMETERIZED)
+      {
+        Node op = cur.getOperator();
+        Assert(visited.find(op) != visited.end());
+        cchildren.push_back(visited[op]);
+        changed = cchildren.back() != op;
+      }
+      for (const Node& cn : cur)
+      {
+        Assert(visited.find(cn) != visited.end());
+        Node ccn = visited[cn];
+        cchildren.push_back(ccn);
+        changed |= ccn != cn;
+      }
+      std::vector<Node> origCchildren;
+      // if applicable, first sort by term order
+      if (applyTOrder && theory::quantifiers::TermUtil::isComm(cur.getKind()))
+      {
+        Trace("canon-term-debug") << "Sort based on commutative operator "
+                                  << cur.getKind() << std::endl;
+        if (isProofEnabled())
+        {
+          origCchildren.insert(
+              origCchildren.end(), cchildren.begin(), cchildren.end());
+        }
+        sortTermOrder sto;
+        sto.d_tu = this;
+        std::sort(cchildren.begin(), cchildren.end(), sto);
+        changed = true;
+      }
+      // now make canonical
+      Node res = cur;
+      if (changed)
+      {
+        Trace("canon-term-debug") << "Make canonical children" << std::endl;
+        Trace("canon-term-debug")
+            << "...constructing for " << cur << "." << std::endl;
+        res = nm->mkNode(cur.getKind(), cchildren);
+        Trace("canon-term-debug")
+            << "...constructed " << res << " for " << cur << "." << std::endl;
+        // check if orderd changed, in which case add a rewrite
+        if (isProofEnabled() && !origCchildren.empty())
+        {
+          Node prev = nm->mkNode(cur.getKind(), origCchildren);
+          if (prev != res)
+          {
+            d_tcpg->addRewriteStep(
+                prev,
+                res,
+                PfRule::THEORY_REWRITE,
+                {},
+                {prev.eqNode(res),
+                 theory::builtin::BuiltinProofRuleChecker::mkTheoryIdNode(
+                     theory::THEORY_BUILTIN),
+                 mkMethodId(theory::MethodId::RW_REWRITE_THEORY_POST)});
+          }
+        }
+      }
+      AlwaysAssert(!res.isNull());
+      visited[cur] = res;
+    }
+  } while (!visit.empty());
+  AlwaysAssert(!visited[n].isNull());
+  return theory::TrustNode::mkTrustRewrite(n, visited[n], d_tcpg.get());
 }
 
-Node TermCanonize::getCanonicalTerm(TNode n, bool apply_torder, bool doHoVar)
+Node TermCanonize::getCanonicalTerm(TNode n, bool applyTOrder, bool doHoVar)
 {
-  std::map<TypeNode, unsigned> var_count;
-  std::map<TNode, Node> visited;
-  return getCanonicalTerm(n, apply_torder, doHoVar, var_count, visited);
+  std::map<Node, Node> subs;
+  theory::TrustNode trn = getCanonicalTerm(n, subs, applyTOrder, doHoVar);
+  AlwaysAssert(!trn.isNull());
+  return trn.getNode();
 }
+
+bool TermCanonize::isProofEnabled() const { return d_tcpg != nullptr; }
 
 }  // namespace expr
 }  // namespace CVC4

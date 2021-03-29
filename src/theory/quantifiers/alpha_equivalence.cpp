@@ -15,36 +15,67 @@
 
 #include "theory/quantifiers/alpha_equivalence.h"
 
-#include "expr/proof.h"
+#include "expr/lazy_proof.h"
+#include "expr/term_canonize.h"
+#include "theory/builtin/proof_checker.h"
 #include "theory/quantifiers_engine.h"
-
-using namespace CVC4::kind;
+#include "theory/trust_node.h"
 
 namespace CVC4 {
 namespace theory {
 namespace quantifiers {
 
-struct sortTypeOrder {
+struct sortTypeOrder
+{
   expr::TermCanonize* d_tu;
-  bool operator() (TypeNode i, TypeNode j) {
-    return d_tu->getIdForType( i )<d_tu->getIdForType( j );
+  bool operator()(TypeNode i, TypeNode j)
+  {
+    return d_tu->getIdForType(i) < d_tu->getIdForType(j);
   }
 };
+
+void getBoundVariables(TNode n, std::vector<Node>& vs)
+{
+  std::unordered_set<TNode, TNodeHashFunction> visited;
+  std::vector<TNode> visit;
+  TNode cur;
+  visit.push_back(n);
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    std::unordered_set<TNode, TNodeHashFunction>::iterator itv =
+        visited.find(cur);
+    if (itv == visited.end())
+    {
+      if (cur.getKind() == kind::BOUND_VARIABLE)
+      {
+        vs.push_back(cur);
+      }
+      else
+      {
+        visit.insert(visit.end(), cur.begin(), cur.end());
+      }
+      visited.insert(cur);
+    }
+  } while (!visit.empty());
+}
 
 Node AlphaEquivalenceTypeNode::registerNode(
     Node q,
     Node t,
-    std::vector<TypeNode>& typs,
-    std::map<TypeNode, size_t>& typCount)
+    const std::vector<TypeNode>& typs,
+    const std::map<TypeNode, size_t>& typCount)
 {
   AlphaEquivalenceTypeNode* aetn = this;
   size_t index = 0;
   while (index < typs.size())
   {
     TypeNode curr = typs[index];
-    Assert(typCount.find(curr) != typCount.end());
-    Trace("aeq-debug") << "[" << curr << " " << typCount[curr] << "] ";
-    std::pair<TypeNode, size_t> key(curr, typCount[curr]);
+    auto it = typCount.find(curr);
+    Assert(it != typCount.end());
+    Trace("aeq-debug") << "[" << curr << " " << it->second << "] ";
+    std::pair<TypeNode, size_t> key(curr, it->second);
     aetn = &(aetn->d_children[key]);
     index = index + 1;
   }
@@ -58,76 +89,123 @@ Node AlphaEquivalenceTypeNode::registerNode(
   return q;
 }
 
-Node AlphaEquivalenceDb::addTerm(Node q)
+AlphaEquivalenceDb::AlphaEquivalenceDb(expr::TermCanonize* tc,
+                                       ProofNodeManager* pnm,
+                                       bool sortCommChildren)
+    : d_tc(tc),
+      d_sortCommutativeOpChildren(sortCommChildren),
+      d_proof(pnm ? new LazyCDProof(pnm) : nullptr)
 {
-  Assert(q.getKind() == FORALL);
+}
+
+TrustNode AlphaEquivalenceDb::addTerm(Node q)
+{
+  Assert(q.getKind() == kind::FORALL);
+  NodeManager* nm = NodeManager::currentNM();
   Trace("aeq") << "Alpha equivalence : register " << q << std::endl;
-  //construct canonical quantified formula
-  Node t = d_tc->getCanonicalTerm(q[1], d_sortCommutativeOpChildren);
+  // construct canonical quantified formula
+  // the full renaming done by the canonizer
+  std::map<Node, Node> subs;
+  TrustNode trn =
+      d_tc->getCanonicalTerm(q[1], subs, d_sortCommutativeOpChildren);
+  Node t = trn.getNode();
   Trace("aeq") << "  canonical form: " << t << std::endl;
-  //compute variable type counts
+  if (isProofEnabled())
+  {
+    Node rw = trn.getProven();
+    d_proof->addLazyStep(rw, trn.getGenerator());
+    std::vector<Node> bvars1, bvars2, renaming;
+    Trace("aeq") << "  subs: \n";
+    for (const auto& p : subs)
+    {
+      Trace("aeq") << "    " << p.first << " -> " << p.second << "\n";
+      bvars1.push_back(p.first);
+      bvars2.push_back(p.second);
+      renaming.push_back(p.first.eqNode(p.second));
+    }
+    // now scope
+    Node conclusionScope = nm->mkNode(kind::IMPLIES, nm->mkAnd(renaming), rw);
+    Trace("aeq") << "ConclusionScope: " << conclusionScope << "\n";
+    d_proof->addStep(conclusionScope, PfRule::SCOPE, {rw}, renaming);
+    std::vector<Node> topVarPrefixCanon;
+    for (const Node& v : q[0])
+    {
+      topVarPrefixCanon.push_back(subs[v]);
+    }
+
+    // now alpha-equiv
+    Node canonQ = nm->mkNode(
+        kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST, topVarPrefixCanon), t);
+    d_canon[q] = canonQ;
+    std::vector<Node> args{q, canonQ};
+    args.insert(args.end(), bvars1.begin(), bvars1.end());
+    args.insert(args.end(), bvars2.begin(), bvars2.end());
+    d_proof->addStep(
+        q.eqNode(canonQ), PfRule::ALPHA_EQUIV, {conclusionScope}, args);
+  }
+  // compute variable type counts
   std::map<TypeNode, size_t> typCount;
-  std::vector< TypeNode > typs;
-  for( unsigned i=0; i<q[0].getNumChildren(); i++ ){
+  std::vector<TypeNode> typs;
+  for (unsigned i = 0; i < q[0].getNumChildren(); i++)
+  {
     TypeNode tn = q[0][i].getType();
     typCount[tn]++;
-    if( std::find( typs.begin(), typs.end(), tn )==typs.end() ){
-      typs.push_back( tn );
+    if (std::find(typs.begin(), typs.end(), tn) == typs.end())
+    {
+      typs.push_back(tn);
     }
   }
   sortTypeOrder sto;
   sto.d_tu = d_tc;
-  std::sort( typs.begin(), typs.end(), sto );
+  std::sort(typs.begin(), typs.end(), sto);
   Trace("aeq-debug") << "  ";
   Node ret = d_ae_typ_trie.registerNode(q, t, typs, typCount);
   Trace("aeq") << "  ...result : " << ret << std::endl;
-  return ret;
+  if (ret == q || !isProofEnabled())
+  {
+    return TrustNode::mkTrustLemma(q.eqNode(ret), nullptr);
+  }
+  // get reduction of q and reduction of ret
+  Assert(d_canon.find(q) != d_canon.end());
+  Assert(d_canon.find(ret) != d_canon.end());
+  Node rwQ, rwRet;
+  rwQ = q.eqNode(d_canon[q]);
+  rwRet = d_canon[ret].eqNode(ret);
+  d_proof->addStep(q.eqNode(ret), PfRule::TRANS, {rwQ, rwRet}, {});
+  return TrustNode::mkTrustLemma(q.eqNode(ret), d_proof.get());
 }
 
+bool AlphaEquivalenceDb::isProofEnabled() const { return d_proof != nullptr; }
+
 AlphaEquivalence::AlphaEquivalence(QuantifiersEngine* qe, ProofNodeManager* pnm)
-    : d_termCanon(),
-      d_aedb(&d_termCanon, !pnm),
-      d_pnm(pnm),
-      d_pfAlpha(pnm ? new CDProof(pnm) : nullptr)
+    : d_termCanon(new expr::TermCanonize(pnm, true)),
+      d_aedb(d_termCanon.get(), pnm, true)
 {
 }
 
 TrustNode AlphaEquivalence::reduceQuantifier(Node q)
 {
-  Assert(q.getKind() == FORALL);
-  Node ret = d_aedb.addTerm(q);
-  if (ret == q)
+  Assert(q.getKind() == kind::FORALL);
+  TrustNode trn = d_aedb.addTerm(q);
+  Node lem = trn.getProven();
+  if (lem[0] == lem[1])
   {
     return TrustNode::null();
   }
-  Node lem;
-  ProofGenerator* pg = nullptr;
-  // lemma ( q <=> d_quant )
+  // lemma ( q <=> d_aedb.addTerm(q) )
   // Notice that we infer this equivalence regardless of whether q or ret
   // have annotations (e.g. user patterns, names, etc.).
   Trace("alpha-eq") << "Alpha equivalent : " << std::endl;
-  Trace("alpha-eq") << "  " << q << std::endl;
-  Trace("alpha-eq") << "  " << ret << std::endl;
-  lem = q.eqNode(ret);
+  Trace("alpha-eq") << "  {" << lem[0].getId() << "} " << lem[0] << std::endl;
+  Trace("alpha-eq") << "  {" << lem[1].getId() << "} " << lem[1] << std::endl;
   if (q.getNumChildren() == 3)
   {
     Notice() << "Ignoring annotated quantified formula based on alpha "
                 "equivalence: "
              << q << std::endl;
   }
-  // disabling temporarily
-  if (false && isProofEnabled())
-  {
-    // arguments are the original formula and the renaming
-    std::vector<Node> args{q};
-    args.insert(args.end(), ret[0].begin(), ret[0].end());
-    d_pfAlpha->addStep(lem, PfRule::ALPHA_EQUIV, {}, args);
-    pg = d_pfAlpha.get();
-  }
-  return TrustNode::mkTrustLemma(lem, pg);
+  return trn;
 }
-
-bool AlphaEquivalence::isProofEnabled() const { return d_pfAlpha != nullptr; }
 
 }  // namespace quantifiers
 }  // namespace theory

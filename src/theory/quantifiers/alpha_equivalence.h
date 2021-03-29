@@ -17,15 +17,22 @@
 #ifndef CVC4__ALPHA_EQUIVALENCE_H
 #define CVC4__ALPHA_EQUIVALENCE_H
 
+#include "expr/lazy_proof.h"
 #include "theory/quantifiers/quant_util.h"
-
-#include "expr/term_canonize.h"
 
 namespace CVC4 {
 
-class CDProof;
+// class ProofNodeManager;
+// class LazyCDProof;
+
+namespace expr {
+class TermCanonize;
+}
 
 namespace theory {
+
+class TrustNode;
+
 namespace quantifiers {
 
 /**
@@ -44,6 +51,7 @@ public:
   * canonized body is that term.
   */
  std::map<Node, Node> d_quant;
+
  /** register node
   *
   * This registers term q to this trie. The term t is the canonical form of
@@ -51,8 +59,8 @@ public:
   */
  Node registerNode(Node q,
                    Node t,
-                   std::vector<TypeNode>& typs,
-                   std::map<TypeNode, size_t>& typCount);
+                   const std::vector<TypeNode>& typs,
+                   const std::map<TypeNode, size_t>& typCount);
 };
 
 /**
@@ -61,17 +69,18 @@ public:
 class AlphaEquivalenceDb
 {
  public:
-  AlphaEquivalenceDb(expr::TermCanonize* tc, bool sortCommChildren)
-      : d_tc(tc), d_sortCommutativeOpChildren(sortCommChildren)
-  {
-  }
+  AlphaEquivalenceDb(expr::TermCanonize* tc,
+                     ProofNodeManager* pnm,
+                     bool sortCommChildren);
   /** adds quantified formula q to this database
    *
    * This function returns a quantified formula q' that is alpha-equivalent to
    * q. If q' != q, then q' was previously added to this database via a call
    * to addTerm.
    */
-  Node addTerm(Node q);
+  TrustNode addTerm(Node q);
+  /** maps quantifiers to their canonical forms */
+  std::map<Node, Node> d_canon;
 
  private:
   /** a trie per # of variables per type */
@@ -80,6 +89,12 @@ class AlphaEquivalenceDb
   expr::TermCanonize* d_tc;
   /** whether to sort children of commutative operators during canonization. */
   bool d_sortCommutativeOpChildren;
+  /**
+   * A LazyCDProof storing alpha equivalence steps.
+   */
+  std::unique_ptr<LazyCDProof> d_proof;
+  /** Are proofs enabled for this object? */
+  bool isProofEnabled() const;
 };
 
 /**
@@ -90,7 +105,6 @@ class AlphaEquivalence
 {
  public:
   AlphaEquivalence(QuantifiersEngine* qe, ProofNodeManager* pnm = nullptr);
-  ~AlphaEquivalence(){}
   /** reduce quantifier
    *
    * If non-null, its return value is a trust node containing the lemma
@@ -102,17 +116,9 @@ class AlphaEquivalence
 
  private:
   /** a term canonizer */
-  expr::TermCanonize d_termCanon;
+  std::unique_ptr<expr::TermCanonize> d_termCanon;
   /** the database of quantified formulas registered to this class */
   AlphaEquivalenceDb d_aedb;
-  /** Pointer to the proof node manager */
-  ProofNodeManager* d_pnm;
-  /**
-   * A CDProof storing alpha equivalence steps.
-   */
-  std::unique_ptr<CDProof> d_pfAlpha;
-  /** Are proofs enabled for this object? */
-  bool isProofEnabled() const;
 };
 
 }

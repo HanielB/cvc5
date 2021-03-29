@@ -122,19 +122,26 @@ Node QuantifiersProofRuleChecker::checkInternal(
   }
   if (id == PfRule::ALPHA_EQUIV)
   {
-    Assert(children.empty());
-    if (args[0].getKind() != kind::FORALL
-        || args.size() != args[0][0].getNumChildren() + 1)
+    Assert(children.size() == 1);
+    if (args[0].getKind() != kind::FORALL || args[1].getKind() != kind::FORALL)
     {
       return Node::null();
     }
-    Node body = args[0][1];
-    std::vector<Node> vars{args[0][0].begin(), args[0][0].end()};
-    std::vector<Node> newVars{args.begin() + 1, args.end()};
-    Node renamedBody = body.substitute(
-        vars.begin(), vars.end(), newVars.begin(), newVars.end());
-    return args[0].eqNode(nm->mkNode(
-        kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST, newVars), renamedBody));
+    Trace("aeq-check") << "child: " << children[0] << "\n";
+    Trace("aeq-check") << "now do eq with " << args[0] << "and " << args[1]
+                       << "\n";
+    Trace("aeq-check") << "got here2\n";
+    if (children[0].getKind() != kind::IMPLIES
+        || children[0][1].getKind() != kind::EQUAL
+        || children[0][1][0] != args[0][1] || children[0][1][1] != args[1][1])
+    {
+      return Node::null();
+    }
+    // now build the quantifiers with the given variables
+    // TODO
+    Trace("aeq-check") << "now do eq with " << args[0] << "and " << args[1]
+                       << "\n";
+    return args[0].eqNode(args[1]);
   }
 
   // no rule

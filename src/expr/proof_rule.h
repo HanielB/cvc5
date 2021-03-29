@@ -812,13 +812,26 @@ enum class PfRule : uint32_t
   // Conclusion: F*sigma
   // sigma maps x1 ... xn to t1 ... tn.
   INSTANTIATE,
+  // ======== Macro alpha equivalence
+  // Children: none
+  // Arguments: (F, F')
+  // ----------------------------------------
+  // Conclusion: (= F F')
+  // where
+  //   F' == AlphaEquivalenceDb::addTerm(F)
+  // which means to say that F' is equal to F except that:
+  //   - its bound variables (potentially at all levels, not only at the top)
+  //     may have been renamed
+  //   - arguments of commutative operators may be reordered
+  MACRO_ALPHA_EQUIV,
   // ======== Alpha equivalence
   // Children: none
   // Arguments: ((forall ((x1 T1) ... (xn Tn)) F), y1 ... yn)
   // ----------------------------------------
   // Conclusion: (= (forall ((x1 T1) ... (xn Tn)) F)
   //                (forall ((y1 T1) ... (yn Tn)) F*sigma))
-  // sigma maps x1 ... xn to y1 ... yn.
+  // where
+  //   sigma maps x1 ... xn to y1 ... yn.
   ALPHA_EQUIV,
 
   //================================================= String rules
