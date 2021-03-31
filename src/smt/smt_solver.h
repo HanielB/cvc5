@@ -20,6 +20,10 @@
 #include <vector>
 
 #include "expr/node.h"
+#include "theory/booleans/proof_checker.h"
+#include "theory/builtin/proof_checker.h"
+#include "theory/quantifiers/proof_checker.h"
+#include "theory/uf/proof_checker.h"
 #include "theory/logic_info.h"
 #include "util/result.h"
 
@@ -118,6 +122,8 @@ class SmtSolver
    * called before finishInit.
    */
   void setProofNodeManager(ProofNodeManager* pnm);
+  /** Set this solver to use proofs solely for unsat cores. */
+  void setProofForUnsatCoreMode();
   //------------------------------------------ access methods
   /** Get a pointer to the TheoryEngine owned by this solver. */
   TheoryEngine* getTheoryEngine();
@@ -128,6 +134,11 @@ class SmtSolver
   /** Get a pointer to the preprocessor */
   Preprocessor* getPreprocessor();
   //------------------------------------------ end access methods
+  theory::booleans::BoolProofRuleChecker d_boolProofChecker;
+  theory::builtin::BuiltinProofRuleChecker d_builtinProofChecker;
+  theory::uf::UfProofRuleChecker d_ufProofChecker;
+  theory::quantifiers::QuantifiersProofRuleChecker d_qProofChecker;
+
  private:
   /** Reference to the parent SMT engine */
   SmtEngine& d_smt;
@@ -148,6 +159,8 @@ class SmtSolver
   std::unique_ptr<TheoryEngine> d_theoryEngine;
   /** The propositional engine */
   std::unique_ptr<prop::PropEngine> d_propEngine;
+  /** Whether proof-productionin used solely for unsat core production */
+  bool d_proofForUnsatCoreMode;
 };
 
 }  // namespace smt

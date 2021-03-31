@@ -289,6 +289,13 @@ void setDefaults(LogicInfo& logic, bool isInternalSubsolver)
     disableProofs = true;
   }
 
+  // new unsat core specific restrictions for proofs
+  if (options::checkUnsatCoresNew())
+  {
+    // no fine-graininess
+    options::proofGranularityMode.set(options::ProofGranularityMode::OFF);
+  }
+
   if (options::arraysExp())
   {
     if (!logic.isQuantified())

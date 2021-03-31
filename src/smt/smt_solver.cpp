@@ -42,7 +42,8 @@ SmtSolver::SmtSolver(SmtEngine& smt,
       d_stats(stats),
       d_pnm(nullptr),
       d_theoryEngine(nullptr),
-      d_propEngine(nullptr)
+      d_propEngine(nullptr),
+      d_proofForUnsatCoreMode(false)
 {
 }
 
@@ -52,12 +53,13 @@ void SmtSolver::finishInit(const LogicInfo& logicInfo)
 {
   // We have mutual dependency here, so we add the prop engine to the theory
   // engine later (it is non-essential there)
-  d_theoryEngine.reset(new TheoryEngine(d_smt.getContext(),
-                                        d_smt.getUserContext(),
-                                        d_rm,
-                                        logicInfo,
-                                        d_smt.getOutputManager(),
-                                        d_pnm));
+  d_theoryEngine.reset(
+      new TheoryEngine(d_smt.getContext(),
+                       d_smt.getUserContext(),
+                       d_rm,
+                       logicInfo,
+                       d_smt.getOutputManager(),
+                       d_proofForUnsatCoreMode ? nullptr : d_pnm));
 
   // Add the theories
   for (theory::TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST;
@@ -273,6 +275,18 @@ void SmtSolver::processAssertions(Assertions& as)
 }
 
 void SmtSolver::setProofNodeManager(ProofNodeManager* pnm) { d_pnm = pnm; }
+
+void SmtSolver::setProofForUnsatCoreMode()
+{
+  d_proofForUnsatCoreMode = true;
+  // add the builtin rules and the Boolean rules to the checker of this
+  // proof node manager, since they'll not be added in the theory engine
+  ProofChecker* pc = d_pnm->getChecker();
+  d_boolProofChecker.registerTo(pc);
+  d_builtinProofChecker.registerTo(pc);
+  d_ufProofChecker.registerTo(pc);
+  d_qProofChecker.registerTo(pc);
+}
 
 TheoryEngine* SmtSolver::getTheoryEngine() { return d_theoryEngine.get(); }
 

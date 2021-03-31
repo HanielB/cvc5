@@ -19,6 +19,7 @@
 #include "expr/proof_node_manager.h"
 #include "options/base_options.h"
 #include "options/proof_options.h"
+#include "options/smt_options.h"
 #include "proof/dot/dot_printer.h"
 #include "proof/lean/lean_post_processor.h"
 #include "proof/lean/lean_printer.h"
@@ -118,9 +119,10 @@ void PfManager::setFinalProof(std::shared_ptr<ProofNode> pfn,
 
   Trace("smt-proof") << "SmtEngine::setFinalProof(): make scope...\n";
 
-  // Now make the final scope, which ensures that the only open leaves
-  // of the proof are the assertions.
-  d_finalProof = d_pnm->mkScope(pfn, assertions);
+  // Now make the final scope, which ensures that the only open leaves of the
+  // proof are the assertions, unless we are doing proofs to generate unsat
+  // cores, in which case we don't care.
+  d_finalProof = d_pnm->mkScope(pfn, assertions, !options::unsatCores());
   Trace("smt-proof") << "SmtEngine::setFinalProof(): finished.\n";
 }
 

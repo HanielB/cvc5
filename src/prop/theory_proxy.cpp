@@ -107,7 +107,10 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
   Node theoryExplanation = tte.getNode();
   if (CVC4::options::produceProofs())
   {
-    d_propEngine->getProofCnfStream()->convertPropagation(tte);
+    if (!options::unsatCores())
+    {
+      d_propEngine->getProofCnfStream()->convertPropagation(tte);
+    }
   }
   else if (options::unsatCores())
   {

@@ -1,4 +1,4 @@
-; COMMAND-LINE: --dump-instantiations --print-inst=num --no-print-inst-full
+; COMMAND-LINE: --dump-instantiations --print-inst=num --no-print-inst-full --no-check-unsat-cores-new
 ; EXPECT: unsat
 ; EXPECT: (num-instantiations myQuantP 1)
 ; EXPECT: (num-instantiations myQuantQ 7)
