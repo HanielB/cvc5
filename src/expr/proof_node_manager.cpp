@@ -174,10 +174,14 @@ std::shared_ptr<ProofNode> ProofNodeManager::mkScope(
         // use SYMM if possible
         if (aMatch == aeqSym)
         {
-          updateNode(pfs.get(), PfRule::SYMM, children, {});
+          Trace("pnm-scope")
+              << "- add symm from " << aMatch << " to " << a << std::endl;
+          AlwaysAssert(updateNode(pfs.get(), PfRule::SYMM, children, {}));
         }
         else
         {
+          Trace("pnm-scope") << "- add macro_transform from " << aMatch
+                             << " to " << a << std::endl;
           updateNode(pfs.get(), PfRule::MACRO_SR_PRED_TRANSFORM, children, {a});
         }
       }
