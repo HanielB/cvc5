@@ -15,6 +15,7 @@
 #include "expr/proof_checker.h"
 
 #include "expr/proof_node.h"
+#include "expr/proof_node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "options/proof_options.h"
 #include "smt/smt_statistics_registry.h"
@@ -150,6 +151,23 @@ Node ProofChecker::check(
     return Node::null();
   }
   Trace("pfcheck") << "ProofChecker::check: success!" << std::endl;
+  if (Trace.isOn("test") && id == PfRule::ASSUME)
+  {
+    // do expensive check
+    std::vector<Node> allAssumps;
+    for (auto pf : children)
+    {
+      expr::getFreeAssumptions(pf.get(), allAssumps);
+    }
+    // check that the assumptions match exactly the arguments
+    std::unordered_set<Node, NodeHashFunction> ac{allAssumps.begin(),
+                                                  allAssumps.end()};
+    AlwaysAssert(ac.size() == args.size());
+    for (const Node& a : args)
+    {
+      AlwaysAssert(ac.count(a)) << "did not find assertion " << a << "\n";
+    }
+  }
   return res;
 }
 

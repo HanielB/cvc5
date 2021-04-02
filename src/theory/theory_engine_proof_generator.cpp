@@ -104,7 +104,7 @@ std::shared_ptr<ProofNode> TheoryEngineProofGenerator::getProofFor(Node f)
   Trace("tepg-debug") << "...get proof body" << std::endl;
   // get the proof for conclusion
   std::shared_ptr<ProofNode> pfb = lcp->getProofFor(conclusion);
-  Trace("tepg-debug") << "...mkScope" << std::endl;
+  Trace("tepg-debug") << "...mkScope of " << *pfb.get() << std::endl;
   // call the scope method of proof node manager
   std::shared_ptr<ProofNode> pf = d_pnm->mkScope(pfb, scopeAssumps);
 
@@ -119,7 +119,7 @@ std::shared_ptr<ProofNode> TheoryEngineProofGenerator::getProofFor(Node f)
     serr << "       Got: " << pf->getResult() << std::endl;
     Unhandled() << serr.str();
   }
-  Trace("tepg-debug") << "...finished" << std::endl;
+  Trace("tepg-debug") << "...finished with " << *pf.get() << std::endl;
   return pf;
 }
 
