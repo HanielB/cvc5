@@ -134,14 +134,14 @@ void ProofNodeUpdater::processInternal(
         {
           std::vector<Node> nfa;
           // if we are debugging free assumptions, update the set
-          if (d_debugFreeAssumps)
-          {
+          // if (d_debugFreeAssumps)
+          // {
             nfa.insert(nfa.end(), fa.begin(), fa.end());
             const std::vector<Node>& args = cur->getArguments();
             nfa.insert(nfa.end(), args.begin(), args.end());
             Trace("pfnu-debug2")
                 << "Process new scope with " << args << std::endl;
-          }
+          // }
           // Process in new call separately, since we should not cache
           // the results of proofs that have a different scope.
           processInternal(cur, nfa, traversing);
@@ -180,7 +180,7 @@ bool ProofNodeUpdater::runUpdate(std::shared_ptr<ProofNode> cur,
                                  bool& continueUpdate)
 {
   // should it be updated?
-  if (!d_cb.shouldUpdate(cur, continueUpdate))
+  if (!d_cb.shouldUpdate(cur, fa, continueUpdate))
   {
     return false;
   }
@@ -196,9 +196,9 @@ bool ProofNodeUpdater::runUpdate(std::shared_ptr<ProofNode> cur,
     // store in the proof
     cpf.addProof(cp);
   }
-  Trace("pf-process-debug")
-      << "Updating (" << cur->getRule() << ")..." << std::endl;
   Node res = cur->getResult();
+  Trace("pf-process-debug")
+      << "Updating (" << cur->getRule() << "): " << res << std::endl;
   // only if the callback updated the node
   if (d_cb.update(res, id, ccn, cur->getArguments(), &cpf, continueUpdate))
   {

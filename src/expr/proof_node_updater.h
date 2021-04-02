@@ -45,6 +45,7 @@ class ProofNodeUpdaterCallback
    * @return whether we should run the update method on pn
    */
   virtual bool shouldUpdate(std::shared_ptr<ProofNode> pn,
+                            const std::vector<Node>& fa,
                             bool& continueUpdate) = 0;
   /**
    * Update the proof rule application, store steps in cdp. Return true if

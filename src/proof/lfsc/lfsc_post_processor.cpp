@@ -36,6 +36,7 @@ LfscProofPostprocessCallback::LfscProofPostprocessCallback(
 void LfscProofPostprocessCallback::initializeUpdate() { d_firstTime = true; }
 
 bool LfscProofPostprocessCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
+                                                const std::vector<Node>& fa,
                                                 bool& continueUpdate)
 {
   return pn->getRule() != PfRule::LFSC_RULE;
