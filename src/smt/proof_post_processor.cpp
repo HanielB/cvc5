@@ -25,10 +25,10 @@
 #include "theory/rewriter.h"
 #include "theory/theory.h"
 
-using namespace CVC4::kind;
-using namespace CVC4::theory;
+using namespace cvc5::kind;
+using namespace cvc5::theory;
 
-namespace CVC4 {
+namespace cvc5 {
 namespace smt {
 
 ProofPostprocessCallback::ProofPostprocessCallback(ProofNodeManager* pnm,
@@ -1258,4 +1258,4 @@ void ProofPostproccess::setAssertions(const std::vector<Node>& assertions)
 }
 
 }  // namespace smt
-}  // namespace CVC4
+}  // namespace cvc5

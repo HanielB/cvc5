@@ -21,8 +21,8 @@
 
 #include "expr/term_canonize.h"
 
-namespace CVC4 {
-
+namespace cvc5 {
+  
 class CDProof;
 
 namespace theory {
@@ -89,7 +89,7 @@ class AlphaEquivalenceDb
 class AlphaEquivalence
 {
  public:
-  AlphaEquivalence(QuantifiersEngine* qe, ProofNodeManager* pnm = nullptr);
+  AlphaEquivalence(ProofNodeManager* pnm = nullptr);
   ~AlphaEquivalence(){}
   /** reduce quantifier
    *
@@ -117,6 +117,6 @@ class AlphaEquivalence
 
 }
 }
-}
+}  // namespace cvc5
 
 #endif

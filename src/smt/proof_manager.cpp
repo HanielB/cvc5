@@ -33,7 +33,7 @@
 #include "smt/proof_post_processor.h"
 #include "theory/rewrite_db.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace smt {
 
 PfManager::PfManager(context::UserContext* u, SmtEngine* smte)
@@ -231,4 +231,4 @@ void PfManager::getAssertions(Assertions& as,
 }
 
 }  // namespace smt
-}  // namespace CVC4
+}  // namespace cvc5
