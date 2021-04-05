@@ -67,28 +67,10 @@ void SmtSolver::finishInit(const LogicInfo& logicInfo)
   {
     theory::TheoryConstructor::addTheory(d_theoryEngine.get(), id);
   }
-
   // Add the proof checkers for each theory
   if (d_pnm)
   {
-    ProofChecker* pc = d_pnm->getChecker();
-    if (!d_proofForUnsatCoreMode)
-    {
-      for (theory::TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST;
-           ++id)
-      {
-        d_theoryEngine->initializeProofChecker(pc, id);
-      }
-    }
-    else
-    {
-      // add proof checkers only for the theories whose checkers are required
-      // for proofs in pre-processing and the prop engine
-      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_BUILTIN);
-      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_BOOL);
-      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_UF);
-      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_QUANTIFIERS);
-    }
+    d_theoryEngine->initializeProofChecker(d_pnm->getChecker());
   }
   Trace("smt-debug") << "Making prop engine..." << std::endl;
   /* force destruction of referenced PropEngine to enforce that statistics

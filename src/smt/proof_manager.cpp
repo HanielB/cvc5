@@ -133,8 +133,13 @@ void PfManager::printProof(std::ostream& out,
 {
   Trace("smt-proof") << "PfManager::printProof: start" << std::endl;
   std::shared_ptr<ProofNode> fp = getFinalProof(pfn, as, df);
-  // TODO (proj #37) according to the proof format, post process the proof node
-  // TODO (proj #37) according to the proof format, print the proof node
+  // if we are in incremental mode, we don't want to invalidate the proof
+  // nodes in fp, since these may be reused in further check-sat calls
+  if (options::incrementalSolving()
+      && options::proofFormatMode() != options::ProofFormatMode::NONE)
+  {
+    fp = d_pnm->clone(fp);
+  }
   if (options::proofFormatMode() == options::ProofFormatMode::DOT)
   {
     proof::DotPrinter::print(out, fp.get());
