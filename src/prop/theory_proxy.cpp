@@ -105,8 +105,9 @@ void TheoryProxy::explainPropagation(SatLiteral l, SatClause& explanation) {
 
   theory::TrustNode tte = d_theoryEngine->getExplanation(lNode);
   Node theoryExplanation = tte.getNode();
-  if (cvc5::options::produceProofs())
+  if (options::produceProofs())
   {
+    // no proof tracking for propagations if we're producing unsat cores
     if (!options::unsatCores())
     {
       d_propEngine->getProofCnfStream()->convertPropagation(tte);
