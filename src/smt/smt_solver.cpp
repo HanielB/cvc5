@@ -72,10 +72,22 @@ void SmtSolver::finishInit(const LogicInfo& logicInfo)
   if (d_pnm)
   {
     ProofChecker* pc = d_pnm->getChecker();
-    for (theory::TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST;
-         ++id)
+    if (!d_proofForUnsatCoreMode)
     {
-      d_theoryEngine->initializeProofChecker(pc, id);
+      for (theory::TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST;
+           ++id)
+      {
+        d_theoryEngine->initializeProofChecker(pc, id);
+      }
+    }
+    else
+    {
+      // add proof checkers only for the theories whose checkers are required
+      // for proofs in pre-processing and the prop engine
+      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_BUILTIN);
+      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_BOOL);
+      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_UF);
+      d_theoryEngine->initializeProofChecker(pc, theory::THEORY_QUANTIFIERS);
     }
   }
   Trace("smt-debug") << "Making prop engine..." << std::endl;
@@ -289,13 +301,6 @@ void SmtSolver::setProofNodeManager(ProofNodeManager* pnm) { d_pnm = pnm; }
 void SmtSolver::setProofForUnsatCoreMode()
 {
   d_proofForUnsatCoreMode = true;
-  // add the builtin rules and the Boolean rules to the checker of this
-  // proof node manager, since they'll not be added in the theory engine
-  ProofChecker* pc = d_pnm->getChecker();
-  d_boolProofChecker.registerTo(pc);
-  d_builtinProofChecker.registerTo(pc);
-  d_ufProofChecker.registerTo(pc);
-  d_qProofChecker.registerTo(pc);
 }
 
 TheoryEngine* SmtSolver::getTheoryEngine() { return d_theoryEngine.get(); }
