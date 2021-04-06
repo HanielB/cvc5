@@ -6,6 +6,11 @@
 (declare-const r1i Int)
 (declare-const r2i Int)
 ;; Note: don't use xi ** 2 -- gives unsat?
-; s.add(ForAll(xi, (xi + r1i) * (xi + r2i) == (xi * xi) - 4  ))
-(assert (forall ((xi Int)) (= (* (+ xi r1i) (+ xi r2i)) (- (* xi xi) 4))))
+
+(assert (forall ((xi Int)) (= (* (+ xi r1i) (+ xi r2i)) (- (^ xi 2) 4))))
+(assert (> r1i r2i))
+(assert (< r1i r2i))
+
+; (assert (forall ((xi Int)) (= (* (+ xi r1i) (+ xi r2i)) (+ (- (^ xi 2) (* 2 xi)) 5))))
+
 (check-sat)
