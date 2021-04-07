@@ -1,17 +1,15 @@
-(set-logic QF_UF)
-
-(declare-sort U 0)
+(set-logic QF_UFLIA)
 
 (declare-const p1 Bool)
 (declare-const p2 Bool)
 (declare-const p3 Bool)
 
-(declare-fun a U)
-(declare-fun b U)
-(declare-fun f (U) U)
+(declare-const a Int)
+(declare-const b Int)
+(declare-fun f (Int) Int)
 
 (assert (= a b))
-(assert (or (not p3) (not (= (f a) (f b)))))
+(assert (or (not p3) (not (= (f (+ a 0)) (f b)))))
 (assert p1)
 (assert (or (not p1) (and p2 p3)))
 
