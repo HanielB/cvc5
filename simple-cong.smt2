@@ -6,8 +6,8 @@
 (declare-const p2 Bool)
 (declare-const p3 Bool)
 
-(declare-fun a U)
-(declare-fun b U)
+(declare-const a U)
+(declare-const b U)
 (declare-fun f (U) U)
 
 (assert (= a b))
