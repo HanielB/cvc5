@@ -225,8 +225,8 @@ Solver::Solver(cvc5::prop::TheoryProxy* proxy,
 {
   if (pnm)
   {
-    d_pfManager.reset(
-        new SatProofManager(this, proxy->getCnfStream(), userContext, pnm));
+    d_pfManager.reset(new SatProofManager(
+        this, proxy->getCnfStream(), userContext, pnm, options::unsatCores()));
   }
   else if (options::unsatCores())
   {
@@ -343,6 +343,10 @@ CRef Solver::reason(Var x) {
       Trace("pf::sat") << "\n";
     }
     return vardata[x].d_reason;
+  }
+  if (isProofEnabled() && options::unsatCores())
+  {
+    return CRef_Undef;
   }
 
   // What's the literal we are trying to explain

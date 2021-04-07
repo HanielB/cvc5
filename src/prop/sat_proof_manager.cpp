@@ -26,14 +26,16 @@ namespace prop {
 SatProofManager::SatProofManager(Minisat::Solver* solver,
                                  CnfStream* cnfStream,
                                  context::UserContext* userContext,
-                                 ProofNodeManager* pnm)
+                                 ProofNodeManager* pnm,
+                                 bool unsatCoreMode)
     : d_solver(solver),
       d_cnfStream(cnfStream),
       d_pnm(pnm),
       d_resChains(pnm, true, userContext),
       d_resChainPg(userContext, pnm),
       d_assumptions(userContext),
-      d_conflictLit(undefSatVariable)
+      d_conflictLit(undefSatVariable),
+      d_unsatCoreMode(unsatCoreMode)
 {
   d_false = NodeManager::currentNM()->mkConst(false);
 }
@@ -90,6 +92,8 @@ void SatProofManager::addResolutionStep(Minisat::Lit lit, bool redundant)
   Node litNode = d_cnfStream->getNodeCache()[satLit];
   bool negated = satLit.isNegated();
   Assert(!negated || litNode.getKind() == kind::NOT);
+  // we don't care about redundancy if in unsat core mode
+  // if (!redundant || d_unsatCoreMode)
   if (!redundant)
   {
     Trace("sat-proof") << "SatProofManager::addResolutionStep: {"
@@ -334,6 +338,28 @@ void SatProofManager::explainLit(
   Trace("sat-proof") << push << "SatProofManager::explainLit: Lit: " << lit;
   Node litNode = getClauseNode(lit);
   Trace("sat-proof") << " [" << litNode << "]\n";
+  // if in unsat core mode, we only get reason if it's a lazy one (i.e., we
+  // don't go to the theory for propagations)
+  // Minisat::Solver::TCRef currReason =
+  //     d_solver->vardata[Minisat::var(MinisatSatSolver::toMinisatLit(lit))]
+  //         .d_reason;
+  // Trace("sat-proof") << "its reason is: "
+  //                    << (currReason == Minisat::Solver::TCRef_Lazy
+  //                            ? -1
+  //                            : currReason == Minisat::Solver::TCRef_Undef
+  //                                  ? -2
+  //                                  : currReason)
+  //                    << "\n";
+
+  // if (d_unsatCoreMode
+  //     && d_solver->vardata[Minisat::var(MinisatSatSolver::toMinisatLit(lit))]
+  //                .d_reason
+  //            == Minisat::Solver::TCRef_Lazy)
+  // {
+  //   premises.insert(litNode);
+  //   return false;
+  // }
+
   Minisat::Solver::TCRef reasonRef =
       d_solver->reason(Minisat::var(MinisatSatSolver::toMinisatLit(lit)));
   if (reasonRef == Minisat::Solver::TCRef_Undef)
@@ -545,7 +571,11 @@ void SatProofManager::finalizeProof(Node inConflictNode,
     Assert(d_cnfStream->getNodeCache().find(inConflict[i])
            != d_cnfStream->getNodeCache().end());
     std::unordered_set<TNode, TNodeHashFunction> childPremises;
-    explainLit(~inConflict[i], childPremises);
+    // we only explain literals if we are in full proofs mode
+    // if (!d_unsatCoreMode)
+    // {
+      explainLit(~inConflict[i], childPremises);
+    // }
     Node negatedLitNode = d_cnfStream->getNodeCache()[~inConflict[i]];
     // save to resolution chain premises / arguments
     children.push_back(negatedLitNode);
@@ -583,6 +613,11 @@ void SatProofManager::finalizeProof(Node inConflictNode,
   // not yet ready to check closedness because maybe only now we will justify
   // literals used in resolutions
   d_resChains.addLazyStep(d_false, &d_resChainPg);
+  // we don't need to expand to fix point
+  // if (d_unsatCoreMode)
+  // {
+  //   return;
+  // }
   // Fix point justification of literals in leaves of the proof of false
   bool expanded;
   do
