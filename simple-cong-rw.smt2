@@ -9,8 +9,8 @@
 (declare-fun f (Int) Int)
 
 (assert (= a b))
-(assert (or (not p3) (not (= (f (+ a 0)) (f b)))))
-(assert p1)
+(assert (and p1 true))
 (assert (or (not p1) (and p2 p3)))
+(assert (or (not p3) (not (= (f (+ a 0)) (f b)))))
 
 (check-sat)
