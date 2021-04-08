@@ -344,7 +344,8 @@ CRef Solver::reason(Var x) {
     }
     return vardata[x].d_reason;
   }
-  if (isProofEnabled() && options::unsatCores())
+  // if we are explaining after being done
+  if (d_conflict.size() && isProofEnabled() && options::unsatCores())
   {
     return CRef_Undef;
   }

@@ -620,11 +620,13 @@ void SatProofManager::finalizeProof(Node inConflictNode,
   // }
   // Fix point justification of literals in leaves of the proof of false
   bool expanded;
+  unsigned counter = 0;
   do
   {
     expanded = false;
     Trace("sat-proof") << "expand assumptions to prove false\n";
     std::shared_ptr<ProofNode> pfn = d_resChains.getProofFor(d_false);
+    Trace("counting") << "getProofFor " << counter++ << "\n";
     Assert(pfn);
     Trace("sat-proof-debug") << "sat proof of flase: " << *pfn.get() << "\n";
     std::vector<Node> fassumps;
