@@ -40,6 +40,7 @@ Node TermProcessor::convert(Node n)
     cur = visit.back();
     visit.pop_back();
     it = d_cache.find(cur);
+    Trace("term-process-debug2") << "convert " << cur << std::endl;
     if (it == d_cache.end())
     {
       if (!shouldTraverse(cur))
@@ -115,6 +116,7 @@ TypeNode TermProcessor::convertType(TypeNode tn)
     cur = visit.back();
     visit.pop_back();
     it = d_tcache.find(cur);
+    Trace("term-process-debug2") << "convert type " << cur << std::endl;
     if (it == d_tcache.end())
     {
       if (cur.getNumChildren() == 0)
@@ -133,7 +135,7 @@ TypeNode TermProcessor::convertType(TypeNode tn)
     {
       // reconstruct using a node builder, which seems to be required for
       // type nodes.
-      NodeBuilder<> nb(cur.getKind());
+      NodeBuilder nb(cur.getKind());
       if (cur.getMetaKind() == kind::metakind::PARAMETERIZED)
       {
         // push the operator
@@ -164,6 +166,8 @@ TypeNode TermProcessor::convertType(TypeNode tn)
   } while (!visit.empty());
   Assert(d_tcache.find(tn) != d_tcache.end());
   Assert(!d_tcache.find(tn)->second.isNull());
+  Trace("term-process-debug")
+      << "TermProcessor::convertType: returns " << d_tcache[tn] << std::endl;
   return d_tcache[tn];
 }
 
