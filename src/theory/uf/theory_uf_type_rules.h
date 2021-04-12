@@ -21,7 +21,7 @@
 
 #include <climits>
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace uf {
 
@@ -80,7 +80,7 @@ class CardinalityConstraintTypeRule {
         throw TypeCheckingExceptionPrivate(
             n, "cardinality constraint must be a constant");
       }
-      CVC4::Rational r(INT_MAX);
+      cvc5::Rational r(INT_MAX);
       if (n[1].getConst<Rational>() > r) {
         throw TypeCheckingExceptionPrivate(
             n, "Exceeded INT_MAX in cardinality constraint");
@@ -108,7 +108,7 @@ class CombinedCardinalityConstraintTypeRule {
         throw TypeCheckingExceptionPrivate(
             n, "combined cardinality constraint must be a constant");
       }
-      CVC4::Rational r(INT_MAX);
+      cvc5::Rational r(INT_MAX);
       if (n[0].getConst<Rational>() > r) {
         throw TypeCheckingExceptionPrivate(
             n, "Exceeded INT_MAX in combined cardinality constraint");
@@ -171,13 +171,13 @@ class HoApplyTypeRule {
       for (; argument_type_it != argument_type_it_end; ++argument_type_it) {
         children.push_back( *argument_type_it );
       }
-      return nodeManager->mkFunctionType( children );
+      return nodeManager->mkFunctionType(children, false);
     }
   }
 }; /* class HoApplyTypeRule */
 
-} /* CVC4::theory::uf namespace */
-} /* CVC4::theory namespace */
-} /* CVC4 namespace */
+}  // namespace uf
+}  // namespace theory
+}  // namespace cvc5
 
 #endif /* CVC4__THEORY__UF__THEORY_UF_TYPE_RULES_H */

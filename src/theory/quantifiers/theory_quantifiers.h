@@ -30,7 +30,7 @@
 #include "theory/theory.h"
 #include "theory/valuation.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace quantifiers {
 
@@ -47,6 +47,8 @@ class TheoryQuantifiers : public Theory {
   //--------------------------------- initialization
   /** get the official theory rewriter of this theory */
   TheoryRewriter* getTheoryRewriter() override;
+  /** get the proof checker of this theory */
+  ProofRuleChecker* getProofChecker() override;
   /** finish initialization */
   void finishInit() override;
   /** needs equality engine */
@@ -83,7 +85,7 @@ class TheoryQuantifiers : public Theory {
   /** The theory rewriter for this theory. */
   QuantifiersRewriter d_rewriter;
   /** The proof rule checker */
-  QuantifiersProofRuleChecker d_qChecker;
+  QuantifiersProofRuleChecker d_checker;
   /** The quantifiers state */
   QuantifiersState d_qstate;
   /** The quantifiers registry */
@@ -96,8 +98,8 @@ class TheoryQuantifiers : public Theory {
   std::unique_ptr<QuantifiersEngine> d_qengine;
 };/* class TheoryQuantifiers */
 
-}/* CVC4::theory::quantifiers namespace */
-}/* CVC4::theory namespace */
-}/* CVC4 namespace */
+}  // namespace quantifiers
+}  // namespace theory
+}  // namespace cvc5
 
 #endif /* CVC4__THEORY__QUANTIFIERS__THEORY_QUANTIFIERS_H */

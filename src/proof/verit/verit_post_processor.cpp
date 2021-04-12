@@ -24,7 +24,7 @@
 #include "expr/proof_node_algorithm.h"
 #include "expr/proof_node_manager.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 namespace proof {
 
@@ -38,6 +38,7 @@ VeritProofPostprocessCallback::VeritProofPostprocessCallback(
 void VeritProofPostprocessCallback::initializeUpdate() {}
 
 bool VeritProofPostprocessCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
+                                                 const std::vector<Node>& fa,
                                                  bool& continueUpdate)
 {
   switch (pn->getRule())
@@ -1320,7 +1321,7 @@ bool VeritProofPostprocess::runUpdate(std::shared_ptr<ProofNode> cur,
                                       bool& continueUpdate)
 {
   // should it be updated?
-  if (!d_cb->shouldUpdate(cur, continueUpdate))
+  if (!d_cb->shouldUpdate(cur, fa, continueUpdate))
   {
     return false;
   }
@@ -1372,4 +1373,4 @@ bool VeritProofPostprocess::runUpdate(std::shared_ptr<ProofNode> cur,
 
 }  // namespace proof
 
-}  // namespace CVC4
+}  // namespace cvc5

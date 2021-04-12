@@ -22,9 +22,9 @@
 #include "expr/proof_node_updater.h"
 #include "options/proof_options.h"
 
-using namespace CVC4::kind;
+using namespace cvc5::kind;
 
-namespace CVC4 {
+namespace cvc5 {
 namespace proof {
 
 LfscProofPostprocessCallback::LfscProofPostprocessCallback(
@@ -36,6 +36,7 @@ LfscProofPostprocessCallback::LfscProofPostprocessCallback(
 void LfscProofPostprocessCallback::initializeUpdate() { d_firstTime = true; }
 
 bool LfscProofPostprocessCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
+                                                const std::vector<Node>& fa,
                                                 bool& continueUpdate)
 {
   return pn->getRule() != PfRule::LFSC_RULE;
@@ -50,6 +51,7 @@ bool LfscProofPostprocessCallback::update(Node res,
 {
   Trace("lfsc-pp") << "LfscProofPostprocessCallback::update: " << id
                    << std::endl;
+  Trace("lfsc-pp-debug") << "...proves " << res << std::endl;
   NodeManager* nm = NodeManager::currentNM();
   Assert(id != PfRule::LFSC_RULE);
   bool isFirstTime = d_firstTime;
@@ -375,9 +377,9 @@ void LfscProofPostprocess::process(std::shared_ptr<ProofNode> pf)
   d_cb->initializeUpdate();
   // do not automatically add symmetry steps, since this leads to
   // non-termination for example on policy_variable.smt2
-  ProofNodeUpdater updater(d_pnm, *(d_cb.get()), false, false);
+  ProofNodeUpdater updater(d_pnm, *(d_cb.get()), false, false, false);
   updater.process(pf);
 }
 
 }  // namespace proof
-}  // namespace CVC4
+}  // namespace cvc5

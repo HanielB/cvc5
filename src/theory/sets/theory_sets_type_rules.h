@@ -23,7 +23,7 @@
 
 #include "theory/sets/normal_form.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace sets {
 
@@ -386,19 +386,6 @@ struct JoinImageTypeRule {
       throw TypeCheckingExceptionPrivate(
           n, " JoinImage cardinality constraint must be integer");
     }
-    if (n[1].getKind() != kind::CONST_RATIONAL) {
-      throw TypeCheckingExceptionPrivate(
-          n, " JoinImage cardinality constraint must be a constant");
-    }
-    CVC4::Rational r(INT_MAX);
-    if (n[1].getConst<Rational>() > r) {
-      throw TypeCheckingExceptionPrivate(
-          n, " JoinImage Exceeded INT_MAX in cardinality constraint");
-    }
-    if (n[1].getConst<Rational>().getNumerator().getSignedInt() < 0) {
-      throw TypeCheckingExceptionPrivate(
-          n, " JoinImage cardinality constraint must be non-negative");
-    }
     std::vector<TypeNode> newTupleTypes;
     newTupleTypes.push_back(tupleTypes[0]);
     return nodeManager->mkSetType(nodeManager->mkTupleType(newTupleTypes));
@@ -442,8 +429,8 @@ struct SetsProperties {
   }
 };/* struct SetsProperties */
 
-}/* CVC4::theory::sets namespace */
-}/* CVC4::theory namespace */
-}/* CVC4 namespace */
+}  // namespace sets
+}  // namespace theory
+}  // namespace cvc5
 
 #endif /* CVC4__THEORY__SETS__THEORY_SETS_TYPE_RULES_H */

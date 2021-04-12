@@ -23,7 +23,7 @@
 #include <set>
 #include <string>
 
-#include "api/cvc4cpp.h"
+#include "api/cpp/cvc5.h"
 #include "cvc4_export.h"
 #include "expr/kind.h"
 #include "expr/symbol_manager.h"
@@ -33,7 +33,7 @@
 #include "parser/parser_exception.h"
 #include "util/unsafe_interrupt_exception.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 // Forward declarations
 class Command;
@@ -773,7 +773,7 @@ public:
   std::vector<unsigned> processAdHocStringEsc(const std::string& s);
 }; /* class Parser */
 
-}/* CVC4::parser namespace */
-}/* CVC4 namespace */
+}  // namespace parser
+}  // namespace cvc5
 
 #endif /* CVC4__PARSER__PARSER_STATE_H */

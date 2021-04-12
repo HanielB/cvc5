@@ -39,10 +39,11 @@
 #include "util/statistics_registry.h"
 #include "util/stats_timer.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 class ProofNodeManager;
 class TheoryEngine;
+class ProofRuleChecker;
 
 namespace theory {
 
@@ -58,7 +59,7 @@ class TrustSubstitutionMap;
 
 namespace eq {
   class EqualityEngine;
-}/* CVC4::theory::eq namespace */
+  }  // namespace eq
 
 /**
  * Base class for T-solvers.  Abstract DPLL(T).
@@ -95,7 +96,7 @@ namespace eq {
  * after the quantifiers engine and model objects have been set up.
  */
 class Theory {
-  friend class ::CVC4::TheoryEngine;
+  friend class ::cvc5::TheoryEngine;
 
  private:
   // Disallow default construction, copy, assignment.
@@ -317,6 +318,10 @@ class Theory {
    */
   virtual TheoryRewriter* getTheoryRewriter() = 0;
   /**
+   * @return The proof checker associated with this theory.
+   */
+  virtual ProofRuleChecker* getProofChecker() = 0;
+  /**
    * Returns true if this theory needs an equality engine for checking
    * satisfiability.
    *
@@ -480,9 +485,6 @@ class Theory {
   QuantifiersEngine* getQuantifiersEngine() {
     return d_quantEngine;
   }
-
-  /** Get the decision manager associated to this theory. */
-  DecisionManager* getDecisionManager() { return d_decManager; }
 
   /**
    * @return The theory state associated with this theory.
@@ -689,7 +691,7 @@ class Theory {
    * *never* clear it.  It is a conjunction to add to the formula at
    * the top-level and may contain other theories' contributions.
    */
-  virtual void ppStaticLearn(TNode in, NodeBuilder<>& learned) { }
+  virtual void ppStaticLearn(TNode in, NodeBuilder& learned) {}
 
   enum PPAssertStatus {
     /** Atom has been solved  */
@@ -919,7 +921,8 @@ inline theory::Assertion Theory::get() {
 }
 
 inline std::ostream& operator<<(std::ostream& out,
-                                const CVC4::theory::Theory& theory) {
+                                const cvc5::theory::Theory& theory)
+{
   return out << theory.identify();
 }
 
@@ -937,7 +940,7 @@ inline std::ostream& operator << (std::ostream& out, theory::Theory::PPAssertSta
   return out;
 }
 
-}/* CVC4::theory namespace */
-}/* CVC4 namespace */
+}  // namespace theory
+}  // namespace cvc5
 
 #endif /* CVC4__THEORY__THEORY_H */

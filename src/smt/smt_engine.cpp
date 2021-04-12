@@ -24,6 +24,7 @@
 #include "expr/bound_var_manager.h"
 #include "expr/node.h"
 #include "options/base_options.h"
+#include "options/expr_options.h"
 #include "options/language.h"
 #include "options/main_options.h"
 #include "options/printer_options.h"
@@ -72,13 +73,13 @@
 #include "base/configuration_private.h"
 
 using namespace std;
-using namespace CVC4::smt;
-using namespace CVC4::preprocessing;
-using namespace CVC4::prop;
-using namespace CVC4::context;
-using namespace CVC4::theory;
+using namespace cvc5::smt;
+using namespace cvc5::preprocessing;
+using namespace cvc5::prop;
+using namespace cvc5::context;
+using namespace cvc5::theory;
 
-namespace CVC4 {
+namespace cvc5 {
 
 SmtEngine::SmtEngine(NodeManager* nm, Options* optr)
     : d_env(new Env(nm)),
@@ -98,7 +99,6 @@ SmtEngine::SmtEngine(NodeManager* nm, Options* optr)
       d_abductSolver(nullptr),
       d_interpolSolver(nullptr),
       d_quantElimSolver(nullptr),
-      d_originalOptions(),
       d_isInternalSubsolver(false),
       d_stats(nullptr),
       d_outMgr(this),
@@ -337,8 +337,10 @@ SmtEngine::~SmtEngine()
     d_asserts.reset(nullptr);
     d_model.reset(nullptr);
 
+    d_abductSolver.reset(nullptr);
+    d_interpolSolver.reset(nullptr);
+    d_quantElimSolver.reset(nullptr);
     d_sygusSolver.reset(nullptr);
-
     d_smtSolver.reset(nullptr);
 
     d_stats.reset(nullptr);
@@ -412,7 +414,6 @@ void SmtEngine::notifyStartParsing(const std::string& filename)
   // Copy the original options. This is called prior to beginning parsing.
   // Hence reset should revert to these options, which note is after reading
   // the command line.
-  d_originalOptions.copyValues(getOptions());
 }
 
 const std::string& SmtEngine::getFilename() const
@@ -505,7 +506,7 @@ bool SmtEngine::isValidGetInfoFlag(const std::string& key) const
   return false;
 }
 
-CVC4::SExpr SmtEngine::getInfo(const std::string& key) const
+cvc5::SExpr SmtEngine::getInfo(const std::string& key) const
 {
   SmtScope smts(this);
 
@@ -513,13 +514,11 @@ CVC4::SExpr SmtEngine::getInfo(const std::string& key) const
   if (key == "all-statistics")
   {
     vector<SExpr> stats;
-    for (StatisticsRegistry::const_iterator i = d_env->getStatisticsRegistry()->begin();
-         i != d_env->getStatisticsRegistry()->end();
-         ++i)
+    for (const auto& s: d_env->getStatisticsRegistry())
     {
       vector<SExpr> v;
-      v.push_back((*i).first);
-      v.push_back((*i).second);
+      v.push_back(s.first);
+      v.push_back(s.second);
       stats.push_back(v);
     }
     return SExpr(stats);
@@ -1401,7 +1400,7 @@ void SmtEngine::checkProof()
   }
 }
 
-StatisticsRegistry* SmtEngine::getStatisticsRegistry()
+StatisticsRegistry& SmtEngine::getStatisticsRegistry()
 {
   return d_env->getStatisticsRegistry();
 }
@@ -1794,24 +1793,6 @@ void SmtEngine::pop() {
   // SMT-LIBv2 spec seems to imply no, but it would make sense to..
 }
 
-void SmtEngine::reset()
-{
-  // save pointer to the current node manager
-  NodeManager* nm = getNodeManager();
-  Trace("smt") << "SMT reset()" << endl;
-  if (Dump.isOn("benchmark"))
-  {
-    getPrinter().toStreamCmdReset(getOutputManager().getDumpOut());
-  }
-  std::string filename = d_state->getFilename();
-  Options opts;
-  opts.copyValues(d_originalOptions);
-  this->~SmtEngine();
-  new (this) SmtEngine(nm, &opts);
-  // Restore data set after creation
-  notifyStartParsing(filename);
-}
-
 void SmtEngine::resetAssertions()
 {
   SmtScope smts(this);
@@ -1883,22 +1864,22 @@ NodeManager* SmtEngine::getNodeManager() const
 
 Statistics SmtEngine::getStatistics() const
 {
-  return Statistics(*d_env->getStatisticsRegistry());
+  return Statistics(d_env->getStatisticsRegistry());
 }
 
 SExpr SmtEngine::getStatistic(std::string name) const
 {
-  return d_env->getStatisticsRegistry()->getStatistic(name);
+  return d_env->getStatisticsRegistry().getStatistic(name);
 }
 
-void SmtEngine::flushStatistics(std::ostream& out) const
+void SmtEngine::printStatistics(std::ostream& out) const
 {
-  d_env->getStatisticsRegistry()->flushInformation(out);
+  d_env->getStatisticsRegistry().flushInformation(out);
 }
 
-void SmtEngine::safeFlushStatistics(int fd) const
+void SmtEngine::printStatisticsSafe(int fd) const
 {
-  d_env->getStatisticsRegistry()->safeFlushInformation(fd);
+  d_env->getStatisticsRegistry().safeFlushInformation(fd);
 }
 
 void SmtEngine::setUserAttribute(const std::string& attr,
@@ -2058,4 +2039,4 @@ OutputManager& SmtEngine::getOutputManager() { return d_outMgr; }
 
 theory::Rewriter* SmtEngine::getRewriter() { return d_env->getRewriter(); }
 
-}/* CVC4 namespace */
+}  // namespace cvc5

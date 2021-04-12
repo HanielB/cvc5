@@ -22,7 +22,7 @@
 #include "expr/node.h"
 #include "expr/proof_rule.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 class ProofChecker;
 class ProofNode;
@@ -158,6 +158,14 @@ class ProofNodeManager
   bool updateNode(ProofNode* pn, ProofNode* pnr);
   /** Get the underlying proof checker */
   ProofChecker* getChecker() const;
+  /**
+   * Clone a proof node, which creates a deep copy of pn and returns it. The
+   * dag structure of pn is the same as that in the returned proof node.
+   *
+   * @param pn The proof node to clone
+   * @return the cloned proof node.
+   */
+  std::shared_ptr<ProofNode> clone(std::shared_ptr<ProofNode> pn);
 
  private:
   /** The (optional) proof checker */
@@ -192,6 +200,6 @@ class ProofNodeManager
       bool needsCheck);
 };
 
-}  // namespace CVC4
+}  // namespace cvc5
 
 #endif /* CVC4__EXPR__PROOF_NODE_H */

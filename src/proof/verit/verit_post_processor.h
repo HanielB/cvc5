@@ -23,7 +23,7 @@
 #include "expr/proof_node_updater.h"
 #include "proof/verit/verit_proof_rule.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 namespace proof {
 
@@ -42,6 +42,7 @@ class VeritProofPostprocessCallback : public ProofNodeUpdaterCallback
    */
   void initializeUpdate();
   bool shouldUpdate(std::shared_ptr<ProofNode> pn,
+                    const std::vector<Node>& fa,
                     bool& continueUpdate) override;
   /**
    * This method updates the proof rule application by splitting on the given
@@ -113,6 +114,6 @@ class VeritProofPostprocess
 
 }  // namespace proof
 
-}  // namespace CVC4
+}  // namespace cvc5
 
 #endif

@@ -24,10 +24,9 @@
 // TODO #1216: move the code in this include
 #include "theory/quantifiers/term_util.h"
 
+using namespace cvc5::kind;
 
-using namespace CVC4::kind;
-
-namespace CVC4 {
+namespace cvc5 {
 namespace expr {
 
 TermCanonize::TermCanonize(ProofNodeManager* pnm, bool hoVar)
@@ -299,4 +298,4 @@ Node TermCanonize::getCanonicalTerm(TNode n, bool applyTOrder, bool doHoVar)
 bool TermCanonize::isProofEnabled() const { return d_tcpg != nullptr; }
 
 }  // namespace expr
-}  // namespace CVC4
+}  // namespace cvc5

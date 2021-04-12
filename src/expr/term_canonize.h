@@ -20,7 +20,7 @@
 #include <map>
 #include "expr/node.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 class ProofNodeManager;
 class TConvProofGenerator;
@@ -111,6 +111,6 @@ class TermCanonize
 };
 
 }  // namespace expr
-}  // namespace CVC4
+}  // namespace cvc5
 
 #endif /* CVC4__EXPR__TERM_CANONIZE_H */

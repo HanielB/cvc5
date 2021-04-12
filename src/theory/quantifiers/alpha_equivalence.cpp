@@ -21,7 +21,7 @@
 #include "theory/quantifiers_engine.h"
 #include "theory/trust_node.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace quantifiers {
 
@@ -219,7 +219,7 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
 
 bool AlphaEquivalenceDb::isProofEnabled() const { return d_proof != nullptr; }
 
-AlphaEquivalence::AlphaEquivalence(QuantifiersEngine* qe, ProofNodeManager* pnm)
+AlphaEquivalence::AlphaEquivalence(ProofNodeManager* pnm)
     : d_termCanon(new expr::TermCanonize(pnm, true)),
       d_aedb(d_termCanon.get(), pnm, true)
 {
@@ -251,4 +251,4 @@ TrustNode AlphaEquivalence::reduceQuantifier(Node q)
 
 }  // namespace quantifiers
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5

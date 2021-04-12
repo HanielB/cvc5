@@ -29,9 +29,9 @@
 #include "util/result.h"
 
 using namespace std;
-using namespace CVC4::kind;
+using namespace cvc5::kind;
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace sets {
 
@@ -286,6 +286,10 @@ void TheorySetsPrivate::fullEffortCheck()
           d_card_enabled = true;
           // register it with the cardinality solver
           d_cardSolver->registerTerm(n);
+          if (d_im.hasSent())
+          {
+            break;
+          }
           // if we do not handle the kind, set incomplete
           Kind nk0 = n[0].getKind();
           // some kinds of cardinality we cannot handle
@@ -985,9 +989,20 @@ void TheorySetsPrivate::computeCareGraph()
       {
         Trace("sets-cg-debug") << "...build for " << f1 << std::endl;
         Assert(d_equalityEngine->hasTerm(f1));
-        // break into index based on operator, and type of first argument (since
-        // some operators are parametric)
-        TypeNode tn = f1[0].getType();
+        // break into index based on operator, and the type of the element
+        // type of the proper set, which notice must be safe wrt subtyping.
+        TypeNode tn;
+        if (k == kind::SINGLETON)
+        {
+          // get the type of the singleton set (not the type of its element)
+          tn = f1.getType().getSetElementType();
+        }
+        else
+        {
+          Assert (k == kind::MEMBER);
+          // get the element type of the set (not the type of the element)
+          tn = f1[1].getType().getSetElementType();
+        }
         std::vector<TNode> reps;
         bool hasCareArg = false;
         for (unsigned j = 0; j < f1.getNumChildren(); j++)
@@ -1210,7 +1225,7 @@ Node mkAnd(const std::vector<TNode>& conjunctions)
     return conjunctions[0];
   }
 
-  NodeBuilder<> conjunction(kind::AND);
+  NodeBuilder conjunction(kind::AND);
   std::set<TNode>::const_iterator it = all.begin();
   std::set<TNode>::const_iterator it_end = all.end();
   while (it != it_end)
@@ -1260,6 +1275,27 @@ void TheorySetsPrivate::preRegisterTerm(TNode node)
     {
       // add trigger predicate for equality and membership
       d_equalityEngine->addTriggerPredicate(node);
+    }
+    break;
+    case kind::JOIN_IMAGE:
+    {
+      // these are logic exceptions, not type checking exceptions
+      if (node[1].getKind() != kind::CONST_RATIONAL)
+      {
+        throw LogicException(
+            "JoinImage cardinality constraint must be a constant");
+      }
+      cvc5::Rational r(INT_MAX);
+      if (node[1].getConst<Rational>() > r)
+      {
+        throw LogicException(
+            "JoinImage Exceeded INT_MAX in cardinality constraint");
+      }
+      if (node[1].getConst<Rational>().getNumerator().getSignedInt() < 0)
+      {
+        throw LogicException(
+            "JoinImage cardinality constraint must be non-negative");
+      }
     }
     break;
     default: d_equalityEngine->addTerm(node); break;
@@ -1358,11 +1394,12 @@ Node TheorySetsPrivate::getChooseFunction(const TypeNode& setType)
   }
 
   NodeManager* nm = NodeManager::currentNM();
+  SkolemManager* sm = nm->getSkolemManager();
   TypeNode chooseUf = nm->mkFunctionType(setType, setType.getSetElementType());
   stringstream stream;
   stream << "chooseUf" << setType.getId();
   string name = stream.str();
-  Node chooseSkolem = nm->mkSkolem(
+  Node chooseSkolem = sm->mkDummySkolem(
       name, chooseUf, "choose function", NodeManager::SKOLEM_EXACT_NAME);
   d_chooseFunctions[setType] = chooseSkolem;
   return chooseSkolem;
@@ -1372,4 +1409,4 @@ void TheorySetsPrivate::presolve() { d_state.reset(); }
 
 }  // namespace sets
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5

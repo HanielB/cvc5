@@ -20,7 +20,9 @@
 #include "expr/lazy_proof.h"
 #include "theory/quantifiers/quant_util.h"
 
-namespace CVC4 {
+#include "expr/term_canonize.h"
+
+namespace cvc5 {
 
 // class ProofNodeManager;
 // class LazyCDProof;
@@ -104,7 +106,7 @@ class AlphaEquivalenceDb
 class AlphaEquivalence
 {
  public:
-  AlphaEquivalence(QuantifiersEngine* qe, ProofNodeManager* pnm = nullptr);
+  AlphaEquivalence(ProofNodeManager* pnm = nullptr);
   /** reduce quantifier
    *
    * If non-null, its return value is a trust node containing the lemma
@@ -123,6 +125,6 @@ class AlphaEquivalence
 
 }
 }
-}
+}  // namespace cvc5
 
 #endif
