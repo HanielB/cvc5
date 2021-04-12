@@ -18,6 +18,7 @@
 
 #include "expr/dtype.h"
 #include "expr/dtype_cons.h"
+#include "expr/node_manager_attributes.h"
 #include "expr/skolem_manager.h"
 #include "printer/smt2/smt2_printer.h"
 #include "theory/uf/theory_uf_rewriter.h"
@@ -42,22 +43,29 @@ LfscTermProcessor::LfscTermProcessor()
   d_typeKindToNodeCons[ARRAY_TYPE] =
       getSymbolInternal(FUNCTION_TYPE, arrType, "Array");
   TypeNode bvType = nm->mkFunctionType(intType, d_sortType);
-  d_typeKindToNodeCons[SET_TYPE] =
+  d_typeKindToNodeCons[BITVECTOR_TYPE] =
       getSymbolInternal(FUNCTION_TYPE, bvType, "BitVec");
   TypeNode fpType = nm->mkFunctionType({intType, intType}, d_sortType);
-  d_typeKindToNodeCons[SET_TYPE] =
+  d_typeKindToNodeCons[FLOATINGPOINT_TYPE] =
       getSymbolInternal(FUNCTION_TYPE, fpType, "FloatingPoint");
   TypeNode setType = nm->mkFunctionType(d_sortType, d_sortType);
   d_typeKindToNodeCons[SET_TYPE] =
       getSymbolInternal(FUNCTION_TYPE, setType, "Set");
   d_typeKindToNodeCons[BAG_TYPE] =
       getSymbolInternal(FUNCTION_TYPE, setType, "Bag");
+  d_typeKindToNodeCons[SEQUENCE_TYPE] =
+      getSymbolInternal(FUNCTION_TYPE, setType, "Seq");
 }
 
 Node LfscTermProcessor::runConvert(Node n)
 {
   NodeManager* nm = NodeManager::currentNM();
   Kind k = n.getKind();
+  if (k == ASCRIPTION_TYPE)
+  {
+    // dummy node, return it
+    return n;
+  }
   TypeNode tn = n.getType();
   Trace("lfsc-term-process-debug")
       << "runConvert " << n << " " << k << std::endl;
@@ -78,6 +86,12 @@ Node LfscTermProcessor::runConvert(Node n)
   }
   else if (k == SKOLEM)
   {
+    // constructors/selectors are represented by skolems, which are defined
+    // symbols
+    if (tn.isConstructor() || tn.isSelector() || tn.isTester())
+    {
+      return n;
+    }
     // skolems v print as their witness forms
     // v is (skolem W) where W is the original or witness form of v
     Node on = SkolemManager::getOriginalForm(n);
@@ -194,7 +208,7 @@ Node LfscTermProcessor::runConvert(Node n)
     // ((forall x1 T1) ((forall x2 T2) ... ((forall xk Tk) P))). We use
     // SEXPR to do this, which avoids the need for indexed operators.
     Node ret = n[1];
-    TypeNode bodyType = nm->mkFunctionType(ret.getType(), tn);
+    TypeNode bodyType = nm->mkFunctionType(ret.getType(), tn, false);
     // We permit non-flat function types here
     TypeNode ftype = nm->mkFunctionType({intType, d_sortType}, bodyType, false);
     Node forallOp = getSymbolInternal(
@@ -313,6 +327,9 @@ TypeNode LfscTermProcessor::runConvertType(TypeNode tn)
   TypeNode cur = tn;
   Node tnn;
   Kind k = tn.getKind();
+  Trace("lfsc-term-process-debug")
+      << "runConvertType " << tn << " " << tn.getNumChildren() << " " << k
+      << std::endl;
   if (k == FUNCTION_TYPE)
   {
     // (-> T1 ... Tn T) is (arrow T1 .... (arrow Tn T))
@@ -333,32 +350,94 @@ TypeNode LfscTermProcessor::runConvertType(TypeNode tn)
       tnn = nm->mkNode(APPLY_UF, arrown, typeAsNode(*it), tnn);
     }
   }
+  else if (k == BITVECTOR_TYPE)
+  {
+    tnn = d_typeKindToNodeCons[k];
+    Node w = nm->mkConst(Rational(tn.getBitVectorSize()));
+    tnn = nm->mkNode(APPLY_UF, tnn, w);
+  }
+  else if (k == FLOATINGPOINT_TYPE)
+  {
+    tnn = d_typeKindToNodeCons[k];
+    Node e = nm->mkConst(Rational(tn.getFloatingPointExponentSize()));
+    Node s = nm->mkConst(Rational(tn.getFloatingPointSignificandSize()));
+    tnn = nm->mkNode(APPLY_UF, tnn, e, s);
+  }
   else if (tn.getNumChildren() == 0)
   {
-    std::stringstream ss;
-    ss << tn;
-    tnn = getSymbolInternal(k, d_sortType, ss.str());
+    // special case: tuples are builtin datatypes
+    // notice this would not be a special case if tuples were parametric
+    // datatypes
+    if (tn.isTuple())
+    {
+      const DType& dt = tn.getDType();
+      unsigned int nargs = dt[0].getNumArgs();
+      if (nargs > 0)
+      {
+        std::vector<Node> targs;
+        std::vector<TypeNode> types;
+        for (unsigned int i = 0; i < nargs; i++)
+        {
+          // it is not converted yet, convert here
+          TypeNode tnc = runConvertType(dt[0][i].getRangeType());
+          types.push_back(d_sortType);
+          targs.push_back(typeAsNode(tnc));
+        }
+        TypeNode ftype = nm->mkFunctionType(types, d_sortType);
+        targs.insert(targs.begin(), getSymbolInternal(k, d_sortType, "Tuple"));
+        tnn = nm->mkNode(APPLY_UF, targs);
+      }
+    }
+    if (tnn.isNull())
+    {
+      std::stringstream ss;
+      ss << tn;
+      tnn = getSymbolInternal(k, d_sortType, ss.str());
+    }
   }
   else
   {
     // to build the type-as-node, must convert the component types
-    std::vector<Node> nargs;
+    std::vector<Node> targs;
+    std::vector<TypeNode> types;
     for (const TypeNode& tnc : tn)
     {
-      nargs.push_back(typeAsNode(tnc));
+      targs.push_back(typeAsNode(tnc));
+      types.push_back(d_sortType);
     }
-    std::map<Kind, Node>::iterator it = d_typeKindToNodeCons.find(k);
-    if (it != d_typeKindToNodeCons.end())
+    Node op;
+    if (k == PARAMETRIC_DATATYPE)
     {
-      nargs.insert(nargs.begin(), it->second);
-      tnn = nm->mkNode(APPLY_UF, nargs);
+      TypeNode ftype = nm->mkFunctionType(types, d_sortType);
+      op = getSymbolInternal(k, ftype, tn.getDType().getName());
+    }
+    else if (k == SORT_TYPE)
+    {
+      TypeNode ftype = nm->mkFunctionType(types, d_sortType);
+      std::string name;
+      tn.getAttribute(expr::VarNameAttr(), name);
+      op = getSymbolInternal(k, ftype, name);
     }
     else
     {
-      Assert(false);
+      std::map<Kind, Node>::iterator it = d_typeKindToNodeCons.find(k);
+      if (it != d_typeKindToNodeCons.end())
+      {
+        op = it->second;
+      }
+    }
+    if (!op.isNull())
+    {
+      targs.insert(targs.begin(), op);
+      tnn = nm->mkNode(APPLY_UF, targs);
+    }
+    else
+    {
+      AlwaysAssert(false);
     }
   }
   Assert(!tnn.isNull());
+  Trace("lfsc-term-process-debug") << "...type as node: " << tnn << std::endl;
   d_typeAsNode[cur] = tnn;
   return cur;
 }
@@ -488,7 +567,7 @@ Node LfscTermProcessor::getOperatorOfTerm(Node n, bool macroApply)
     }
     if (k == APPLY_TESTER)
     {
-      // do not use (_ is C) syntax for testers
+      // use is-C instead of (_ is C) syntax for testers
       unsigned cindex = DType::indexOf(op);
       const DType& dt = DType::datatypeOf(op);
       opName << "is-" << dt[cindex].getConstructor();
@@ -497,7 +576,10 @@ Node LfscTermProcessor::getOperatorOfTerm(Node n, bool macroApply)
     {
       opName << op;
     }
-    return getSymbolInternal(k, ftype, opName.str());
+    Node ret = getSymbolInternal(k, ftype, opName.str());
+    // TODO: if parametric, instantiate the parameters?
+
+    return ret;
   }
   std::vector<TypeNode> argTypes;
   for (const Node& nc : n)
