@@ -83,6 +83,8 @@ class AlphaEquivalenceDb
   TrustNode addTerm(Node q);
   /** maps quantifiers to their canonical forms */
   std::map<Node, Node> d_canon;
+  /** maps quantifiers to the substitution used to canonize them */
+  std::map<Node, std::map<Node, Node>> d_canonization;
 
  private:
   /** a trie per # of variables per type */

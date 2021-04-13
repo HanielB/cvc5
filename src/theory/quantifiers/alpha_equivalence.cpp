@@ -112,43 +112,48 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
   Trace("aeq") << "  canonical form: " << t << std::endl;
   if (isProofEnabled())
   {
-    Node rw = trn.getProven();
-    d_proof->addLazyStep(rw, trn.getGenerator());
-    if (!subs.empty())
-    {
-      std::vector<Node> bvars1, bvars2, renaming;
-      Trace("aeq") << "  subs: \n";
-      for (const auto& p : subs)
-      {
-        Trace("aeq") << "    " << p.first << " -> " << p.second << "\n";
-        bvars1.push_back(p.first);
-        bvars2.push_back(p.second);
-        renaming.push_back(p.first.eqNode(p.second));
-      }
-      // now scope
-      Node conclusionScope = nm->mkNode(kind::IMPLIES, nm->mkAnd(renaming), rw);
-      Trace("aeq") << "ConclusionScope: " << conclusionScope << "\n";
-      d_proof->addStep(conclusionScope, PfRule::SCOPE, {rw}, renaming);
-      std::vector<Node> topVarPrefixCanon;
-      for (const Node& v : q[0])
-      {
-        topVarPrefixCanon.push_back(subs[v]);
-      }
-      // now alpha-equiv
-      Node canonQ = nm->mkNode(
-          kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST, topVarPrefixCanon), t);
-      d_canon[q] = canonQ;
-      std::vector<Node> args{q, canonQ};
-      args.insert(args.end(), bvars1.begin(), bvars1.end());
-      args.insert(args.end(), bvars2.begin(), bvars2.end());
-      d_proof->addStep(
-          q.eqNode(canonQ), PfRule::ALPHA_EQUIV, {conclusionScope}, args);
-    }
-    else
-    {
-      d_proof->addStep(q.eqNode(q), PfRule::REFL, {}, {q});
-    }
+    d_canonization[q] = subs;
   }
+  // if (isProofEnabled())
+  // {
+  //   Node rw = trn.getProven();
+  //   d_proof->addLazyStep(rw, trn.getGenerator());
+  //   if (!subs.empty())
+  //   {
+  //     std::vector<Node> bvars1, bvars2, renaming;
+  //     Trace("aeq") << "  subs: \n";
+  //     for (const auto& p : subs)
+  //     {
+  //       Trace("aeq") << "    " << p.first << " -> " << p.second << "\n";
+  //       bvars1.push_back(p.first);
+  //       bvars2.push_back(p.second);
+  //       renaming.push_back(p.first.eqNode(p.second));
+  //     }
+  //     // now scope
+  //     Node conclusionScope = nm->mkNode(kind::IMPLIES, nm->mkAnd(renaming),
+  //     rw); Trace("aeq") << "ConclusionScope: " << conclusionScope << "\n";
+  //     d_proof->addStep(conclusionScope, PfRule::SCOPE, {rw}, renaming);
+  //     std::vector<Node> topVarPrefixCanon;
+  //     for (const Node& v : q[0])
+  //     {
+  //       topVarPrefixCanon.push_back(subs[v]);
+  //     }
+  //     // now alpha-equiv
+  //     Node canonQ = nm->mkNode(
+  //         kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST, topVarPrefixCanon),
+  //         t);
+  //     d_canon[q] = canonQ;
+  //     std::vector<Node> args{q, canonQ};
+  //     args.insert(args.end(), bvars1.begin(), bvars1.end());
+  //     args.insert(args.end(), bvars2.begin(), bvars2.end());
+  //     d_proof->addStep(
+  //         q.eqNode(canonQ), PfRule::ALPHA_EQUIV, {conclusionScope}, args);
+  //   }
+  //   else
+  //   {
+  //     d_proof->addStep(q.eqNode(q), PfRule::REFL, {}, {q});
+  //   }
+  // }
   // compute variable type counts
   std::map<TypeNode, size_t> typCount;
   std::vector<TypeNode> typs;
@@ -171,50 +176,107 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
   {
     return TrustNode::mkTrustLemma(q.eqNode(ret), nullptr);
   }
-  // get reduction of q and reduction of ret
-  Assert(d_canon.find(q) != d_canon.end());
-  Assert(d_canon.find(ret) != d_canon.end());
-  Node rwQ, rwRet;
-  rwQ = q.eqNode(d_canon[q]);
-  rwRet = d_canon[ret].eqNode(ret);
-  std::vector<Node> transChain{rwQ, rwRet};
-  // we may have the issue that the canonized quantifiers differ on the order of
-  // their variable prefix, so we need to add an in-between step for the
-  // transitivity proof. So for example, for an alpha-equivalence connection of
-  // (\ x1x2. F1) and (\ y2y1. F2):
-  //
-  //  ---------------------- alpha   ------------------------ cong ----------------------- alpha
-  //  (= (\ x1x2. F1) (\ z1z2. F'))  (= (\ z1z2. F') (\ z2z1. F')) (= (\ z1z1. F') (\ y2y1. F2))
-  // ------------------------------------------------------------------------------------- TRANS
-  //            (= (\ x1x2. F1) (\ y2y1. F2))
-  if (rwQ[1] != rwRet[0])
+  // build substitution from q to ret based on their canonizations
+  Assert(d_canonization.find(q) != d_canonization.end());
+  Assert(d_canonization.find(ret) != d_canonization.end());
+  Node concAlpha;
+  if (!d_canonization[q].empty())
   {
-    // bodies are the same
-    AlwaysAssert(rwQ[1][1] == rwRet[0][1]);
-    // --------------------------- THEORY_REWRITE  ------- RFL
-    // (= (BVL z1 z2) (BVL z2 z1))                 F' = F'
-    // --------------------------------------------------- CONG
-    //        (= (\ z1z2. F') (\ z2z1. F'))
-    Node c1 = rwQ[1], c2 = rwRet[0];
-    Node eqBvl = c1[0].eqNode(c2[0]);
-    d_proof->addStep(eqBvl,
-                     PfRule::THEORY_REWRITE,
-                     {},
-                     {eqBvl,
-                      theory::builtin::BuiltinProofRuleChecker::mkTheoryIdNode(
-                          theory::THEORY_BUILTIN),
-                      mkMethodId(theory::MethodId::RW_REWRITE_THEORY_POST)});
-    Node eqRefl = c1[1].eqNode(c2[1]);
-    d_proof->addStep(eqRefl, PfRule::REFL, {}, {c1[1]});
-    Node eqCanon = c1.eqNode(c2);
-    d_proof->addStep(eqCanon,
-                     PfRule::CONG,
-                     {eqBvl, eqRefl},
-                     {ProofRuleChecker::mkKindNode(kind::FORALL)});
-    transChain.insert(transChain.begin() + 1, eqCanon);
+    std::vector<Node> bvars1, bvars2, renaming;
+    Trace("aeq") << "Renaming: \n";
+    for (const auto& pQ : d_canonization[q])
+    {
+      // q{x->w}, ret{y->w} : {x->y}
+      bvars1.push_back(pQ.first);
+      // go through ret's map and find key whose value is w
+      bool found = false;
+      for (const auto& pRet : d_canonization[ret])
+      {
+        if (pRet.second == pQ.second)
+        {
+          bvars2.push_back(pRet.first);
+          renaming.push_back(pQ.first.eqNode(pRet.first));
+          found = true;
+        }
+      }
+      Assert(found);
+      Trace("aeq") << "    " << renaming.back()[0] << " -> "
+                   << renaming.back()[1] << "\n";
+    }
+    // build MACRO_SR_PRED_INTRO step between the bodies of q and ret, justified
+    // by the renaming
+    Node conclusionRw = q[1].eqNode(ret[1]);
+    Trace("aeq") << "ConclusionRw: " << conclusionRw << "\n";
+    d_proof->addStep(
+        conclusionRw,
+        PfRule::MACRO_SR_PRED_INTRO,
+        renaming,
+        {conclusionRw,
+         // need extended rewriter because of ordering of equalities
+         mkMethodId(MethodId::SB_DEFAULT),
+         mkMethodId(MethodId::RW_EXT_REWRITE)});
+    // build scope step
+    Node conclusionScope =
+        nm->mkNode(kind::IMPLIES, nm->mkAnd(renaming), conclusionRw);
+    Trace("aeq") << "ConclusionScope: " << conclusionScope << "\n";
+    d_proof->addStep(conclusionScope, PfRule::SCOPE, {conclusionRw}, renaming);
+    // build alpha-equiv step between q and the body of ret with the prefix as
+    // determined by the substitution. We don't use ret directly because of it
+    // possibly having a different prefix order than q, see below
+    Node canonRet = nm->mkNode(
+        kind::FORALL, nm->mkNode(kind::BOUND_VAR_LIST, bvars2), ret[1]);
+    std::vector<Node> args{q, canonRet};
+    args.insert(args.end(), bvars1.begin(), bvars1.end());
+    args.insert(args.end(), bvars2.begin(), bvars2.end());
+    concAlpha = q.eqNode(canonRet);
+    d_proof->addStep(concAlpha, PfRule::ALPHA_EQUIV, {conclusionScope}, args);
+    // we may have the issue that the canonized quantifiers differ on the order
+    // of their variable prefix, so we need to add an in-between step for the
+    // transitivity proof. So for example, for an alpha-equivalence connection
+    // of
+    // (\ x1x2. F1) and (\ y2y1. F2):
+    //
+    //  ---------------------- alpha   ------------------------ cong
+    //  ----------------------- alpha
+    //  (= (\ x1x2. F1) (\ z1z2. F'))  (= (\ z1z2. F') (\ z2z1. F')) (= (\ z1z1.
+    //  F') (\ y2y1. F2))
+    // -------------------------------------------------------------------------------------
+    // TRANS
+    //            (= (\ x1x2. F1) (\ y2y1. F2))
+    if (ret[0] != canonRet[0])
+    {
+      // --------------------------- THEORY_REWRITE  ------- RFL
+      // (= (BVL z1 z2) (BVL z2 z1))                 F' = F'
+      // --------------------------------------------------- CONG
+      //        (= (\ z1z2. F') (\ z2z1. F'))
+      Node eqBvl = canonRet[0].eqNode(ret[0]);
+      d_proof->addStep(
+          eqBvl,
+          PfRule::THEORY_REWRITE,
+          {},
+          {eqBvl,
+           theory::builtin::BuiltinProofRuleChecker::mkTheoryIdNode(
+               theory::THEORY_BUILTIN),
+           mkMethodId(theory::MethodId::RW_REWRITE_THEORY_POST)});
+      Node eqRefl = canonRet[1].eqNode(ret[1]);
+      d_proof->addStep(eqRefl, PfRule::REFL, {}, {ret[1]});
+      Node eqReorder = canonRet.eqNode(ret);
+      d_proof->addStep(eqReorder,
+                       PfRule::CONG,
+                       {eqBvl, eqRefl},
+                       {ProofRuleChecker::mkKindNode(kind::FORALL)});
+      // add a trans step
+      Node newConc = q.eqNode(ret);
+      d_proof->addStep(newConc, PfRule::TRANS, {concAlpha, eqReorder}, {});
+      concAlpha = newConc;
+    }
   }
-  d_proof->addStep(q.eqNode(ret), PfRule::TRANS, transChain, {});
-  return TrustNode::mkTrustLemma(q.eqNode(ret), d_proof.get());
+  else
+  {
+    concAlpha = q.eqNode(ret);
+    d_proof->addStep(q.eqNode(q), PfRule::REFL, {}, {q});
+  }
+  return TrustNode::mkTrustLemma(concAlpha, d_proof.get());
 }
 
 bool AlphaEquivalenceDb::isProofEnabled() const { return d_proof != nullptr; }
