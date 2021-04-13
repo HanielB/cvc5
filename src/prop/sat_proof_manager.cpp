@@ -1,16 +1,17 @@
-/*********************                                                        */
-/*! \file sat_proof_manager.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Haniel Barbosa, Andrew Reynolds
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Implementation of the proof manager for Minisat
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Haniel Barbosa, Andrew Reynolds
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Implementation of the proof manager for Minisat.
+ */
 
 #include "prop/sat_proof_manager.h"
 
@@ -216,7 +217,7 @@ void SatProofManager::endResChain(Node conclusion,
     Trace("sat-proof") << " : ";
     if (i > 0)
     {
-      args.push_back(posFirst? d_true : d_false);
+      args.push_back(posFirst ? d_true : d_false);
       args.push_back(pivot);
       Trace("sat-proof") << "{" << posFirst << "} [" << pivot << "] ";
     }
@@ -371,7 +372,7 @@ void SatProofManager::explainLit(
     printClause(reason);
     Trace("sat-proof") << "\n";
   }
-#ifdef CVC4_ASSERTIONS
+#ifdef CVC5_ASSERTIONS
   // pedantically check that the negation of the literal to explain *does not*
   // occur in the reason, otherwise we will loop forever
   for (unsigned i = 0; i < size; ++i)
@@ -391,7 +392,7 @@ void SatProofManager::explainLit(
   Trace("sat-proof") << push;
   for (unsigned i = 0; i < size; ++i)
   {
-#ifdef CVC4_ASSERTIONS
+#ifdef CVC5_ASSERTIONS
     // pedantically make sure that the reason stays the same
     const Minisat::Clause& reloadedReason = d_solver->ca[reasonRef];
     AlwaysAssert(size == static_cast<unsigned>(reloadedReason.size()));
@@ -415,7 +416,7 @@ void SatProofManager::explainLit(
     // note this is the opposite of what is done in addResolutionStep. This is
     // because here the clause, which contains the literal being analyzed, is
     // the first clause rather than the second
-    args.push_back(!negated? d_true : d_false);
+    args.push_back(!negated ? d_true : d_false);
     args.push_back(negated ? currLitNode[0] : currLitNode);
     // add child premises and the child itself
     premises.insert(childPremises.begin(), childPremises.end());
