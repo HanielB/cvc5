@@ -274,7 +274,8 @@ class SatProofManager
   SatProofManager(Minisat::Solver* solver,
                   CnfStream* cnfStream,
                   context::UserContext* userContext,
-                  ProofNodeManager* pnm);
+                  ProofNodeManager* pnm,
+                  bool unsatCoreMode);
 
   /** Marks the start of a resolution chain.
    *
@@ -575,6 +576,8 @@ class SatProofManager
    * conflict.
    */
   SatLiteral d_conflictLit;
+  /** Whether the proof is being used for unsat cores */
+  bool d_unsatCoreMode;
   /** Gets node equivalent to literal */
   Node getClauseNode(SatLiteral satLit);
   /** Gets node equivalent to clause.
