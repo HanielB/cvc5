@@ -89,11 +89,12 @@ void SatProofManager::startResChain(const Minisat::Clause& start)
 void SatProofManager::addResolutionStep(Minisat::Lit lit, bool redundant)
 {
   SatLiteral satLit = MinisatSatSolver::toSatLiteral(lit);
-  Node litNode = d_cnfStream->getNodeCache()[satLit];
   bool negated = satLit.isNegated();
-  Assert(!negated || litNode.getKind() == kind::NOT);
+  Assert(!negated
+         || d_cnfStream->getNodeCache()[satLit].getKind() == kind::NOT);
   if (!redundant)
   {
+    Node litNode = d_cnfStream->getNodeCache()[satLit];
     Trace("sat-proof") << "SatProofManager::addResolutionStep: {"
                        << satLit.isNegated() << "} [" << satLit << "] "
                        << ~satLit << "\n";
@@ -102,7 +103,7 @@ void SatProofManager::addResolutionStep(Minisat::Lit lit, bool redundant)
     // negation in the first clause
     d_resLinks.emplace_back(d_cnfStream->getNodeCache()[~satLit],
                             negated ? litNode[0] : litNode,
-                            !satLit.isNegated());
+                            !negated);
   }
   else
   {
@@ -180,37 +181,40 @@ void SatProofManager::endResChain(Node conclusion,
     bool posFirst;
     std::tie(clause, pivot, posFirst) = d_resLinks[i];
     children.push_back(clause);
-    Trace("sat-proof") << "SatProofManager::endResChain:   ";
-    if (i > 0)
+    if (Trace.isOn("sat-proof"))
     {
-      Trace("sat-proof") << "{" << posFirst << "} ["
-                         << d_cnfStream->getTranslationCache()[pivot] << "] ";
-    }
-    // special case for clause (or l1 ... ln) being a single literal
-    // corresponding itself to a clause, which is indicated by the pivot being
-    // of the form (not (or l1 ... ln))
-    if (clause.getKind() == kind::OR
-        && !(pivot.getKind() == kind::NOT && pivot[0].getKind() == kind::OR
-             && pivot[0] == clause))
-    {
-      for (unsigned j = 0, sizeJ = clause.getNumChildren(); j < sizeJ; ++j)
+      Trace("sat-proof") << "SatProofManager::endResChain:   ";
+      if (i > 0)
       {
-        Trace("sat-proof") << d_cnfStream->getTranslationCache()[clause[j]];
-        if (j < sizeJ - 1)
+        Trace("sat-proof") << "{" << posFirst << "} ["
+                           << d_cnfStream->getTranslationCache()[pivot] << "] ";
+      }
+      // special case for clause (or l1 ... ln) being a single literal
+      // corresponding itself to a clause, which is indicated by the pivot being
+      // of the form (not (or l1 ... ln))
+      if (clause.getKind() == kind::OR
+          && !(pivot.getKind() == kind::NOT && pivot[0].getKind() == kind::OR
+               && pivot[0] == clause))
+      {
+        for (unsigned j = 0, sizeJ = clause.getNumChildren(); j < sizeJ; ++j)
         {
-          Trace("sat-proof") << ", ";
+          Trace("sat-proof") << d_cnfStream->getTranslationCache()[clause[j]];
+          if (j < sizeJ - 1)
+          {
+            Trace("sat-proof") << ", ";
+          }
         }
       }
+      else
+      {
+        Assert(d_cnfStream->getTranslationCache().find(clause)
+               != d_cnfStream->getTranslationCache().end())
+            << "clause node " << clause
+            << " treated as unit has no literal. Pivot is " << pivot << "\n";
+        Trace("sat-proof") << d_cnfStream->getTranslationCache()[clause];
+      }
+      Trace("sat-proof") << " : ";
     }
-    else
-    {
-      Assert(d_cnfStream->getTranslationCache().find(clause)
-             != d_cnfStream->getTranslationCache().end())
-          << "clause node " << clause
-          << " treated as unit has no literal. Pivot is " << pivot << "\n";
-      Trace("sat-proof") << d_cnfStream->getTranslationCache()[clause];
-    }
-    Trace("sat-proof") << " : ";
     if (i > 0)
     {
       args.push_back(posFirst ? d_true : d_false);
@@ -267,7 +271,7 @@ void SatProofManager::processRedundantLit(
   Trace("sat-proof") << push
                      << "SatProofManager::processRedundantLit: Lit: " << lit
                      << "\n";
-  if (visited.count(lit))
+  if (visited.find(lit) != visited.end())
   {
     Trace("sat-proof") << "already visited\n" << pop;
     return;
@@ -306,7 +310,7 @@ void SatProofManager::processRedundantLit(
   {
     SatLiteral satLit = MinisatSatSolver::toSatLiteral(reason[i]);
     // if literal does not occur in the conclusion we process it as well
-    if (!conclusionLits.count(satLit))
+    if (conclusionLits.find(satLit) == conclusionLits.end())
     {
       processRedundantLit(satLit, conclusionLits, visited, pos);
     }
@@ -427,7 +431,7 @@ void SatProofManager::explainLit(
   }
   // if justification of children contains the expected conclusion, avoid the
   // cyclic proof by aborting.
-  if (premises.count(litNode))
+  if (premises.find(litNode) != premises.end())
   {
     Trace("sat-proof") << "SatProofManager::explainLit: CYCLIC PROOF of " << lit
                        << " [" << litNode << "], ABORT\n"
@@ -449,6 +453,7 @@ void SatProofManager::explainLit(
 void SatProofManager::finalizeProof(Node inConflictNode,
                                     const std::vector<SatLiteral>& inConflict)
 {
+  Unreachable();
   Trace("sat-proof")
       << "SatProofManager::finalizeProof: conflicting clause node: "
       << inConflictNode << "\n";
@@ -630,7 +635,7 @@ void SatProofManager::finalizeProof(Node inConflictNode,
     for (const Node& fa : fassumps)
     {
       // ignore already processed assumptions
-      if (premises.count(fa))
+      if (premises.find(fa)!= premises.end())
       {
         Trace("sat-proof") << "already processed assumption " << fa << "\n";
         continue;
