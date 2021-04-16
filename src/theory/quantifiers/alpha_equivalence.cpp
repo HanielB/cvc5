@@ -16,6 +16,7 @@
 #include "theory/quantifiers/alpha_equivalence.h"
 
 #include "expr/lazy_proof.h"
+#include "expr/node_algorithm.h"
 #include "expr/term_canonize.h"
 #include "theory/builtin/proof_checker.h"
 #include "theory/quantifiers_engine.h"
@@ -189,7 +190,7 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
       // q{x->w}, ret{y->w} : {x->y}
       bvars1.push_back(pQ.first);
       // go through ret's map and find key whose value is w
-      bool found = false;
+      CVC5_UNUSED bool found = false;
       for (const auto& pRet : d_canonization[ret])
       {
         if (pRet.second == pQ.second)
@@ -276,6 +277,7 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
     concAlpha = q.eqNode(ret);
     d_proof->addStep(q.eqNode(q), PfRule::REFL, {}, {q});
   }
+  AlwaysAssert(!expr::hasClosure(q[1]));
   return TrustNode::mkTrustLemma(concAlpha, d_proof.get());
 }
 
