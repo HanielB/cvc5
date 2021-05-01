@@ -195,27 +195,38 @@ class TermTupleEnumeratorBase : public TermTupleEnumeratorInterface
   /** total number of steps of the enumerator */
   uint32_t d_stepCounter;
 
-  /** a data structure storing disabled combinations of terms */
-  IndexTrie d_disabledCombinations;
-
-  /** current sum/max  of digits, depending on the strategy */
-  size_t d_currentStage;
-  /**total number of stages*/
-  size_t d_stageCount;
   /**becomes false once the enumerator runs out of options*/
   bool d_hasNext;
+
+  /** a data structure storing disabled combinations of terms */
+  IndexTrie d_disabledCombinations;
   /** the length of the prefix that has to be changed in the next
   combination, i.e.  the number of the most significant digits that need to be
   changed in order to escape a  useless instantiation */
   size_t d_changePrefix;
+  virtual bool nextCombinationAttempt() = 0;
+  virtual void initializeAttempts() = 0;
+  /** Move on in the current stage */
+  bool nextCombination();
+};
+
+class StagedTupleEnumerator : public TermTupleEnumeratorBase
+{
+ public:
+  using TermTupleEnumeratorBase::TermTupleEnumeratorBase;  // inherit
+                                                           // constructor
+ protected:
+  /** current sum/max  of digits, depending on the strategy */
+  size_t d_currentStage;
+  /**total number of stages*/
+  size_t d_stageCount;
   /** Move onto the next stage */
   bool increaseStage();
   /** Move onto the next stage, sum strategy. */
   bool increaseStageSum();
   /** Move onto the next stage, max strategy. */
   bool increaseStageMax();
-  /** Move on in the current stage */
-  bool nextCombination();
+  virtual bool nextCombinationAttempt() override;
   /** Move onto the next combination. */
   bool nextCombinationInternal();
   /** Find the next lexicographically smallest combination of terms that change
@@ -225,15 +236,13 @@ class TermTupleEnumeratorBase : public TermTupleEnumeratorInterface
   /** Find the next lexicographically smallest combination of terms that change
    * on the change prefix and their sum is equal to d_currentStage. */
   bool nextCombinationMax();
+  virtual void initializeAttempts() override;
 };
-
 void TermTupleEnumeratorBase::init()
 {
   Trace("inst-alg-rd") << "Initializing enumeration " << d_quantifier
                        << std::endl;
-  d_currentStage = 0;
   d_hasNext = true;
-  d_stageCount = 1;  // in the case of full effort we do at least one stage
 
   if (d_variableCount == 0)
   {
@@ -254,12 +263,9 @@ void TermTupleEnumeratorBase::init()
       return;  // give up on an empty dommain
     }
     d_termsSizes.push_back(termsSize);
-    d_stageCount = std::max(d_stageCount, termsSize);
   }
-
-  Trace("inst-alg-rd") << "Will do " << d_stageCount
-                       << " stages of instantiation." << std::endl;
   d_termIndex.resize(d_variableCount, 0);
+  initializeAttempts();
 }
 
 bool TermTupleEnumeratorBase::hasNext()
@@ -271,9 +277,6 @@ bool TermTupleEnumeratorBase::hasNext()
 
   if (d_stepCounter++ == 0)
   {  // TODO:any (nice)  way of avoiding this special if?
-    Assert(d_currentStage == 0);
-    Trace("inst-alg-rd") << "Try stage " << d_currentStage << "..."
-                         << std::endl;
     return true;
   }
 
@@ -314,7 +317,35 @@ void TermTupleEnumeratorBase::next(/*out*/ std::vector<Node>& terms)
   Trace("inst-alg-rd") << std::endl;
 }
 
-bool TermTupleEnumeratorBase::increaseStageSum()
+bool TermTupleEnumeratorBase::nextCombination()
+{
+  while (true)
+  {
+    Trace("inst-alg-rd") << "changePrefix " << d_changePrefix << std::endl;
+    if (!nextCombinationAttempt())
+    {
+      return false;  // ran out of combinations
+    }
+    if (!d_disabledCombinations.find(d_termIndex, d_changePrefix))
+    {
+      return true;  // current combination vetted by disabled combinations
+    }
+  }
+}
+
+void StagedTupleEnumerator::initializeAttempts()
+{
+  d_currentStage = 0;
+  // in the case of full effort we do at least one stage
+  d_stageCount =
+      std::max(*std::max_element(d_termsSizes.begin(), d_termsSizes.end()),
+               static_cast<size_t>(1));
+
+  Trace("inst-alg-rd") << "Will do " << d_stageCount
+                       << " stages of instantiation." << std::endl;
+}
+
+bool StagedTupleEnumerator::increaseStageSum()
 {
   const size_t lowerBound = d_currentStage + 1;
   Trace("inst-alg-rd") << "Try sum " << lowerBound << "..." << std::endl;
@@ -330,13 +361,13 @@ bool TermTupleEnumeratorBase::increaseStageSum()
   return d_currentStage >= lowerBound;
 }
 
-bool TermTupleEnumeratorBase::increaseStage()
+bool StagedTupleEnumerator::increaseStage()
 {
   d_changePrefix = d_variableCount;  // simply reset upon increase stage
   return d_env->d_increaseSum ? increaseStageSum() : increaseStageMax();
 }
 
-bool TermTupleEnumeratorBase::increaseStageMax()
+bool StagedTupleEnumerator::increaseStageMax()
 {
   d_currentStage++;
   if (d_currentStage >= d_stageCount)
@@ -361,31 +392,19 @@ bool TermTupleEnumeratorBase::increaseStageMax()
   return found;
 }
 
-bool TermTupleEnumeratorBase::nextCombination()
+bool StagedTupleEnumerator::nextCombinationAttempt()
 {
-  while (true)
-  {
-    Trace("inst-alg-rd") << "changePrefix " << d_changePrefix << std::endl;
-    if (!nextCombinationInternal() && !increaseStage())
-    {
-      return false;  // ran out of combinations
-    }
-    if (!d_disabledCombinations.find(d_termIndex, d_changePrefix))
-    {
-      return true;  // current combination vetted by disabled combinations
-    }
-  }
+  return nextCombinationInternal() || increaseStage();
 }
-
 /** Move onto the next combination, depending on the strategy. */
-bool TermTupleEnumeratorBase::nextCombinationInternal()
+bool StagedTupleEnumerator::nextCombinationInternal()
 {
   return d_env->d_increaseSum ? nextCombinationSum() : nextCombinationMax();
 }
 
 /** Find the next lexicographically smallest combination of terms that change
  * on the change prefix and their sum is equal to d_currentStage. */
-bool TermTupleEnumeratorBase::nextCombinationMax()
+bool StagedTupleEnumerator::nextCombinationMax()
 {
   // look for the least significant digit, within change prefix,
   // that can be increased
@@ -436,7 +455,7 @@ bool TermTupleEnumeratorBase::nextCombinationMax()
 /** Find the next lexicographically smallest combination of terms that change
  * on the change prefix, each digit is within the current state,  and there is
  * at least one digit not in the previous stage. */
-bool TermTupleEnumeratorBase::nextCombinationSum()
+bool StagedTupleEnumerator::nextCombinationSum()
 {
   size_t suffixSum = 0;
   bool found = false;
@@ -556,14 +575,14 @@ TermTupleEnumeratorInterface* mkTermTupleEnumerator(
 {
   auto* termProducer = new BasicTermProducer(q, qs, td);
   return static_cast<TermTupleEnumeratorInterface*>(
-      new TermTupleEnumeratorBase(q, env, termProducer));
+      new StagedTupleEnumerator(q, env, termProducer));
 }
 TermTupleEnumeratorInterface* mkTermTupleEnumeratorRd(
     Node q, const TermTupleEnumeratorEnv* env, RelevantDomain* rd)
 {
   auto* termProducer = new RelevantDomainProducer(q, rd);
   return static_cast<TermTupleEnumeratorInterface*>(
-      new TermTupleEnumeratorBase(q, env, termProducer));
+      new StagedTupleEnumerator(q, env, termProducer));
 }
 
 TermTupleEnumeratorInterface* mkTermTupleEnumeratorPool(
@@ -571,7 +590,7 @@ TermTupleEnumeratorInterface* mkTermTupleEnumeratorPool(
 {
   auto* termProducer = new PoolTermProducer(q, tp, pool);
   return static_cast<TermTupleEnumeratorInterface*>(
-      new TermTupleEnumeratorBase(q, env, termProducer));
+      new StagedTupleEnumerator(q, env, termProducer));
 }
 
 }  // namespace quantifiers
