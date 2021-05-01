@@ -1,21 +1,22 @@
-/*********************                                                        */
-/*! \file quantifiers_engine.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Morgan Deters, Gereon Kremer
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Theory instantiator, Instantiation Engine classes
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Gereon Kremer, Morgan Deters
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Theory instantiator, Instantiation Engine classes.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
-#ifndef CVC4__THEORY__QUANTIFIERS_ENGINE_H
-#define CVC4__THEORY__QUANTIFIERS_ENGINE_H
+#ifndef CVC5__THEORY__QUANTIFIERS_ENGINE_H
+#define CVC5__THEORY__QUANTIFIERS_ENGINE_H
 
 #include <map>
 #include <unordered_map>
@@ -24,77 +25,54 @@
 #include "context/cdhashset.h"
 #include "context/cdlist.h"
 #include "theory/quantifiers/quant_util.h"
-#include "theory/quantifiers/quantifiers_registry.h"
-#include "theory/quantifiers/term_registry.h"
-#include "util/statistics_registry.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 class TheoryEngine;
 
 namespace theory {
 
-class DecisionManager;
 class QuantifiersModule;
 class RepSetIterator;
 
-namespace inst {
-class TriggerTrie;
-}
 namespace quantifiers {
-class EqualityQueryQuantifiersEngine;
+
 class FirstOrderModel;
 class Instantiate;
 class QModelBuilder;
 class QuantifiersInferenceManager;
 class QuantifiersModules;
 class QuantifiersState;
+class QuantifiersRegistry;
 class Skolemize;
 class TermDb;
 class TermDbSygus;
 class TermEnumeration;
+class TermRegistry;
 }
 
 // TODO: organize this more/review this, github issue #1163
 class QuantifiersEngine {
-  friend class ::CVC4::TheoryEngine;
+  friend class ::cvc5::TheoryEngine;
   typedef context::CDHashMap< Node, bool, NodeHashFunction > BoolMap;
-  typedef context::CDList<Node> NodeList;
-  typedef context::CDList<bool> BoolList;
   typedef context::CDHashSet<Node, NodeHashFunction> NodeSet;
 
  public:
   QuantifiersEngine(quantifiers::QuantifiersState& qstate,
+                    quantifiers::QuantifiersRegistry& qr,
+                    quantifiers::TermRegistry& tr,
                     quantifiers::QuantifiersInferenceManager& qim,
                     ProofNodeManager* pnm);
   ~QuantifiersEngine();
-  //---------------------- external interface
-  /** Get the decision manager */
-  DecisionManager* getDecisionManager();
-  /** The quantifiers state object */
-  quantifiers::QuantifiersState& getState();
-  /** The quantifiers inference manager */
-  quantifiers::QuantifiersInferenceManager& getInferenceManager();
   /** The quantifiers registry */
   quantifiers::QuantifiersRegistry& getQuantifiersRegistry();
-  //---------------------- end external interface
   //---------------------- utilities
   /** get the model builder */
   quantifiers::QModelBuilder* getModelBuilder() const;
   /** get model */
   quantifiers::FirstOrderModel* getModel() const;
-  /** get term database */
-  quantifiers::TermDb* getTermDatabase() const;
   /** get term database sygus */
   quantifiers::TermDbSygus* getTermDatabaseSygus() const;
-  /** get term enumeration utility */
-  quantifiers::TermEnumeration* getTermEnumeration() const;
-  /** get instantiate utility */
-  quantifiers::Instantiate* getInstantiate() const;
-  /** get skolemize utility */
-  quantifiers::Skolemize* getSkolemize() const;
-  /** get trigger database */
-  inst::TriggerTrie* getTriggerDatabase() const;
   //---------------------- end utilities
  private:
   //---------------------- private initialization
@@ -107,39 +85,8 @@ class QuantifiersEngine {
    * @param te The theory engine
    * @param dm The decision manager of the theory engine
    */
-  void finishInit(TheoryEngine* te, DecisionManager* dm);
+  void finishInit(TheoryEngine* te);
   //---------------------- end private initialization
- public:
-  /** does variable v of quantified formula q have a finite bound? */
-  bool isFiniteBound(Node q, Node v) const;
-  /** get bound var type
-   *
-   * This returns the type of bound that was inferred for variable v of
-   * quantified formula q.
-   */
-  BoundVarType getBoundVarType(Node q, Node v) const;
-  /**
-   * Get the indices of bound variables, in the order they should be processed
-   * in a RepSetIterator.
-   *
-   * For details, see BoundedIntegers::getBoundVarIndices.
-   */
-  void getBoundVarIndices(Node q, std::vector<unsigned>& indices) const;
-  /**
-   * Get bound elements
-   *
-   * This gets the (finite) enumeration of the range of variable v of quantified
-   * formula q and adds it into the vector elements in the context of the
-   * iteration being performed by rsi. It returns true if it could successfully
-   * determine this range.
-   *
-   * For details, see BoundedIntegers::getBoundElements.
-   */
-  bool getBoundElements(RepSetIterator* rsi,
-                        bool initial,
-                        Node q,
-                        Node v,
-                        std::vector<Node>& elements) const;
 
  public:
   /** presolve */
@@ -176,17 +123,6 @@ public:
  /** mark relevant quantified formula, this will indicate it should be checked
   * before the others */
  void markRelevant(Node q);
- /** get internal representative
-  *
-  * Choose a term that is equivalent to a in the current context that is the
-  * best term for instantiating the index^th variable of quantified formula q.
-  * If no legal term can be found, we return null. This can occur if:
-  * - a's type is not a subtype of the type of the index^th variable of q,
-  * - a is in an equivalent class with all terms that are restricted not to
-  * appear in instantiations of q, e.g. INST_CONSTANT terms for counterexample
-  * guided instantiation.
-  */
- Node getInternalRepresentative(Node a, Node q, int index);
  /**
   * Get quantifiers name, which returns a variable corresponding to the name of
   * quantified formula q if q has a name, or otherwise returns q itself.
@@ -210,6 +146,11 @@ public:
  void getInstantiationTermVectors(
      std::map<Node, std::vector<std::vector<Node> > >& insts);
  /**
+  * Get instantiations for quantified formula q. If q is (forall ((x T)) (P x)),
+  * this is a list of the form (P t1) ... (P tn) for ground terms ti.
+  */
+ void getInstantiations(Node q, std::vector<Node>& insts);
+ /**
   * Get skolemization vectors, where for each quantified formula that was
   * skolemized, this is the list of skolems that were used to witness the
   * negation of that quantified formula.
@@ -231,27 +172,9 @@ public:
   * SynthConjecture::getSynthSolutions.
   */
  bool getSynthSolutions(std::map<Node, std::map<Node, Node> >& sol_map);
-
+ /** Declare pool */
+ void declarePool(Node p, const std::vector<Node>& initValue);
  //----------end user interface for instantiations
-
- /** statistics class */
- class Statistics
- {
-  public:
-    TimerStat d_time;
-    TimerStat d_qcf_time;
-    TimerStat d_ematching_time;
-    IntStat d_num_quant;
-    IntStat d_instantiation_rounds;
-    IntStat d_instantiation_rounds_lc;
-    IntStat d_triggers;
-    IntStat d_simple_triggers;
-    IntStat d_multi_triggers;
-    IntStat d_red_alpha_equiv;
-    Statistics();
-    ~Statistics();
-  };/* class QuantifiersEngine::Statistics */
-  Statistics d_statistics;
 
  private:
   /** The quantifiers state object */
@@ -260,8 +183,6 @@ public:
   quantifiers::QuantifiersInferenceManager& d_qim;
   /** Pointer to theory engine object */
   TheoryEngine* d_te;
-  /** Reference to the decision manager of the theory engine */
-  DecisionManager* d_decManager;
   /** Pointer to the proof node manager */
   ProofNodeManager* d_pnm;
   /** vector of utilities for quantifiers */
@@ -270,28 +191,16 @@ public:
   std::vector<QuantifiersModule*> d_modules;
   //------------- quantifiers utilities
   /** The quantifiers registry */
-  quantifiers::QuantifiersRegistry d_qreg;
+  quantifiers::QuantifiersRegistry& d_qreg;
   /** The term registry */
-  quantifiers::TermRegistry d_treg;
-  /** all triggers will be stored in this trie */
-  std::unique_ptr<inst::TriggerTrie> d_tr_trie;
+  quantifiers::TermRegistry& d_treg;
   /** extended model object */
-  std::unique_ptr<quantifiers::FirstOrderModel> d_model;
-  /** model builder */
-  std::unique_ptr<quantifiers::QModelBuilder> d_builder;
-  /** equality query class */
-  std::unique_ptr<quantifiers::EqualityQueryQuantifiersEngine> d_eq_query;
-  /** instantiate utility */
-  std::unique_ptr<quantifiers::Instantiate> d_instantiate;
-  /** skolemize utility */
-  std::unique_ptr<quantifiers::Skolemize> d_skolemize;
+  quantifiers::FirstOrderModel* d_model;
   //------------- end quantifiers utilities
   /**
    * The modules utility, which contains all of the quantifiers modules.
    */
   std::unique_ptr<quantifiers::QuantifiersModules> d_qmodules;
-  //------------- end temporary information during check
- private:
   /** list of all quantifiers seen */
   std::map<Node, bool> d_quants;
   /** quantifiers pre-registered */
@@ -301,7 +210,7 @@ public:
   std::map<Node, Node> d_quants_red_lem;
 };/* class QuantifiersEngine */
 
-}/* CVC4::theory namespace */
-}/* CVC4 namespace */
+}  // namespace theory
+}  // namespace cvc5
 
-#endif /* CVC4__THEORY__QUANTIFIERS_ENGINE_H */
+#endif /* CVC5__THEORY__QUANTIFIERS_ENGINE_H */

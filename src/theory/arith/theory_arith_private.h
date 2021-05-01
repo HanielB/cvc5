@@ -1,19 +1,20 @@
-/*********************                                                        */
-/*! \file theory_arith_private.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Tim King, Andrew Reynolds, Alex Ozdemir
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief [[ Add one-line brief description here ]]
- **
- ** [[ Add lengthier description here ]]
- ** \todo document this file
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Tim King, Andrew Reynolds, Alex Ozdemir
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * [[ Add one-line brief description here ]]
+ *
+ * [[ Add lengthier description here ]]
+ * \todo document this file
+ */
 
 #pragma once
 
@@ -52,9 +53,9 @@
 #include "util/integer.h"
 #include "util/rational.h"
 #include "util/result.h"
-#include "util/statistics_registry.h"
+#include "util/statistics_stats.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 
 class EagerProofGenerator;
@@ -137,12 +138,6 @@ private:
   void entailmentCheckBoundLookup(std::pair<Node, DeltaRational>& tmp, int sgn, TNode tp) const;
   void entailmentCheckRowSum(std::pair<Node, DeltaRational>& tmp, int sgn, TNode tp) const;
 
-  std::pair<Node, DeltaRational> entailmentCheckSimplex(int sgn, TNode tp, const inferbounds::InferBoundAlgorithm& p, InferBoundsResult& out);
-
-  //InferBoundsResult inferBound(TNode term, const InferBoundsParameters& p);
-  //InferBoundsResult inferUpperBoundLookup(TNode t, const InferBoundsParameters& p);
-  //InferBoundsResult inferUpperBoundSimplex(TNode t, const SimplexInferBoundsParameters& p);
-
   /**
    * Infers either a new upper/lower bound on term in the real relaxation.
    * Either:
@@ -212,8 +207,10 @@ private:
     return d_partialModel.isAuxiliary(x);
   }
 
-  inline bool isIntegerInput(ArithVar x) const {
-    return d_partialModel.isIntegerInput(x);
+  inline bool isIntegerInput(ArithVar x) const
+  {
+    return d_partialModel.isIntegerInput(x)
+           && d_preregisteredNodes.contains(d_partialModel.asNode(x));
   }
 
   /**
@@ -266,6 +263,11 @@ private:
   std::deque<ConstraintP> d_currentPropagationList;
 
   context::CDQueue<ConstraintP> d_learnedBounds;
+
+  /**
+   * Contains all nodes that have been preregistered
+   */
+  context::CDHashSet<Node, NodeHashFunction> d_preregisteredNodes;
 
 
   /**
@@ -328,7 +330,7 @@ private:
   // inline void raiseConflict(const ConstraintCPVec& cv){
   //   d_conflicts.push_back(cv);
   // }
-  
+
   // void raiseConflict(ConstraintCP a, ConstraintCP b);
   // void raiseConflict(ConstraintCP a, ConstraintCP b, ConstraintCP c);
 
@@ -417,9 +419,6 @@ private:
    */
   DeltaRational getDeltaValue(TNode term) const
       /* throw(DeltaRationalException, ModelException) */;
-
-  Node axiomIteForTotalDivision(Node div_tot);
-  Node axiomIteForTotalIntDivision(Node int_div_like);
  public:
   TheoryArithPrivate(TheoryArith& containing,
                      context::Context* c,
@@ -470,7 +469,7 @@ private:
   void notifyRestart();
   Theory::PPAssertStatus ppAssert(TrustNode tin,
                                   TrustSubstitutionMap& outSubstitutions);
-  void ppStaticLearn(TNode in, NodeBuilder<>& learned);
+  void ppStaticLearn(TNode in, NodeBuilder& learned);
 
   std::string identify() const { return std::string("TheoryArith"); }
 
@@ -503,6 +502,9 @@ private:
    * setIncomplete should be called on the output channel of TheoryArith.
    */
   bool foundNonlinear() const;
+
+  /** get the proof checker of this theory */
+  ArithProofRuleChecker* getProofChecker();
 
  private:
   /** The constant zero. */
@@ -547,7 +549,7 @@ private:
    *
    * If there is no such variable, returns ARITHVAR_SENTINEL;
    */
-  ArithVar nextIntegerViolatation(bool assumeBounds) const;
+  ArithVar nextIntegerViolation(bool assumeBounds) const;
 
   /**
    * Issues branches for non-auxiliary integer variables with non-integer assignments.
@@ -674,8 +676,7 @@ private:
   bool isImpliedUpperBound(ArithVar var, Node exp);
   bool isImpliedLowerBound(ArithVar var, Node exp);
 
-  void internalExplain(TNode n, NodeBuilder<>& explainBuilder);
-
+  void internalExplain(TNode n, NodeBuilder& explainBuilder);
 
   void asVectors(const Polynomial& p,
                  std::vector<Rational>& coeffs,
@@ -755,7 +756,7 @@ private:
 
   static ConstraintCP vectorToIntHoleConflict(const ConstraintCPVec& conflict);
   static void intHoleConflictToVector(ConstraintCP conflicting, ConstraintCPVec& conflict);
-  
+
   // Returns true if the node contains a literal
   // that is an arithmetic literal and is not a sat literal
   // No caching is done so this should likely only
@@ -859,7 +860,6 @@ private:
     HistogramStat<uint32_t> d_unsatPivots;
     HistogramStat<uint32_t> d_unknownPivots;
 
-
     IntStat d_solveIntModelsAttempts;
     IntStat d_solveIntModelsSuccessful;
     TimerStat d_mipTimer;
@@ -870,16 +870,13 @@ private:
 
     IntStat d_numBranchesFailed;
 
-
-
-    Statistics();
-    ~Statistics();
+    Statistics(const std::string& name);
   };
 
 
   Statistics d_statistics;
 };/* class TheoryArithPrivate */
 
-}/* CVC4::theory::arith namespace */
-}/* CVC4::theory namespace */
-}/* CVC4 namespace */
+}  // namespace arith
+}  // namespace theory
+}  // namespace cvc5

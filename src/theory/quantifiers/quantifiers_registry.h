@@ -1,27 +1,29 @@
-/*********************                                                        */
-/*! \file quantifiers_registry.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Morgan Deters, Mathias Preiner
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief The quantifiers registry
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Morgan Deters
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * The quantifiers registry.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
-#ifndef CVC4__THEORY__QUANTIFIERS__QUANTIFIERS_REGISTRY_H
-#define CVC4__THEORY__QUANTIFIERS__QUANTIFIERS_REGISTRY_H
+#ifndef CVC5__THEORY__QUANTIFIERS__QUANTIFIERS_REGISTRY_H
+#define CVC5__THEORY__QUANTIFIERS__QUANTIFIERS_REGISTRY_H
 
 #include "expr/node.h"
+#include "theory/quantifiers/quant_bound_inference.h"
 #include "theory/quantifiers/quant_util.h"
 #include "theory/quantifiers/quantifiers_attributes.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 
 class QuantifiersModule;
@@ -87,6 +89,8 @@ class QuantifiersRegistry : public QuantifiersUtil
   //----------------------------- end instantiation constants
   /** Get quantifiers attributes utility class */
   QuantAttributes& getQuantAttributes();
+  /** Get quantifiers bound inference utility */
+  QuantifiersBoundInference& getQuantifiersBoundInference();
   /**
    * Get quantifiers name, which returns a variable corresponding to the name of
    * quantified formula q if q has a name, or otherwise returns q itself.
@@ -120,10 +124,12 @@ class QuantifiersRegistry : public QuantifiersUtil
   std::map<Node, std::vector<Node> > d_inst_constants;
   /** The quantifiers attributes class */
   QuantAttributes d_quantAttr;
+  /** The quantifiers bound inference class */
+  QuantifiersBoundInference d_quantBoundInf;
 };
 
 }  // namespace quantifiers
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5
 
-#endif /* CVC4__THEORY__QUANTIFIERS__QUANTIFIERS_REGISTRY_H */
+#endif /* CVC5__THEORY__QUANTIFIERS__QUANTIFIERS_REGISTRY_H */

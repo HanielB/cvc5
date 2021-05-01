@@ -1,19 +1,20 @@
-/*********************                                                        */
-/*! \file equality_engine.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Dejan Jovanovic, Andrew Reynolds, Haniel Barbosa
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief [[ Add one-line brief description here ]]
- **
- ** [[ Add lengthier description here ]]
- ** \todo document this file
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Dejan Jovanovic, Andrew Reynolds, Haniel Barbosa
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ * [[ Add one-line brief description here ]]
+ *
+ *
+ * [[ Add lengthier description here ]]
+ * \todo document this file
+ */
 
 #include "theory/uf/equality_engine.h"
 
@@ -24,27 +25,18 @@
 #include "theory/rewriter.h"
 #include "theory/uf/eq_proof.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace eq {
 
-EqualityEngine::Statistics::Statistics(std::string name)
-    : d_mergesCount(name + "::mergesCount", 0),
-      d_termsCount(name + "::termsCount", 0),
-      d_functionTermsCount(name + "::functionTermsCount", 0),
-      d_constantTermsCount(name + "::constantTermsCount", 0)
+EqualityEngine::Statistics::Statistics(const std::string& name)
+    : d_mergesCount(smtStatisticsRegistry().registerInt(name + "mergesCount")),
+      d_termsCount(smtStatisticsRegistry().registerInt(name + "termsCount")),
+      d_functionTermsCount(
+          smtStatisticsRegistry().registerInt(name + "functionTermsCount")),
+      d_constantTermsCount(
+          smtStatisticsRegistry().registerInt(name + "constantTermsCount"))
 {
-  smtStatisticsRegistry()->registerStat(&d_mergesCount);
-  smtStatisticsRegistry()->registerStat(&d_termsCount);
-  smtStatisticsRegistry()->registerStat(&d_functionTermsCount);
-  smtStatisticsRegistry()->registerStat(&d_constantTermsCount);
-}
-
-EqualityEngine::Statistics::~Statistics() {
-  smtStatisticsRegistry()->unregisterStat(&d_mergesCount);
-  smtStatisticsRegistry()->unregisterStat(&d_termsCount);
-  smtStatisticsRegistry()->unregisterStat(&d_functionTermsCount);
-  smtStatisticsRegistry()->unregisterStat(&d_constantTermsCount);
 }
 
 /**
@@ -127,7 +119,7 @@ EqualityEngine::EqualityEngine(context::Context* context,
       d_assertedEqualitiesCount(context, 0),
       d_equalityTriggersCount(context, 0),
       d_subtermEvaluatesSize(context, 0),
-      d_stats(name),
+      d_stats(name + "::"),
       d_inPropagate(false),
       d_constantsAreTriggers(constantsAreTriggers),
       d_anyTermsAreTriggers(anyTermTriggers),
@@ -157,7 +149,7 @@ EqualityEngine::EqualityEngine(EqualityEngineNotify& notify,
       d_assertedEqualitiesCount(context, 0),
       d_equalityTriggersCount(context, 0),
       d_subtermEvaluatesSize(context, 0),
-      d_stats(name),
+      d_stats(name + "::"),
       d_inPropagate(false),
       d_constantsAreTriggers(constantsAreTriggers),
       d_anyTermsAreTriggers(anyTermTriggers),
@@ -1387,7 +1379,7 @@ void EqualityEngine::getExplanation(
   cache[cacheKey] = eqp;
 
   // We can only explain the nodes that got merged
-#ifdef CVC4_ASSERTIONS
+#ifdef CVC5_ASSERTIONS
   bool canExplain = getEqualityNode(t1Id).getFind() == getEqualityNode(t2Id).getFind()
                   || (d_done && isConstant(t1Id) && isConstant(t2Id));
 
@@ -1841,7 +1833,7 @@ void EqualityEngine::addTriggerEqualityInternal(TNode t1, TNode t2, TNode trigge
 
 Node EqualityEngine::evaluateTerm(TNode node) {
   Debug("equality::evaluation") << d_name << "::eq::evaluateTerm(" << node << ")" << std::endl;
-  NodeBuilder<> builder;
+  NodeBuilder builder;
   builder << node.getKind();
   if (node.getMetaKind() == kind::metakind::PARAMETERIZED) {
     builder << node.getOperator();
@@ -2073,6 +2065,29 @@ void EqualityEngine::debugPrintGraph() const {
     Debug("equality::graph") << std::endl;
   }
   Debug("equality::graph") << std::endl;
+}
+
+std::string EqualityEngine::debugPrintEqc() const
+{
+  std::stringstream ss;
+  eq::EqClassesIterator eqcs2_i = eq::EqClassesIterator(this);
+  while (!eqcs2_i.isFinished())
+  {
+    Node eqc = (*eqcs2_i);
+    eq::EqClassIterator eqc2_i = eq::EqClassIterator(eqc, this);
+    ss << "Eqc( " << eqc << " ) : { ";
+    while (!eqc2_i.isFinished())
+    {
+      if ((*eqc2_i) != eqc && (*eqc2_i).getKind() != kind::EQUAL)
+      {
+        ss << (*eqc2_i) << " ";
+      }
+      ++eqc2_i;
+    }
+    ss << " } " << std::endl;
+    ++eqcs2_i;
+  }
+  return ss.str();
 }
 
 bool EqualityEngine::areEqual(TNode t1, TNode t2) const {
@@ -2362,7 +2377,7 @@ EqualityEngine::TriggerTermSetRef EqualityEngine::newTriggerTermSet(
 bool EqualityEngine::hasPropagatedDisequality(EqualityNodeId lhsId, EqualityNodeId rhsId) const {
   EqualityPair eq(lhsId, rhsId);
   bool propagated = d_propagatedDisequalities.find(eq) != d_propagatedDisequalities.end();
-#ifdef CVC4_ASSERTIONS
+#ifdef CVC5_ASSERTIONS
   bool stored = d_disequalityReasonsMap.find(eq) != d_disequalityReasonsMap.end();
   Assert(propagated == stored) << "These two should be in sync";
 #endif
@@ -2416,7 +2431,7 @@ void EqualityEngine::storePropagatedDisequality(TheoryId tag, EqualityNodeId lhs
     Assert(d_disequalityReasonsMap.find(pair1) == d_disequalityReasonsMap.end())
         << "There can't be a proof if you're adding a new one";
     DisequalityReasonRef ref(d_deducedDisequalityReasonsSize, d_deducedDisequalityReasons.size());
-#ifdef CVC4_ASSERTIONS
+#ifdef CVC5_ASSERTIONS
     // Check that the reasons are valid
     for (unsigned i = ref.d_mergesStart; i < ref.d_mergesEnd; ++i)
     {
@@ -2612,4 +2627,4 @@ EqualityNodeId EqualityEngine::TriggerTermSet::getTrigger(TheoryId tag) const
 
 } // Namespace uf
 } // Namespace theory
-} // Namespace CVC4
+}  // namespace cvc5

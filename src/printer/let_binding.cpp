@@ -1,22 +1,23 @@
-/*********************                                                        */
-/*! \file let_binding.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief A let binding utility
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * A let binding utility.
+ */
 
 #include "printer/let_binding.h"
 
 #include <sstream>
 
-namespace CVC4 {
+namespace cvc5 {
 
 LetBinding::LetBinding(uint32_t thresh)
     : d_thresh(thresh),
@@ -57,7 +58,7 @@ void LetBinding::letify(std::vector<Node>& letList)
   // populate the d_letList and d_letMap
   convertCountToLet();
   // add the new entries to the letList
-letList.insert(letList.end(), d_letList.begin() + prevSize, d_letList.end());
+  letList.insert(letList.end(), d_letList.begin() + prevSize, d_letList.end());
 }
 
 void LetBinding::pushScope() { d_context.push(); }
@@ -102,6 +103,11 @@ Node LetBinding::convert(Node n, const std::string& prefix, bool letTop) const
         std::stringstream ss;
         ss << prefix << id;
         visited[cur] = nm->mkBoundVar(ss.str(), cur.getType());
+      }
+      else if (cur.isClosure())
+      {
+        // do not convert beneath quantifiers
+        visited[cur] = cur;
       }
       else
       {
@@ -207,4 +213,4 @@ void LetBinding::convertCountToLet()
   }
 }
 
-}  // namespace CVC4
+}  // namespace cvc5

@@ -1,21 +1,22 @@
-/*********************                                                        */
-/*! \file inst_match_generator_simple.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief simple inst match generator class
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Simple inst match generator class.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
-#ifndef CVC4__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_SIMPLE_H
-#define CVC4__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_SIMPLE_H
+#ifndef CVC5__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_SIMPLE_H
+#define CVC5__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_SIMPLE_H
 
 #include <map>
 #include <vector>
@@ -23,8 +24,9 @@
 #include "expr/node_trie.h"
 #include "theory/quantifiers/ematching/inst_match_generator.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
+namespace quantifiers {
 namespace inst {
 
 /** InstMatchGeneratorSimple class
@@ -40,10 +42,6 @@ namespace inst {
  * The implementation traverses the term indices in TermDatabase for adding
  * instantiations, which is more efficient than the techniques required for
  * handling non-simple single triggers.
- *
- * In contrast to other instantiation generators, it does not call
- * IMGenerator::sendInstantiation and for performance reasons instead calls
- * qe->getInstantiate()->addInstantiation(...) directly.
  */
 class InstMatchGeneratorSimple : public IMGenerator
 {
@@ -87,12 +85,12 @@ class InstMatchGeneratorSimple : public IMGenerator
   std::map<size_t, int> d_var_num;
   /** add instantiations, helper function.
    *
-   * m is the current match we are building,
-   * addedLemmas is the number of lemmas we have added via calls to
-   *                qe->getInstantiate()->aaddInstantiation(...),
-   * argIndex is the argument index in d_match_pattern we are currently
-   *              matching,
-   * tat is the term index we are currently traversing.
+   * @param m the current match we are building,
+   * @param addedLemmas the number of lemmas we have added via calls to
+   * Instantiate::addInstantiation(...),
+   * @param argIndex the argument index in d_match_pattern we are currently
+   * matching,
+   * @param tat the term index we are currently traversing.
    */
   void addInstantiations(InstMatch& m,
                          uint64_t& addedLemmas,
@@ -101,7 +99,8 @@ class InstMatchGeneratorSimple : public IMGenerator
 };
 
 }  // namespace inst
+}  // namespace quantifiers
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5
 
 #endif

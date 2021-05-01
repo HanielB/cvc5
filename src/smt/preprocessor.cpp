@@ -1,46 +1,50 @@
-/*********************                                                        */
-/*! \file preprocessor.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Morgan Deters, Abdalrhman Mohamed
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief The preprocessor of the SMT engine.
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Morgan Deters, Aina Niemetz
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * The preprocessor of the SMT engine.
+ */
 
 #include "smt/preprocessor.h"
 
+#include "options/expr_options.h"
 #include "options/smt_options.h"
 #include "preprocessing/preprocessing_pass_context.h"
 #include "printer/printer.h"
 #include "smt/abstract_values.h"
 #include "smt/assertions.h"
 #include "smt/dump.h"
+#include "smt/env.h"
 #include "smt/preprocess_proof_generator.h"
 #include "smt/smt_engine.h"
+#include "theory/rewriter.h"
 
 using namespace std;
-using namespace CVC4::theory;
-using namespace CVC4::kind;
+using namespace cvc5::theory;
+using namespace cvc5::kind;
 
-namespace CVC4 {
+namespace cvc5 {
 namespace smt {
 
 Preprocessor::Preprocessor(SmtEngine& smt,
-                           context::UserContext* u,
+                           Env& env,
                            AbstractValues& abs,
                            SmtEngineStatistics& stats)
-    : d_context(u),
-      d_smt(smt),
+    : d_smt(smt),
+      d_env(env),
       d_absValues(abs),
       d_propagator(true, true),
-      d_assertionsProcessed(u, false),
-      d_exDefs(smt, *smt.getResourceManager(), stats),
-      d_processor(smt, d_exDefs, *smt.getResourceManager(), stats),
+      d_assertionsProcessed(env.getUserContext(), false),
+      d_exDefs(smt, d_env, stats),
+      d_processor(smt, *smt.getResourceManager(), stats),
       d_pnm(nullptr)
 {
 }
@@ -57,7 +61,7 @@ Preprocessor::~Preprocessor()
 void Preprocessor::finishInit()
 {
   d_ppContext.reset(new preprocessing::PreprocessingPassContext(
-      &d_smt, &d_propagator, d_pnm));
+      &d_smt, d_env, &d_propagator));
 
   // initialize the preprocessing passes
   d_processor.finishInit(d_ppContext.get());
@@ -109,7 +113,7 @@ void Preprocessor::cleanup() { d_processor.cleanup(); }
 Node Preprocessor::expandDefinitions(const Node& n, bool expandOnly)
 {
   std::unordered_map<Node, Node, NodeHashFunction> cache;
-  return d_exDefs.expandDefinitions(n, cache, expandOnly);
+  return expandDefinitions(n, cache, expandOnly);
 }
 
 Node Preprocessor::expandDefinitions(
@@ -125,8 +129,15 @@ Node Preprocessor::expandDefinitions(
     // Ensure node is type-checked at this point.
     n.getType(true);
   }
-  // expand only = true
-  return d_exDefs.expandDefinitions(n, cache, expandOnly);
+  // we apply substitutions here, before expanding definitions
+  theory::SubstitutionMap& sm = d_env.getTopLevelSubstitutions().get();
+  n = sm.apply(n);
+  if (!expandOnly)
+  {
+    // expand only = true
+    n = d_exDefs.expandDefinitions(n, cache, expandOnly);
+  }
+  return n;
 }
 
 Node Preprocessor::simplify(const Node& node)
@@ -137,17 +148,10 @@ Node Preprocessor::simplify(const Node& node)
     d_smt.getOutputManager().getPrinter().toStreamCmdSimplify(
         d_smt.getOutputManager().getDumpOut(), node);
   }
-  Node nas = d_absValues.substituteAbstractValues(node);
-  if (options::typeChecking())
-  {
-    // ensure node is type-checked at this point
-    nas.getType(true);
-  }
   std::unordered_map<Node, Node, NodeHashFunction> cache;
-  Node n = d_exDefs.expandDefinitions(nas, cache);
-  TrustNode ts = d_ppContext->getTopLevelSubstitutions().apply(n);
-  Node ns = ts.isNull() ? n : ts.getNode();
-  return ns;
+  Node ret = expandDefinitions(node, cache, false);
+  ret = theory::Rewriter::rewrite(ret);
+  return ret;
 }
 
 void Preprocessor::setProofGenerator(PreprocessProofGenerator* pppg)
@@ -155,8 +159,8 @@ void Preprocessor::setProofGenerator(PreprocessProofGenerator* pppg)
   Assert(pppg != nullptr);
   d_pnm = pppg->getManager();
   d_exDefs.setProofNodeManager(d_pnm);
-  d_propagator.setProof(d_pnm, d_context, pppg);
+  d_propagator.setProof(d_pnm, d_env.getUserContext(), pppg);
 }
 
 }  // namespace smt
-}  // namespace CVC4
+}  // namespace cvc5

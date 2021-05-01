@@ -1,31 +1,31 @@
-/*********************                                                        */
-/*! \file env.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Smt Environment, main access to global utilities available to
- ** internal code
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Andres Noetzli, Morgan Deters
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Smt Environment, main access to global utilities available to
+ * internal code
+ */
 
-#include "cvc4_public.h"
+#include "cvc5_public.h"
 
-#ifndef CVC4__SMT__ENV_H
-#define CVC4__SMT__ENV_H
+#ifndef CVC5__SMT__ENV_H
+#define CVC5__SMT__ENV_H
 
 #include <memory>
 
 #include "options/options.h"
 #include "theory/logic_info.h"
-#include "util/sexpr.h"
-#include "util/statistics.h"
+#include "util/statistics_registry.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 class NodeManager;
 class StatisticsRegistry;
@@ -44,6 +44,7 @@ class DumpManager;
 
 namespace theory {
 class Rewriter;
+class TrustSubstitutionMap;
 }
 
 /**
@@ -60,7 +61,7 @@ class Env
   /**
    * Construct an Env with the given node manager.
    */
-  Env(NodeManager* nm);
+  Env(NodeManager* nm, Options* opts);
   /** Destruct the env.  */
   ~Env();
 
@@ -84,8 +85,17 @@ class Env
   /** Get a pointer to the Rewriter owned by this Env. */
   theory::Rewriter* getRewriter();
 
+  /** Get a reference to the top-level substitution map */
+  theory::TrustSubstitutionMap& getTopLevelSubstitutions();
+
   /** Get a pointer to the underlying dump manager. */
   smt::DumpManager* getDumpManager();
+
+  template <typename Opt>
+  const auto& getOption(Opt opt) const
+  {
+    return d_options[opt];
+  }
 
   /** Get the options object (const version only) owned by this Env. */
   const Options& getOptions() const;
@@ -97,7 +107,7 @@ class Env
   const LogicInfo& getLogicInfo() const;
 
   /** Get a pointer to the StatisticsRegistry. */
-  StatisticsRegistry* getStatisticsRegistry();
+  StatisticsRegistry& getStatisticsRegistry();
 
   /* Option helpers---------------------------------------------------------- */
 
@@ -116,10 +126,6 @@ class Env
  private:
   /* Private initialization ------------------------------------------------- */
 
-  /** Set options, which makes a deep copy of optr if non-null */
-  void setOptions(Options* optr = nullptr);
-  /** Set the statistics registry */
-  void setStatisticsRegistry(StatisticsRegistry* statReg);
   /** Set proof node manager if it exists */
   void setProofNodeManager(ProofNodeManager* pnm);
 
@@ -153,6 +159,8 @@ class Env
    * specific to an SmtEngine/TheoryEngine instance.
    */
   std::unique_ptr<theory::Rewriter> d_rewriter;
+  /** The top level substitutions */
+  std::unique_ptr<theory::TrustSubstitutionMap> d_topLevelSubs;
   /** The dump manager */
   std::unique_ptr<smt::DumpManager> d_dumpManager;
   /**
@@ -165,9 +173,9 @@ class Env
    */
   LogicInfo d_logic;
   /**
-   * The statistics registry, which is owned by the SmtEngine that owns this.
+   * The statistics registry owned by this Env.
    */
-  StatisticsRegistry* d_statisticsRegistry;
+  std::unique_ptr<StatisticsRegistry> d_statisticsRegistry;
   /**
    * The options object, which contains the modified version of the options
    * provided as input to the SmtEngine that owns this environment. Note
@@ -182,6 +190,6 @@ class Env
   std::unique_ptr<ResourceManager> d_resourceManager;
 }; /* class Env */
 
-}  // namespace CVC4
+}  // namespace cvc5
 
-#endif /* CVC4__SMT__ENV_H */
+#endif /* CVC5__SMT__ENV_H */

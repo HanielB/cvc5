@@ -1,16 +1,17 @@
-/*********************                                                        */
-/*! \file symbol_manager.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief The symbol manager
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Aina Niemetz
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * The symbol manager.
+ */
 
 #include "expr/symbol_manager.h"
 
@@ -19,16 +20,16 @@
 #include "context/cdlist.h"
 #include "context/cdo.h"
 
-using namespace CVC4::context;
+using namespace cvc5::context;
 
-namespace CVC4 {
+namespace cvc5 {
 
 // ---------------------------------------------- SymbolManager::Implementation
 
 class SymbolManager::Implementation
 {
-  using TermStringMap = CDHashMap<api::Term, std::string, api::TermHashFunction>;
-  using TermSet = CDHashSet<api::Term, api::TermHashFunction>;
+  using TermStringMap = CDHashMap<api::Term, std::string, std::hash<api::Term>>;
+  using TermSet = CDHashSet<api::Term, std::hash<api::Term>>;
   using SortList = CDList<api::Sort>;
   using TermList = CDList<api::Term>;
 
@@ -367,4 +368,4 @@ void SymbolManager::resetAssertions()
   d_symtabAllocated.resetAssertions();
 }
 
-}  // namespace CVC4
+}  // namespace cvc5

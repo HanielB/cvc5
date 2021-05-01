@@ -1,28 +1,29 @@
-/*********************                                                        */
-/*! \file inst_match_generator_multi.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Morgan Deters, Tim King
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief multi inst match generator class
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Morgan Deters, Tim King
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Multi inst match generator class.
+ */
 
 #include "theory/quantifiers/ematching/inst_match_generator_multi.h"
 
 #include "theory/quantifiers/quantifiers_state.h"
 #include "theory/quantifiers/term_util.h"
-#include "theory/quantifiers_engine.h"
 #include "theory/uf/equality_engine_iterator.h"
 
-using namespace CVC4::kind;
+using namespace cvc5::kind;
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
+namespace quantifiers {
 namespace inst {
 
 InstMatchGeneratorMulti::InstMatchGeneratorMulti(Trigger* tparent,
@@ -35,8 +36,7 @@ InstMatchGeneratorMulti::InstMatchGeneratorMulti(Trigger* tparent,
   std::map<Node, std::vector<Node> > var_contains;
   for (const Node& pat : pats)
   {
-    quantifiers::TermUtil::computeInstConstContainsForQuant(
-        q, pat, var_contains[pat]);
+    TermUtil::computeInstConstContainsForQuant(q, pat, var_contains[pat]);
   }
   // convert to indicies
   for (std::pair<const Node, std::vector<Node> >& vc : var_contains)
@@ -269,7 +269,7 @@ void InstMatchGeneratorMulti::processNewInstantiations(InstMatch& m,
     {
       return;
     }
-    quantifiers::QuantifiersState& qs = d_qstate;
+    QuantifiersState& qs = d_qstate;
     // check modulo equality for other possible instantiations
     if (!qs.hasTerm(n))
     {
@@ -314,5 +314,6 @@ void InstMatchGeneratorMulti::processNewInstantiations(InstMatch& m,
 }
 
 }  // namespace inst
+}  // namespace quantifiers
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5

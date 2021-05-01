@@ -25,6 +25,7 @@ General options;
   --arm64                  cross-compile for Linux ARM 64 bit
   --win64                  cross-compile for Windows 64 bit
   --ninja                  use Ninja build system
+  --docs                   build Api documentation
 
 
 Features:
@@ -32,7 +33,7 @@ The following flags enable optional features (disable with --no-<option name>).
   --static                 build static libraries and binaries [default=no]
   --static-binary          statically link against system libraries
                            (must be disabled for static macOS builds) [default=yes]
-  --proofs                 support for proof generation
+  --auto-download          automatically download dependencies if necessary
   --debug-symbols          include debug symbols
   --valgrind               Valgrind instrumentation
   --debug-context-mm       use the debug context memory manager
@@ -58,27 +59,17 @@ The following flags enable optional packages (disable with --no-<option name>).
   --cln                    use CLN instead of GMP
   --glpk                   use GLPK simplex solver
   --abc                    use the ABC AIG library
-  --cadical                use the CaDiCaL SAT solver
+  --cadical                use the CaDiCaL SAT solver [default=yes]
   --cryptominisat          use the CryptoMiniSat SAT solver
-  --drat2er                use drat2er (required for eager BV proofs)
   --kissat                 use the Kissat SAT solver
-  --lfsc                   use the LFSC proof checker
-  --poly                   use the LibPoly library
-  --symfpu                 use SymFPU for floating point solver
+  --poly                   use the LibPoly library [default=yes]
+  --symfpu                 use SymFPU for floating point solver [default=yes]
   --editline               support the editline library
 
 Optional Path to Optional Packages:
   --abc-dir=PATH           path to top level of ABC source tree
-  --antlr-dir=PATH         path to ANTLR C headers and libraries
-  --cadical-dir=PATH       path to top level of CaDiCaL source tree
-  --cryptominisat-dir=PATH path to top level of CryptoMiniSat source tree
-  --drat2er-dir=PATH       path to the top level of the drat2er installation
   --glpk-dir=PATH          path to top level of GLPK installation
-  --gmp-dir=PATH           path to top level of GMP installation
-  --kissat-dir=PATH        path to top level of Kissat source tree
-  --lfsc-dir=PATH          path to top level of LFSC source tree
-  --poly-dir=PATH          path to top level of LibPoly source tree
-  --symfpu-dir=PATH        path to top level of SymFPU source tree
+  --dep-path=PATH          path to a dependency installation dir
 
 Build limitations:
   --lib-only               only build the library, but not the executable or
@@ -116,24 +107,23 @@ buildtype=default
 abc=default
 asan=default
 assertions=default
-cadical=default
+auto_download=default
+cadical=ON
 cln=default
 comp_inc=default
 coverage=default
 cryptominisat=default
 debug_context_mm=default
 debug_symbols=default
-drat2er=default
+docs=default
 dumping=default
 glpk=default
 gpl=default
 kissat=default
-lfsc=default
-poly=default
+poly=ON
 muzzle=default
 ninja=default
 profiling=default
-proofs=default
 python2=default
 python_bindings=default
 java_bindings=default
@@ -141,7 +131,7 @@ editline=default
 shared=default
 static_binary=default
 statistics=default
-symfpu=default
+symfpu=ON
 tracing=default
 tsan=default
 ubsan=default
@@ -152,16 +142,7 @@ arm64=default
 werror=default
 
 abc_dir=default
-antlr_dir=default
-cadical_dir=default
-cryptominisat_dir=default
-drat2er_dir=default
 glpk_dir=default
-gmp_dir=default
-kissat_dir=default
-lfsc_dir=default
-poly_dir=default
-symfpu_dir=default
 
 lib_only=default
 
@@ -235,9 +216,6 @@ do
     --debug-context-mm) debug_context_mm=ON;;
     --no-debug-context-mm) debug_context_mm=OFF;;
 
-    --drat2er) drat2er=ON;;
-    --no-drat2er) drat2er=OFF;;
-
     --dumping) dumping=ON;;
     --no-dumping) dumping=OFF;;
 
@@ -253,11 +231,11 @@ do
 
     --ninja) ninja=ON;;
 
+    --docs) docs=ON;;
+    --no-docs) docs=OFF;;
+
     --glpk) glpk=ON;;
     --no-glpk) glpk=OFF;;
-
-    --lfsc) lfsc=ON;;
-    --no-lfsc) lfsc=OFF;;
 
     --poly) poly=ON;;
     --no-poly) poly=OFF;;
@@ -265,14 +243,14 @@ do
     --muzzle) muzzle=ON;;
     --no-muzzle) muzzle=OFF;;
 
-    --proofs) proofs=ON;;
-    --no-proofs) proofs=OFF;;
-
     --static) shared=OFF; static_binary=ON;;
     --no-static) shared=ON;;
 
     --static-binary) static_binary=ON;;
     --no-static-binary) static_binary=OFF;;
+
+    --auto-download) auto_download=ON;;
+    --no-auto-download) auto_download=OFF;;
 
     --statistics) statistics=ON;;
     --no-statistics) statistics=OFF;;
@@ -295,7 +273,9 @@ do
     --java-bindings) java_bindings=ON;;
     --no-java-bindings) java_bindings=OFF;;
 
-    --all-bindings) python_bindings=ON;;
+    --all-bindings)
+      python_bindings=ON
+      java_bindings=ON;;
 
     --valgrind) valgrind=ON;;
     --no-valgrind) valgrind=OFF;;
@@ -309,35 +289,11 @@ do
     --abc-dir) die "missing argument to $1 (try -h)" ;;
     --abc-dir=*) abc_dir=${1##*=} ;;
 
-    --antlr-dir) die "missing argument to $1 (try -h)" ;;
-    --antlr-dir=*) antlr_dir=${1##*=} ;;
-
-    --cadical-dir) die "missing argument to $1 (try -h)" ;;
-    --cadical-dir=*) cadical_dir=${1##*=} ;;
-
-    --cryptominisat-dir) die "missing argument to $1 (try -h)" ;;
-    --cryptominisat-dir=*) cryptominisat_dir=${1##*=} ;;
-
-    --drat2er-dir) die "missing argument to $1 (try -h)" ;;
-    --drat2er-dir=*) drat2er_dir=${1##*=} ;;
-
     --glpk-dir) die "missing argument to $1 (try -h)" ;;
     --glpk-dir=*) glpk_dir=${1##*=} ;;
 
-    --gmp-dir) die "missing argument to $1 (try -h)" ;;
-    --gmp-dir=*) gmp_dir=${1##*=} ;;
-
-    --kissat-dir) die "missing argument to $1 (try -h)" ;;
-    --kissat-dir=*) kissat_dir=${1##*=} ;;
-
-    --lfsc-dir) die "missing argument to $1 (try -h)" ;;
-    --lfsc-dir=*) lfsc_dir=${1##*=} ;;
-
-    --poly-dir) die "missing argument to $1 (try -h)" ;;
-    --poly-dir=*) poly_dir=${1##*=} ;;
-
-    --symfpu-dir) die "missing argument to $1 (try -h)" ;;
-    --symfpu-dir=*) symfpu_dir=${1##*=} ;;
+    --dep-path) die "missing argument to $1 (try -h)" ;;
+    --dep-path=*) dep_path="${dep_path};${1##*=}" ;;
 
     --lib-only) lib_only=ON ;;
 
@@ -357,20 +313,6 @@ do
 done
 
 #--------------------------------------------------------------------------#
-# Automatically set up dependencies based on configure options
-#--------------------------------------------------------------------------#
-
-if [ "$arm64" == "ON" ]; then
-  echo "Setting up dependencies for ARM 64-bit build"
-  contrib/get-antlr-3.4 --host=aarch64-linux-gnu || exit 1
-  contrib/get-gmp-dev --host=aarch64-linux-gnu || exit 1
-elif [ "$win64" == "ON" ]; then
-  echo "Setting up dependencies for Windows 64-bit build"
-  contrib/get-antlr-3.4 --host=x86_64-w64-mingw32 || exit 1
-  contrib/get-gmp-dev --host=x86_64-w64-mingw32 || exit 1
-fi
-
-#--------------------------------------------------------------------------#
 
 if [ $werror != default ]; then
   export CFLAGS=-Werror
@@ -384,6 +326,8 @@ cmake_opts=""
 
 [ $asan != default ] \
   && cmake_opts="$cmake_opts -DENABLE_ASAN=$asan"
+[ $auto_download != default ] \
+  && cmake_opts="$cmake_opts -DENABLE_AUTO_DOWNLOAD=$auto_download"
 [ $ubsan != default ] \
   && cmake_opts="$cmake_opts -DENABLE_UBSAN=$ubsan"
 [ $tsan != default ] \
@@ -409,8 +353,6 @@ cmake_opts=""
 [ $ninja != default ] && cmake_opts="$cmake_opts -G Ninja"
 [ $muzzle != default ] \
   && cmake_opts="$cmake_opts -DENABLE_MUZZLE=$muzzle"
-[ $proofs != default ] \
-  && cmake_opts="$cmake_opts -DENABLE_PROOFS=$proofs"
 [ $shared != default ] \
   && cmake_opts="$cmake_opts -DENABLE_SHARED=$shared"
 [ $static_binary != default ] \
@@ -423,6 +365,8 @@ cmake_opts=""
   && cmake_opts="$cmake_opts -DENABLE_UNIT_TESTING=$unit_testing"
 [ $python2 != default ] \
   && cmake_opts="$cmake_opts -DUSE_PYTHON2=$python2"
+[ $docs != default ] \
+  && cmake_opts="$cmake_opts -DBUILD_DOCS=$docs"
 [ $python_bindings != default ] \
   && cmake_opts="$cmake_opts -DBUILD_BINDINGS_PYTHON=$python_bindings"
 [ $java_bindings != default ] \
@@ -441,40 +385,20 @@ cmake_opts=""
   && cmake_opts="$cmake_opts -DUSE_CLN=$cln"
 [ $cryptominisat != default ] \
   && cmake_opts="$cmake_opts -DUSE_CRYPTOMINISAT=$cryptominisat"
-[ $drat2er != default ] \
-  && cmake_opts="$cmake_opts -DUSE_DRAT2ER=$drat2er"
 [ $glpk != default ] \
   && cmake_opts="$cmake_opts -DUSE_GLPK=$glpk"
 [ $kissat != default ] \
   && cmake_opts="$cmake_opts -DUSE_KISSAT=$kissat"
-[ $lfsc != default ] \
-  && cmake_opts="$cmake_opts -DUSE_LFSC=$lfsc"
 [ $poly != default ] \
   && cmake_opts="$cmake_opts -DUSE_POLY=$poly"
 [ $symfpu != default ] \
   && cmake_opts="$cmake_opts -DUSE_SYMFPU=$symfpu"
 [ "$abc_dir" != default ] \
   && cmake_opts="$cmake_opts -DABC_DIR=$abc_dir"
-[ "$antlr_dir" != default ] \
-  && cmake_opts="$cmake_opts -DANTLR_DIR=$antlr_dir"
-[ "$cadical_dir" != default ] \
-  && cmake_opts="$cmake_opts -DCADICAL_DIR=$cadical_dir"
-[ "$cryptominisat_dir" != default ] \
-  && cmake_opts="$cmake_opts -DCRYPTOMINISAT_DIR=$cryptominisat_dir"
-[ "$drat2er_dir" != default ] \
-  && cmake_opts="$cmake_opts -DDRAT2ER_DIR=$drat2er_dir"
 [ "$glpk_dir" != default ] \
   && cmake_opts="$cmake_opts -DGLPK_DIR=$glpk_dir"
-[ "$gmp_dir" != default ] \
-  && cmake_opts="$cmake_opts -DGMP_DIR=$gmp_dir"
-[ "$kissat_dir" != default ] \
-  && cmake_opts="$cmake_opts -DKISSAT=$kissat_dir"
-[ "$lfsc_dir" != default ] \
-  && cmake_opts="$cmake_opts -DLFSC_DIR=$lfsc_dir"
-[ "$poly_dir" != default ] \
-  && cmake_opts="$cmake_opts -DPOLY_DIR=$poly_dir"
-[ "$symfpu_dir" != default ] \
-  && cmake_opts="$cmake_opts -DSYMFPU_DIR=$symfpu_dir"
+[ "$dep_path" != default ] \
+  && cmake_opts="$cmake_opts -DCMAKE_PREFIX_PATH=$dep_path"
 [ "$lib_only" != default ] \
     && cmake_opts="$cmake_opts -DBUILD_LIB_ONLY=$lib_only"
 [ "$install_prefix" != default ] \

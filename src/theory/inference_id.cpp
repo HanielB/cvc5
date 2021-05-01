@@ -1,28 +1,46 @@
-/*********************                                                        */
-/*! \file inference_id.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Gereon Kremer, Andrew Reynolds
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Implementation of inference enumeration.
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Gereon Kremer
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Implementation of inference enumeration.
+ */
 
 #include "theory/inference_id.h"
 
 #include <iostream>
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 
 const char* toString(InferenceId i)
 {
   switch (i)
   {
+    case InferenceId::EQ_CONSTANT_MERGE: return "EQ_CONSTANT_MERGE";
+    case InferenceId::ARITH_BLACK_BOX: return "ARITH_BLACK_BOX";
+    case InferenceId::ARITH_CONF_EQ: return "ARITH_CONF_EQ";
+    case InferenceId::ARITH_CONF_LOWER: return "ARITH_CONF_LOWER";
+    case InferenceId::ARITH_CONF_TRICHOTOMY: return "ARITH_CONF_TRICHOTOMY";
+    case InferenceId::ARITH_CONF_UPPER: return "ARITH_CONF_UPPER";
+    case InferenceId::ARITH_CONF_SIMPLEX: return "ARITH_CONF_SIMPLEX";
+    case InferenceId::ARITH_CONF_SOI_SIMPLEX: return "ARITH_CONF_SOI_SIMPLEX";
+    case InferenceId::ARITH_SPLIT_DEQ: return "ARITH_SPLIT_DEQ";
+    case InferenceId::ARITH_TIGHTEN_CEIL: return "ARITH_TIGHTEN_CEIL";
+    case InferenceId::ARITH_TIGHTEN_FLOOR: return "ARITH_TIGHTEN_FLOOR";
+    case InferenceId::ARITH_APPROX_CUT: return "ARITH_APPROX_CUT";
+    case InferenceId::ARITH_BB_LEMMA: return "ARITH_BB_LEMMA";
+    case InferenceId::ARITH_DIO_CUT: return "ARITH_DIO_CUT";
+    case InferenceId::ARITH_DIO_DECOMPOSITION: return "ARITH_DIO_DECOMPOSITION";
+    case InferenceId::ARITH_SPLIT_FOR_NL_MODEL:
+      return "ARITH_SPLIT_FOR_NL_MODEL";
     case InferenceId::ARITH_PP_ELIM_OPERATORS: return "ARITH_PP_ELIM_OPERATORS";
     case InferenceId::ARITH_PP_ELIM_OPERATORS_LEMMA:
       return "ARITH_PP_ELIM_OPERATORS_LEMMA";
@@ -79,6 +97,14 @@ const char* toString(InferenceId i)
     case InferenceId::BAG_DIFFERENCE_SUBTRACT: return "BAG_DIFFERENCE_SUBTRACT";
     case InferenceId::BAG_DIFFERENCE_REMOVE: return "BAG_DIFFERENCE_REMOVE";
     case InferenceId::BAG_DUPLICATE_REMOVAL: return "BAG_DUPLICATE_REMOVAL";
+
+    case InferenceId::BV_BITBLAST_CONFLICT: return "BV_BITBLAST_CONFLICT";
+    case InferenceId::BV_LAZY_CONFLICT: return "BV_LAZY_CONFLICT";
+    case InferenceId::BV_LAZY_LEMMA: return "BV_LAZY_LEMMA";
+    case InferenceId::BV_SIMPLE_LEMMA: return "BV_SIMPLE_LEMMA";
+    case InferenceId::BV_SIMPLE_BITBLAST_LEMMA: return "BV_SIMPLE_BITBLAST_LEMMA";
+    case InferenceId::BV_EXTF_LEMMA: return "BV_EXTF_LEMMA";
+    case InferenceId::BV_EXTF_COLLAPSE: return "BV_EXTF_COLLAPSE";
 
     case InferenceId::DATATYPES_PURIFY: return "DATATYPES_PURIFY";
     case InferenceId::DATATYPES_UNIF: return "DATATYPES_UNIF";
@@ -148,6 +174,14 @@ const char* toString(InferenceId i)
     case InferenceId::QUANTIFIERS_INST_CEGQI: return "QUANTIFIERS_INST_CEGQI";
     case InferenceId::QUANTIFIERS_INST_SYQI: return "QUANTIFIERS_INST_SYQI";
     case InferenceId::QUANTIFIERS_INST_ENUM: return "QUANTIFIERS_INST_ENUM";
+    case InferenceId::QUANTIFIERS_INST_POOL: return "QUANTIFIERS_INST_POOL";
+    case InferenceId::QUANTIFIERS_BINT_PROXY: return "QUANTIFIERS_BINT_PROXY";
+    case InferenceId::QUANTIFIERS_BINT_MIN_NG: return "QUANTIFIERS_BINT_MIN_NG";
+    case InferenceId::QUANTIFIERS_CEGQI_CEX: return "QUANTIFIERS_CEGQI_CEX";
+    case InferenceId::QUANTIFIERS_CEGQI_CEX_AUX:
+      return "QUANTIFIERS_CEGQI_CEX_AUX";
+    case InferenceId::QUANTIFIERS_CEGQI_NESTED_QE:
+      return "QUANTIFIERS_CEGQI_NESTED_QE";
     case InferenceId::QUANTIFIERS_CEGQI_CEX_DEP:
       return "QUANTIFIERS_CEGQI_CEX_DEP";
     case InferenceId::QUANTIFIERS_CEGQI_VTS_LB_DELTA:
@@ -156,6 +190,7 @@ const char* toString(InferenceId i)
       return "QUANTIFIERS_CEGQI_VTS_UB_DELTA";
     case InferenceId::QUANTIFIERS_CEGQI_VTS_LB_INF:
       return "QUANTIFIERS_CEGQI_VTS_LB_INF";
+    case InferenceId::QUANTIFIERS_SYQI_CEX: return "QUANTIFIERS_SYQI_CEX";
     case InferenceId::QUANTIFIERS_SYQI_EVAL_UNFOLD:
       return "QUANTIFIERS_SYQI_EVAL_UNFOLD";
     case InferenceId::QUANTIFIERS_SYGUS_QE_PREPROC:
@@ -168,12 +203,28 @@ const char* toString(InferenceId i)
       return "QUANTIFIERS_SYGUS_STREAM_EXCLUDE_CURRENT";
     case InferenceId::QUANTIFIERS_SYGUS_EXAMPLE_INFER_CONTRA:
       return "QUANTIFIERS_SYGUS_EXAMPLE_INFER_CONTRA";
+    case InferenceId::QUANTIFIERS_DSPLIT: return "QUANTIFIERS_DSPLIT";
     case InferenceId::QUANTIFIERS_SKOLEMIZE: return "QUANTIFIERS_SKOLEMIZE";
     case InferenceId::QUANTIFIERS_REDUCE_ALPHA_EQ:
       return "QUANTIFIERS_REDUCE_ALPHA_EQ";
+    case InferenceId::QUANTIFIERS_HO_MATCH_PRED:
+      return "QUANTIFIERS_HO_MATCH_PRED";
+    case InferenceId::QUANTIFIERS_PARTIAL_TRIGGER_REDUCE:
+      return "QUANTIFIERS_PARTIAL_TRIGGER_REDUCE";
 
     case InferenceId::SEP_PTO_NEG_PROP: return "SEP_PTO_NEG_PROP";
     case InferenceId::SEP_PTO_PROP: return "SEP_PTO_PROP";
+    case InferenceId::SEP_LABEL_INTRO: return "SEP_LABEL_INTRO";
+    case InferenceId::SEP_LABEL_DEF: return "SEP_LABEL_DEF";
+    case InferenceId::SEP_EMP: return "SEP_EMP";
+    case InferenceId::SEP_POS_REDUCTION: return "SEP_POS_REDUCTION";
+    case InferenceId::SEP_NEG_REDUCTION: return "SEP_NEG_REDUCTION";
+    case InferenceId::SEP_REFINEMENT: return "SEP_REFINEMENT";
+    case InferenceId::SEP_NIL_NOT_IN_HEAP: return "SEP_NIL_NOT_IN_HEAP";
+    case InferenceId::SEP_SYM_BREAK: return "SEP_SYM_BREAK";
+    case InferenceId::SEP_WITNESS_FINITE_DATA: return "SEP_WITNESS_FINITE_DATA";
+    case InferenceId::SEP_DISTINCT_REF: return "SEP_DISTINCT_REF";
+    case InferenceId::SEP_REF_BOUND: return "SEP_REF_BOUND";
 
     case InferenceId::SETS_COMPREHENSION: return "SETS_COMPREHENSION";
     case InferenceId::SETS_DEQ: return "SETS_DEQ";
@@ -189,6 +240,7 @@ const char* toString(InferenceId i)
     case InferenceId::SETS_UP_CLOSURE_2: return "SETS_UP_CLOSURE_2";
     case InferenceId::SETS_UP_UNIV: return "SETS_UP_UNIV";
     case InferenceId::SETS_UNIV_TYPE: return "SETS_UNIV_TYPE";
+    case InferenceId::SETS_CARD_SPLIT_EMPTY: return "SETS_CARD_SPLIT_EMPTY";
     case InferenceId::SETS_CARD_CYCLE: return "SETS_CARD_CYCLE";
     case InferenceId::SETS_CARD_EQUAL: return "SETS_CARD_EQUAL";
     case InferenceId::SETS_CARD_GRAPH_EMP: return "SETS_CARD_GRAPH_EMP";
@@ -292,6 +344,19 @@ const char* toString(InferenceId i)
     case InferenceId::STRINGS_CTN_POS: return "STRINGS_CTN_POS";
     case InferenceId::STRINGS_REDUCTION: return "STRINGS_REDUCTION";
     case InferenceId::STRINGS_PREFIX_CONFLICT: return "STRINGS_PREFIX_CONFLICT";
+    case InferenceId::STRINGS_REGISTER_TERM_ATOMIC:
+      return "STRINGS_REGISTER_TERM_ATOMIC";
+    case InferenceId::STRINGS_REGISTER_TERM: return "STRINGS_REGISTER_TERM";
+    case InferenceId::STRINGS_CMI_SPLIT: return "STRINGS_CMI_SPLIT";
+
+    case InferenceId::UF_BREAK_SYMMETRY: return "UF_BREAK_SYMMETRY";
+    case InferenceId::UF_CARD_CLIQUE: return "UF_CARD_CLIQUE";
+    case InferenceId::UF_CARD_COMBINED: return "UF_CARD_COMBINED";
+    case InferenceId::UF_CARD_ENFORCE_NEGATIVE: return "UF_CARD_ENFORCE_NEGATIVE";
+    case InferenceId::UF_CARD_EQUIV: return "UF_CARD_EQUIV";
+    case InferenceId::UF_CARD_MONOTONE_COMBINED: return "UF_CARD_MONOTONE_COMBINED";
+    case InferenceId::UF_CARD_SIMPLE_CONFLICT: return "UF_CARD_SIMPLE_CONFLICT";
+    case InferenceId::UF_CARD_SPLIT: return "UF_CARD_SPLIT";
 
     case InferenceId::UF_HO_APP_ENCODE: return "UF_HO_APP_ENCODE";
     case InferenceId::UF_HO_APP_CONV_SKOLEM: return "UF_HO_APP_CONV_SKOLEM";
@@ -311,4 +376,4 @@ std::ostream& operator<<(std::ostream& out, InferenceId i)
 }
 
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5

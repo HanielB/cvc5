@@ -1,25 +1,26 @@
-/*********************                                                        */
-/*! \file inference_id.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Gereon Kremer, Andrew Reynolds, Andres Noetzli
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Inference enumeration.
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Gereon Kremer, Andres Noetzli
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Inference enumeration.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
+
+#ifndef CVC5__THEORY__INFERENCE_ID_H
+#define CVC5__THEORY__INFERENCE_ID_H
 
 #include <iosfwd>
 
-#ifndef CVC4__THEORY__INFERENCE_ID_H
-#define CVC4__THEORY__INFERENCE_ID_H
-
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 
 /** Types of inferences used in the procedure
@@ -37,6 +38,9 @@ namespace theory {
  */
 enum class InferenceId
 {
+  // ---------------------------------- core
+  // a conflict when two constants merge in the equality engine (of any theory)
+  EQ_CONSTANT_MERGE,
   // ---------------------------------- arith theory
   //-------------------- linear core
   // black box conflicts. It's magic.
@@ -49,6 +53,10 @@ enum class InferenceId
   ARITH_CONF_TRICHOTOMY,
   // conflicting upper bound
   ARITH_CONF_UPPER,
+  // conflict from simplex
+  ARITH_CONF_SIMPLEX,
+  // conflict from sum-of-infeasibility simplex
+  ARITH_CONF_SOI_SIMPLEX,
   // introduces split on a disequality
   ARITH_SPLIT_DEQ,
   // tighten integer inequalities to ceiling
@@ -257,7 +265,20 @@ enum class InferenceId
   QUANTIFIERS_INST_SYQI,
   // instantiations from enumerative instantiation
   QUANTIFIERS_INST_ENUM,
+  // instantiations from pool instantiation
+  QUANTIFIERS_INST_POOL,
+  //-------------------- bounded integers
+  // a proxy lemma from bounded integers, used to control bounds on ground terms
+  QUANTIFIERS_BINT_PROXY,
+  // a proxy lemma to minimize an instantiation of non-ground terms
+  QUANTIFIERS_BINT_MIN_NG,
   //-------------------- counterexample-guided instantiation
+  // a counterexample lemma
+  QUANTIFIERS_CEGQI_CEX,
+  // an auxiliary lemma from counterexample lemma
+  QUANTIFIERS_CEGQI_CEX_AUX,
+  // a reduction lemma for nested quantifier elimination
+  QUANTIFIERS_CEGQI_NESTED_QE,
   // G2 => G1 where G2 is a counterexample literal for a nested quantifier whose
   // counterexample literal is G1.
   QUANTIFIERS_CEGQI_CEX_DEP,
@@ -268,6 +289,8 @@ enum class InferenceId
   // infinity > c
   QUANTIFIERS_CEGQI_VTS_LB_INF,
   //-------------------- syntax-guided instantiation
+  // a counterexample lemma
+  QUANTIFIERS_SYQI_CEX,
   // evaluation unfolding for syntax-guided instantiation
   QUANTIFIERS_SYQI_EVAL_UNFOLD,
   //-------------------- sygus solver
@@ -282,11 +305,18 @@ enum class InferenceId
   QUANTIFIERS_SYGUS_STREAM_EXCLUDE_CURRENT,
   // ~Q where Q is a PBE conjecture with conflicting examples
   QUANTIFIERS_SYGUS_EXAMPLE_INFER_CONTRA,
-  //-------------------- reductions
+  //-------------------- dynamic splitting
+  // a dynamic split from quantifiers
+  QUANTIFIERS_DSPLIT,
+  //-------------------- miscellaneous
   // skolemization
   QUANTIFIERS_SKOLEMIZE,
   // Q1 <=> Q2, where Q1 and Q2 are alpha equivalent
   QUANTIFIERS_REDUCE_ALPHA_EQ,
+  // a higher-order match predicate lemma
+  QUANTIFIERS_HO_MATCH_PRED,
+  // reduction of quantifiers that don't have triggers that cover all variables
+  QUANTIFIERS_PARTIAL_TRIGGER_REDUCE,
   //-------------------------------------- end quantifiers theory
 
   // ---------------------------------- sep theory
@@ -294,6 +324,29 @@ enum class InferenceId
   SEP_PTO_NEG_PROP,
   // enforces injectiveness of pto: (pto x y) ^ (pto y w) ^ x = y => y = w
   SEP_PTO_PROP,
+  // introduces a label for a heap, of the form U => L, where U is an
+  // unlabelled separation logic predicate and L is its labelled form
+  SEP_LABEL_INTRO,
+  // introduces the set constraints for a label
+  SEP_LABEL_DEF,
+  // lemma for sep.emp
+  SEP_EMP,
+  // positive reduction for sep constraint
+  SEP_POS_REDUCTION,
+  // negative reduction for sep constraint
+  SEP_NEG_REDUCTION,
+  // model-based refinement for negated star/wand
+  SEP_REFINEMENT,
+  // sep.nil is not in the heap
+  SEP_NIL_NOT_IN_HEAP,
+  // a symmetry breaking lemma
+  SEP_SYM_BREAK,
+  // finite witness data lemma
+  SEP_WITNESS_FINITE_DATA,
+  // element distinctness lemma
+  SEP_DISTINCT_REF,
+  // reference bound lemma
+  SEP_REF_BOUND,
   // ---------------------------------- end sep theory
 
   // ---------------------------------- sets theory
@@ -313,6 +366,8 @@ enum class InferenceId
   SETS_UP_UNIV,
   SETS_UNIV_TYPE,
   //-------------------- sets cardinality solver
+  // split on emptyset
+  SETS_CARD_SPLIT_EMPTY,
   // cycle of cardinalities, hence all sets have the same
   SETS_CARD_CYCLE,
   // two sets have the same cardinality
@@ -384,7 +439,6 @@ enum class InferenceId
   STRINGS_CARD_SP,
   // The cardinality inference for strings, see Liang et al CAV 2014.
   STRINGS_CARDINALITY,
-  //-------------------- end base solver
   //-------------------- core solver
   // A cycle in the empty string equivalence class, e.g.:
   //   x ++ y = "" => x = ""
@@ -522,14 +576,12 @@ enum class InferenceId
   // is unknown, we apply the inference:
   //   len(s) != len(t) V len(s) = len(t)
   STRINGS_DEQ_LENGTH_SP,
-  //-------------------- end core solver
   //-------------------- codes solver
   // str.to_code( v ) = rewrite( str.to_code(c) )
   // where v is the proxy variable for c.
   STRINGS_CODE_PROXY,
   // str.code(x) = -1 V str.code(x) != str.code(y) V x = y
   STRINGS_CODE_INJ,
-  //-------------------- end codes solver
   //-------------------- regexp solver
   // regular expression normal form conflict
   //   ( x in R ^ x = y ^ rewrite((str.in_re y R)) = false ) => false
@@ -565,7 +617,6 @@ enum class InferenceId
   STRINGS_RE_DELTA_CONF,
   // regular expression derive ???
   STRINGS_RE_DERIVE,
-  //-------------------- end regexp solver
   //-------------------- extended function solver
   // Standard extended function inferences from context-dependent rewriting
   // produced by constant substitutions. See Reynolds et al CAV 2017. These are
@@ -611,11 +662,16 @@ enum class InferenceId
   // f(x1, .., xn) and P is the reduction predicate for f
   // (see theory_strings_preprocess).
   STRINGS_REDUCTION,
-  //-------------------- end extended function solver
   //-------------------- prefix conflict
   // prefix conflict (coarse-grained)
   STRINGS_PREFIX_CONFLICT,
-  //-------------------- end prefix conflict
+  //-------------------- other
+  // a lemma added during term registration for an atomic term
+  STRINGS_REGISTER_TERM_ATOMIC,
+  // a lemma added during term registration
+  STRINGS_REGISTER_TERM,
+  // a split during collect model info
+  STRINGS_CMI_SPLIT,
   //-------------------------------------- end strings theory
 
   //-------------------------------------- uf theory
@@ -699,6 +755,6 @@ const char* toString(InferenceId i);
 std::ostream& operator<<(std::ostream& out, InferenceId i);
 
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5
 
-#endif /* CVC4__THEORY__INFERENCE_H */
+#endif /* CVC5__THEORY__INFERENCE_H */

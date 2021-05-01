@@ -1,26 +1,27 @@
-/*********************                                                        */
-/*! \file trigger.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Morgan Deters, Tim King
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief trigger class
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Morgan Deters, Tim King
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Trigger class.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
-#ifndef CVC4__THEORY__QUANTIFIERS__TRIGGER_H
-#define CVC4__THEORY__QUANTIFIERS__TRIGGER_H
+#ifndef CVC5__THEORY__QUANTIFIERS__TRIGGER_H
+#define CVC5__THEORY__QUANTIFIERS__TRIGGER_H
 
 #include "expr/node.h"
 #include "theory/inference_id.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 
 class QuantifiersEngine;
@@ -30,78 +31,81 @@ namespace quantifiers {
 class QuantifiersState;
 class QuantifiersInferenceManager;
 class QuantifiersRegistry;
-}
+class TermRegistry;
+class InstMatch;
 
 namespace inst {
 
 class IMGenerator;
-class InstMatch;
 class InstMatchGenerator;
 /** A collection of nodes representing a trigger.
-*
-* This class encapsulates all implementations of E-matching in CVC4.
-* Its primary use is as a utility of the quantifiers module InstantiationEngine
-* (see theory/quantifiers/ematching/instantiation_engine.h) which uses Trigger to make
-* appropriate calls to Instantiate::addInstantiation(...)
-* (see theory/instantiate.h) for the instantiate utility of the quantifiers
-* engine (d_quantEngine) associated with this trigger.  These calls
-* queue instantiation lemmas to the output channel of TheoryQuantifiers during
-* a full effort check.
-*
-* Concretely, a Trigger* t is used in the following way during a full effort
-* check. Assume that t is associated with quantified formula q (see field d_f).
-* We call :
-*
-* // setup initial information
-* t->resetInstantiationRound();
-* // will produce instantiations based on matching with all terms
-* t->reset( Node::null() );
-* // add all instantiations based on E-matching with this trigger and the
-* // current context
-* t->addInstantiations();
-*
-* This will result in (a set of) calls to
-* Instantiate::addInstantiation(q, m1)...Instantiate::addInstantiation(q, mn),
-* where m1...mn are InstMatch objects. These calls add the corresponding
-* instantiation lemma for (q,mi) on the output channel associated with
-* d_quantEngine.
-*
-* The Trigger class is wrapper around an underlying IMGenerator class, which
-* implements various forms of E-matching for its set of nodes (d_nodes), which
-* is refered to in the literature as a "trigger". A trigger is a set of terms
-* whose free variables are the bound variables of a quantified formula q,
-* and that is used to guide instantiations for q (for example, see "Efficient
-* E-Matching for SMT Solvers" by de Moura et al).
-*
-* For example of an instantiation lemma produced by E-matching :
-*
-* quantified formula : forall x. P( x )
-*            trigger : P( x )
-*     ground context : ~P( a )
-*
-* Then E-matching matches P( x ) and P( a ), resulting in the match { x -> a }
-* which is used to generate the instantiation lemma :
-*   (forall x. P( x )) => P( a )
-*
-* Terms that are provided as input to a Trigger class via mkTrigger
-* should be in "instantiation constant form", see TermUtil::getInstConstantNode.
-* Say we have quantified formula q whose AST is the Node
-*   (FORALL
-*     (BOUND_VAR_LIST x)
-*     (NOT (P x))
-*     (INST_PATTERN_LIST (INST_PATTERN (P x))))
-* then TermUtil::getInstConstantNode( q, (P x) ) = (P IC) where
-* IC = TermUtil::getInstantiationConstant( q, i ).
-* Trigger expects as input (P IC) to represent the Trigger (P x). This form
-* ensures that references to bound variables are unique to quantified formulas,
-* which is required to ensure the correctness of instantiation lemmas we
-* generate.
-*
-*/
+ *
+ * This class encapsulates all implementations of E-matching in cvc5.
+ * Its primary use is as a utility of the quantifiers module InstantiationEngine
+ * (see theory/quantifiers/ematching/instantiation_engine.h) which uses Trigger
+ * to make appropriate calls to Instantiate::addInstantiation(...) (see
+ * theory/instantiate.h) for the instantiate utility of the quantifiers engine
+ * (d_quantEngine) associated with this trigger.  These calls queue
+ * instantiation lemmas to the output channel of TheoryQuantifiers during a full
+ * effort check.
+ *
+ * Concretely, a Trigger* t is used in the following way during a full effort
+ * check. Assume that t is associated with quantified formula q (see field d_f).
+ * We call :
+ *
+ * // setup initial information
+ * t->resetInstantiationRound();
+ * // will produce instantiations based on matching with all terms
+ * t->reset( Node::null() );
+ * // add all instantiations based on E-matching with this trigger and the
+ * // current context
+ * t->addInstantiations();
+ *
+ * This will result in (a set of) calls to
+ * Instantiate::addInstantiation(q, m1)...Instantiate::addInstantiation(q, mn),
+ * where m1...mn are InstMatch objects. These calls add the corresponding
+ * instantiation lemma for (q,mi) on the output channel associated with
+ * d_quantEngine.
+ *
+ * The Trigger class is wrapper around an underlying IMGenerator class, which
+ * implements various forms of E-matching for its set of nodes (d_nodes), which
+ * is refered to in the literature as a "trigger". A trigger is a set of terms
+ * whose free variables are the bound variables of a quantified formula q,
+ * and that is used to guide instantiations for q (for example, see "Efficient
+ * E-Matching for SMT Solvers" by de Moura et al).
+ *
+ * For example of an instantiation lemma produced by E-matching :
+ *
+ * quantified formula : forall x. P( x )
+ *            trigger : P( x )
+ *     ground context : ~P( a )
+ *
+ * Then E-matching matches P( x ) and P( a ), resulting in the match { x -> a }
+ * which is used to generate the instantiation lemma :
+ *   (forall x. P( x )) => P( a )
+ *
+ * Terms that are provided as input to a Trigger class via mkTrigger
+ * should be in "instantiation constant form", see
+ * TermUtil::getInstConstantNode. Say we have quantified formula q whose AST is
+ * the Node (FORALL (BOUND_VAR_LIST x) (NOT (P x)) (INST_PATTERN_LIST
+ * (INST_PATTERN (P x)))) then TermUtil::getInstConstantNode( q, (P x) ) = (P
+ * IC) where IC = TermUtil::getInstantiationConstant( q, i ). Trigger expects as
+ * input (P IC) to represent the Trigger (P x). This form ensures that
+ * references to bound variables are unique to quantified formulas, which is
+ * required to ensure the correctness of instantiation lemmas we generate.
+ *
+ */
 class Trigger {
   friend class IMGenerator;
 
  public:
+  /** trigger constructor */
+  Trigger(QuantifiersState& qs,
+          QuantifiersInferenceManager& qim,
+          QuantifiersRegistry& qr,
+          TermRegistry& tr,
+          Node q,
+          std::vector<Node>& nodes);
   virtual ~Trigger();
   /** get the generator associated with this trigger */
   IMGenerator* getGenerator() { return d_mg; }
@@ -144,64 +148,8 @@ class Trigger {
   int getActiveScore();
   /** print debug information for the trigger */
   void debugPrint(const char* c) const;
-  /** mkTrigger method
-   *
-   * This makes an instance of a trigger object.
-   *  qe     : pointer to the quantifier engine;
-   *  q      : the quantified formula we are making a trigger for
-   *  nodes  : the nodes comprising the (multi-)trigger
-   *  keepAll: don't remove unneeded patterns;
-   *  trOption : policy for dealing with triggers that already exist
-   *             (see below)
-   *  useNVars : number of variables that should be bound by the trigger
-   *             typically, the number of quantified variables in q.
-   */
-  enum{
-    TR_MAKE_NEW,    //make new trigger even if it already may exist
-    TR_GET_OLD,     //return a previous trigger if it had already been created
-    TR_RETURN_NULL  //return null if a duplicate is found
-  };
-  static Trigger* mkTrigger(QuantifiersEngine* qe,
-                            quantifiers::QuantifiersState& qs,
-                            quantifiers::QuantifiersInferenceManager& qim,
-                            quantifiers::QuantifiersRegistry& qr,
-                            Node q,
-                            std::vector<Node>& nodes,
-                            bool keepAll = true,
-                            int trOption = TR_MAKE_NEW,
-                            size_t useNVars = 0);
-  /** single trigger version that calls the above function */
-  static Trigger* mkTrigger(QuantifiersEngine* qe,
-                            quantifiers::QuantifiersState& qs,
-                            quantifiers::QuantifiersInferenceManager& qim,
-                            quantifiers::QuantifiersRegistry& qr,
-                            Node q,
-                            Node n,
-                            bool keepAll = true,
-                            int trOption = TR_MAKE_NEW,
-                            size_t useNVars = 0);
-  /** make trigger terms
-   *
-   * This takes a set of eligible trigger terms and stores a subset of them in
-   * trNodes, such that :
-   *   (1) the terms in trNodes contain at least n_vars of the quantified
-   *       variables in quantified formula q, and
-   *   (2) the set trNodes is minimal, i.e. removing one term from trNodes
-   *       always violates (1).
-   */
-  static bool mkTriggerTerms(Node q,
-                             std::vector<Node>& nodes,
-                             size_t nvars,
-                             std::vector<Node>& trNodes);
 
  protected:
-  /** trigger constructor, intentionally protected (use Trigger::mkTrigger). */
-  Trigger(QuantifiersEngine* ie,
-          quantifiers::QuantifiersState& qs,
-          quantifiers::QuantifiersInferenceManager& qim,
-          quantifiers::QuantifiersRegistry& qr,
-          Node q,
-          std::vector<Node>& nodes);
   /** add an instantiation (called by InstMatchGenerator)
    *
    * This calls Instantiate::addInstantiation(...) for instantiations
@@ -247,14 +195,14 @@ class Trigger {
    * This example would fail to match when f(a) is not registered.
    */
   std::vector<Node> d_groundTerms;
-  // !!!!!!!!!!!!!!!!!! temporarily available (project #15)
-  QuantifiersEngine* d_quantEngine;
   /** Reference to the quantifiers state */
-  quantifiers::QuantifiersState& d_qstate;
+  QuantifiersState& d_qstate;
   /** Reference to the quantifiers inference manager */
-  quantifiers::QuantifiersInferenceManager& d_qim;
+  QuantifiersInferenceManager& d_qim;
   /** The quantifiers registry */
-  quantifiers::QuantifiersRegistry& d_qreg;
+  QuantifiersRegistry& d_qreg;
+  /** Reference to the term registry */
+  TermRegistry& d_treg;
   /** The quantified formula this trigger is for. */
   Node d_quant;
   /** match generator
@@ -265,8 +213,9 @@ class Trigger {
   IMGenerator* d_mg;
 }; /* class Trigger */
 
-}/* CVC4::theory::inst namespace */
-}/* CVC4::theory namespace */
-}/* CVC4 namespace */
+}  // namespace inst
+}  // namespace quantifiers
+}  // namespace theory
+}  // namespace cvc5
 
-#endif /* CVC4__THEORY__QUANTIFIERS__TRIGGER_H */
+#endif /* CVC5__THEORY__QUANTIFIERS__TRIGGER_H */

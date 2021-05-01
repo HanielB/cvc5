@@ -1,29 +1,31 @@
-/*********************                                                        */
-/*! \file inst_match_generator_multi_linear.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief multi-linear inst match generator class
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Multi-linear inst match generator class.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
-#ifndef CVC4__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_MULTI_LINEAR_H
-#define CVC4__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_MULTI_LINEAR_H
+#ifndef CVC5__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_MULTI_LINEAR_H
+#define CVC5__THEORY__QUANTIFIERS__INST_MATCH_GENERATOR_MULTI_LINEAR_H
 
 #include <vector>
 
 #include "expr/node.h"
 #include "theory/quantifiers/ematching/inst_match_generator.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
+namespace quantifiers {
 namespace inst {
 
 /** InstMatchGeneratorMultiLinear class
@@ -35,7 +37,7 @@ namespace inst {
  * InstMatchGeneratorMultiLinear at the head and a list of trailing
  * InstMatchGenerators.
  *
- * CVC4 employs techniques that ensure that the number of instantiations
+ * cvc5 employs techniques that ensure that the number of instantiations
  * is worst-case polynomial wrt the number of ground terms, where this class
  * lifts this policy to multi-triggers. In particular consider
  *
@@ -82,7 +84,8 @@ class InstMatchGeneratorMultiLinear : public InstMatchGenerator
 };
 
 }  // namespace inst
+}  // namespace quantifiers
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5
 
 #endif

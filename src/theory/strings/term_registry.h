@@ -1,21 +1,22 @@
-/*********************                                                        */
-/*! \file term_registry.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Andres Noetzli, Tianyi Liang
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Term registry for the theory of strings.
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Andres Noetzli, Tianyi Liang
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Term registry for the theory of strings.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
-#ifndef CVC4__THEORY__STRINGS__TERM_REGISTRY_H
-#define CVC4__THEORY__STRINGS__TERM_REGISTRY_H
+#ifndef CVC5__THEORY__STRINGS__TERM_REGISTRY_H
+#define CVC5__THEORY__STRINGS__TERM_REGISTRY_H
 
 #include "context/cdhashset.h"
 #include "context/cdlist.h"
@@ -28,10 +29,11 @@
 #include "theory/strings/solver_state.h"
 #include "theory/uf/equality_engine.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace strings {
 
+class InferenceManager;
 /**
  * This class manages all the (pre)registration tasks for terms. These tasks
  * include:
@@ -50,10 +52,11 @@ class TermRegistry
 
  public:
   TermRegistry(SolverState& s,
-               OutputChannel& out,
                SequencesStatistics& statistics,
                ProofNodeManager* pnm);
   ~TermRegistry();
+  /** Finish initialize, which sets the inference manager */
+  void finishInit(InferenceManager* im);
   /** The eager reduce routine
    *
    * Constructs a lemma for t that is incomplete, but communicates pertinent
@@ -205,8 +208,8 @@ class TermRegistry
   uint32_t d_cardSize;
   /** Reference to the solver state of the theory of strings. */
   SolverState& d_state;
-  /** Reference to the output channel of the theory of strings. */
-  OutputChannel& d_out;
+  /** Pointer to the inference manager of the theory of strings. */
+  InferenceManager* d_im;
   /** Reference to the statistics for the theory of strings/sequences. */
   SequencesStatistics& d_statistics;
   /** have we asserted any str.code terms? */
@@ -235,7 +238,7 @@ class TermRegistry
    * which rewrites to 3 = 3.
    * In the above example, we store "ABC" -> v_{"ABC"} in this map.
    */
-  std::map<Node, Node> d_proxyVar;
+  NodeNodeMap d_proxyVar;
   /**
    * Map from proxy variables to their normalized length. In the above example,
    * we store "ABC" -> 3.
@@ -277,6 +280,6 @@ class TermRegistry
 
 }  // namespace strings
 }  // namespace theory
-}  // namespace CVC4
+}  // namespace cvc5
 
-#endif /* CVC4__THEORY__STRINGS__TERM_REGISTRY_H */
+#endif /* CVC5__THEORY__STRINGS__TERM_REGISTRY_H */

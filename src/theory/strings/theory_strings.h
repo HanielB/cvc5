@@ -1,23 +1,22 @@
-/*********************                                                        */
-/*! \file theory_strings.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Tianyi Liang, Mathias Preiner
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Theory of strings
- **
- ** Theory of strings.
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Tianyi Liang, Mathias Preiner
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Theory of strings.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
-#ifndef CVC4__THEORY__STRINGS__THEORY_STRINGS_H
-#define CVC4__THEORY__STRINGS__THEORY_STRINGS_H
+#ifndef CVC5__THEORY__STRINGS__THEORY_STRINGS_H
+#define CVC5__THEORY__STRINGS__THEORY_STRINGS_H
 
 #include <climits>
 #include <deque>
@@ -46,7 +45,7 @@
 #include "theory/theory.h"
 #include "theory/uf/equality_engine.h"
 
-namespace CVC4 {
+namespace cvc5 {
 namespace theory {
 namespace strings {
 
@@ -74,6 +73,8 @@ class TheoryStrings : public Theory {
   //--------------------------------- initialization
   /** get the official theory rewriter of this theory */
   TheoryRewriter* getTheoryRewriter() override;
+  /** get the proof checker of this theory */
+  ProofRuleChecker* getProofChecker() override;
   /**
    * Returns true if we need an equality engine. If so, we initialize the
    * information regarding how it should be setup. For details, see the
@@ -93,8 +94,6 @@ class TheoryStrings : public Theory {
   void shutdown() override {}
   /** preregister term */
   void preRegisterTerm(TNode n) override;
-  /** Expand definition */
-  TrustNode expandDefinition(Node n) override;
   //--------------------------------- standard check
   /** Do we need a check call at last call effort? */
   bool needsCheckLastEffort() override;
@@ -241,6 +240,8 @@ class TheoryStrings : public Theory {
   void runInferStep(InferStep s, int effort);
   /** run strategy for effort e */
   void runStrategy(Theory::Effort e);
+  /** print strings equivalence classes for debugging */
+  std::string debugPrintStringsEqc();
   /** Commonly used constants */
   Node d_true;
   Node d_false;
@@ -271,7 +272,7 @@ class TheoryStrings : public Theory {
   /** The theory rewriter for this theory. */
   StringsRewriter d_rewriter;
   /** The proof rule checker */
-  StringProofRuleChecker d_sProofChecker;
+  StringProofRuleChecker d_checker;
   /**
    * The base solver, responsible for reasoning about congruent terms and
    * inferring constants for equivalence classes.
@@ -297,8 +298,8 @@ class TheoryStrings : public Theory {
   Strategy d_strat;
 };/* class TheoryStrings */
 
-}/* CVC4::theory::strings namespace */
-}/* CVC4::theory namespace */
-}/* CVC4 namespace */
+}  // namespace strings
+}  // namespace theory
+}  // namespace cvc5
 
-#endif /* CVC4__THEORY__STRINGS__THEORY_STRINGS_H */
+#endif /* CVC5__THEORY__STRINGS__THEORY_STRINGS_H */

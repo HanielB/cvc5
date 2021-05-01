@@ -1,20 +1,19 @@
-/*********************                                                        */
-/*! \file term_formula_removal.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Dejan Jovanovic, Morgan Deters
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Removal of term formulas
- **
- ** Removal of term formulas.
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Dejan Jovanovic, Morgan Deters
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Removal of term formulas.
+ */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #pragma once
 
@@ -28,7 +27,7 @@
 #include "theory/trust_node.h"
 #include "util/hash.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 class LazyCDProof;
 class ProofNodeManager;
@@ -124,26 +123,6 @@ class RemoveTermFormulas {
    */
   static Node getAxiomFor(Node n);
 
-  /**
-   * Get the set of skolems introduced by this class that occur in node n,
-   * add them to skolems.
-   *
-   * @param n The node to traverse
-   * @param skolems The set where the skolems are added
-   */
-  void getSkolems(TNode n,
-                  std::unordered_set<Node, NodeHashFunction>& skolems) const;
-  /**
-   * Does n have skolems introduced by this class?
-   */
-  bool hasSkolems(TNode n) const;
-
-  /**
-   * Get the lemma for the skolem, or the null node if k is not a skolem this
-   * class introduced.
-   */
-  theory::TrustNode getLemmaForSkolem(TNode k) const;
-
  private:
   typedef context::CDInsertHashMap<
       std::pair<Node, uint32_t>,
@@ -177,11 +156,6 @@ class RemoveTermFormulas {
    *   d_tfCache[<ite( G, a, b ),0>] = d_tfCache[<ite( G, a, b ),1>] = k.
    */
   context::CDInsertHashMap<Node, Node, NodeHashFunction> d_skolem_cache;
-  /**
-   * Mapping from skolems to their corresponding lemma.
-   */
-  context::CDInsertHashMap<Node, theory::TrustNode, NodeHashFunction>
-      d_lemmaCache;
 
   /** gets the skolem for node
    *
@@ -234,4 +208,4 @@ class RemoveTermFormulas {
   bool isProofEnabled() const;
 };/* class RemoveTTE */
 
-}/* CVC4 namespace */
+}  // namespace cvc5

@@ -1,29 +1,29 @@
-/*********************                                                        */
-/*! \file parser.h
- ** \verbatim
- ** Top contributors (to current version):
- **   Andrew Reynolds, Morgan Deters, Christopher L. Conway
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
- ** in the top-level source directory and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief A collection of state for use by parser implementations.
- **
- ** A collection of state for use by parser implementations.
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Andrew Reynolds, Morgan Deters, Christopher L. Conway
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * A collection of state for use by parser implementations.
+ */
 
-#include "cvc4parser_public.h"
+#include "cvc5parser_public.h"
 
-#ifndef CVC4__PARSER__PARSER_H
-#define CVC4__PARSER__PARSER_H
+#ifndef CVC5__PARSER__PARSER_H
+#define CVC5__PARSER__PARSER_H
 
 #include <list>
 #include <set>
 #include <string>
 
-#include "api/cvc4cpp.h"
+#include "api/cpp/cvc5.h"
+#include "cvc5_export.h"
 #include "expr/kind.h"
 #include "expr/symbol_manager.h"
 #include "expr/symbol_table.h"
@@ -32,7 +32,7 @@
 #include "parser/parser_exception.h"
 #include "util/unsafe_interrupt_exception.h"
 
-namespace CVC4 {
+namespace cvc5 {
 
 // Forward declarations
 class Command;
@@ -56,7 +56,7 @@ enum DeclarationCheck {
  * Returns a string representation of the given object (for
  * debugging).
  */
-inline std::ostream& operator<<(std::ostream& out, DeclarationCheck check) CVC4_PUBLIC;
+inline std::ostream& operator<<(std::ostream& out, DeclarationCheck check);
 inline std::ostream& operator<<(std::ostream& out, DeclarationCheck check) {
   switch(check) {
   case CHECK_NONE:
@@ -84,7 +84,7 @@ enum SymbolType {
  * Returns a string representation of the given object (for
  * debugging).
  */
-inline std::ostream& operator<<(std::ostream& out, SymbolType type) CVC4_PUBLIC;
+inline std::ostream& operator<<(std::ostream& out, SymbolType type);
 inline std::ostream& operator<<(std::ostream& out, SymbolType type) {
   switch(type) {
   case SYM_VARIABLE:
@@ -101,7 +101,8 @@ inline std::ostream& operator<<(std::ostream& out, SymbolType type) {
  * name of the file, line number and column information, and in-scope
  * declarations.
  */
-class CVC4_PUBLIC Parser {
+class CVC5_EXPORT Parser
+{
   friend class ParserBuilder;
 private:
 
@@ -390,7 +391,7 @@ public:
    */
   void checkFunctionLike(api::Term fun);
 
-  /** Create a new CVC4 variable expression of the given type.
+  /** Create a new cvc5 variable expression of the given type.
    *
    * It is inserted at context level zero in the symbol table if levelZero is
    * true, or if we are using global declarations.
@@ -406,7 +407,7 @@ public:
                     bool doOverload = false);
 
   /**
-   * Create a set of new CVC4 variable expressions of the given type.
+   * Create a set of new cvc5 variable expressions of the given type.
    *
    * It is inserted at context level zero in the symbol table if levelZero is
    * true, or if we are using global declarations.
@@ -422,12 +423,12 @@ public:
                                   bool doOverload = false);
 
   /**
-   * Create a new CVC4 bound variable expression of the given type. This binds
+   * Create a new cvc5 bound variable expression of the given type. This binds
    * the symbol name to that variable in the current scope.
    */
   api::Term bindBoundVar(const std::string& name, const api::Sort& type);
   /**
-   * Create a new CVC4 bound variable expressions of the given names and types.
+   * Create a new cvc5 bound variable expressions of the given names and types.
    * Like the method above, this binds these names to those variables in the
    * current scope.
    */
@@ -435,11 +436,12 @@ public:
       std::vector<std::pair<std::string, api::Sort> >& sortedVarNames);
 
   /**
-   * Create a set of new CVC4 bound variable expressions of the given type.
+   * Create a set of new cvc5 bound variable expressions of the given type.
    *
    * For each name, if a symbol with name already exists,
    *  then if doOverload is true, we create overloaded operators.
-   *  else if doOverload is false, the existing expression is shadowed by the new expression.
+   *  else if doOverload is false, the existing expression is shadowed by the
+   * new expression.
    */
   std::vector<api::Term> bindBoundVars(const std::vector<std::string> names,
                                        const api::Sort& type);
@@ -769,9 +771,9 @@ public:
    * c1, c2, c3 are digits from 0 to 7.
    */
   std::vector<unsigned> processAdHocStringEsc(const std::string& s);
-};/* class Parser */
+}; /* class Parser */
 
-}/* CVC4::parser namespace */
-}/* CVC4 namespace */
+}  // namespace parser
+}  // namespace cvc5
 
-#endif /* CVC4__PARSER__PARSER_STATE_H */
+#endif /* CVC5__PARSER__PARSER_STATE_H */
