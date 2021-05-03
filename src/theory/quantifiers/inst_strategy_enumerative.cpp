@@ -182,17 +182,18 @@ bool InstStrategyEnum::process(Node quantifier, bool fullEffort, bool isRd)
   }
 
   TermTupleEnumeratorEnv ttec;
+  std::unique_ptr<ITermProducer> termProducer(
+      isRd ? mkTermProducerRd(quantifier, d_rd)
+           : mkTermProducer(quantifier, d_qstate, d_treg.getTermDatabase()));
   ttec.d_fullEffort = fullEffort;
   ttec.d_increaseSum = options::fullSaturateSum();
+  ttec.d_termProducer = termProducer.get();
   // make the enumerator, which is either relevant domain or term database
   // based on the flag isRd.
   std::unique_ptr<TermTupleEnumeratorInterface> enumerator(
-      isRd ? mkTermTupleEnumeratorRd(quantifier, &ttec, d_rd)
-      : options::fullSaturateLeximin()
-          ? mkTermTupleEnumeratorLeximin(
-              quantifier, &ttec, d_qstate, d_treg.getTermDatabase())
-          : mkTermTupleEnumerator(
-              quantifier, &ttec, d_qstate, d_treg.getTermDatabase()));
+      options::fullSaturateLeximin()
+          ? mkLeximinTermTupleEnumerator(quantifier, &ttec)
+          : mkStagedTermTupleEnumerator(quantifier, &ttec));
   std::vector<Node> terms;
   std::vector<bool> failMask;
   Instantiate* ie = d_qim.getInstantiate();

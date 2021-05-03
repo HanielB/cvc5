@@ -29,6 +29,19 @@ class QuantifiersState;
 class TermDb;
 class RelevantDomain;
 
+/** A general interface for producing a sequence of terms for each quantified
+ * variable.*/
+class ITermProducer
+{
+ public:
+  virtual ~ITermProducer() = default;
+  /** Set up terms for given variable.  */
+  virtual size_t prepareTerms(size_t variableIx) = 0;
+  /** Get a given term for a given variable.  */
+  virtual Node getTerm(size_t variableIx,
+                       size_t term_index) CVC5_WARN_UNUSED_RESULT = 0;
+};
+
 /**  Interface for enumeration of tuples of terms.
  *
  * The interface should be used as follows. Firstly, init is called, then,
@@ -65,6 +78,8 @@ struct TermTupleEnumeratorEnv
   bool d_fullEffort;
   /** Whether we increase tuples based on sum instead of max (see below) */
   bool d_increaseSum;
+  /**term producer to be used to generate the individual terms*/
+  ITermProducer* d_termProducer;
 };
 
 /**  A function to construct a tuple enumerator.
@@ -86,24 +101,22 @@ struct TermTupleEnumeratorEnv
  * database (provided by td). The quantifiers state (qs) is used to eliminate
  * duplicates modulo equality.
  */
-TermTupleEnumeratorInterface* mkTermTupleEnumerator(
-    Node q,
-    const TermTupleEnumeratorEnv* env,
-    QuantifiersState& qs,
-    TermDb* td);
+TermTupleEnumeratorInterface* mkStagedTermTupleEnumerator(
+    Node q, const TermTupleEnumeratorEnv* env);
+
 /** Same as above, but draws terms from the relevant domain utility (rd). */
-TermTupleEnumeratorInterface* mkTermTupleEnumeratorRd(
-    Node q, const TermTupleEnumeratorEnv* env, RelevantDomain* rd);
+TermTupleEnumeratorInterface* mkLeximinTermTupleEnumerator(
+    Node q, const TermTupleEnumeratorEnv* env);
 
 /** Make term pool enumerator */
-TermTupleEnumeratorInterface* mkTermTupleEnumeratorPool(
-    Node q, const TermTupleEnumeratorEnv* env, TermPools* tp, Node p);
+ITermProducer* mkPoolTermProducer(Node quantifier, TermPools* tp, Node pool);
 
-TermTupleEnumeratorInterface* mkTermTupleEnumeratorLeximin(
-    Node q,
-    const TermTupleEnumeratorEnv* env,
-    QuantifiersState& qs,
-    TermDb* td);
+ITermProducer* mkTermProducer(Node quantifier,
+                              QuantifiersState& qs,
+                              TermDb* td);
+
+ITermProducer* mkTermProducerRd(Node quantifier, RelevantDomain* rd);
+
 }  // namespace quantifiers
 }  // namespace theory
 }  // namespace cvc5
