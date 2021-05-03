@@ -219,9 +219,11 @@ class SocialTupleEnumerator : public TermTupleEnumeratorBase
   size_t d_maxValue;
   std::vector<size_t> d_score;
   virtual bool nextCombinationAttempt() override;
+  bool validatePermutation();
   bool increaseScore();
   /** Move onto the next combination. */
   bool nextPermutation();
+  bool nextValidPermutation();
   /** Find the next lexicographically smallest combination of terms that change
    * on the change prefix, each digit is within the current state,  and there is
    * at least one digit not in the previous stage. */
@@ -230,26 +232,33 @@ class SocialTupleEnumerator : public TermTupleEnumeratorBase
 
 bool SocialTupleEnumerator::nextCombinationAttempt()
 {
-  return nextPermutation() || increaseScore();
+  return nextValidPermutation() || increaseScore();
 }
 
-bool SocialTupleEnumerator::nextPermutation()
+bool SocialTupleEnumerator::validatePermutation()
 {
-  bool okay;
   do
   {
-    if (!std::next_permutation(d_termIndex.begin(), d_termIndex.end()))
+    bool okay = true;
+    for (size_t varIx = 0; okay && varIx < d_variableCount; varIx++)
     {
-      return false;
+      okay = d_termIndex[varIx] < d_termsSizes[varIx];
     }
-    okay = true;
-    for (size_t variableIx = 0; okay && variableIx < d_variableCount;
-         variableIx++)
+    if (okay)
     {
-      okay = d_termIndex[variableIx] < d_termsSizes[variableIx];
+      return true;
     }
-  } while (!okay);
-  return true;
+  } while (nextPermutation());
+  return false;
+}
+
+bool SocialTupleEnumerator::nextValidPermutation()
+{
+  return nextPermutation() && validatePermutation();
+}
+bool SocialTupleEnumerator::nextPermutation()
+{
+  return std::next_permutation(d_termIndex.begin(), d_termIndex.end());
 }
 
 void SocialTupleEnumerator::initializeAttempts()
@@ -404,7 +413,7 @@ bool SocialTupleEnumerator::increaseScore()
   std::fill_n(d_score.begin(), increaseDigit, 0);
   d_termIndex = d_score;
   Trace("inst-alg-rd") << "increased score: " << d_score << std::endl;
-  return true;
+  return validatePermutation();
 }
 
 void StagedTupleEnumerator::initializeAttempts()
