@@ -99,6 +99,11 @@ TermTupleEnumeratorInterface* mkTermTupleEnumeratorRd(
 TermTupleEnumeratorInterface* mkTermTupleEnumeratorPool(
     Node q, const TermTupleEnumeratorEnv* env, TermPools* tp, Node p);
 
+TermTupleEnumeratorInterface* mkTermTupleEnumeratorLeximin(
+    Node q,
+    const TermTupleEnumeratorEnv* env,
+    QuantifiersState& qs,
+    TermDb* td);
 }  // namespace quantifiers
 }  // namespace theory
 }  // namespace cvc5

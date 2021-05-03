@@ -547,6 +547,15 @@ header = "options/quantifiers_options.h"
   help       = "interleave enumerative instantiation with other techniques"
 
 [[option]]
+  name       = "fullSaturateLeximin"
+  category   = "regular"
+  long       = "fs-leximin"
+  type       = "bool"
+  default    = "false"
+  read_only  = true
+  help       = "enumerate tuples off terms  in the leximin"
+
+[[option]]
   name       = "fullSaturateStratify"
   category   = "regular"
   long       = "fs-stratify"

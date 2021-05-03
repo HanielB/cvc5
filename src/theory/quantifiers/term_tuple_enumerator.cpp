@@ -210,6 +210,55 @@ class TermTupleEnumeratorBase : public TermTupleEnumeratorInterface
   bool nextCombination();
 };
 
+class SocialTupleEnumerator : public TermTupleEnumeratorBase
+{
+ public:
+  using TermTupleEnumeratorBase::TermTupleEnumeratorBase;  // inherit
+                                                           // constructor
+ protected:
+  size_t d_maxValue;
+  std::vector<size_t> d_score;
+  virtual bool nextCombinationAttempt() override;
+  bool increaseScore();
+  /** Move onto the next combination. */
+  bool nextPermutation();
+  /** Find the next lexicographically smallest combination of terms that change
+   * on the change prefix, each digit is within the current state,  and there is
+   * at least one digit not in the previous stage. */
+  virtual void initializeAttempts() override;
+};
+
+bool SocialTupleEnumerator::nextCombinationAttempt()
+{
+  return nextPermutation() || increaseScore();
+}
+
+bool SocialTupleEnumerator::nextPermutation()
+{
+  bool okay;
+  do
+  {
+    if (!std::next_permutation(d_termIndex.begin(), d_termIndex.end()))
+    {
+      return false;
+    }
+    okay = true;
+    for (size_t variableIx = 0; okay && variableIx < d_variableCount;
+         variableIx++)
+    {
+      okay = d_termIndex[variableIx] < d_termsSizes[variableIx];
+    }
+  } while (!okay);
+  return true;
+}
+
+void SocialTupleEnumerator::initializeAttempts()
+{
+  d_maxValue =
+      std::max(*std::max_element(d_termsSizes.begin(), d_termsSizes.end()),
+               static_cast<size_t>(1));
+  d_score.resize(d_variableCount, 0);
+}
 class StagedTupleEnumerator : public TermTupleEnumeratorBase
 {
  public:
@@ -229,12 +278,12 @@ class StagedTupleEnumerator : public TermTupleEnumeratorBase
   virtual bool nextCombinationAttempt() override;
   /** Move onto the next combination. */
   bool nextCombinationInternal();
-  /** Find the next lexicographically smallest combination of terms that change
-   * on the change prefix, each digit is within the current state,  and there is
-   * at least one digit not in the previous stage. */
+  /** Find the next lexicographically smallest combination of terms that
+   * change on the change prefix, each digit is within the current state,  and
+   * there is at least one digit not in the previous stage. */
   bool nextCombinationSum();
-  /** Find the next lexicographically smallest combination of terms that change
-   * on the change prefix and their sum is equal to d_currentStage. */
+  /** Find the next lexicographically smallest combination of terms that
+   * change on the change prefix and their sum is equal to d_currentStage. */
   bool nextCombinationMax();
   virtual void initializeAttempts() override;
 };
@@ -331,6 +380,31 @@ bool TermTupleEnumeratorBase::nextCombination()
       return true;  // current combination vetted by disabled combinations
     }
   }
+}
+
+bool SocialTupleEnumerator::increaseScore()
+{
+  size_t increaseDigit;
+  bool found = false;
+  for (increaseDigit = 0; increaseDigit < d_variableCount; increaseDigit++)
+  {
+    const bool last = increaseDigit + 1 == d_variableCount;
+    found = (!last && d_score[increaseDigit] < d_score[increaseDigit + 1])
+            || (last && d_score[increaseDigit] < d_maxValue);
+    if (found)
+    {
+      break;
+    }
+  }
+  if (!found)
+  {
+    return false;
+  }
+  d_score[increaseDigit]++;
+  std::fill_n(d_score.begin(), increaseDigit, 0);
+  d_termIndex = d_score;
+  Trace("inst-alg-rd") << "increased score: " << d_score << std::endl;
+  return true;
 }
 
 void StagedTupleEnumerator::initializeAttempts()
@@ -569,6 +643,14 @@ class PoolTermProducer : public ITermProducer
   /**  a list of terms for each id */
   std::map<size_t, std::vector<Node> > d_poolList;
 };
+
+TermTupleEnumeratorInterface* mkTermTupleEnumeratorLeximin(
+    Node q, const TermTupleEnumeratorEnv* env, QuantifiersState& qs, TermDb* td)
+{
+  auto* termProducer = new BasicTermProducer(q, qs, td);
+  return static_cast<TermTupleEnumeratorInterface*>(
+      new SocialTupleEnumerator(q, env, termProducer));
+}
 
 TermTupleEnumeratorInterface* mkTermTupleEnumerator(
     Node q, const TermTupleEnumeratorEnv* env, QuantifiersState& qs, TermDb* td)
