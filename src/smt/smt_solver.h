@@ -13,7 +13,7 @@
  * The solver for SMT queries in an SmtEngine.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__SMT__SMT_SOLVER_H
 #define CVC5__SMT__SMT_SOLVER_H
@@ -71,6 +71,8 @@ class SmtSolver
   ~SmtSolver();
   /**
    * Create theory engine, prop engine based on the logic info.
+   *
+   * @param logicInfo the logic information
    */
   void finishInit(const LogicInfo& logicInfo);
   /** Reset all assertions, global declarations, etc.  */
@@ -129,6 +131,7 @@ class SmtSolver
   /** Get a pointer to the preprocessor */
   Preprocessor* getPreprocessor();
   //------------------------------------------ end access methods
+
  private:
   /** Reference to the parent SMT engine */
   SmtEngine& d_smt;

@@ -16,6 +16,9 @@
 
 #include <sstream>
 
+#include "expr/dtype.h"
+#include "expr/dtype_cons.h"
+#include "expr/dtype_selector.h"
 #include "expr/node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "proof/lfsc/lfsc_print_channel.h"
@@ -25,7 +28,7 @@ using namespace cvc5::kind;
 namespace cvc5 {
 namespace proof {
 
-LfscPrinter::LfscPrinter(LfscTermProcessor& ltp) : d_tproc(ltp)
+LfscPrinter::LfscPrinter(LfscNodeConverter& ltp) : d_tproc(ltp)
 {
   NodeManager* nm = NodeManager::currentNM();
   d_boolType = nm->booleanType();
@@ -76,12 +79,63 @@ void LfscPrinter::print(std::ostream& out,
     }
     std::unordered_set<TypeNode, TypeNodeHashFunction> types;
     expr::getComponentTypes(st, types);
+    std::unordered_set<size_t> tupleArity;
     for (const TypeNode& stc : types)
     {
-      if (stc.isSort() && sts.find(stc) == sts.end())
+      if (sts.find(stc) == sts.end())
       {
         sts.insert(stc);
-        preamble << "(declare " << stc << " sort)" << std::endl;
+        if (stc.isSort())
+        {
+          preamble << "(declare " << stc << " sort)" << std::endl;
+        }
+        else if (stc.isDatatype())
+        {
+          const DType& dt = stc.getDType();
+          preamble << "; DATATYPE " << dt.getName() << std::endl;
+          if (dt.isTuple())
+          {
+            const DTypeConstructor& cons = dt[0];
+            size_t arity = cons.getNumArgs();
+            if (tupleArity.find(arity) == tupleArity.end())
+            {
+              tupleArity.insert(arity);
+              preamble << "(declare Tuple_" << arity << " ";
+              std::stringstream tcparen;
+              for (size_t j = 0, nargs = cons.getNumArgs(); j < nargs; j++)
+              {
+                preamble << "(! s" << j << " sort ";
+                tcparen << ")";
+              }
+              preamble << "sort" << tcparen.str() << ")";
+            }
+            preamble << std::endl;
+          }
+          else
+          {
+            preamble << "(declare "
+                     << LfscNodeConverter::getNameForUserName(dt.getName())
+                     << " sort)" << std::endl;
+          }
+          for (size_t i = 0, ncons = dt.getNumConstructors(); i < ncons; i++)
+          {
+            const DTypeConstructor& cons = dt[i];
+            std::stringstream sscons;
+            sscons << d_tproc.convert(cons.getConstructor());
+            std::string cname = sscons.str();
+            // print construct/tester
+            preamble << "(declare " << cname << " term)" << std::endl;
+            preamble << "(declare is-" << cname << " term)" << std::endl;
+            for (size_t j = 0, nargs = cons.getNumArgs(); j < nargs; j++)
+            {
+              const DTypeSelector& arg = cons[j];
+              // print selector
+              Node si = d_tproc.convert(arg.getSelector());
+              preamble << "(declare " << si << " term)" << std::endl;
+            }
+          }
+          preamble << "; END DATATYPE " << std::endl;
+        }
       }
     }
   }
@@ -95,8 +149,9 @@ void LfscPrinter::print(std::ostream& out,
       // constructors, selector, testers are defined by the datatype
       continue;
     }
-    preamble << "(define " << s << " (var " << d_tproc.getOrAssignIndexForVar(s)
-             << " ";
+    Node si = d_tproc.convert(s);
+    preamble << "(define " << si << " (var "
+             << d_tproc.getOrAssignIndexForVar(s) << " ";
     printType(preamble, st);
     preamble << "))" << std::endl;
   }
@@ -484,8 +539,13 @@ bool LfscPrinter::computeProofArgs(const ProofNode* pn,
     case PfRule::TRUE_ELIM:
     case PfRule::FALSE_ELIM: pf << h << cs[0]; break;
     // arithmetic
-    case PfRule::ARITH_MULT_POS: pf << h << as[0] << as[1]; break;
-    case PfRule::ARITH_MULT_NEG: pf << h << as[0] << as[1]; break;
+    case PfRule::ARITH_MULT_POS:
+    case PfRule::ARITH_MULT_NEG:
+    {
+      // do not pass type (as[0].getType())
+      pf << h << as[0] << as[1];
+    }
+    break;
     // strings
     case PfRule::STRING_LENGTH_POS: pf << as[0]; break;
     case PfRule::STRING_LENGTH_NON_EMPTY: pf << h << cs[0]; break;
@@ -530,6 +590,7 @@ bool LfscPrinter::computeProofArgs(const ProofNode* pn,
         case LfscRule::NOT_AND_REV: pf << h << h << cs[0]; break;
         case LfscRule::PROCESS_SCOPE: pf << h << h << as[2] << cs[0]; break;
         case LfscRule::AND_INTRO2: pf << h << h << cs[0] << cs[1]; break;
+        // do not pass type (cs[0]->getResult()[0].getType())
         case LfscRule::ARITH_SUM_UB: pf << h << h << h << cs[0] << cs[1]; break;
         default: return false; break;
       }

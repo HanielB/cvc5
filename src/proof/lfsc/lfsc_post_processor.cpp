@@ -28,7 +28,7 @@ namespace cvc5 {
 namespace proof {
 
 LfscProofPostprocessCallback::LfscProofPostprocessCallback(
-    LfscTermProcessor& ltp, ProofNodeManager* pnm)
+    LfscNodeConverter& ltp, ProofNodeManager* pnm)
     : d_pnm(pnm), d_pc(pnm->getChecker()), d_tproc(ltp), d_firstTime(false)
 {
 }
@@ -137,10 +137,17 @@ bool LfscProofPostprocessCallback::update(Node res,
       }
       // turn into binary
       Node cur = children[0];
+      std::unordered_set<Node, NodeHashFunction> processed;
+      processed.insert(children.begin(), children.end());
       for (size_t i = 1, size = children.size(); i < size; i++)
       {
         std::vector<Node> newChildren{cur, children[i]};
         cur = d_pc->checkDebug(PfRule::TRANS, newChildren, {});
+        if (processed.find(cur) != processed.end())
+        {
+          continue;
+        }
+        processed.insert(cur);
         cdp->addStep(cur, PfRule::TRANS, newChildren, {});
       }
     }
@@ -151,6 +158,45 @@ bool LfscProofPostprocessCallback::update(Node res,
       // require a REFL step.
       Assert(res.getKind() == EQUAL);
       Assert(res[0].getOperator() == res[1].getOperator());
+      // different for closures
+      if (res[0].isClosure())
+      {
+        // FIXME
+        return false;
+        if (res[0][0] != res[1][0])
+        {
+          // TODO: cannot convert congruence with different variables currently
+          return false;
+        }
+        Node cop = d_tproc.getOperatorOfClosure(res[0]);
+        // start with base case body = body'
+        Node curL = children[1][0];
+        Node curR = children[1][1];
+        Node currEq = children[1];
+        for (size_t i = 0, nvars = res[0][0].getNumChildren(); i < nvars; i++)
+        {
+          // CONG rules for each variable
+          Node v = res[0][0][nvars - 1 - i];
+          Node vop = d_tproc.getOperatorOfBoundVar(cop, v);
+          Node vopEq = vop.eqNode(vop);
+          cdp->addStep(vopEq, PfRule::REFL, {}, {vop});
+          Node nextEq;
+          if (i + 1 == nvars)
+          {
+            // if we are at the end, we prove the final equality
+            nextEq = res;
+          }
+          else
+          {
+            curL = nm->mkNode(HO_APPLY, vop, children[i][0]);
+            curR = nm->mkNode(HO_APPLY, vop, children[i][1]);
+            nextEq = curL.eqNode(curR);
+          }
+          addLfscRule(cdp, nextEq, {currEq, vopEq}, LfscRule::CONG, {});
+          currEq = nextEq;
+        }
+        return true;
+      }
       Kind k = res[0].getKind();
       // We are proving f(t1, ..., tn) = f(s1, ..., sn), nested.
       // First, get the operator, which will be used for printing the base
@@ -162,7 +208,7 @@ bool LfscProofPostprocessCallback::update(Node res,
       Node opEq = op.eqNode(op);
       cdp->addStep(opEq, PfRule::REFL, {}, {op});
       size_t nchildren = children.size();
-      Node nullTerm = LfscTermProcessor::getNullTerminator(k);
+      Node nullTerm = LfscNodeConverter::getNullTerminator(k);
       // Are we doing congruence of an n-ary operator? If so, notice that op
       // is a binary operator and we must apply congruence in a special way.
       // Note we use the first block of code if we have more than 2 children,
@@ -267,7 +313,7 @@ bool LfscProofPostprocessCallback::update(Node res,
     break;
     case PfRule::AND_INTRO:
     {
-      Node cur = LfscTermProcessor::getNullTerminator(AND);
+      Node cur = LfscNodeConverter::getNullTerminator(AND);
       size_t nchildren = children.size();
       for (size_t j = 0; j < nchildren; j++)
       {
@@ -289,7 +335,7 @@ bool LfscProofPostprocessCallback::update(Node res,
     case PfRule::ARITH_SUM_UB:
     {
       // proof of null terminator base 0 = 0
-      Node zero = LfscTermProcessor::getNullTerminator(PLUS);
+      Node zero = LfscNodeConverter::getNullTerminator(PLUS);
       Node cur = zero.eqNode(zero);
       cdp->addStep(cur, PfRule::REFL, {}, {zero});
       for (size_t i = 0, size = children.size(); i < size; i++)
@@ -346,7 +392,7 @@ Node LfscProofPostprocessCallback::mkChain(Kind k,
   size_t nchildren = children.size();
   size_t i = 0;
   // do we have a null terminator? If so, we start with it.
-  Node ret = LfscTermProcessor::getNullTerminator(k);
+  Node ret = LfscNodeConverter::getNullTerminator(k);
   if (ret.isNull())
   {
     ret = children[nchildren - 1];
@@ -366,7 +412,7 @@ Node LfscProofPostprocessCallback::mkDummyPredicate()
   return nm->mkBoundVar(nm->booleanType());
 }
 
-LfscProofPostprocess::LfscProofPostprocess(LfscTermProcessor& ltp,
+LfscProofPostprocess::LfscProofPostprocess(LfscNodeConverter& ltp,
                                            ProofNodeManager* pnm)
     : d_cb(new proof::LfscProofPostprocessCallback(ltp, pnm)), d_pnm(pnm)
 {

@@ -13,7 +13,7 @@
  * Theory proof step buffer utility.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__THEORY__THEORY_PROOF_STEP_BUFFER_H
 #define CVC5__THEORY__THEORY_PROOF_STEP_BUFFER_H
@@ -47,6 +47,7 @@ class TheoryProofStepBuffer : public ProofStepBuffer
                     Node tgt,
                     const std::vector<Node>& exp,
                     MethodId ids = MethodId::SB_DEFAULT,
+                    MethodId ida = MethodId::SBA_SEQUENTIAL,
                     MethodId idr = MethodId::RW_REWRITE);
   /**
    * Apply predicate transform. If this method returns true, it adds (at most
@@ -58,6 +59,7 @@ class TheoryProofStepBuffer : public ProofStepBuffer
                           Node tgt,
                           const std::vector<Node>& exp,
                           MethodId ids = MethodId::SB_DEFAULT,
+                          MethodId ida = MethodId::SBA_SEQUENTIAL,
                           MethodId idr = MethodId::RW_REWRITE);
   /**
    * Apply predicate introduction. If this method returns true, it adds proof
@@ -68,6 +70,7 @@ class TheoryProofStepBuffer : public ProofStepBuffer
   bool applyPredIntro(Node tgt,
                       const std::vector<Node>& exp,
                       MethodId ids = MethodId::SB_DEFAULT,
+                      MethodId ida = MethodId::SBA_SEQUENTIAL,
                       MethodId idr = MethodId::RW_REWRITE);
   /**
    * Apply predicate elimination. This method returns the result of applying
@@ -83,6 +86,7 @@ class TheoryProofStepBuffer : public ProofStepBuffer
   Node applyPredElim(Node src,
                      const std::vector<Node>& exp,
                      MethodId ids = MethodId::SB_DEFAULT,
+                     MethodId ida = MethodId::SBA_SEQUENTIAL,
                      MethodId idr = MethodId::RW_REWRITE);
   //---------------------------- end utilities builtin proof rules
 

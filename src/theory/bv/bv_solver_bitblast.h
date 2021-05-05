@@ -13,7 +13,7 @@
  * Bit-blasting solver that supports multiple SAT back ends.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__THEORY__BV__BV_SOLVER_BITBLAST_H
 #define CVC5__THEORY__BV__BV_SOLVER_BITBLAST_H
@@ -59,12 +59,6 @@ class BVSolverBitblast : public BVSolver
   TrustNode explain(TNode n) override;
 
   std::string identify() const override { return "BVSolverBitblast"; };
-
-  Theory::PPAssertStatus ppAssert(
-      TrustNode in, TrustSubstitutionMap& outSubstitutions) override
-  {
-    return Theory::PPAssertStatus::PP_ASSERT_STATUS_UNSOLVED;
-  }
 
   EqualityStatus getEqualityStatus(TNode a, TNode b) override;
 

@@ -13,7 +13,7 @@
  * Theory of bit-vectors.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__THEORY__BV__THEORY_BV_H
 #define CVC5__THEORY__BV__THEORY_BV_H
@@ -62,8 +62,6 @@ class TheoryBV : public Theory
   bool needsEqualityEngine(EeSetupInfo& esi) override;
 
   void finishInit() override;
-
-  TrustNode expandDefinition(Node node) override;
 
   void preRegisterTerm(TNode n) override;
 
@@ -123,6 +121,13 @@ class TheoryBV : public Theory
 
   /** The notify class for equality engine. */
   TheoryEqNotifyClass d_notify;
+
+  /** TheoryBV statistics. */
+  struct Statistics
+  {
+    Statistics(const std::string& name);
+    IntStat d_solveSubstitutions;
+  } d_stats;
 
 }; /* class TheoryBV */
 

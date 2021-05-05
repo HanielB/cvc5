@@ -22,6 +22,7 @@
 
 #include "base/check.h"
 #include "options/open_ostream.h"
+#include "options/option_exception.h"
 #include "options/smt_options.h"
 #include "smt/update_ostream.h"
 
@@ -77,7 +78,7 @@ void ManagedDumpOStream::initialize(std::ostream* outStream) {
   dumpGetStream.apply(outStream);
 #else  /* CVC5_DUMPING */
   throw OptionException(
-      "The dumping feature was disabled in this build of CVC4.");
+      "The dumping feature was disabled in this build of cvc5.");
 #endif /* CVC5_DUMPING */
 }
 
@@ -90,7 +91,7 @@ ManagedRegularOutputChannel::~ManagedRegularOutputChannel() {
   // to null_os. Consult RegularOutputChannelListener for the list of
   // channels.
   if(options::err() == getManagedOstream()){
-    options::err.set(&null_os);
+    Options::current().set(options::err, &null_os);
   }
 }
 
@@ -114,7 +115,7 @@ ManagedDiagnosticOutputChannel::~ManagedDiagnosticOutputChannel() {
   // to null_os. Consult DiagnosticOutputChannelListener for the list of
   // channels.
   if(options::err() == getManagedOstream()){
-    options::err.set(&null_os);
+    Options::current().set(options::err, &null_os);
   }
 
   if(Debug.getStreamPointer() == getManagedOstream()) {
@@ -123,9 +124,9 @@ ManagedDiagnosticOutputChannel::~ManagedDiagnosticOutputChannel() {
   if(Warning.getStreamPointer() == getManagedOstream()){
     Warning.setStream(&null_os);
   }
-  if (CVC4Message.getStreamPointer() == getManagedOstream())
+  if (CVC5Message.getStreamPointer() == getManagedOstream())
   {
-    CVC4Message.setStream(&null_os);
+    CVC5Message.setStream(&null_os);
   }
   if(Notice.getStreamPointer() == getManagedOstream()){
     Notice.setStream(&null_os);

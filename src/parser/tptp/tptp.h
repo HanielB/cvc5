@@ -13,9 +13,8 @@
  * Definition of TPTP parser.
  */
 
-#include "parser/antlr_input.h" // Needs to go first.
-
-#include "cvc4parser_private.h"
+#include "cvc5parser_private.h"
+#include "parser/antlr_input.h"  // Needs to go first.
 
 #ifndef CVC5__PARSER__TPTP_H
 #define CVC5__PARSER__TPTP_H
@@ -194,7 +193,7 @@ class Tptp : public Parser {
   api::Term d_utr_op;
   api::Term d_uts_op;
   // The set of expression that already have a bridge
-  std::unordered_set<api::Term, api::TermHashFunction> d_r_converted;
+  std::unordered_set<api::Term> d_r_converted;
   std::unordered_map<std::string, api::Term> d_distinct_objects;
 
   std::vector< pANTLR3_INPUT_STREAM > d_in_created;

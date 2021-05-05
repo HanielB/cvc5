@@ -13,7 +13,7 @@
  * A substitution mapping for theory simplification.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__THEORY__SUBSTITUTIONS_H
 #define CVC5__THEORY__SUBSTITUTIONS_H
@@ -52,15 +52,14 @@ public:
 private:
 
   typedef std::unordered_map<Node, Node, NodeHashFunction> NodeCache;
+  /** A dummy context used by this class if none is provided */
+  context::Context d_context;
 
   /** The variables, in order of addition */
   NodeMap d_substitutions;
 
   /** Cache of the already performed substitutions */
   NodeCache d_substitutionCache;
-
-  /** Whether or not to substitute under quantifiers */
-  bool d_substituteUnderQuantifiers;
 
   /** Has the cache been invalidated? */
   bool d_cacheInvalidated;
@@ -88,16 +87,8 @@ private:
    */
   CacheInvalidator d_cacheInvalidator;
 
-public:
- SubstitutionMap(context::Context* context,
-                 bool substituteUnderQuantifiers = true)
-     : d_substitutions(context),
-       d_substitutionCache(),
-       d_substituteUnderQuantifiers(substituteUnderQuantifiers),
-       d_cacheInvalidated(false),
-       d_cacheInvalidator(context, d_cacheInvalidated)
- {
-  }
+ public:
+  SubstitutionMap(context::Context* context = nullptr);
 
   /**
    * Adds a substitution from x to t.

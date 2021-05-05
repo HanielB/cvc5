@@ -1,16 +1,17 @@
-/*********************                                                        */
-/*! \file verit_proof_rule.cpp
- ** \verbatim
- ** Top contributors (to current version):
- **   Hanna Lachnitt
- ** This file is part of the CVC4 project.
- ** Copyright (c) 2009-2020 by the authors listed in the file AUTHORS
- ** in the top-level source directory) and their institutional affiliations.
- ** All rights reserved.  See the file COPYING in the top-level source
- ** directory for licensing information.\endverbatim
- **
- ** \brief Implementation of veriT proof rules
- **/
+/******************************************************************************
+ * Top contributors (to current version):
+ *   Hanna Lachnitt
+ *
+ * This file is part of the cvc5 project.
+ *
+ * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * in the top-level source directory and their institutional affiliations.
+ * All rights reserved.  See the file COPYING in the top-level source
+ * directory for licensing information.
+ * ****************************************************************************
+ *
+ * Implementation of veriT proof rules
+ */
 
 #include "proof/verit/verit_proof_rule.h"
 
@@ -20,14 +21,13 @@ namespace cvc5 {
 
 namespace proof {
 
-const char* veritRuletoString(VeritRule id)
+const char* veritRuleToString(VeritRule id)
 {
   switch (id)
   {
-    case VeritRule::UNDEFINED: return "undefined";
     case VeritRule::ASSUME: return "assume";
-    case VeritRule::ANCHOR: return "anchor";
-    case VeritRule::INPUT: return "input";
+    case VeritRule::ANCHOR_SUBPROOF: return "subproof";
+    case VeritRule::ANCHOR_BIND: return "bind";
     case VeritRule::TRUE: return "true";
     case VeritRule::FALSE: return "false";
     case VeritRule::NOT_NOT: return "not_not";
@@ -90,7 +90,7 @@ const char* veritRuletoString(VeritRule id)
     case VeritRule::NOT_ITE1: return "not_ite1";
     case VeritRule::NOT_ITE2: return "not_ite2";
     case VeritRule::ITE_INTRO: return "ite_intro";
-    case VeritRule::DUPLICATE_LITERALS: return "duplicate_literals";
+    case VeritRule::DUPLICATED_LITERALS: return "duplicate_literals";
     case VeritRule::CONNECTIVE_DEF: return "connective_def";
     case VeritRule::ITE_SIMPLIFY: return "ite_simplify";
     case VeritRule::EQ_SIMPLIFY: return "eq_simplify";
@@ -100,7 +100,7 @@ const char* veritRuletoString(VeritRule id)
     case VeritRule::IMPLIES_SIMPLIFY: return "implies_simplify";
     case VeritRule::EQUIV_SIMPLIFY: return "equiv_simplify";
     case VeritRule::BOOL_SIMPLIFY: return "bool_simplify";
-    case VeritRule::QUANTIFIER_SIMPLIFY: return "quantifier_simplify";
+    case VeritRule::QUANTIFIER_SIMPLIFY: return "qnt_simplify";
     case VeritRule::DIV_SIMPLIFY: return "div_simplify";
     case VeritRule::PROD_SIMPLIFY: return "prod_simplify";
     case VeritRule::UNARY_MINUS_SIMPLIFY: return "unary_minus_simplify";
@@ -108,17 +108,24 @@ const char* veritRuletoString(VeritRule id)
     case VeritRule::SUM_SIMPLIFY: return "sum_simplify";
     case VeritRule::COMP_SIMPLIFY: return "comp_simplify";
     case VeritRule::NARY_ELIM: return "nary_elim";
-    case VeritRule::TMP_AC_SIMP: return "tmp_ac_simp";
-    case VeritRule::TMP_BFUN_ELIM: return "tmp_bfun-elim";
-    case VeritRule::TEMP_QUANTIFIER_CNF: return "tmp_quantifier_cnf";
-    case VeritRule::SUBPROOF: return "subproof";
-    case VeritRule::BIND: return "bind";
     case VeritRule::LET: return "let";
     case VeritRule::QNT_SIMPLIFY: return "qnt_simplify";
     case VeritRule::SKO_EX: return "sko_ex";
     case VeritRule::SKO_FORALL: return "sko_forall";
+    //================================================= Extended rules
+    case VeritRule::SYMM: return "symm";
+    case VeritRule::NOT_SYMM: return "not_symm";
+    case VeritRule::REORDER: return "reorder";
+    //================================================= Undefined rule
+    case VeritRule::UNDEFINED: return "undefined";
     default: return "?";
   }
+}
+
+std::ostream& operator<<(std::ostream& out, VeritRule id)
+{
+  out << veritRuleToString(id);
+  return out;
 }
 
 }  // namespace proof

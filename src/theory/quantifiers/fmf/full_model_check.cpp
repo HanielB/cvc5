@@ -332,6 +332,11 @@ bool FullModelChecker::preProcessBuildModel(TheoryModel* m) {
        i++)
   {
     Node q = fm->getAssertedQuantifier(i);
+    registerQuantifiedFormula(q);
+    if (!isHandled(q))
+    {
+      continue;
+    }
     // make sure all types are set
     for (const Node& v : q[0])
     {
@@ -675,7 +680,7 @@ int FullModelChecker::doExhaustiveInstantiation( FirstOrderModel * fm, Node f, i
           Node ev = d_quant_models[f].evaluate(fmfmc, inst);
           if (ev == d_true)
           {
-            CVC4Message() << "WARNING: instantiation was true! " << f << " "
+            CVC5Message() << "WARNING: instantiation was true! " << f << " "
                           << mcond[i] << std::endl;
             AlwaysAssert(false);
           }

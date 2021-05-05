@@ -15,7 +15,7 @@
  * Describes the interface for the internal bit-vector solver of TheoryBV.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__THEORY__BV__BV_SOLVER_H
 #define CVC5__THEORY__BV__BV_SOLVER_H
@@ -85,9 +85,6 @@ class BVSolver
                                   const std::set<Node>& termSet) = 0;
 
   virtual std::string identify() const = 0;
-
-  virtual Theory::PPAssertStatus ppAssert(
-      TrustNode in, TrustSubstitutionMap& outSubstitutions) = 0;
 
   virtual TrustNode ppRewrite(TNode t) { return TrustNode::null(); };
 

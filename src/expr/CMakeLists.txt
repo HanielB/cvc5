@@ -13,7 +13,7 @@
 # The build system configuration.
 ##
 
-libcvc4_add_sources(
+libcvc5_add_sources(
   array_store_all.cpp
   array_store_all.h
   ascription_type.cpp
@@ -45,6 +45,8 @@ libcvc4_add_sources(
   node_algorithm.h
   node_builder.cpp
   node_builder.h
+  node_converter.cpp
+  node_converter.h
   node_manager.cpp
   node_manager.h
   node_manager_attributes.h
@@ -124,7 +126,7 @@ libcvc4_add_sources(
   uninterpreted_constant.h
 )
 
-libcvc4_add_sources(GENERATED
+libcvc5_add_sources(GENERATED
   kind.cpp
   kind.h
   metakind.cpp

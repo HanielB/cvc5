@@ -13,7 +13,7 @@
  * A class representing a datatype selector.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__EXPR__DTYPE_SELECTOR_H
 #define CVC5__EXPR__DTYPE_SELECTOR_H
@@ -39,7 +39,7 @@ class DTypeSelector
 
  public:
   /** constructor */
-  DTypeSelector(std::string name, Node selector);
+  DTypeSelector(std::string name, Node selector, Node updater);
 
   /** Get the name of this constructor argument. */
   const std::string& getName() const;
@@ -49,6 +49,11 @@ class DTypeSelector
    * only permitted after resolution.
    */
   Node getSelector() const;
+  /**
+   * Get the upater for this constructor argument; this call is
+   * only permitted after resolution.
+   */
+  Node getUpdater() const;
 
   /**
    * Get the associated constructor for this constructor argument;
@@ -79,6 +84,8 @@ class DTypeSelector
   std::string d_name;
   /** the selector expression */
   Node d_selector;
+  /** the updater expression */
+  Node d_updater;
   /**
    * The constructor associated with this selector. This field is initialized
    * by the constructor of this selector during a call to

@@ -12,7 +12,7 @@
  ** \brief The module for printing Lfsc proof nodes
  **/
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC4__PROOF__LFSC__LFSC_PRINTER_H
 #define CVC4__PROOF__LFSC__LFSC_PRINTER_H
@@ -23,7 +23,7 @@
 #include "expr/node.h"
 #include "expr/proof_node.h"
 #include "printer/let_binding.h"
-#include "proof/lfsc/lfsc_term_process.h"
+#include "proof/lfsc/lfsc_node_converter.h"
 #include "proof/lfsc/lfsc_util.h"
 #include "proof/print_expr.h"
 
@@ -35,7 +35,7 @@ class LfscPrintChannel;
 class LfscPrinter
 {
  public:
-  LfscPrinter(LfscTermProcessor& ltp);
+  LfscPrinter(LfscNodeConverter& ltp);
   ~LfscPrinter() {}
 
   /**
@@ -104,7 +104,7 @@ class LfscPrinter
                                 std::map<const ProofNode*, size_t>& pletMap);
   //------------------------------ end printing proofs
   /** The term processor */
-  LfscTermProcessor& d_tproc;
+  LfscNodeConverter& d_tproc;
   /** The proof traversal callback */
   LfscProofLetifyTraverseCallback d_lpltc;
   /** true and false nodes */

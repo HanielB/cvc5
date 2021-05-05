@@ -12,7 +12,7 @@
  ** \brief The module for processing proof nodes into Lfsc proof nodes
  **/
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC4__PROOF__LFSC__LFSC_POST_PROCESSOR_H
 #define CVC4__PROOF__LFSC__LFSC_POST_PROCESSOR_H
@@ -21,7 +21,7 @@
 #include <unordered_set>
 
 #include "expr/proof_node_updater.h"
-#include "proof/lfsc/lfsc_term_process.h"
+#include "proof/lfsc/lfsc_node_converter.h"
 #include "proof/lfsc/lfsc_util.h"
 
 namespace cvc5 {
@@ -37,7 +37,7 @@ namespace proof {
 class LfscProofPostprocessCallback : public ProofNodeUpdaterCallback
 {
  public:
-  LfscProofPostprocessCallback(LfscTermProcessor& ltp, ProofNodeManager* pnm);
+  LfscProofPostprocessCallback(LfscNodeConverter& ltp, ProofNodeManager* pnm);
   /**
    * Initialize, called once for each new ProofNode to process. This initializes
    * static information to be used by successive calls to update.
@@ -61,7 +61,7 @@ class LfscProofPostprocessCallback : public ProofNodeUpdaterCallback
   /** The proof checker of d_pnm **/
   ProofChecker* d_pc;
   /** The term processor */
-  LfscTermProcessor& d_tproc;
+  LfscNodeConverter& d_tproc;
   /**
    * Are we in the first call to update? This is to distinguish the top-most
    * SCOPE.
@@ -86,7 +86,7 @@ class LfscProofPostprocessCallback : public ProofNodeUpdaterCallback
 class LfscProofPostprocess
 {
  public:
-  LfscProofPostprocess(LfscTermProcessor& ltp, ProofNodeManager* pnm);
+  LfscProofPostprocess(LfscNodeConverter& ltp, ProofNodeManager* pnm);
   /** post-process */
   void process(std::shared_ptr<ProofNode> pf);
 

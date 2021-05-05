@@ -19,7 +19,7 @@
  * change the statistic data, but shield the regular user from the internals.
  */
 
-#include "cvc4_private_library.h"
+#include "cvc5_private_library.h"
 
 #ifndef CVC5__UTIL__STATISTICS_STATS_H
 #define CVC5__UTIL__STATISTICS_STATS_H
@@ -122,11 +122,22 @@ class ReferenceStat
   /** Value stored for this statistic */
   using stat_type = StatisticReferenceValue<T>;
   /** Reset the reference to point to `t`. */
-  void set(const T& t)
+  template <typename TT>
+  void set(const TT& t)
   {
+    static_assert(std::is_same_v<T, TT>, "Incorrect type for ReferenceStat");
     if constexpr (Configuration::isStatisticsBuild())
     {
       d_data->d_value = &t;
+    }
+  }
+  /** Commit the value currently pointed to and release it. */
+  void reset()
+  {
+    if constexpr (Configuration::isStatisticsBuild())
+    {
+      d_data->commit();
+      d_data->d_value = nullptr;
     }
   }
   /** Copy the current value of the referenced object. */

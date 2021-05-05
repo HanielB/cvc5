@@ -13,7 +13,7 @@
  * Lazy bit-vector solver.
  */
 
-#include "cvc4_private.h"
+#include "cvc5_private.h"
 
 #ifndef CVC5__THEORY__BV__BV_SOLVER_LAZY_H
 #define CVC5__THEORY__BV__BV_SOLVER_LAZY_H
@@ -93,9 +93,6 @@ class BVSolverLazy : public BVSolver
 
   std::string identify() const override { return std::string("BVSolverLazy"); }
 
-  Theory::PPAssertStatus ppAssert(
-      TrustNode tin, TrustSubstitutionMap& outSubstitutions) override;
-
   TrustNode ppRewrite(TNode t) override;
 
   void ppStaticLearn(TNode in, NodeBuilder& learned) override;
@@ -112,14 +109,12 @@ class BVSolverLazy : public BVSolver
   {
    public:
     AverageStat d_avgConflictSize;
-    IntStat d_solveSubstitutions;
     TimerStat d_solveTimer;
     IntStat d_numCallsToCheckFullEffort;
     IntStat d_numCallsToCheckStandardEffort;
     TimerStat d_weightComputationTimer;
     IntStat d_numMultSlice;
     Statistics();
-    ~Statistics();
   };
 
   Statistics d_statistics;
