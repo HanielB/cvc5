@@ -193,7 +193,10 @@ bool InstStrategyEnum::process(Node quantifier, bool fullEffort, bool isRd)
   std::unique_ptr<TermTupleEnumeratorInterface> enumerator(
       options::fullSaturateLeximin()
           ? mkLeximinTermTupleEnumerator(quantifier, &ttec)
-          : mkStagedTermTupleEnumerator(quantifier, &ttec));
+          : (options::fullSaturateIterativeDeepening() > 0
+                 ? mkIterativeDeepeningTermTupleEnumerator(quantifier, &ttec)
+                 : mkStagedTermTupleEnumerator(quantifier, &ttec)));
+
   std::vector<Node> terms;
   std::vector<bool> failMask;
   Instantiate* ie = d_qim.getInstantiate();

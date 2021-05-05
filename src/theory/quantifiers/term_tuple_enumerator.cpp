@@ -143,14 +143,16 @@ class TermTupleEnumeratorBase : public TermTupleEnumeratorInterface
 {
  public:
   /** Initialize the class with the quantifier to be instantiated. */
-  TermTupleEnumeratorBase(Node quantifier, const TermTupleEnumeratorEnv* env)
+  TermTupleEnumeratorBase(Node quantifier,
+                          const TermTupleEnumeratorEnv* env,
+                          bool avoidRepetitions)
       : d_quantifier(quantifier),
         d_variableCount(d_quantifier[0].getNumChildren()),
         d_env(env),
 
         d_stepCounter(0),
         d_disabledCombinations(
-            true)  // do not record combinations with no blanks
+            !avoidRepetitions)  // do not record combinations with no blanks
 
   {
     d_changePrefix = d_variableCount;
@@ -197,8 +199,11 @@ class TermTupleEnumeratorBase : public TermTupleEnumeratorInterface
 class SocialTupleEnumerator : public TermTupleEnumeratorBase
 {
  public:
-  using TermTupleEnumeratorBase::TermTupleEnumeratorBase;  // inherit
-                                                           // constructor
+  SocialTupleEnumerator(Node quantifier, const TermTupleEnumeratorEnv* env)
+      : TermTupleEnumeratorBase(quantifier, env, false)
+  {
+  }
+
  protected:
   /**maximum term index that may appear*/
   size_t d_maxValue;
@@ -260,8 +265,11 @@ void SocialTupleEnumerator::initializeAttempts()
 class StagedTupleEnumerator : public TermTupleEnumeratorBase
 {
  public:
-  using TermTupleEnumeratorBase::TermTupleEnumeratorBase;  // inherit
-                                                           // constructor
+  StagedTupleEnumerator(Node quantifier, const TermTupleEnumeratorEnv* env)
+      : TermTupleEnumeratorBase(quantifier, env, false)
+  {
+  }
+
  protected:
   /** current sum/max  of digits, depending on the strategy */
   size_t d_currentStage;
@@ -285,6 +293,141 @@ class StagedTupleEnumerator : public TermTupleEnumeratorBase
   bool nextCombinationMax();
   virtual void initializeAttempts() override;
 };
+class IterativeDeepeningTupleEnumerator : public TermTupleEnumeratorBase
+{
+ public:
+  IterativeDeepeningTupleEnumerator(Node quantifier,
+                                    const TermTupleEnumeratorEnv* env)
+      : TermTupleEnumeratorBase(quantifier, env, false),
+        d_allMask(d_variableCount, true),
+        d_visited(false)
+  {
+  }
+
+  struct State
+  {
+    size_t d_depth;
+    size_t d_increaseDigit;       // which digit should be increased next
+    std::vector<size_t> d_tuple;  // tuple indices (immutable)
+  };
+
+ protected:
+  size_t d_currentMaxDepth;
+  size_t d_currentMinDepth;
+  std::vector<State> d_stack;
+  const std::vector<bool> d_allMask;
+  IndexTrie d_visited;
+  bool d_incomplete;
+
+  virtual bool nextCombinationAttempt() override;
+  void resetStack()
+  {
+    d_stack.resize(1);
+    d_stack.back().d_tuple.resize(d_variableCount);
+    std::fill_n(d_stack.back().d_tuple.begin(), d_variableCount, 0);
+    d_stack.back().d_increaseDigit = d_variableCount;
+    d_stack.back().d_depth = 0;
+    Trace("inst-alg-rd") << "Current max depth " << d_currentMaxDepth
+                         << std::endl;
+  }
+
+  virtual void initializeAttempts() override
+  {
+    d_currentMaxDepth = options::fullSaturateIterativeDeepening();
+    d_currentMinDepth = 0;
+    d_incomplete = false;
+    resetStack();
+  }
+  bool findNeighbor(State& state);
+};
+static Cvc5ostream& operator<<(
+    Cvc5ostream& out, const IterativeDeepeningTupleEnumerator::State& state)
+{
+  return out << "[" << state.d_tuple << ", " << state.d_increaseDigit << ", "
+             << state.d_depth << "]";
+}
+
+bool IterativeDeepeningTupleEnumerator::findNeighbor(
+    IterativeDeepeningTupleEnumerator::State& state)
+{
+  // look for a digit to increase in the top
+  while (state.d_increaseDigit--)
+  {
+    if ((state.d_tuple[state.d_increaseDigit] + 1)
+        < d_termsSizes[state.d_increaseDigit])
+    {
+      return true;
+    }
+  }
+  return false;
+}
+bool IterativeDeepeningTupleEnumerator::nextCombinationAttempt()
+{
+  Assert(!d_stack.empty() && d_stack.back().d_tuple.size() == d_variableCount);
+  size_t dummy;
+  State newState;
+  newState.d_tuple.resize(d_variableCount);
+  newState.d_increaseDigit = d_variableCount;
+  while (true)
+  {
+    auto& state = d_stack.back();
+    Trace("fs-iterative-deepening") << "Checking state:" << state << std::endl;
+    // look for a neighbor that hasn't been visited yet
+    bool hasOpenNeighbor = false;
+    while (!hasOpenNeighbor)
+    {
+      if (!findNeighbor(state))
+      {  // current state exhausted
+        Trace("fs-iterative-deepening") << "Exhausted:" << state << std::endl;
+        break;
+      }
+      else
+      {  // check if the neighbor has already been visited
+        for (size_t varIx = 0; varIx < d_variableCount; varIx++)
+        {
+          newState.d_tuple[varIx] =
+              state.d_tuple[varIx] + (varIx == state.d_increaseDigit ? 1 : 0);
+        }
+        newState.d_depth = state.d_depth + 1;
+        hasOpenNeighbor = !d_visited.find(newState.d_tuple, dummy);
+      }
+    }
+    if (hasOpenNeighbor && state.d_depth < d_currentMaxDepth)
+    {  // put the neighbor on the stack
+      Trace("fs-iterative-deepening") << "Pushing:" << newState << std::endl;
+      d_stack.push_back(newState);
+      d_termIndex = newState.d_tuple;
+      d_visited.add(d_allMask, newState.d_tuple);
+      if (newState.d_depth >= d_currentMinDepth)
+      {
+        Trace("fs-iterative-deepening") << "Output:" << newState << std::endl;
+        return true;
+      }
+    }
+    else
+    {  // incomplete if there is a node with neighbors but cutoff
+      d_incomplete = d_incomplete
+                     || (hasOpenNeighbor && state.d_depth >= d_currentMaxDepth);
+      // Backtracking
+      d_stack.pop_back();
+      if (d_stack.empty())  // backtracking on the root
+      {
+        if (!d_incomplete)
+        {
+          return false;  // state space exhausted
+        }
+        // start from beginning  with a deeper tree
+        d_currentMinDepth = d_currentMaxDepth + 1;
+        d_currentMaxDepth += options::fullSaturateIterativeDeepening();
+        d_visited.clear();
+        d_incomplete = false;
+        resetStack();
+      }
+    }
+  }
+  Unreachable();
+}
+
 void TermTupleEnumeratorBase::init()
 {
   Trace("inst-alg-rd") << "Initializing enumeration " << d_quantifier
@@ -664,6 +807,11 @@ TermTupleEnumeratorInterface* mkLeximinTermTupleEnumerator(
     Node q, const TermTupleEnumeratorEnv* env)
 {
   return new SocialTupleEnumerator(q, env);
+}
+TermTupleEnumeratorInterface* mkIterativeDeepeningTermTupleEnumerator(
+    Node q, const TermTupleEnumeratorEnv* env)
+{
+  return new IterativeDeepeningTupleEnumerator(q, env);
 }
 
 }  // namespace quantifiers

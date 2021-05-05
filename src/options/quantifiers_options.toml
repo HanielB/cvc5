@@ -547,13 +547,31 @@ header = "options/quantifiers_options.h"
   help       = "interleave enumerative instantiation with other techniques"
 
 [[option]]
+  name       = "fullSaturateIterativeDeepening"
+  category   = "regular"
+  long       = "fs-iterative-deepening=N"
+  type       = "int"
+  default    = "2"
+  read_only  = true
+  help       = "enumerate tuples  using iterative deep and in  where the depth  increase is parameterized"
+
+[[option]]
+  name       = "fullSaturateRandom"
+  category   = "regular"
+  long       = "fs-random"
+  type       = "bool"
+  default    = "false"
+  read_only  = true
+  help       = "use a random strategy for tuple enumeration"
+
+[[option]]
   name       = "fullSaturateLeximin"
   category   = "regular"
   long       = "fs-leximin"
   type       = "bool"
   default    = "false"
   read_only  = true
-  help       = "enumerate tuples off terms  in the leximin"
+  help       = "enumerate tuples of terms  in the leximin"
 
 [[option]]
   name       = "fullSaturateStratify"

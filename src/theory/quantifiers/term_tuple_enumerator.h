@@ -104,8 +104,11 @@ struct TermTupleEnumeratorEnv
 TermTupleEnumeratorInterface* mkStagedTermTupleEnumerator(
     Node q, const TermTupleEnumeratorEnv* env);
 
-/** Same as above, but draws terms from the relevant domain utility (rd). */
+/** . */
 TermTupleEnumeratorInterface* mkLeximinTermTupleEnumerator(
+    Node q, const TermTupleEnumeratorEnv* env);
+
+TermTupleEnumeratorInterface* mkIterativeDeepeningTermTupleEnumerator(
     Node q, const TermTupleEnumeratorEnv* env);
 
 /** Make term pool enumerator */

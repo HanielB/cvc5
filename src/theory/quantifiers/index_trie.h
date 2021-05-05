@@ -66,6 +66,11 @@ class IndexTrie
         d_root(new IndexTrieNode())
   {
   }
+  void clear()
+  {
+    freeRec(d_root);
+    d_root = new IndexTrieNode();
+  }
 
   virtual ~IndexTrie() { freeRec(d_root); }
 
