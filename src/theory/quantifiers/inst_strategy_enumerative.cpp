@@ -202,8 +202,8 @@ bool InstStrategyEnum::process(Node quantifier, bool fullEffort, bool isRd)
                  : TermTupleEnumerationStrategies::STAGED);
   if (options::fullSaturateRandom())
   {
-    std::uniform_int_distribution<int> ud(0,
-                                          TermTupleEnumerationStrategies::LAST);
+    std::uniform_int_distribution<int> ud(
+        0, TermTupleEnumerationStrategies::LAST - 1);
     strategy = static_cast<TermTupleEnumerationStrategies>(ud(d_mt));
   }
   std::unique_ptr<TermTupleEnumeratorInterface> enumerator(

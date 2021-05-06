@@ -333,7 +333,7 @@ class IterativeDeepeningTupleEnumerator : public TermTupleEnumeratorBase
 
   virtual void initializeAttempts() override
   {
-    d_currentMaxDepth = options::fullSaturateIterativeDeepening();
+    d_currentMaxDepth = options::fullSaturateIterativeDeepeningIncrement();
     d_currentMinDepth = 0;
     d_incomplete = false;
     resetStack();
@@ -418,7 +418,7 @@ bool IterativeDeepeningTupleEnumerator::nextCombinationAttempt()
         }
         // start from beginning  with a deeper tree
         d_currentMinDepth = d_currentMaxDepth + 1;
-        d_currentMaxDepth += options::fullSaturateIterativeDeepening();
+        d_currentMaxDepth += options::fullSaturateIterativeDeepeningIncrement();
         d_visited.clear();
         d_incomplete = false;
         resetStack();
