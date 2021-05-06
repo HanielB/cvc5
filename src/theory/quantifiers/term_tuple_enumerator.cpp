@@ -814,6 +814,23 @@ TermTupleEnumeratorInterface* mkIterativeDeepeningTermTupleEnumerator(
   return new IterativeDeepeningTupleEnumerator(q, env);
 }
 
+TermTupleEnumeratorInterface* mkTupleEnumerator(
+    TermTupleEnumerationStrategies strategy,
+    Node q,
+    const TermTupleEnumeratorEnv* env)
+{
+  switch (strategy)
+  {
+    case TermTupleEnumerationStrategies::STAGED:
+      return mkStagedTermTupleEnumerator(q, env);
+    case TermTupleEnumerationStrategies::ITERATIVE:
+      return mkIterativeDeepeningTermTupleEnumerator(q, env);
+    case TermTupleEnumerationStrategies::LEXIMIN:
+      return mkLeximinTermTupleEnumerator(q, env);
+    case TermTupleEnumerationStrategies::LAST: Unreachable();
+  }
+  return nullptr;
+}
 }  // namespace quantifiers
 }  // namespace theory
 }  // namespace cvc5

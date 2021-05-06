@@ -120,6 +120,17 @@ ITermProducer* mkTermProducer(Node quantifier,
 
 ITermProducer* mkTermProducerRd(Node quantifier, RelevantDomain* rd);
 
+enum TermTupleEnumerationStrategies
+{
+  STAGED,
+  LEXIMIN,
+  ITERATIVE,
+  LAST
+};
+TermTupleEnumeratorInterface* mkTupleEnumerator(
+    TermTupleEnumerationStrategies strategy,
+    Node q,
+    const TermTupleEnumeratorEnv* env);
 }  // namespace quantifiers
 }  // namespace theory
 }  // namespace cvc5

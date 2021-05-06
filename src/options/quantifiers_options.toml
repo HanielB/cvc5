@@ -549,7 +549,16 @@ header = "options/quantifiers_options.h"
 [[option]]
   name       = "fullSaturateIterativeDeepening"
   category   = "regular"
-  long       = "fs-iterative-deepening=N"
+  long       = "fs-iterative-deepening"
+  type       = "bool"
+  default    = "false"
+  read_only  = true
+  help       = "enumerate tuples  using iterative deep and in  where the depth  increase is parameterized"
+
+[[option]]
+  name       = "fullSaturateIterativeDeepeningIncrement"
+  category   = "regular"
+  long       = "fs-iterative-deepening-increment=N"
   type       = "int"
   default    = "2"
   read_only  = true
@@ -563,6 +572,15 @@ header = "options/quantifiers_options.h"
   default    = "false"
   read_only  = true
   help       = "use a random strategy for tuple enumeration"
+
+[[option]]
+  name       = "fullSaturateRndSeed"
+  category   = "regular"
+  long       = "fs-rnd-seed=N"
+  type       = "int"
+  default    = "0"
+  read_only  = true
+  help       = "seed for the FS strategies"
 
 [[option]]
   name       = "fullSaturateLeximin"

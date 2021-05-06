@@ -34,7 +34,10 @@ InstStrategyEnum::InstStrategyEnum(QuantifiersState& qs,
                                    QuantifiersRegistry& qr,
                                    TermRegistry& tr,
                                    RelevantDomain* rd)
-    : QuantifiersModule(qs, qim, qr, tr), d_rd(rd), d_fullSaturateLimit(-1)
+    : QuantifiersModule(qs, qim, qr, tr),
+      d_rd(rd),
+      d_fullSaturateLimit(-1),
+      d_mt(options::fullSaturateRndSeed())
 {
 }
 void InstStrategyEnum::presolve()
@@ -190,12 +193,21 @@ bool InstStrategyEnum::process(Node quantifier, bool fullEffort, bool isRd)
   ttec.d_termProducer = termProducer.get();
   // make the enumerator, which is either relevant domain or term database
   // based on the flag isRd.
-  std::unique_ptr<TermTupleEnumeratorInterface> enumerator(
+
+  TermTupleEnumerationStrategies strategy =
       options::fullSaturateLeximin()
-          ? mkLeximinTermTupleEnumerator(quantifier, &ttec)
-          : (options::fullSaturateIterativeDeepening() > 0
-                 ? mkIterativeDeepeningTermTupleEnumerator(quantifier, &ttec)
-                 : mkStagedTermTupleEnumerator(quantifier, &ttec)));
+          ? TermTupleEnumerationStrategies::LEXIMIN
+          : (options::fullSaturateIterativeDeepening()
+                 ? TermTupleEnumerationStrategies::ITERATIVE
+                 : TermTupleEnumerationStrategies::STAGED);
+  if (options::fullSaturateRandom())
+  {
+    std::uniform_int_distribution<int> ud(0,
+                                          TermTupleEnumerationStrategies::LAST);
+    strategy = static_cast<TermTupleEnumerationStrategies>(ud(d_mt));
+  }
+  std::unique_ptr<TermTupleEnumeratorInterface> enumerator(
+      mkTupleEnumerator(strategy, quantifier, &ttec));
 
   std::vector<Node> terms;
   std::vector<bool> failMask;

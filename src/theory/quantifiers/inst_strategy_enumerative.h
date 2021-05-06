@@ -18,6 +18,8 @@
 #ifndef CVC5__INST_STRATEGY_ENUMERATIVE_H
 #define CVC5__INST_STRATEGY_ENUMERATIVE_H
 
+#include <random>
+
 #include "theory/quantifiers/quant_module.h"
 
 namespace cvc5 {
@@ -113,6 +115,7 @@ class InstStrategyEnum : public QuantifiersModule
    * during presolve.
    */
   int32_t d_fullSaturateLimit;
+  std::mt19937 d_mt;
 }; /* class InstStrategyEnum */
 
 }  // namespace quantifiers
