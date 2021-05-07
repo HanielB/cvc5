@@ -278,7 +278,7 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
     concAlpha = q.eqNode(ret);
     d_proof->addStep(q.eqNode(q), PfRule::REFL, {}, {q});
   }
-  AlwaysAssert(!expr::hasClosure(q[1]));
+  // AlwaysAssert(!expr::hasClosure(q[1]));
   return TrustNode::mkTrustLemma(concAlpha, d_proof.get());
 }
 
