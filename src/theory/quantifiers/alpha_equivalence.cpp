@@ -215,6 +215,7 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
         {conclusionRw,
          // need extended rewriter because of ordering of equalities
          mkMethodId(MethodId::SB_DEFAULT),
+         mkMethodId(MethodId::SBA_SEQUENTIAL),
          mkMethodId(MethodId::RW_EXT_REWRITE)});
     // build scope step
     Node conclusionScope =
