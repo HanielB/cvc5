@@ -896,7 +896,7 @@ enum class PfRule : uint32_t
   //   - its bound variables (potentially at all levels, not only at the top)
   //     may have been renamed
   //   - arguments of commutative operators may be reordered
-  MACRO_ALPHA_EQUIV,
+  MACRO_TERM_CANONIZE,
   // ======== Alpha equivalence
   // Children: none
   // Arguments: ((forall ((x1 T1) ... (xn Tn)) F), y1 ... yn)

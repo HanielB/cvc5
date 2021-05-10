@@ -150,10 +150,27 @@ struct sortTermOrder
   bool operator()(Node i, Node j) { return d_tu->getTermOrder(i, j); }
 };
 
-theory::TrustNode TermCanonize::getCanonicalTerm(TNode n,
-                                                 std::map<Node, Node>& subs,
+theory::TrustNode TermCanonize::getCanonicalTermProof(TNode n,
                                                  bool applyTOrder,
-                                                 bool doHoVar)
+                                                 bool doHoVar,
+                                                 std::map<Node, Node>& subs)
+{}
+
+Node TermCanonize::getCanonicalTerm(TNode n, bool applyTOrder, bool doHoVar)
+{
+  std::map<Node, Node> subs;
+  theory::TrustNode trn = getCanonicalTerm(n, subs, applyTOrder, doHoVar);
+  AlwaysAssert(!trn.isNull());
+  return trn.getNode();
+}
+
+
+Node TermCanonize::getCanonicalTerm(TNode n,
+                                    bool applyTOrder,
+                                    bool doHoVar,
+                                    std::map<Node, Node>& subs,
+                                    TConvProofGenerator* tcpg)
+
 {
   // counter for creating canonical variables per type
   std::map<TypeNode, unsigned> varCount;
@@ -286,14 +303,6 @@ theory::TrustNode TermCanonize::getCanonicalTerm(TNode n,
   } while (!visit.empty());
   AlwaysAssert(!visited[n].isNull());
   return theory::TrustNode::mkTrustRewrite(n, visited[n], d_tcpg.get());
-}
-
-Node TermCanonize::getCanonicalTerm(TNode n, bool applyTOrder, bool doHoVar)
-{
-  std::map<Node, Node> subs;
-  theory::TrustNode trn = getCanonicalTerm(n, subs, applyTOrder, doHoVar);
-  AlwaysAssert(!trn.isNull());
-  return trn.getNode();
 }
 
 bool TermCanonize::isProofEnabled() const { return d_tcpg != nullptr; }

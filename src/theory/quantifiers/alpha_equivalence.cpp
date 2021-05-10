@@ -231,7 +231,7 @@ TrustNode AlphaEquivalenceDb::addTerm(Node q)
     args.insert(args.end(), bvars1.begin(), bvars1.end());
     args.insert(args.end(), bvars2.begin(), bvars2.end());
     concAlpha = q.eqNode(canonRet);
-    d_proof->addStep(concAlpha, PfRule::ALPHA_EQUIV, {conclusionScope}, args);
+    d_proof->addStep(concAlpha, PfRule::MACRO_TERM_CANONIZE, {conclusionScope}, args);
     // we may have the issue that the canonized quantifiers differ on the order
     // of their variable prefix, so we need to add an in-between step for the
     // transitivity proof. So for example, for an alpha-equivalence connection

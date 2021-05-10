@@ -72,8 +72,9 @@ class TermCanonize
    * the second leftmost is the second, and so on, for each type T.
    */
   Node getCanonicalTerm(TNode n,
-                             bool applyTOrder = false,
-                             bool doHoVar = true);
+                        bool applyTOrder = false,
+                        bool doHoVar = true,
+                        TConvProofGenerator* tcpg = nullptr);
 
   /**
    * As above but stores in the given map the substitution performed by the
