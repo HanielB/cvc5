@@ -221,6 +221,18 @@ bool InstStrategyEnum::process(Node quantifier, bool fullEffort, bool isRd)
     }
     enumerator->next(terms);
     // try instantiation
+    if (!options::fullSaturateFailmask())
+    {
+      if (ie->addInstantiation(
+              quantifier, terms, InferenceId::QUANTIFIERS_INST_ENUM))
+      {
+        return true;
+      }
+      else
+      {
+        continue;
+      }
+    }
     failMask.clear();
     /* if (ie->addInstantiation(quantifier, terms)) */
     if (ie->addInstantiationExpFail(

@@ -516,7 +516,8 @@ bool TermTupleEnumeratorBase::nextCombination()
     {
       return false;  // ran out of combinations
     }
-    if (!d_disabledCombinations.find(d_termIndex, d_changePrefix))
+    if (!options::fullSaturateFailmask()
+        || !d_disabledCombinations.find(d_termIndex, d_changePrefix))
     {
       return true;  // current combination vetted by disabled combinations
     }

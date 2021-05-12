@@ -536,7 +536,16 @@ header = "options/quantifiers_options.h"
   default    = "-1"
   read_only  = true
   help       = "maximum number of rounds of enumerative instantiation to apply (-1 means no limit)"
-  
+
+[[option]]
+  name       = "fullSaturateFailmask"
+  category   = "regular"
+  long       = "fs-failmask"
+  type       = "bool"
+  default    = "true"
+  read_only  = true
+  help       = "Filter out instantiations based on a failmask of previous failed instantiations"
+
 [[option]]
   name       = "fullSaturateInterleave"
   category   = "regular"
