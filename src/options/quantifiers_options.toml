@@ -582,6 +582,16 @@ header = "options/quantifiers_options.h"
   read_only  = true
   help       = "seed for the FS strategies"
 
+
+[[option]]
+  name       = "fullSaturateRandomWalk"
+  category   = "regular"
+  long       = "fs-random-walk"
+  type       = "bool"
+  default    = "false"
+  read_only  = true
+  help       = "enumerate tuples in a random walk"
+
 [[option]]
   name       = "fullSaturateLeximin"
   category   = "regular"

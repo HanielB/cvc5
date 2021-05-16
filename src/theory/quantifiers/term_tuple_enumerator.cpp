@@ -30,40 +30,11 @@
 #include "theory/quantifiers/relevant_domain.h"
 #include "theory/quantifiers/term_pools.h"
 #include "theory/quantifiers/term_registry.h"
+#include "theory/quantifiers/term_tuple_enumerator_utils.h"
 #include "theory/quantifiers/term_util.h"
 #include "util/statistics_stats.h"
 
 namespace cvc5 {
-
-template <typename T>
-static Cvc5ostream& operator<<(Cvc5ostream& out, const std::vector<T>& v)
-{
-  out << "[ ";
-  std::copy(v.begin(), v.end(), std::ostream_iterator<T>(out, " "));
-  return out << "]";
-}
-
-/** Tracing purposes, printing a masked vector of indices. */
-static void traceMaskedVector(const char* trace,
-                              const char* name,
-                              const std::vector<bool>& mask,
-                              const std::vector<size_t>& values)
-{
-  Assert(mask.size() == values.size());
-  Trace(trace) << name << " [ ";
-  for (size_t variableIx = 0; variableIx < mask.size(); variableIx++)
-  {
-    if (mask[variableIx])
-    {
-      Trace(trace) << values[variableIx] << " ";
-    }
-    else
-    {
-      Trace(trace) << "_ ";
-    }
-  }
-  Trace(trace) << "]" << std::endl;
-}
 
 namespace theory {
 namespace quantifiers {
@@ -90,7 +61,7 @@ class BasicTermProducer : public ITermProducer
  protected:
   const Node d_quantifier;
   /**  a list of terms for each type */
-  std::map<TypeNode, std::vector<Node> > d_termDbList;
+  std::map<TypeNode, std::vector<Node>> d_termDbList;
   /** Reference to quantifiers state */
   QuantifiersState& d_qs;
   /** type for each variable */
@@ -195,6 +166,76 @@ class TermTupleEnumeratorBase : public TermTupleEnumeratorInterface
   /** Move on in the current stage */
   bool nextCombination();
 };
+class RandomWalkEnumerator : public TermTupleEnumeratorBase
+{
+ public:
+  RandomWalkEnumerator(Node quantifier, const TermTupleEnumeratorEnv* env)
+      : TermTupleEnumeratorBase(quantifier, env, false)
+  {
+  }
+  virtual ~RandomWalkEnumerator() = default;
+  /*implementation of virtual methods from ancestor*/
+  virtual void initializeAttempts() override;
+  virtual bool nextCombinationAttempt() override;
+
+  typedef ImmutableVector<size_t> Tuple;
+
+ protected:
+  std::unordered_set<Tuple,
+                     ImmutableVector_hash<size_t>,
+                     ImmutableVector_equal<size_t>>
+      d_visited;
+  std::vector<Tuple> d_open;
+  void push(const std::vector<size_t>& tuple);
+};
+void RandomWalkEnumerator::initializeAttempts() { push(d_termIndex); }
+bool RandomWalkEnumerator::nextCombinationAttempt()
+{
+  if (d_open.empty())
+  {
+    return false;
+  }
+  // pop random element from the stack by swapping it into back
+  std::uniform_int_distribution<size_t> ud(0, d_open.size() - 1);
+  std::swap(d_open.back(), d_open[ud(*(d_env->d_mt))]);
+  Tuple top = d_open.back();
+  d_open.pop_back();
+  Trace("inst-alg-rd") << "[RandomWalkEnumerator] Pop " << top << std::endl;
+  // push top's neighbors
+  d_termIndex.clear();
+  d_termIndex.insert(d_termIndex.end(), top.begin(), top.end());
+  std::vector<size_t> temporary;
+  for (size_t varIx = d_termIndex.size(); varIx--;)
+  {
+    const auto newValue = d_termIndex[varIx] + 1;
+    if (newValue >= d_termsSizes[varIx])
+    {
+      continue;  // digit cannot be increased
+    }
+    temporary = d_termIndex;
+    temporary[varIx] = newValue;
+    push(temporary);
+  }
+  Trace("inst-alg-rd") << "[RandomWalkEnumerator] Stack size " << d_open.size()
+                       << std::endl;
+  return true;
+}
+void RandomWalkEnumerator::push(const std::vector<size_t>& values)
+{
+  Assert(values.size() == d_variableCount);
+  Tuple tuple(values);
+  if (!d_visited.insert(tuple).second)
+  {
+    return;  // already seen
+  }
+  d_open.push_back(tuple);
+  Trace("inst-alg-rd") << "[RandomWalkEnumerator] Push " << tuple << std::endl;
+}
+TermTupleEnumeratorInterface* mkRandomWalkEnumerator(
+    Node q, const TermTupleEnumeratorEnv* env)
+{
+  return new RandomWalkEnumerator(q, env);
+}
 
 class SocialTupleEnumerator : public TermTupleEnumeratorBase
 {
@@ -782,7 +823,7 @@ class PoolTermProducer : public ITermProducer
   /** The pool annotation */
   Node d_pool;
   /**  a list of terms for each id */
-  std::map<size_t, std::vector<Node> > d_poolList;
+  std::map<size_t, std::vector<Node>> d_poolList;
 };
 ITermProducer* mkTermProducer(Node quantifier, QuantifiersState& qs, TermDb* td)
 {
@@ -827,6 +868,8 @@ TermTupleEnumeratorInterface* mkTupleEnumerator(
       return mkIterativeDeepeningTermTupleEnumerator(q, env);
     case TermTupleEnumerationStrategies::LEXIMIN:
       return mkLeximinTermTupleEnumerator(q, env);
+    case TermTupleEnumerationStrategies::RANDOM_WALK:
+      return new RandomWalkEnumerator(q, env);
     case TermTupleEnumerationStrategies::LAST: Unreachable();
   }
   return nullptr;

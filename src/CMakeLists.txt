@@ -793,6 +793,8 @@ libcvc5_add_sources(
   theory/quantifiers/term_pools.h
   theory/quantifiers/term_tuple_enumerator.cpp
   theory/quantifiers/term_tuple_enumerator.h
+  theory/quantifiers/term_tuple_enumerator_utils.cpp
+  theory/quantifiers/term_tuple_enumerator_utils.h
   theory/quantifiers/sygus/ce_guided_single_inv.cpp
   theory/quantifiers/sygus/ce_guided_single_inv.h
   theory/quantifiers/sygus/cegis.cpp
