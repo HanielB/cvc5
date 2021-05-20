@@ -191,11 +191,14 @@ bool InstStrategyEnum::process(Node quantifier, bool fullEffort, bool isRd)
   ttec.d_fullEffort = fullEffort;
   ttec.d_increaseSum = options::fullSaturateSum();
   ttec.d_termProducer = termProducer.get();
+  ttec.d_mt = &d_mt;
   // make the enumerator, which is either relevant domain or term database
   // based on the flag isRd.
 
   TermTupleEnumerationStrategies strategy =
-      options::fullSaturateLeximin()
+      options::fullSaturateRandomWalk()
+          ? TermTupleEnumerationStrategies::RANDOM_WALK
+      : options::fullSaturateLeximin()
           ? TermTupleEnumerationStrategies::LEXIMIN
           : (options::fullSaturateIterativeDeepening()
                  ? TermTupleEnumerationStrategies::ITERATIVE

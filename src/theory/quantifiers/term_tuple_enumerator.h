@@ -16,6 +16,7 @@
 #ifndef CVC5__THEORY__QUANTIFIERS__TERM_TUPLE_ENUMERATOR_H
 #define CVC5__THEORY__QUANTIFIERS__TERM_TUPLE_ENUMERATOR_H
 
+#include <random>
 #include <vector>
 
 #include "expr/node.h"
@@ -80,6 +81,7 @@ struct TermTupleEnumeratorEnv
   bool d_increaseSum;
   /**term producer to be used to generate the individual terms*/
   ITermProducer* d_termProducer;
+  std::mt19937* d_mt;
 };
 
 /**  A function to construct a tuple enumerator.
@@ -125,6 +127,7 @@ enum TermTupleEnumerationStrategies
   STAGED,
   LEXIMIN,
   ITERATIVE,
+  RANDOM_WALK,
   LAST
 };
 TermTupleEnumeratorInterface* mkTupleEnumerator(
