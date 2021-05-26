@@ -104,7 +104,16 @@ Node LeanProofPostprocessCallback::mkPrintableOp(Node n)
         return nm->mkBoundVar("eqConst", nm->sExprType());
         break;
       }
-      default: Node::null();
+      case kind::OR:
+      {
+        return nm->mkBoundVar("orConst", nm->sExprType());
+        break;
+      }
+      default:
+      {
+        Trace("test-lean") << "non-handled kind " << k << "\n";
+        Node::null();
+      }
     }
   }
   return n;
@@ -180,7 +189,6 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::REFL:
     case PfRule::NOT_IMPLIES_ELIM1:
     case PfRule::NOT_IMPLIES_ELIM2:
-    case PfRule::PREPROCESS:
     case PfRule::TRUE_INTRO:
     case PfRule::TRUE_ELIM:
     case PfRule::FALSE_INTRO:
@@ -192,6 +200,7 @@ bool LeanProofPostprocessCallback::update(Node res,
       break;
     }
     // minor reasoning to clean args
+    case PfRule::PREPROCESS:
     case PfRule::THEORY_REWRITE:
     {
       addLeanStep(
@@ -282,21 +291,23 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::AND_INTRO:
     {
       size_t size = children.size();
-      Node cur = children[size - 1], first = children[0][0];
-      for (size_t i = size - 1; i > 0; --i)
+      Node cur = children[size - 1], first = children[0];
+      for (size_t i = 1; i < size - 1; ++i)
       {
-        Node newCur = nm->mkNode(kind::AND, children[i - 1], cur);
+        Node newCur = nm->mkNode(kind::AND, children[size - i - 1], cur);
         addLeanStep(newCur,
                     LeanRule::AND_INTRO_PARTIAL,
                     Node::null(),
                     {
-                        children[i],
+                        children[size - i - 1],
                         cur,
                     },
                     {},
                     *cdp);
         cur = newCur;
       }
+      addLeanStep(
+          res, LeanRule::AND_INTRO, Node::null(), {first, cur}, {}, *cdp);
       break;
     }
     //-------- clausal rules
