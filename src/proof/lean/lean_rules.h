@@ -104,6 +104,11 @@ enum class LeanRule : uint32_t
   TH_TRUST,
   TH_TRUST_VALID,
 
+  // strings
+  STRING_LENGTH_POS,
+  // arith
+  ARITH_SUM_UB,
+
   UNKNOWN
 };
 

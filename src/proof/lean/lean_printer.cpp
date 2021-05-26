@@ -112,6 +112,11 @@ void LeanPrinter::printSort(std::ostream& out, TypeNode sort)
     out << "intSort";
     return;
   }
+  if (sort.isString())
+  {
+    out << "stringSort";
+    return;
+  }
   // TODO HB will need to add cases for other theories
 
   // uninterpreted sort
@@ -152,6 +157,15 @@ void LeanPrinter::printTermList(std::ostream& out, TNode n)
     printTerm(out, n[i]);
     out << (i < size - 1 ? ", " : "]");
   }
+}
+
+void LeanPrinter::printBinary(std::ostream& out, TNode n)
+{
+  Kind k = n.getKind();
+  out << kind::toString(k) << " ";
+  printTerm(out, n[0]);
+  out << " ";
+  printTerm(out, n[1]);
 }
 
 void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
@@ -198,7 +212,6 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
       printTerm(out, nc[1]);
       break;
     }
-
     case kind::OR:
     {
       Assert(nChildren >= 2);
@@ -273,6 +286,16 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
   {
     out << "mkLength ";
     printTerm(out, nc[0]);
+    break;
+  }
+  case kind::LT:
+  case kind::LEQ:
+  case kind::GT:
+  case kind::GEQ:
+  case kind::MULT:
+  case kind::PLUS:
+  {
+    printBinary(out, nc);
     break;
   }
     default: Unhandled() << " " << k;
@@ -538,7 +561,7 @@ void LeanPrinter::print(std::ostream& out,
   // print theorem header, which is to get proofs of all the assumptions and
   // conclude a proof of []. The assumptions are args[2..]
   out << "\ntheorem th0 : ";
-  Assert(args.size() > 2);
+  Assert((pfn->getArguments()).size() > 2);
   for (size_t i = 3, size = assumptions.size(); i < size; ++i)
   {
     out << "thHolds ";
