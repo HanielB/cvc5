@@ -88,7 +88,7 @@ void LeanPrinter::printSort(std::ostream& out, TypeNode sort)
   // functional sort
   if (sort.isFunction())
   {
-    out << "(mkArrowN [";
+    out << "(arrowN [";
     // print each arg sort
     size_t size = sort.getNumChildren();
     for (size_t i = 0; i < size - 1; ++i)
@@ -114,7 +114,11 @@ void LeanPrinter::printSort(std::ostream& out, TypeNode sort)
   }
   if (sort.isString())
   {
+<<<<<<< HEAD
     out << "stringSort";
+=======
+    out << "strSort";
+>>>>>>> bcd75ba75 (Match lean printer to new signature without mks)
     return;
   }
   // TODO HB will need to add cases for other theories
@@ -135,7 +139,7 @@ void LeanPrinter::printConstant(std::ostream& out, TNode n)
   else if (k == kind::CONST_STRING)
   {
     std::string str = n.getConst<String>().toString();
-    out << "(mkVarChars [";
+    out << "(mkValChars [";
     for (size_t i = 0; i < str.length(); ++i)
     {
       out << "\'" << str.at(i) << "\'";
@@ -175,7 +179,15 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
   // printing constant symbol
   if (nChildren == 0)
   {
-    printConstant(out, nc);
+    if (nc.getKind() == kind::CONST_RATIONAL)
+    {
+      out << "(mkValInt ";
+      printConstant(out, nc);
+      out << ")";
+    } else
+    {
+      printConstant(out, nc);
+    }
     return;
   }
   // printing applications / formulas
@@ -190,14 +202,14 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
       Assert(nChildren >= 1);
       if (nChildren > 1)
       {
-        out << "mkAppN ";
+        out << "appN ";
         printTerm(out, op);
         out << " ";
         printTermList(out, nc);
       }
       else
       {
-        out << "mkApp ";
+        out << "app ";
         printTerm(out, op);
         out << " ";
         printTerm(out, nc[0]);
@@ -206,7 +218,7 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
     }
     case kind::EQUAL:
     {
-      out << "mkEq ";
+      out << "eq ";
       printTerm(out, nc[0]);
       out << " ";
       printTerm(out, nc[1]);
@@ -217,12 +229,12 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
       Assert(nChildren >= 2);
       if (nChildren > 2)
       {
-        out << "mkOrN ";
+        out << "orN ";
         printTermList(out, nc);
       }
       else
       {
-        out << "mkOr ";
+        out << "or ";
         printTerm(out, nc[0]);
         out << " ";
         printTerm(out, nc[1]);
@@ -234,12 +246,12 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
       Assert(nChildren >= 2);
       if (nChildren > 2)
       {
-        out << "mkAndN ";
+        out << "andN ";
         printTermList(out, nc);
       }
       else
       {
-        out << "mkAnd ";
+        out << "and ";
         printTerm(out, nc[0]);
         out << " ";
         printTerm(out, nc[1]);
@@ -248,7 +260,7 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
     }
     case kind::IMPLIES:
     {
-      out << "mkImplies ";
+      out << "implies ";
       printTerm(out, nc[0]);
       out << " ";
       printTerm(out, nc[1]);
@@ -256,13 +268,13 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
     }
     case kind::NOT:
     {
-      out << "mkNot ";
+      out << "not ";
       printTerm(out, nc[0]);
       break;
     }
     case kind::ITE:
     {
-      out << "mkIte ";
+      out << "ite ";
       printTerm(out, nc[0]);
       out << " ";
       printTerm(out, nc[1]);
@@ -282,6 +294,7 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
       out << "]";
       break;
     }
+<<<<<<< HEAD
   case kind::STRING_LENGTH:
   {
     out << "mkLength ";
@@ -298,6 +311,68 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
     printBinary(out, nc);
     break;
   }
+=======
+    case kind::STRING_LENGTH:
+    {
+      out << "strLength ";
+      printTerm(out, nc[0]);
+      break;
+    }
+  case kind::LT:
+    {
+      out << "lt ";
+      printTerm(out, nc[0]);
+      out << " ";
+      printTerm(out, nc[1]);
+      break;
+    }
+  case kind::LEQ:
+    {
+      out << "lte ";
+      printTerm(out, nc[0]);
+      out << " ";
+      printTerm(out, nc[1]);
+      break;
+    }
+
+  case kind::GT:
+    {
+      out << "gt ";
+      printTerm(out, nc[0]);
+      out << " ";
+      printTerm(out, nc[1]);
+      break;
+    }
+
+  case kind::GEQ:
+    {
+      out << "gte ";
+      printTerm(out, nc[0]);
+      out << " ";
+      printTerm(out, nc[1]);
+      break;
+    }
+
+  case kind::MULT:
+    {
+      out << "mult ";
+      printTerm(out, nc[0]);
+      out << " ";
+      printTerm(out, nc[1]);
+      break;
+    }
+
+  case kind::PLUS:
+    {
+      out << "plus ";
+      printTerm(out, nc[0]);
+      out << " ";
+      printTerm(out, nc[1]);
+      break;
+    }
+
+
+>>>>>>> bcd75ba75 (Match lean printer to new signature without mks)
     default: Unhandled() << " " << k;
   }
   out << ")" << (letTop ? "" : "\n");
