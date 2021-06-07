@@ -184,7 +184,6 @@ void LetBinding::updateCounts(Node n)
 
 void LetBinding::convertCountToLet()
 {
-  Assert(d_thresh > 0);
   // Assign ids for those whose d_count is >= d_thresh, traverse in d_visitList
   // in order so that deeper nodes are assigned lower identifiers, which
   // ensures the let list can be printed.

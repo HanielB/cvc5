@@ -185,6 +185,7 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::TRUE_ELIM:
     case PfRule::FALSE_INTRO:
     case PfRule::FALSE_ELIM:
+    case PfRule::MODUS_PONENS:
     {
       addLeanStep(
           res, s_pfRuleToLeanRule.at(id), Node::null(), children, args, *cdp);
@@ -210,105 +211,6 @@ bool LeanProofPostprocessCallback::update(Node res,
       break;
     }
     //-------------- bigger conversions
-    case PfRule::MODUS_PONENS:
-    {
-      // modus ponens is the only rule, other than implies_elim, that may have a
-      // scope as a premise. Since scopes are short-circuited to generate
-      // clauses directly, it's necessary to turn the modus ponens rule into a
-      // resolution step. Otherwise MP is translated directly
-      std::shared_ptr<ProofNode> childPf1 = cdp->getProofFor(children[1]);
-      if (false && childPf1->getRule() == PfRule::SCOPE)
-      {
-        Trace("test-lean") << "..modus ponens with a scope\n";
-        // first process the scope to have (OR (not arg0) ... (not argn) ch1Res)
-        // arguments will be the pivots
-        const std::vector<Node>& ch1Args = childPf1->getArguments();
-        std::vector<Node> newScConcLits;
-        std::vector<Node> childrenOfChild1;
-        const std::vector<std::shared_ptr<ProofNode>>& childrenPfsOfChild1 =
-            childPf1->getChildren();
-        for (const std::shared_ptr<ProofNode>& cpoc : childrenPfsOfChild1)
-        {
-          childrenOfChild1.push_back(cpoc->getResult());
-          // store in the proof
-          cdp->addProof(cpoc);
-        }
-        // The arguments of the resolution step are all false/scopeArg[i]
-        std::vector<Node> resolutionArgs;
-        for (const Node& arg : ch1Args)
-        {
-          resolutionArgs.push_back(d_false);
-          resolutionArgs.push_back(arg);
-          newScConcLits.push_back(arg.notNode());
-        }
-        if (childPf1->getResult().getKind() == kind::NOT)
-        {
-          newScConcLits.push_back(d_false);
-        }
-        else
-        {
-          newScConcLits.push_back(childPf1->getResult()[1]);
-        }
-        Node ch1Res = nm->mkNode(kind::OR, newScConcLits);
-        // update scope
-        Trace("test-lean") << push;
-        update(ch1Res,
-               PfRule::SCOPE,
-               childrenOfChild1,
-               ch1Args,
-               cdp,
-               continueUpdate);
-        Trace("test-lean") << pop;
-        // build chain resolution information to further process. There are two
-        // cases: either the first child is an AND_INTRO and we need to bypass
-        // it *or* it's a rule whose conclusion perfectly matches the first (and
-        // only) argument of scope
-        //
-        // first link of resolution is the conclusion of the processed scope
-        std::vector<Node> resolutionChildren{ch1Res};
-        std::shared_ptr<ProofNode> childPf0 = cdp->getProofFor(children[0]);
-        Node ch0Res = childPf0->getResult();
-        AlwaysAssert(childPf0->getRule() == PfRule::AND_INTRO
-                     || (ch1Args.size() == 1 && ch0Res == ch1Args[0]));
-        if (childPf0->getRule() == PfRule::AND_INTRO)
-        {
-          // Collect children of AND_INTRO but also connect their proof nodes
-          // into cdp, otherwise we will lose them
-          std::vector<Node> childrenOfChild0;
-          const std::vector<std::shared_ptr<ProofNode>>& childrenPfsOfChild0 =
-              childPf0->getChildren();
-          for (const std::shared_ptr<ProofNode>& cpoc : childrenPfsOfChild0)
-          {
-            childrenOfChild0.push_back(cpoc->getResult());
-            // store in the proof
-            cdp->addProof(cpoc);
-          }
-          resolutionChildren.insert(resolutionChildren.end(),
-                                    childrenOfChild0.begin(),
-                                    childrenOfChild0.end());
-        }
-        else
-        {
-          resolutionChildren.push_back(ch0Res);
-        }
-        // process virtual step
-        Trace("test-lean") << push;
-        update(res,
-               PfRule::CHAIN_RESOLUTION,
-               resolutionChildren,
-               resolutionArgs,
-               cdp,
-               continueUpdate);
-        Trace("test-lean") << pop;
-      }
-      else
-      {
-        addLeanStep(
-            res, s_pfRuleToLeanRule.at(id), Node::null(), children, args, *cdp);
-      }
-      Trace("test-lean") << "..proof node of " << res << " : " << *cdp->getProofFor(res).get() << "\n";
-      break;
-    }
     // break down CONG chain
     case PfRule::CONG:
     {

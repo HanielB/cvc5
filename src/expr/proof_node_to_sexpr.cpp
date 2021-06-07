@@ -31,6 +31,7 @@ ProofNodeToSExpr::ProofNodeToSExpr()
   NodeManager* nm = NodeManager::currentNM();
   d_conclusionMarker = nm->mkBoundVar(":conclusion", nm->sExprType());
   d_argsMarker = nm->mkBoundVar(":args", nm->sExprType());
+  d_nullMarker = nm->mkBoundVar("null", nm->sExprType());
 }
 
 Node ProofNodeToSExpr::convertToSExpr(const ProofNode* pn)
@@ -108,6 +109,10 @@ Node ProofNodeToSExpr::convertToSExpr(const ProofNode* pn)
                 && NodeManager::operatorToKind(args[i]) != UNDEFINED_KIND)
             {
               av = getOrMkNodeVariable(args[i]);
+            }
+            else if (args[i].isNull())
+            {
+              av = d_nullMarker;
             }
             argsSafe.push_back(av);
           }

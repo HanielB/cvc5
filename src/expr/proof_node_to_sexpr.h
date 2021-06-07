@@ -52,6 +52,8 @@ class ProofNodeToSExpr
   Node d_argsMarker;
   /** Dummy ":conclusion" marker */
   Node d_conclusionMarker;
+  /** Dummy "null" marker */
+  Node d_nullMarker;
   /** map proof nodes to their s-expression */
   std::map<const ProofNode*, Node> d_pnMap;
   /**

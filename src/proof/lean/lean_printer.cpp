@@ -335,7 +335,7 @@ void LeanPrinter::printStepId(std::ostream& out,
 {
   if (pfn->getRule() == PfRule::ASSUME)
   {
-    AlwaysAssert(pfAssumpMap.find(pfn->getResult()) != pfAssumpMap.end());
+    AlwaysAssert(pfAssumpMap.find(pfn->getResult()) != pfAssumpMap.end()) << pfn->getResult();
     out << "lean_a" << pfAssumpMap.find(pfn->getResult())->second;
   }
   else
