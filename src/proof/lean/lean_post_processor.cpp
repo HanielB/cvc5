@@ -58,7 +58,9 @@ std::unordered_map<PfRule, LeanRule, PfRuleHashFunction> s_pfRuleToLeanRule = {
     {PfRule::CNF_ITE_NEG3, LeanRule::CNF_ITE_NEG3},
     {PfRule::NOT_NOT_ELIM, LeanRule::NOT_NOT_ELIM},
     {PfRule::STRING_LENGTH_POS, LeanRule::STRING_LENGTH_POS},
-    {PfRule::ARITH_SUM_UB, LeanRule::ARITH_SUM_UB}
+    {PfRule::ARITH_SUM_UB, LeanRule::ARITH_SUM_UB},
+    {PfRule::ARITH_MULT_POS, LeanRule::ARITH_MULT_POS},
+    {PfRule::ARITH_MULT_NEG, LeanRule::ARITH_MULT_NEG}
 };
 
 LeanProofPostprocess::LeanProofPostprocess(ProofNodeManager* pnm)
@@ -191,6 +193,41 @@ bool LeanProofPostprocessCallback::update(Node res,
                   *cdp);
       break;
     }
+    case PfRule::ARITH_SUM_UB:
+    {
+      addLeanStep(res, LeanRule::ARITH_SUM_UB, Node::null(), children, args, *cdp);
+      break;
+    }
+    case PfRule::ARITH_MULT_POS:
+    {
+      addLeanStep(res, LeanRule::ARITH_MULT_POS, Node::null(), children, args, *cdp);
+      break;
+    }
+    case PfRule::ARITH_MULT_NEG:
+    {
+      addLeanStep(res, LeanRule::ARITH_MULT_NEG, Node::null(), children, args, *cdp);
+      break;
+    }
+
+    case PfRule::STRING_LENGTH_POS:
+    {
+      addLeanStep(res, LeanRule::STRING_LENGTH_POS, Node::null(), children, args, *cdp);
+      break;
+    }
+    case PfRule::NOT_AND:
+    {
+      addLeanStep(res,
+                  LeanRule::NOT_AND,
+                  Node::null(),
+                  children, args, *cdp);
+      break;
+    }
+    case PfRule::EVALUATE:
+    {
+      addLeanStep(res, LeanRule::EVALUATE, Node::null(), children, args, *cdp);
+      break;
+    }
+
     // create clausal conclusion
     case PfRule::SCOPE:
     {

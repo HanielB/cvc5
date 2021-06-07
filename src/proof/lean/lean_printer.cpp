@@ -114,7 +114,7 @@ void LeanPrinter::printSort(std::ostream& out, TypeNode sort)
   }
   if (sort.isString())
   {
-    out << "stringSort";
+    out << "strSort";
     return;
   }
   // TODO HB will need to add cases for other theories
@@ -135,7 +135,7 @@ void LeanPrinter::printConstant(std::ostream& out, TNode n)
   else if (k == kind::CONST_STRING)
   {
     std::string str = n.getConst<String>().toString();
-    out << "(mkVarChars [";
+    out << "(mkValChars [";
     for (size_t i = 0; i < str.length(); ++i)
     {
       out << "\'" << str.at(i) << "\'";
@@ -175,7 +175,15 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
   // printing constant symbol
   if (nChildren == 0)
   {
-    printConstant(out, nc);
+    if (nc.getKind() == kind::CONST_RATIONAL)
+    {
+      out << "(mkValInt ";
+      printConstant(out, nc);
+      out << ")";
+    } else
+    {
+      printConstant(out, nc);
+    }
     return;
   }
   // printing applications / formulas
@@ -197,7 +205,6 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
       }
       else
       {
-        // out << "mkApp ";
         out << "app ";
         printTerm(out, op);
         out << " ";
@@ -261,7 +268,6 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
     }
     case kind::IMPLIES:
     {
-      // out << "mkImplies ";
       out << "implies ";
       printTerm(out, nc[0]);
       out << " ";
@@ -270,14 +276,12 @@ void LeanPrinter::printTerm(std::ostream& out, TNode n, bool letTop)
     }
     case kind::NOT:
     {
-      // out << "mkNot ";
       out << "term.not ";
       printTerm(out, nc[0]);
       break;
     }
     case kind::ITE:
     {
-      // out << "mkIte ";
       out << "fIte ";
       printTerm(out, nc[0]);
       out << " ";
