@@ -141,9 +141,9 @@ void DotPrinter::letifyResults(const ProofNode* pn)
 
 void DotPrinter::print(std::ostream& out, const ProofNode* pn)
 {
-  uint64_t ruleID = 0;
   countSubproofs(pn);
   letifyResults(pn);
+  Trace("test-dot") << "Start\n";
 
   // The dot attribute rankdir="BT" sets the direction of the graph layout,
   // placing the root node at the top. The "node [shape..." attribute sets the
@@ -178,84 +178,120 @@ void DotPrinter::print(std::ostream& out, const ProofNode* pn)
     }
     out << "}}\"\n";
   }
-  DotPrinter::printInternal(out, pn, ruleID, 0, false);
+  Trace("test-dot") << "Did let map\n";
+  DotPrinter::printInternal(out, pn);
   out << "}\n";
 }
 
-void DotPrinter::printInternal(std::ostream& out,
-                               const ProofNode* pn,
-                               uint64_t& ruleID,
-                               uint64_t scopeCounter,
-                               bool inPropositionalView)
+void DotPrinter::printInternal(std::ostream& out, const ProofNode* pn)
 {
-  uint64_t currentRuleID = ruleID;
-  const std::vector<std::shared_ptr<ProofNode>>& children = pn->getChildren();
-  std::ostringstream currentArguments, resultStr, classes, colors;
+  std::vector<const ProofNode*> visit;
+  std::unordered_map<const ProofNode*, bool> visited;
+  std::unordered_map<const ProofNode*, bool>::iterator it;
+  std::unordered_map<const ProofNode*, std::vector<uint64_t>> pfId;
+  std::unordered_map<const ProofNode*, std::vector<uint64_t>>::iterator itId;
 
-  out << "\t" << currentRuleID << " [ label = \"{";
+  const ProofNode* cur;
+  uint64_t ruleId = 0;
+  uint64_t scopeCounter = 0;
+  uint64_t inPropositionalView = 0;
 
-  resultStr << d_lbind.convert(pn->getResult(), "let");
-  std::string astring = resultStr.str();
-  out << sanitizeString(astring);
-
-  PfRule r = pn->getRule();
-  DotPrinter::ruleArguments(currentArguments, pn);
-  astring = currentArguments.str();
-  out << "|" << r << sanitizeString(astring) << "}\"";
-  classes << ", class = \"";
-  colors << "";
-
-  // set classes and colors, based on the view that the rule belongs
-  switch (r)
+  visit.push_back(pn);
+  do
   {
-    case PfRule::SCOPE:
-      if (scopeCounter < 1)
-      {
-        classes << " basic";
-        colors << ", color = blue ";
-        inPropositionalView = true;
-      }
-      scopeCounter++;
-      break;
-    case PfRule::ASSUME:
-      // a node can belong to more than one view, so these if's must not be
-      // exclusive
-      if (scopeCounter < 2)
-      {
-        classes << " basic";
-        colors << ", color = blue ";
-      }
-      if (inPropositionalView)
-      {
-        classes << " propositional";
-        colors << ", fillcolor = aquamarine4, style = filled ";
-      }
-      break;
-    case PfRule::CHAIN_RESOLUTION:
-    case PfRule::FACTORING:
-    case PfRule::REORDERING:
-      if (inPropositionalView)
-      {
-        classes << " propositional";
-        colors << ", fillcolor = aquamarine4, style = filled ";
-      }
-      break;
-    default: inPropositionalView = false;
-  }
-  classes << " \"";
-  out << classes.str() << colors.str();
-  // add number of subchildren
-  std::map<const ProofNode*, size_t>::const_iterator it =
-      d_subpfCounter.find(pn);
-  out << ", comment = \"\{\"subProofQty\":" << it->second << "}\"";
-  out << " ];\n";
+    cur = visit.back();
+    visit.pop_back();
+    it = visited.find(cur);
+    // print node and enqueue children
+    if (it == visited.end())
+    {
+      visited[cur] = false;
+      pfId[cur] = {ruleId, scopeCounter, inPropositionalView};
 
-  for (const std::shared_ptr<ProofNode>& c : children)
-  {
-    ++ruleID;
-    out << "\t" << ruleID << " -> " << currentRuleID << ";\n";
-    printInternal(out, c.get(), ruleID, scopeCounter, inPropositionalView);
-  }
+      std::ostringstream currentArguments, resultStr, classes, colors;
+      out << "\t" << ruleId++ << " [ label = \"{";
+
+      resultStr << d_lbind.convert(cur->getResult(), "let");
+      std::string astring = resultStr.str();
+      out << sanitizeString(astring);
+
+      PfRule r = cur->getRule();
+      DotPrinter::ruleArguments(currentArguments, cur);
+      astring = currentArguments.str();
+      out << "|" << r << sanitizeString(astring) << "}\"";
+      classes << ", class = \"";
+      colors << "";
+
+      // set classes and colors, based on the view that the rule belongs
+      switch (r)
+      {
+        case PfRule::SCOPE:
+          if (scopeCounter < 1)
+          {
+            classes << " basic";
+            colors << ", color = blue ";
+            inPropositionalView = 1;
+          }
+          scopeCounter++;
+          break;
+        case PfRule::ASSUME:
+          // a node can belong to more than one view, so these if's must not be
+          // exclusive
+          if (scopeCounter < 2)
+          {
+            classes << " basic";
+            colors << ", color = blue ";
+          }
+          if (inPropositionalView)
+          {
+            classes << " propositional";
+            colors << ", fillcolor = aquamarine4, style = filled ";
+          }
+          break;
+        case PfRule::CHAIN_RESOLUTION:
+        case PfRule::FACTORING:
+        case PfRule::REORDERING:
+          if (inPropositionalView)
+          {
+            classes << " propositional";
+            colors << ", fillcolor = aquamarine4, style = filled ";
+          }
+          break;
+        default: inPropositionalView = 1;
+      }
+      classes << " \"";
+      out << classes.str() << colors.str();
+      // add number of subchildren
+      std::map<const ProofNode*, size_t>::const_iterator itC =
+          d_subpfCounter.find(cur);
+      out << ", comment = \"\{\"subProofQty\":" << itC->second << "}\"";
+      out << " ];\n";
+      visit.push_back(cur);
+      const std::vector<std::shared_ptr<ProofNode>>& children =
+          cur->getChildren();
+      for (const std::shared_ptr<ProofNode>& c : children)
+      {
+        visit.push_back(c.get());
+      }
+    }
+    // map children to node
+    else if (!it->second)
+    {
+      visited[cur] = true;
+      // get parent rule id
+      uint64_t curRuleId = pfId[cur][0];
+      // reset context
+      scopeCounter = pfId[cur][1];
+      inPropositionalView = pfId[cur][2];
+      const std::vector<std::shared_ptr<ProofNode>>& children =
+          cur->getChildren();
+      for (const std::shared_ptr<ProofNode>& c : children)
+      {
+        Assert(pfId.find(c.get()) != pfId.end());
+        out << "\t" << pfId[c.get()][0] << " -> " << curRuleId << ";\n";
+      }
+    }
+  } while (!visit.empty());
 }
 
 void DotPrinter::ruleArguments(std::ostringstream& currentArguments,
