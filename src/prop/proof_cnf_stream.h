@@ -103,6 +103,10 @@ class ProofCnfStream : public ProofGenerator
    * generator. */
   bool isBlocked(std::shared_ptr<ProofNode> pfn);
 
+  void notifyOptPropagation(int explLevel);
+
+  context::Context* getContext() { return d_userContext; }
+
  private:
   /**
    * Same as above, except that uses the saved d_removable flag. It calls the
@@ -148,8 +152,11 @@ class ProofCnfStream : public ProofGenerator
    * resulting clauses of the clausification process are synchronized with the
    * clauses used in the underlying SAT solver, which automatically performs the
    * above normalizations on all added clauses.
+   *
+   * @param clauseNode The clause node to be normalized.
+   * @return The normalized clause node.
    */
-  void normalizeAndRegister(TNode clauseNode);
+  Node normalizeAndRegister(TNode clauseNode);
 
   /** Reference to the underlying cnf stream. */
   CnfStream& d_cnfStream;
@@ -159,6 +166,8 @@ class ProofCnfStream : public ProofGenerator
   ProofNodeManager* d_pnm;
   /** The user-context-dependent proof object. */
   LazyCDProof d_proof;
+
+  context::UserContext* d_userContext;
   /** An accumulator of steps that may be applied to normalize the clauses
    * generated during clausification. */
   TheoryProofStepBuffer d_psb;
@@ -167,6 +176,63 @@ class ProofCnfStream : public ProofGenerator
    * These are proof nodes added to this class by external generators. */
   context::CDHashSet<std::shared_ptr<ProofNode>, ProofNodeHashFunction>
       d_blocked;
+
+  class OptimizedPropagationsManager : context::ContextNotifyObj
+  {
+   public:
+    OptimizedPropagationsManager(
+        context::Context* context,
+        std::map<int, std::vector<std::shared_ptr<ProofNode>>>& optProofs, LazyCDProof* parentProof)
+        : context::ContextNotifyObj(context),
+          d_context(context),
+          d_optProofs(optProofs),
+          d_parentProof(parentProof)
+    {
+    }
+
+   protected:
+    void contextNotifyPop() override
+    {
+      int newLvl = d_context->getLevel();
+      Trace("cnf") << "contextNotifyPop: called with lvl " << newLvl << "\n"
+                   << push;
+      // the increment is handled inside the loop, so that we can erase as we go
+      for (auto it = d_optProofs.cbegin(); it != d_optProofs.cend();)
+      {
+        if (it->first <= newLvl)
+        {
+          Trace("cnf") << "Should re-add pfs of [" << it->first << "]:\n";
+          for (const auto& pf : it->second)
+          {
+            Node processedPropgation = pf->getResult();
+            Trace("cnf") << "\t- " << processedPropgation << "\n\t\t"
+                         << *pf.get() << "\n";
+            AlwaysAssert(!d_parentProof->hasStep(processedPropgation));
+            d_parentProof->addProof(pf);
+          }
+          ++it;
+          continue;
+        }
+        Trace("cnf") << "Should remove from map pfs of [" << it->first
+                     << "]:\n";
+        for (const auto& pf : it->second)
+        {
+          Trace("cnf") << "\t- " << pf->getResult() << "\n";
+        }
+        it = d_optProofs.erase(it);
+      }
+      Trace("cnf") << pop;
+    }
+
+   private:
+    context::Context* d_context;
+    std::map<int, std::vector<std::shared_ptr<ProofNode>>>& d_optProofs;
+    LazyCDProof* d_parentProof;
+  };
+
+  Node d_currPropagationProccessed;
+  std::map<int, std::vector<std::shared_ptr<ProofNode>>> d_optPropagations;
+  OptimizedPropagationsManager d_optPropagationsManager;
 };
 
 }  // namespace prop

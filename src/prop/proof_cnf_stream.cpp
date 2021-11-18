@@ -32,7 +32,9 @@ ProofCnfStream::ProofCnfStream(context::UserContext* u,
     : d_cnfStream(cnfStream),
       d_satPM(satPM),
       d_proof(pnm, nullptr, u, "ProofCnfStream::LazyCDProof"),
-      d_blocked(u)
+      d_userContext(u),
+      d_blocked(u),
+      d_optPropagationsManager(u, d_optPropagations, &d_proof)
 {
 }
 
@@ -58,7 +60,7 @@ bool ProofCnfStream::hasProofFor(Node f)
 
 std::string ProofCnfStream::identify() const { return "ProofCnfStream"; }
 
-void ProofCnfStream::normalizeAndRegister(TNode clauseNode)
+Node ProofCnfStream::normalizeAndRegister(TNode clauseNode)
 {
   Node normClauseNode = d_psb.factorReorderElimDoubleNeg(clauseNode);
   if (Trace.isOn("cnf") && normClauseNode != clauseNode)
@@ -69,6 +71,7 @@ void ProofCnfStream::normalizeAndRegister(TNode clauseNode)
                  << pop;
   }
   d_satPM->registerSatAssumptions({normClauseNode});
+  return normClauseNode;
 }
 
 void ProofCnfStream::convertAndAssert(TNode node,
@@ -577,7 +580,7 @@ void ProofCnfStream::convertPropagation(TrustNode trn)
   {
     clauseExp = nm->mkNode(kind::OR, proven[0].notNode(), proven[1]);
   }
-  normalizeAndRegister(clauseExp);
+  d_currPropagationProccessed = normalizeAndRegister(clauseExp);
   // consume steps
   if (proofLogging)
   {
@@ -588,6 +591,21 @@ void ProofCnfStream::convertPropagation(TrustNode trn)
     }
     d_psb.clear();
   }
+}
+
+void ProofCnfStream::notifyOptPropagation(int explLevel)
+{
+  Trace("cnf") << "Need to save curr propagation proof in level " << explLevel
+               << " despite being currently in level "
+               << d_userContext->getLevel() << "\n";
+  AlwaysAssert(explLevel < (d_userContext->getLevel() - 1));
+  AlwaysAssert(!d_currPropagationProccessed.isNull());
+  // save into map the proof of the processed propagation
+  std::shared_ptr<ProofNode> currPropagationProcPf =
+      d_proof.getProofFor(d_currPropagationProccessed);
+  AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
+  d_optPropagations[explLevel + 1].push_back(currPropagationProcPf);
+  d_currPropagationProccessed = Node::null();
 }
 
 void ProofCnfStream::ensureLiteral(TNode n)
