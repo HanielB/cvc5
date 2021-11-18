@@ -79,6 +79,7 @@ class TheoryProxy : public Registrar
   void theoryCheck(theory::Theory::Effort effort);
 
   void explainPropagation(SatLiteral l, SatClause& explanation);
+  void notifyOptPropagation(int explLevel);
 
   void theoryPropagate(SatClause& output);
 
