@@ -42,20 +42,6 @@ namespace cvc5 {
 namespace Minisat {
 
 namespace {
-/*
- * Returns true if the solver should add all clauses at the current assertion
- * level.
- *
- * FIXME: This is a workaround. Currently, our resolution proofs do not
- * handle clauses with a lower-than-assertion-level correctly because the
- * resolution proofs get removed when popping the context but the SAT solver
- * keeps using them.
- */
-bool assertionLevelOnly()
-{
-  return (options::produceProofs() || options::unsatCores())
-         && options::incrementalSolving();
-}
 
 //=================================================================================================
 // Helper functions for decision tree tracing
@@ -152,6 +138,7 @@ Solver::Solver(cvc5::prop::TheoryProxy* proxy,
                bool enableIncremental)
     : d_proxy(proxy),
       d_context(context),
+      d_userContext(userContext),
       assertionLevel(0),
       d_pfManager(nullptr),
       d_enable_incremental(enableIncremental),
@@ -358,9 +345,9 @@ CRef Solver::reason(Var x) {
   }
   else
   {
-    int i, j;
+    int i, j, size;
     Lit prev = lit_Undef;
-    for (i = 0, j = 0; i < explanation.size(); ++i)
+    for (i = 0, j = 0, size = explanation.size(); i < size; ++i)
     {
       // This clause is valid theory propagation, so its level is the level of
       // the top literal
@@ -393,13 +380,6 @@ CRef Solver::reason(Var x) {
     }
     explanation.shrink(i - j);
 
-    Trace("pf::sat") << "Solver::reason: explanation = ";
-    for (int k = 0; k < explanation.size(); ++k)
-    {
-      Trace("pf::sat") << explanation[k] << " ";
-    }
-    Trace("pf::sat") << std::endl;
-
     // We need an explanation clause so we add a fake literal
     if (j == 1)
     {
@@ -408,6 +388,14 @@ CRef Solver::reason(Var x) {
     }
   }
 
+  Trace("pf::sat") << "..adding in lvl " << explLevel
+                   << " (assertion lvl: " << assertionLevel << ")\n";
+  if (needProof())
+  {
+    Trace("pf::sat") << "..user level is " << d_userContext->getLevel() << "\n";
+    Assert(d_userContext->getLevel() == (assertionLevel + 1));
+    d_proxy->notifyOptPropagation(explLevel);
+  }
   // Construct the reason
   CRef real_reason = ca.alloc(explLevel, explanation, true);
   vardata[x] = VarData(
@@ -1443,7 +1431,11 @@ void Solver::removeClausesAboveLevel(vec<CRef>& cs, int level)
     for (i = j = 0; i < cs.size(); i++){
         Clause& c = ca[cs[i]];
         if (c.level() > level) {
-          Assert(!locked(c));
+          SatClause satClause;
+          vec<Lit> clauseLits;
+          MinisatSatSolver::toSatClause(c, satClause);
+          MinisatSatSolver::toMinisatClause(satClause, clauseLits);
+          Assert(!locked(c)) << "Locked " << clauseLits;
           removeClause(cs[i]);
         } else {
             cs[j++] = cs[i];
@@ -2192,6 +2184,12 @@ bool Solver::needProof() const
          && options::unsatCoresMode() != options::UnsatCoresMode::ASSUMPTIONS
          && options::unsatCoresMode() != options::UnsatCoresMode::PP_ONLY;
 }
+
+bool Solver::assertionLevelOnly() const
+{
+  return options::unsatCores() && !needProof() && options::incrementalSolving();
+}
+
 
 }  // namespace Minisat
 }  // namespace cvc5
