@@ -585,6 +585,8 @@ class SatProofManager
   Node getClauseNode(const Minisat::Clause& clause);
   /** Prints clause, as a sequence of literals, in the "sat-proof" trace. */
   void printClause(const Minisat::Clause& clause);
+
+  context::UserContext* d_userContext;
 }; /* class SatProofManager */
 
 }  // namespace prop

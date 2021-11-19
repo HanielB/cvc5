@@ -72,7 +72,7 @@ class Solver {
   /** The pointer to the proxy that provides interfaces to the SMT engine */
   cvc5::prop::TheoryProxy* d_proxy;
 
-  /** The context from the SMT solver */
+  /** The contexts from the SMT solver */
   cvc5::context::Context* d_context;
   cvc5::context::UserContext* d_userContext;
 

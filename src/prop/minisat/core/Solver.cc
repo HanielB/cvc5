@@ -253,7 +253,8 @@ Var Solver::newVar(bool sign, bool dvar, bool isTheoryAtom, bool preRegister, bo
 
     setDecisionVar(v, dvar);
 
-    Debug("minisat") << "new var " << v << std::endl;
+    Debug("minisat") << "new var " << v << " with assertion level "
+                     << assertionLevel << std::endl;
 
     // If the variable is introduced at non-zero level, we need to reintroduce it on backtracks
     if (preRegister)
@@ -390,7 +391,7 @@ CRef Solver::reason(Var x) {
 
   Trace("pf::sat") << "..adding in lvl " << explLevel
                    << " (assertion lvl: " << assertionLevel << ")\n";
-  if (needProof())
+  if (needProof() && explLevel < assertionLevel)
   {
     Trace("pf::sat") << "..user level is " << d_userContext->getLevel() << "\n";
     Assert(d_userContext->getLevel() == (assertionLevel + 1));
@@ -463,12 +464,15 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
     // If we are in solve_ or propagate
     if (minisat_busy)
     {
-      Trace("pf::sat") << "Add clause adding a new lemma: ";
-      for (int k = 0; k < ps.size(); ++k) {
-        Trace("pf::sat") << ps[k] << " ";
+      if (Trace.isOn("pf::sat"))
+      {
+        Trace("pf::sat") << "Add clause adding a new lemma: ";
+        for (int k = 0, size = ps.size(); k < size; ++k)
+        {
+          Trace("pf::sat") << ps[k] << " ";
+        }
+        Trace("pf::sat") << std::endl;
       }
-      Trace("pf::sat") << std::endl;
-
       lemmas.push();
       ps.copyTo(lemmas.last());
       lemmas_removable.push(removable);
@@ -507,7 +511,16 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
         cr = ca.alloc(clauseLevel, ps, false);
         clauses_persistent.push(cr);
         attachClause(cr);
-
+        if (clauseLevel < assertionLevel)
+        {
+          Trace("pf::sat") << "addClause_: ";
+          for (int k = 0, size = ps.size(); k < size; ++k)
+          {
+            Trace("pf::sat") << ps[k] << " ";
+          }
+          Trace("pf::sat") << " clause/assert levels " << clauseLevel << " / "
+                           << assertionLevel << "\n";
+        }
         if (options::unsatCores() || needProof())
         {
           if (ps.size() == falseLiteralsCount)
@@ -522,45 +535,48 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
       }
 
       // Check if it propagates
-      if (ps.size() == falseLiteralsCount + 1) {
-        if(assigns[var(ps[0])] == l_Undef) {
-          Assert(assigns[var(ps[0])] != l_False);
-          uncheckedEnqueue(ps[0], cr);
-          Debug("cores") << "i'm registering a unit clause, maybe input"
+      if (ps.size() == falseLiteralsCount + 1 && assigns[var(ps[0])] == l_Undef)
+      {
+        Assert(assigns[var(ps[0])] != l_False);
+        uncheckedEnqueue(ps[0], cr);
+        Trace("pf::sat") << "Registering a unit clause " << ps[0]
+                         << ", maybe input, with assigned var value "
+                         << (assigns[var(ps[0])] == l_True
+                                 ? "true"
+                                 : (assigns[var(ps[0])] == l_False ? "false"
+                                                                   : "undef"))
+                         << ", user_level(" << user_level(var(ps[0])) << ")"
                          << std::endl;
-          if (ps.size() == 1)
+        if (ps.size() == 1)
+        {
+          // We need to do this so that the closedness check, if being done,
+          // goes through when we have unit assumptions whose literal has
+          // already been registered, as the ProofCnfStream will not register
+          // them and as they are not the result of propagation will be left
+          // hanging in assumptions accumulator
+          if (needProof())
           {
-            // We need to do this so that the closedness check, if being done,
-            // goes through when we have unit assumptions whose literal has
-            // already been registered, as the ProofCnfStream will not register
-            // them and as they are not the result of propagation will be left
-            // hanging in assumptions accumulator
-            if (needProof())
-            {
-              d_pfManager->registerSatLitAssumption(ps[0]);
-            }
+            d_pfManager->registerSatLitAssumption(ps[0]);
           }
-          CRef confl = propagate(CHECK_WITHOUT_THEORY);
-          if(! (ok = (confl == CRef_Undef)) ) {
-            if (needProof())
-            {
-              if (ca[confl].size() == 1)
-              {
-                d_pfManager->finalizeProof(ca[confl][0]);
-              }
-              else
-              {
-                d_pfManager->finalizeProof(ca[confl]);
-              }
-            }
-          }
-          return ok;
-        } else {
-          return ok;
         }
+        CRef confl = propagate(CHECK_WITHOUT_THEORY);
+        if (!(ok = (confl == CRef_Undef)))
+        {
+          if (needProof())
+          {
+            if (ca[confl].size() == 1)
+            {
+              d_pfManager->finalizeProof(ca[confl][0]);
+            }
+            else
+            {
+              d_pfManager->finalizeProof(ca[confl]);
+            }
+          }
+        }
+        return ok;
       }
     }
-
     return true;
 }
 
@@ -1132,6 +1148,7 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     Debug("minisat") << "unchecked enqueue of " << p << " ("
                      << trail_index(var(p)) << ") trail size is "
                      << trail.size() << " cap is " << trail.capacity()
+                     << ", assertion level is " << assertionLevel
                      << ", reason is " << from << ", ";
     if (from == CRef_Lazy)
     {
@@ -1561,6 +1578,12 @@ lbool Solver::search(int nof_conflicts)
         if (needProof())
         {
           d_pfManager->endResChain(ca[cr]);
+          if (Trace.isOn("pf::sat") && ca[cr].level() < assertionLevel)
+          {
+            Trace("pf::sat")
+                << "learnt_clause: " << ca[cr] << " clause/assert levels "
+                << ca[cr].level() << " / " << assertionLevel << "\n";
+          }
         }
       }
 
@@ -2087,6 +2110,24 @@ CRef Solver::updateLemmas() {
       }
 
       lemma_ref = ca.alloc(clauseLevel, lemma, removable);
+      // notify cnf stream that this clause's proof must be saved to resist
+      // context-popping
+      if (clauseLevel < assertionLevel)
+      {
+        if (Trace.isOn("pf::sat"))
+        {
+          Trace("pf::sat") << "updateLemmas: ";
+          for (int k = 0, size = lemma.size(); k < size; ++k)
+          {
+            Trace("pf::sat") << lemma[k] << " ";
+          }
+          Trace("pf::sat") << " clause/assert levels " << clauseLevel << " / "
+                           << assertionLevel << "\n";
+        }
+        SatClause satClause;
+        MinisatSatSolver::toSatClause(ca[lemma_ref], satClause);
+        d_proxy->notifyOptClause(satClause, clauseLevel);
+      }
       if (removable) {
         clauses_removable.push(lemma_ref);
       } else {

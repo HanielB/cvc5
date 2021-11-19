@@ -34,7 +34,8 @@ SatProofManager::SatProofManager(Minisat::Solver* solver,
       d_resChains(pnm, true, userContext),
       d_resChainPg(userContext, pnm),
       d_assumptions(userContext),
-      d_conflictLit(undefSatVariable)
+      d_conflictLit(undefSatVariable),
+      d_userContext(userContext)
 {
   d_true = NodeManager::currentNM()->mkConst(true);
   d_false = NodeManager::currentNM()->mkConst(false);
@@ -131,13 +132,15 @@ void SatProofManager::addResolutionStep(const Minisat::Clause& clause,
                        << satLit.isNegated() << "} [" << ~satLit << "] ";
     printClause(clause);
     Trace("sat-proof") << "\nSatProofManager::addResolutionStep:\t"
-                       << clauseNode << "\n";
+                       << clauseNode << " - lvl " << clause.level() + 1 << "\n";
   }
 }
 
 void SatProofManager::endResChain(Minisat::Lit lit)
 {
   SatLiteral satLit = MinisatSatSolver::toSatLiteral(lit);
+  Trace("sat-proof") << "SatProofManager::endResChain: curr user level: "
+                     << d_userContext->getLevel() << "\n";
   Trace("sat-proof") << "SatProofManager::endResChain: chain_res for "
                      << satLit;
   endResChain(getClauseNode(satLit), {satLit});
@@ -147,8 +150,17 @@ void SatProofManager::endResChain(const Minisat::Clause& clause)
 {
   if (Trace.isOn("sat-proof"))
   {
+    Trace("sat-proof") << "SatProofManager::endResChain: curr user level: "
+                       << d_userContext->getLevel() << "\n";
     Trace("sat-proof") << "SatProofManager::endResChain: chain_res for ";
     printClause(clause);
+    AlwaysAssert(clause.level() + 1 == d_userContext->getLevel());
+    if (clause.level() + 1 < d_userContext->getLevel())
+    {
+      Trace("sat-proof") << "SatProofManager::endResChain: ..clause's lvl "
+                         << clause.level() + 1 << " below curr user level "
+                         << d_userContext->getLevel() << "\n";
+    }
   }
   std::set<SatLiteral> clauseLits;
   for (unsigned i = 0, size = clause.size(); i < size; ++i)
@@ -450,7 +462,8 @@ void SatProofManager::explainLit(SatLiteral lit,
       Trace("sat-proof") << "SatProofManager::explainLit:   " << children[i];
       if (i > 0)
       {
-        Trace("sat-proof") << " [" << args[i - 1] << "]";
+        Trace("sat-proof") << " [" << args[(2 * i) - 2] << ", "
+                           << args[(2 * i) - 1] << "]";
       }
       Trace("sat-proof") << "\n";
     }

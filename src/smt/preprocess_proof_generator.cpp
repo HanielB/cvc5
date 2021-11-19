@@ -57,9 +57,10 @@ void PreprocessProofGenerator::notifyNewAssert(Node n, ProofGenerator* pg)
     // ignore true assertions
     return;
   }
-  Trace("smt-proof-pp-debug")
-      << "PreprocessProofGenerator::notifyNewAssert: " << identify() << " " << n
-      << " from " << (pg == nullptr ? "null" : pg->identify()) << std::endl;
+  Trace("smt-proof-pp") << "PreprocessProofGenerator::notifyNewAssert: "
+                        << identify() << " " << n << " from "
+                        << (pg == nullptr ? "null" : pg->identify())
+                        << std::endl;
   if (d_src.find(n) == d_src.end())
   {
     // if no proof generator provided for (non-true) assertion
@@ -102,8 +103,8 @@ void PreprocessProofGenerator::notifyTrustedPreprocessed(TrustNode tnp)
   }
   Assert(tnp.getKind() == TrustNodeKind::REWRITE);
   Node np = tnp.getNode();
-  Trace("smt-proof-pp-debug")
-      << "PreprocessProofGenerator::notifyPreprocessed: " << tnp << std::endl;
+  Trace("smt-proof-pp") << "PreprocessProofGenerator::notifyPreprocessed: "
+                        << tnp << std::endl;
   if (d_src.find(np) == d_src.end())
   {
     if (tnp.getGenerator() == nullptr)

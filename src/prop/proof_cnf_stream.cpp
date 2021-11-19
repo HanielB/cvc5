@@ -81,7 +81,9 @@ void ProofCnfStream::convertAndAssert(TNode node,
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssert(" << node
                << ", negated = " << (negated ? "true" : "false")
-               << ", removable = " << (removable ? "true" : "false") << ")\n";
+               << ", removable = " << (removable ? "true" : "false")
+               << "), level " << d_optPropagationsManager.d_context->getLevel()
+               << "\n";
   d_cnfStream.d_removable = removable;
   if (pg)
   {
@@ -107,7 +109,8 @@ void ProofCnfStream::convertAndAssert(TNode node,
 void ProofCnfStream::convertAndAssert(TNode node, bool negated)
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssert(" << node
-               << ", negated = " << (negated ? "true" : "false") << ")\n";
+               << ", negated = " << (negated ? "true" : "false") << ")\n"
+               << push;
   switch (node.getKind())
   {
     case kind::AND: convertAndAssertAnd(node, negated); break;
@@ -162,12 +165,14 @@ void ProofCnfStream::convertAndAssert(TNode node, bool negated)
       }
     }
   }
+  Trace("cnf") << pop;
 }
 
 void ProofCnfStream::convertAndAssertAnd(TNode node, bool negated)
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssertAnd(" << node
-               << ", negated = " << (negated ? "true" : "false") << ")\n";
+               << ", negated = " << (negated ? "true" : "false") << ")\n"
+               << push;
   Assert(node.getKind() == kind::AND);
   if (!negated)
   {
@@ -208,12 +213,14 @@ void ProofCnfStream::convertAndAssertAnd(TNode node, bool negated)
       normalizeAndRegister(clauseNode);
     }
   }
+  Trace("cnf") << pop;
 }
 
 void ProofCnfStream::convertAndAssertOr(TNode node, bool negated)
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssertOr(" << node
-               << ", negated = " << (negated ? "true" : "false") << ")\n";
+               << ", negated = " << (negated ? "true" : "false") << ")\n"
+               << push;
   Assert(node.getKind() == kind::OR);
   if (!negated)
   {
@@ -243,12 +250,14 @@ void ProofCnfStream::convertAndAssertOr(TNode node, bool negated)
       convertAndAssert(node[i], true);
     }
   }
+  Trace("cnf") << pop;
 }
 
 void ProofCnfStream::convertAndAssertXor(TNode node, bool negated)
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssertXor(" << node
-               << ", negated = " << (negated ? "true" : "false") << ")\n";
+               << ", negated = " << (negated ? "true" : "false") << ")\n"
+               << push;
   if (!negated)
   {
     // p XOR q
@@ -320,12 +329,14 @@ void ProofCnfStream::convertAndAssertXor(TNode node, bool negated)
       normalizeAndRegister(clauseNode);
     }
   }
+  Trace("cnf") << pop;
 }
 
 void ProofCnfStream::convertAndAssertIff(TNode node, bool negated)
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssertIff(" << node
-               << ", negated = " << (negated ? "true" : "false") << ")\n";
+               << ", negated = " << (negated ? "true" : "false") << ")\n"
+               << push;
   if (!negated)
   {
     // p <=> q
@@ -403,12 +414,14 @@ void ProofCnfStream::convertAndAssertIff(TNode node, bool negated)
       normalizeAndRegister(clauseNode);
     }
   }
+  Trace("cnf") << pop;
 }
 
 void ProofCnfStream::convertAndAssertImplies(TNode node, bool negated)
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssertImplies(" << node
-               << ", negated = " << (negated ? "true" : "false") << ")\n";
+               << ", negated = " << (negated ? "true" : "false") << ")\n"
+               << push;
   if (!negated)
   {
     // ~p v q
@@ -447,12 +460,14 @@ void ProofCnfStream::convertAndAssertImplies(TNode node, bool negated)
         << "ProofCnfStream::convertAndAssertImplies: NOT_IMPLIES_ELIM2 added "
         << node[1].notNode() << "\n";
   }
+  Trace("cnf") << pop;
 }
 
 void ProofCnfStream::convertAndAssertIte(TNode node, bool negated)
 {
   Trace("cnf") << "ProofCnfStream::convertAndAssertIte(" << node
-               << ", negated = " << (negated ? "true" : "false") << ")\n";
+               << ", negated = " << (negated ? "true" : "false") << ")\n"
+               << push;
   // ITE(p, q, r)
   SatLiteral p = toCNF(node[0], false);
   SatLiteral q = toCNF(node[1], negated);
@@ -518,6 +533,24 @@ void ProofCnfStream::convertAndAssertIte(TNode node, bool negated)
       normalizeAndRegister(clauseNode);
     }
   }
+  Trace("cnf") << pop;
+}
+
+Node ProofCnfStream::getClauseNode(const SatClause& clause)
+{
+  std::vector<Node> clauseNodes;
+  for (unsigned i = 0, size = clause.size(); i < size; ++i)
+  {
+    SatLiteral satLit = clause[i];
+    Assert(d_cnfStream.getNodeCache().find(satLit)
+           != d_cnfStream.getNodeCache().end())
+        << "SatProofManager::getClauseNode: literal " << satLit
+        << " undefined\n";
+    clauseNodes.push_back(d_cnfStream.getNodeCache()[satLit]);
+  }
+  // order children by node id
+  std::sort(clauseNodes.begin(), clauseNodes.end());
+  return NodeManager::currentNM()->mkNode(kind::OR, clauseNodes);
 }
 
 void ProofCnfStream::convertPropagation(TrustNode trn)
@@ -601,11 +634,38 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
   AlwaysAssert(explLevel < (d_userContext->getLevel() - 1));
   AlwaysAssert(!d_currPropagationProccessed.isNull());
   // save into map the proof of the processed propagation
+  // CDProof tmpProof(d_pnm);
+  // std::shared_ptr<ProofNode> tmpCurrPropagationProcPf =
+  //     d_proof.getProofFor(d_currPropagationProccessed);
+  // tmpProof.addProof(tmpCurrPropagationProcPf, CDPOverwrite::ASSUME_ONLY, true);
+  // std::shared_ptr<ProofNode> currPropagationProcPf =
+  //     tmpProof.getProof(d_currPropagationProccessed);
+
+  // We copy to prevent the proof node saved to be restored to suffering
+  // unintended updates. This is *necessary*.
   std::shared_ptr<ProofNode> currPropagationProcPf =
-      d_proof.getProofFor(d_currPropagationProccessed);
+      d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
+
   AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
+  Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
+                     << *currPropagationProcPf.get() << "\n";
   d_optPropagations[explLevel + 1].push_back(currPropagationProcPf);
   d_currPropagationProccessed = Node::null();
+}
+
+void ProofCnfStream::notifyOptClause(const SatClause& clause, int clLevel)
+{
+  Trace("cnf") << "Need to save clause " << clause << " in level "
+               << clLevel + 1 << " despite being currently in level "
+               << d_userContext->getLevel() << "\n";
+  Node clauseNode = getClauseNode(clause);
+  Trace("cnf") << "Node equivalent: " << clauseNode << "\n";
+  AlwaysAssert(clLevel < (d_userContext->getLevel() - 1));
+  // save into map the proof of the processed propagation
+  std::shared_ptr<ProofNode> clauseCnfPf =
+      d_proof.getProofFor(clauseNode);
+  AlwaysAssert(clauseCnfPf->getRule() != PfRule::ASSUME);
+  d_optPropagations[clLevel + 1].push_back(clauseCnfPf);
 }
 
 void ProofCnfStream::ensureLiteral(TNode n)

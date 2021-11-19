@@ -104,6 +104,11 @@ class ProofCnfStream : public ProofGenerator
   bool isBlocked(std::shared_ptr<ProofNode> pfn);
 
   void notifyOptPropagation(int explLevel);
+  void notifyOptClause(const SatClause& clause, int clLevel);
+
+  Node getClauseNode(const SatClause& clause);
+  /** Prints clause, as a sequence of literals, in the "sat-proof" trace. */
+  void printClause(const SatClause& clause);
 
   context::Context* getContext() { return d_userContext; }
 
@@ -179,6 +184,8 @@ class ProofCnfStream : public ProofGenerator
 
   class OptimizedPropagationsManager : context::ContextNotifyObj
   {
+    friend ProofCnfStream;
+
    public:
     OptimizedPropagationsManager(
         context::Context* context,
@@ -205,8 +212,8 @@ class ProofCnfStream : public ProofGenerator
           for (const auto& pf : it->second)
           {
             Node processedPropgation = pf->getResult();
-            Trace("cnf") << "\t- " << processedPropgation << "\n\t\t"
-                         << *pf.get() << "\n";
+            Trace("cnf") << "\t- " << processedPropgation << "\n\t\t{" << pf
+                         << "} " << *pf.get() << "\n";
             // Note that this proof may have already been added in a previous
             // pop. For example, if a proof associated with level 1 was added
             // when going down from 2 to 1, but then we went up to 2 again, when
@@ -216,8 +223,11 @@ class ProofCnfStream : public ProofGenerator
             // level 1, since it'd be popped in that case.
             if (!d_parentProof->hasStep(processedPropgation))
             {
-              Trace("cnf") << "\t..skipped since already added\n";
               d_parentProof->addProof(pf);
+            }
+            else
+            {
+              Trace("cnf") << "\t..skipped since already added\n";
             }
           }
           ++it;
@@ -234,7 +244,6 @@ class ProofCnfStream : public ProofGenerator
       Trace("cnf") << pop;
     }
 
-   private:
     context::Context* d_context;
     std::map<int, std::vector<std::shared_ptr<ProofNode>>>& d_optProofs;
     LazyCDProof* d_parentProof;
