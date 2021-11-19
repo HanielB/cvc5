@@ -595,8 +595,8 @@ void ProofCnfStream::convertPropagation(TrustNode trn)
 
 void ProofCnfStream::notifyOptPropagation(int explLevel)
 {
-  Trace("cnf") << "Need to save curr propagation proof in level " << explLevel
-               << " despite being currently in level "
+  Trace("cnf") << "Need to save curr propagation proof in level "
+               << explLevel + 1 << " despite being currently in level "
                << d_userContext->getLevel() << "\n";
   AlwaysAssert(explLevel < (d_userContext->getLevel() - 1));
   AlwaysAssert(!d_currPropagationProccessed.isNull());
