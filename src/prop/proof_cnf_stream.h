@@ -207,8 +207,18 @@ class ProofCnfStream : public ProofGenerator
             Node processedPropgation = pf->getResult();
             Trace("cnf") << "\t- " << processedPropgation << "\n\t\t"
                          << *pf.get() << "\n";
-            AlwaysAssert(!d_parentProof->hasStep(processedPropgation));
-            d_parentProof->addProof(pf);
+            // Note that this proof may have already been added in a previous
+            // pop. For example, if a proof associated with level 1 was added
+            // when going down from 2 to 1, but then we went up to 2 again, when
+            // we go back to 1 the proof will still be there. Note that if say
+            // we had a proof of level 1 that was added at level 2 when we were
+            // going down from 3, we'd still need to add it again when going to
+            // level 1, since it'd be popped in that case.
+            if (!d_parentProof->hasStep(processedPropgation))
+            {
+              Trace("cnf") << "\t..skipped since already added\n";
+              d_parentProof->addProof(pf);
+            }
           }
           ++it;
           continue;
