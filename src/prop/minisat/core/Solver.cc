@@ -2112,7 +2112,7 @@ CRef Solver::updateLemmas() {
       lemma_ref = ca.alloc(clauseLevel, lemma, removable);
       // notify cnf stream that this clause's proof must be saved to resist
       // context-popping
-      if (clauseLevel < assertionLevel)
+      if (needProof() && clauseLevel < assertionLevel)
       {
         if (Trace.isOn("pf::sat"))
         {
