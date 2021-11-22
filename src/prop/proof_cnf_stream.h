@@ -26,6 +26,7 @@
 #include "proof/proof_node_manager.h"
 #include "proof/theory_proof_step_buffer.h"
 #include "prop/cnf_stream.h"
+#include "prop/opt_clauses_manager.h"
 #include "prop/sat_proof_manager.h"
 
 namespace cvc5 {
@@ -184,7 +185,7 @@ class ProofCnfStream : public ProofGenerator
 
   Node d_currPropagationProccessed;
   std::map<int, std::vector<std::shared_ptr<ProofNode>>> d_optPropagations;
-  OptimizedPropagationsManager d_optPropagationsManager;
+  OptimizedClausesManager d_optPropagationsManager;
 };
 
 }  // namespace prop

@@ -32,7 +32,7 @@ ProofCnfStream::ProofCnfStream(context::UserContext* u,
       d_proof(pnm, nullptr, u, "ProofCnfStream::LazyCDProof"),
       d_userContext(u),
       d_blocked(u),
-      d_optPropagationsManager(u, d_optPropagations, &d_proof)
+      d_optPropagationsManager(u, &d_proof, d_optPropagations)
 {
 }
 
@@ -80,7 +80,7 @@ void ProofCnfStream::convertAndAssert(TNode node,
   Trace("cnf") << "ProofCnfStream::convertAndAssert(" << node
                << ", negated = " << (negated ? "true" : "false")
                << ", removable = " << (removable ? "true" : "false")
-               << "), level " << d_optPropagationsManager.d_context->getLevel()
+               << "), level " << d_userContext->getLevel()
                << "\n";
   d_cnfStream.d_removable = removable;
   if (pg)

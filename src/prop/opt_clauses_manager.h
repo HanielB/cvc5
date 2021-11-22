@@ -15,8 +15,8 @@
 
 #include "cvc5_private.h"
 
-#ifndef CVC5__PROP__OPT_CLAUSE_MANAGER_H
-#define CVC5__PROP__OPT_CLAUSE_MANAGER_H
+#ifndef CVC5__PROP__OPT_CLAUSES_MANAGER_H
+#define CVC5__PROP__OPT_CLAUSES_MANAGER_H
 
 #include "context/cdhashmap.h"
 #include "expr/node.h"
@@ -56,4 +56,4 @@ class OptimizedClausesManager : context::ContextNotifyObj
 }  // namespace prop
 }  // namespace cvc5
 
-#endif /* CVC5__PROP__OPT_CLAUSE_MANAGER_H */
+#endif /* CVC5__PROP__OPT_CLAUSES_MANAGER_H */
