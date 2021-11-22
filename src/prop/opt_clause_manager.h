@@ -10,7 +10,7 @@
  * directory for licensing information.
  * ****************************************************************************
  *
- * The proof-producing CNF stream.
+ * Manager of proofs for optimized clauses
  */
 
 #include "cvc5_private.h"
@@ -20,86 +20,40 @@
 
 #include "context/cdhashmap.h"
 #include "expr/node.h"
-#include "proof/eager_proof_generator.h"
-#include "proof/lazy_proof.h"
-#include "proof/proof_node.h"
-#include "proof/proof_node_manager.h"
-#include "proof/theory_proof_step_buffer.h"
-#include "prop/cnf_stream.h"
-#include "prop/sat_proof_manager.h"
+
+#include "proof/proof.h"
 
 namespace cvc5 {
 namespace prop {
 
-class ProofCnfStream;
-class SatProofManager;
-
-class OptimizedClausseManager : context::ContextNotifyObj
+/**
+ * A manager for the proofs of clauses that are stored in the SAT solver in a
+ * context level below the one in which its proof is generated.
+ *
+ * Due to the above when popping the context in which the proof was generated
+ * the respective clause, if ever needed in a subsequent (lower than generated)
+ * context, would be proofless. To prevent the issue, this manager allows, for a
+ * given context, storing a proof in a given level and, when the the respective
+ * context pops, proofs of level no greater than the new one are reinserted in
+ * proof marked to be notified.
+ */
+class OptimizedClausesManager : context::ContextNotifyObj
 {
-  friend ProofCnfStream;
-  friend SatProofManager;
-
  public:
   OptimizedClausesManager(
       context::Context* context,
-      std::map<int, std::vector<std::shared_ptr<ProofNode>>>& optProofs,
-      LazyCDProof* parentProof)
-      : context::ContextNotifyObj(context),
-        d_context(context),
-        d_optProofs(optProofs),
-        d_parentProof(parentProof)
-  {
-  }
+      CDProof* parentProof,
+      std::map<int, std::vector<std::shared_ptr<ProofNode>>>& optProofs);
 
- protected:
-  void contextNotifyPop() override
-  {
-    int newLvl = d_context->getLevel();
-    Trace("cnf") << "contextNotifyPop: called with lvl " << newLvl << "\n"
-                 << push;
-    // the increment is handled inside the loop, so that we can erase as we go
-    for (auto it = d_optProofs.cbegin(); it != d_optProofs.cend();)
-    {
-      if (it->first <= newLvl)
-      {
-        Trace("cnf") << "Should re-add pfs of [" << it->first << "]:\n";
-        for (const auto& pf : it->second)
-        {
-          Node processedPropgation = pf->getResult();
-          Trace("cnf") << "\t- " << processedPropgation << "\n\t\t{" << pf
-                       << "} " << *pf.get() << "\n";
-          // Note that this proof may have already been added in a previous
-          // pop. For example, if a proof associated with level 1 was added
-          // when going down from 2 to 1, but then we went up to 2 again, when
-          // we go back to 1 the proof will still be there. Note that if say
-          // we had a proof of level 1 that was added at level 2 when we were
-          // going down from 3, we'd still need to add it again when going to
-          // level 1, since it'd be popped in that case.
-          if (!d_parentProof->hasStep(processedPropgation))
-          {
-            d_parentProof->addProof(pf);
-          }
-          else
-          {
-            Trace("cnf") << "\t..skipped since already added\n";
-          }
-        }
-        ++it;
-        continue;
-      }
-      Trace("cnf") << "Should remove from map pfs of [" << it->first << "]:\n";
-      for (const auto& pf : it->second)
-      {
-        Trace("cnf") << "\t- " << pf->getResult() << "\n";
-      }
-      it = d_optProofs.erase(it);
-    }
-    Trace("cnf") << pop;
-  }
+ private:
+  void contextNotifyPop() override;
 
   context::Context* d_context;
   std::map<int, std::vector<std::shared_ptr<ProofNode>>>& d_optProofs;
-  LazyCDProof* d_parentProof;
+  CDProof* d_parentProof;
 };
+
+}  // namespace prop
+}  // namespace cvc5
 
 #endif /* CVC5__PROP__OPT_CLAUSE_MANAGER_H */
