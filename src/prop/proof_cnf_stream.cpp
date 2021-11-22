@@ -631,16 +631,9 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
                << d_userContext->getLevel() << "\n";
   AlwaysAssert(explLevel < (d_userContext->getLevel() - 1));
   AlwaysAssert(!d_currPropagationProccessed.isNull());
-  // save into map the proof of the processed propagation
-  // CDProof tmpProof(d_pnm);
-  // std::shared_ptr<ProofNode> tmpCurrPropagationProcPf =
-  //     d_proof.getProofFor(d_currPropagationProccessed);
-  // tmpProof.addProof(tmpCurrPropagationProcPf, CDPOverwrite::ASSUME_ONLY, true);
-  // std::shared_ptr<ProofNode> currPropagationProcPf =
-  //     tmpProof.getProof(d_currPropagationProccessed);
-
-  // We copy to prevent the proof node saved to be restored to suffering
-  // unintended updates. This is *necessary*.
+  // Save into map the proof of the processed propagation. We copy to prevent
+  // the proof node saved to be restored to suffering unintended updates. This
+  // is *necessary*.
   std::shared_ptr<ProofNode> currPropagationProcPf =
       d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
 
