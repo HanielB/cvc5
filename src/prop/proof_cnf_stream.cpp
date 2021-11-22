@@ -240,7 +240,7 @@ void ProofCnfStream::convertAndAssertOr(TNode node, bool negated)
     for (unsigned i = 0, size = node.getNumChildren(); i < size; ++i)
     {
       // Create a proof step for each (not n_i)
-      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONALCONST_RATIONAL, i);
+      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONAL, i);
       d_proof.addStep(
           node[i].notNode(), PfRule::NOT_OR_ELIM, {node.notNode()}, {iNode});
       Trace("cnf") << "ProofCnfStream::convertAndAssertOr: NOT_OR_ELIM " << i
@@ -636,7 +636,6 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
   // is *necessary*.
   std::shared_ptr<ProofNode> currPropagationProcPf =
       d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
-
   AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
   Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
                      << *currPropagationProcPf.get() << "\n";
@@ -654,7 +653,7 @@ void ProofCnfStream::notifyOptClause(const SatClause& clause, int clLevel)
   AlwaysAssert(clLevel < (d_userContext->getLevel() - 1));
   // save into map the proof of the processed propagation
   std::shared_ptr<ProofNode> clauseCnfPf =
-      d_proof.getProofFor(clauseNode);
+      d_pnm->clone(d_proof.getProofFor(clauseNode));
   AlwaysAssert(clauseCnfPf->getRule() != PfRule::ASSUME);
   d_optPropagations[clLevel + 1].push_back(clauseCnfPf);
 }
@@ -756,7 +755,7 @@ SatLiteral ProofCnfStream::handleAnd(TNode node)
     if (added)
     {
       Node clauseNode = nm->mkNode(kind::OR, node.notNode(), node[i]);
-      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONALCONST_RATIONAL, i);
+      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONAL, i);
       d_proof.addStep(clauseNode, PfRule::CNF_AND_POS, {}, {node, iNode});
       Trace("cnf") << "ProofCnfStream::handleAnd: CNF_AND_POS " << i
                    << " added " << clauseNode << "\n";

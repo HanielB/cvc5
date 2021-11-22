@@ -19,10 +19,12 @@
 #define CVC5__SAT_PROOF_MANAGER_H
 
 #include "context/cdhashset.h"
+#include "context/cdlist.h"
 #include "expr/node.h"
 #include "proof/buffered_proof_generator.h"
 #include "proof/lazy_proof_chain.h"
 #include "prop/minisat/core/SolverTypes.h"
+#include "prop/opt_clauses_manager.h"
 #include "prop/sat_solver_types.h"
 
 namespace Minisat {
@@ -361,6 +363,8 @@ class SatProofManager
   /** Register a set clause inputs. */
   void registerSatAssumptions(const std::vector<Node>& assumps);
 
+  void notifyPop();
+
  private:
   /** Ends resolution chain concluding clause
    *
@@ -568,7 +572,6 @@ class SatProofManager
   /** All clauses added to the SAT solver, kept in a context-dependent manner.
    */
   context::CDHashSet<Node> d_assumptions;
-
   /**
    * A placeholder that may be used to store the literal with the final
    * conflict.
@@ -587,6 +590,10 @@ class SatProofManager
   void printClause(const Minisat::Clause& clause);
 
   context::UserContext* d_userContext;
+
+  context::CDList<std::pair<Node, int>> d_optResLevels;
+  std::map<int, std::vector<std::shared_ptr<ProofNode>>> d_optResProofs;
+  OptimizedClausesManager d_optResManager;
 }; /* class SatProofManager */
 
 }  // namespace prop

@@ -105,6 +105,15 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
         // nothing to do for this fact, it'll be a leaf in the final proof
         // node, don't post-traverse.
         visited[cur] = true;
+        // before being done, check whether underlying proof has a justification for the fact
+        std::shared_ptr<ProofNode> maybePf = CDProof::getProofFor(cur);
+        Assert(maybePf != nullptr);
+        if (maybePf->getRule() != PfRule::ASSUME)
+        {
+          Trace("lazy-cdproofchain")
+              << "..internal proof already justifies it, save it\n";
+          toConnect[cur] = maybePf;
+        }
         continue;
       }
       Trace("lazy-cdproofchain")

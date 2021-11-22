@@ -15,6 +15,7 @@
 
 #include "prop/sat_proof_manager.h"
 
+#include "base/configuration.h"
 #include "options/proof_options.h"
 #include "proof/proof_node_algorithm.h"
 #include "proof/theory_proof_step_buffer.h"
@@ -35,7 +36,9 @@ SatProofManager::SatProofManager(Minisat::Solver* solver,
       d_resChainPg(userContext, pnm),
       d_assumptions(userContext),
       d_conflictLit(undefSatVariable),
-      d_userContext(userContext)
+      d_userContext(userContext),
+      d_optResLevels(userContext),
+      d_optResManager(userContext, &d_resChains, d_optResProofs)
 {
   d_true = NodeManager::currentNM()->mkConst(true);
   d_false = NodeManager::currentNM()->mkConst(false);
@@ -148,26 +151,38 @@ void SatProofManager::endResChain(Minisat::Lit lit)
 
 void SatProofManager::endResChain(const Minisat::Clause& clause)
 {
+  // AlwaysAssert(clause.level() + 1 == d_userContext->getLevel())
+  //     << "Clause at " << clause.level() + 1 << ", userCxt at "
+  //     << d_userContext->getLevel();
   if (Trace.isOn("sat-proof"))
   {
     Trace("sat-proof") << "SatProofManager::endResChain: curr user level: "
                        << d_userContext->getLevel() << "\n";
     Trace("sat-proof") << "SatProofManager::endResChain: chain_res for ";
     printClause(clause);
-    AlwaysAssert(clause.level() + 1 == d_userContext->getLevel());
-    if (clause.level() + 1 < d_userContext->getLevel())
-    {
-      Trace("sat-proof") << "SatProofManager::endResChain: ..clause's lvl "
-                         << clause.level() + 1 << " below curr user level "
-                         << d_userContext->getLevel() << "\n";
-    }
   }
   std::set<SatLiteral> clauseLits;
   for (unsigned i = 0, size = clause.size(); i < size; ++i)
   {
     clauseLits.insert(MinisatSatSolver::toSatLiteral(clause[i]));
   }
-  endResChain(getClauseNode(clause), clauseLits);
+  Node conclusion = getClauseNode(clause);
+  int clauseLevel = clause.level() + 1;
+  if (clauseLevel < d_userContext->getLevel())
+  {
+    if (Configuration::isDebugBuild())
+    {
+      for (const std::pair<const Node, int>& p : d_optResLevels)
+      {
+        AlwaysAssert(conclusion != p.first);
+      }
+    }
+    d_optResLevels.emplace_back(conclusion, clauseLevel);
+    Trace("sat-proof") << "SatProofManager::endResChain: ..clause's lvl "
+                       << clause.level() + 1 << " below curr user level "
+                       << d_userContext->getLevel() << "\n";
+  }
+  endResChain(conclusion, clauseLits);
 }
 
 void SatProofManager::endResChain(Node conclusion,
@@ -802,6 +817,18 @@ void SatProofManager::registerSatAssumptions(const std::vector<Node>& assumps)
                        << "\n";
     d_assumptions.insert(a);
   }
+}
+
+void SatProofManager::notifyPop()
+{
+  for (const std::pair<const Node, int>& p : d_optResLevels)
+  {
+    std::shared_ptr<ProofNode> clauseResPf =
+        d_pnm->clone(d_resChains.getProofFor(p.first));
+    AlwaysAssert(clauseResPf && clauseResPf->getRule() != PfRule::ASSUME);
+    d_optResProofs[p.second].push_back(clauseResPf);
+  }
+
 }
 
 }  // namespace prop

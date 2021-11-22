@@ -209,8 +209,8 @@ Solver::Solver(cvc5::prop::TheoryProxy* proxy,
 {
   if (pnm)
   {
-    d_pfManager.reset(
-        new SatProofManager(this, proxy->getCnfStream(), userContext, pnm));
+    d_pfManager.reset(new SatProofManager(
+        this, proxy->getCnfStream(), userContext, pnm));
   }
 
   // Create the constant variables
@@ -1983,7 +1983,10 @@ void Solver::pop()
   Assert(d_enable_incremental);
 
   Assert(decisionLevel() == 0);
-
+  if (needProof())
+  {
+    d_pfManager->notifyPop();
+  }
   // Pop the trail below the user level
   --assertionLevel;
   Debug("minisat") << "in user pop, decreasing assertion level to "
