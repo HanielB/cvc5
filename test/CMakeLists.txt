@@ -37,7 +37,5 @@ add_custom_target(check
 
 add_subdirectory(regress)
 add_subdirectory(api EXCLUDE_FROM_ALL)
-
-if(ENABLE_UNIT_TESTING)
-  add_subdirectory(unit EXCLUDE_FROM_ALL)
-endif()
+add_subdirectory(binary EXCLUDE_FROM_ALL)
+add_subdirectory(unit EXCLUDE_FROM_ALL)

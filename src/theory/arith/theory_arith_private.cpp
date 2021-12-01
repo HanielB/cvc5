@@ -1274,7 +1274,7 @@ ArithVar TheoryArithPrivate::requestArithVar(TNode x, bool aux, bool internal){
     throw LogicException(ss.str());
   }
   Assert(!d_partialModel.hasArithVar(x));
-  Assert(x.getType().isReal());  // real or integer
+  Assert(x.getType().isRealOrInt());  // real or integer
 
   ArithVar max = d_partialModel.getNumberOfVariables();
   ArithVar varX = d_partialModel.allocate(x, aux);
@@ -2530,12 +2530,9 @@ std::vector<ConstraintCPVec> TheoryArithPrivate::replayLogRec(ApproximateSimplex
       Assert(d_partialModel.canBeReleased(v));
       if(!d_tableau.isBasic(v)){
         /* if it is not basic make it basic. */
-        ArithVar b = ARITHVAR_SENTINEL;
-        for(Tableau::ColIterator ci = d_tableau.colIterator(v); !ci.atEnd(); ++ci){
-          const Tableau::Entry& e = *ci;
-          b = d_tableau.rowIndexToBasic(e.getRowIndex());
-          break;
-        }
+        auto ci = d_tableau.colIterator(v);
+        Assert(!ci.atEnd());
+        ArithVar b = d_tableau.rowIndexToBasic((*ci).getRowIndex());
         Assert(b != ARITHVAR_SENTINEL);
         DeltaRational cp = d_partialModel.getAssignment(b);
         if(d_partialModel.cmpAssignmentLowerBound(b) < 0){
@@ -3044,12 +3041,17 @@ bool TheoryArithPrivate::hasFreshArithLiteral(Node n) const{
   case kind::LT:
     return !isSatLiteral(n);
   case kind::EQUAL:
-    if(n[0].getType().isReal()){
+    if (n[0].getType().isRealOrInt())
+    {
       return !isSatLiteral(n);
-    }else if(n[0].getType().isBoolean()){
+    }
+    else if (n[0].getType().isBoolean())
+    {
       return hasFreshArithLiteral(n[0]) ||
         hasFreshArithLiteral(n[1]);
-    }else{
+    }
+    else
+    {
       return false;
     }
   case kind::IMPLIES:

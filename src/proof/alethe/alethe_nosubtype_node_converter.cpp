@@ -37,8 +37,8 @@ Node AletheNoSubtypeNodeConverter::postConvert(Node n)
     std::vector<Node> children{op};
     for (size_t i = 0, size = n.getNumChildren(); i < size; ++i)
     {
-      if (!argTypes[i].isReal() || argTypes[i].isInteger()
-          || !n[i].getType().isInteger())
+      if (!argTypes[i].isRealOrInt() || argTypes[i].isInteger()
+          || !n[i].isConst() || !n[i].getType().isInteger())
       {
         children.push_back(n[i]);
         continue;
@@ -48,8 +48,21 @@ Node AletheNoSubtypeNodeConverter::postConvert(Node n)
           << " in real position.\n";
       if (!n[i].isConst())
       {
-        Unreachable() << "AletheBackend: Can't handle subtyping case of "
-                         "non-value integers.\n";
+        // there are two cases here: either this is a term that contains
+        // somewhere an uninterpreted constant or not. If it does not, than
+        // this is salvageable. Otherwise it's not.
+        if (expr::hasSubtermKinds({kind::APPLY_UF, kind::SKOLEM}, n[i]))
+        {
+          Unreachable() << "AletheBackend: Can't handle subtyping case of "
+                           "non-value integers.\n";
+        }
+        Trace("alethe-proof-subtyping")
+            << "\t\t..traverse and convert term with only consts\n";
+        childChanged = true;
+        children.push_back(traverseAndConvertAllConsts(n[i]));
+        Trace("alethe-proof-subtyping") << "\t\t..converted " << n[i]
+                                        << " into " << children.back() << "\n";
+        continue;
       }
       childChanged = true;
       children.push_back(nm->mkNode(kind::CAST_TO_REAL, n[i]));
@@ -96,9 +109,10 @@ Node AletheNoSubtypeNodeConverter::postConvert(Node n)
       if (n[i].getType().isInteger())
       {
         Trace("alethe-proof-subtyping")
-            << "\t\t..arith term arg " << n[i] << " (kind " << n[i].getKind()
-            << ") is integer but should be real, from arg " << hasReal << " "
-            << n[hasReal] << " (kind " << n[hasReal].getKind() << ")\n";
+            << "\t\t..arg " << i << ", arith term " << n[i] << " (kind "
+            << n[i].getKind() << "), is integer but should be real, from arg "
+            << hasReal << " " << n[hasReal] << " (kind " << n[hasReal].getKind()
+            << ")\n";
         if (!n[i].isConst())
         {
           // there are two cases here: either this is a term that contains
@@ -144,7 +158,8 @@ Node AletheNoSubtypeNodeConverter::traverseAndConvertAllConsts(Node n)
     visit.pop_back();
     Trace("alethe-proof-subtyping-convert")
         << "traverseAndConvertAllConsts: convert " << cur << "\n";
-    if (cur.getMetaKind() == kind::metakind::PARAMETERIZED)
+    if (cur.getMetaKind() == kind::metakind::PARAMETERIZED
+        || cur.getKind() == kind::CAST_TO_REAL)
     {
       visited[cur] = cur;
       Trace("alethe-proof-subtyping-convert")
@@ -157,6 +172,7 @@ Node AletheNoSubtypeNodeConverter::traverseAndConvertAllConsts(Node n)
     {
       if (cur.isConst() && cur.getType().isInteger())
       {
+        Trace("alethe-proof-subtyping-convert") << "..cast int conts to real\n";
         visited[cur] = nm->mkNode(kind::CAST_TO_REAL, cur);
         continue;
       }
@@ -174,6 +190,7 @@ Node AletheNoSubtypeNodeConverter::traverseAndConvertAllConsts(Node n)
     }
     else if (it->second.isNull())
     {
+      Trace("alethe-proof-subtyping-convert") << pop;
       bool childChanged = false;
       std::vector<Node> children;
       for (const Node& child : cur)
@@ -183,7 +200,11 @@ Node AletheNoSubtypeNodeConverter::traverseAndConvertAllConsts(Node n)
         children.push_back(visited[child]);
       }
       visited[cur] = !childChanged ? cur : nm->mkNode(cur.getKind(), children);
-      Trace("alethe-proof-subtyping-convert") << pop;
+      if (Trace.isOn("alethe-proof-subtyping-convert") && childChanged)
+      {
+        Trace("alethe-proof-subtyping-convert")
+            << "..rebuilt " << cur << " into " << visited[cur] << "\n";
+      }
     }
   } while (!visit.empty());
   return visited[n];
