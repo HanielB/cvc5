@@ -38,9 +38,9 @@ class KissatSolver : public SatSolver
  public:
   ~KissatSolver() override;
 
-  ClauseId addClause(SatClause& clause, bool removable) override;
+  bool addClause(SatClause& clause, bool removable) override;
 
-  ClauseId addXorClause(SatClause& clause, bool rhs, bool removable) override;
+  bool addXorClause(SatClause& clause, bool rhs, bool removable) override;
 
   SatVariable newVar(bool isTheoryAtom = false,
                      bool preRegister = false,

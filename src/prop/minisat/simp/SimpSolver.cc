@@ -23,7 +23,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "base/check.h"
 #include "options/prop_options.h"
 #include "options/smt_options.h"
-#include "proof/clause_id.h"
 #include "prop/minisat/mtl/Sort.h"
 #include "prop/minisat/utils/System.h"
 
@@ -170,7 +169,7 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 
 
 
-bool SimpSolver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
+bool SimpSolver::addClause_(vec<Lit>& ps, bool removable)
 {
 #ifdef CVC5_ASSERTIONS
   if (use_simplification)
@@ -184,7 +183,7 @@ bool SimpSolver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
     if (use_rcheck && implied(ps))
         return true;
 
-    if (!Solver::addClause_(ps, removable, id))
+    if (!Solver::addClause_(ps, removable))
         return false;
 
     if (use_simplification && clauses_persistent.size() == nclauses + 1){
@@ -572,16 +571,20 @@ bool SimpSolver::eliminateVar(Var v)
 
     for (int i = 0; i < cls.size(); i++) removeClause(cls[i]);
 
-    ClauseId id = ClauseIdUndef;
     // Produce clauses in cross product:
     vec<Lit>& resolvent = add_tmp;
     for (int i = 0; i < pos.size(); i++)
         for (int j = 0; j < neg.size(); j++) {
-            bool removable = ca[pos[i]].removable() && ca[pos[neg[j]]].removable();
-            if (merge(ca[pos[i]], ca[neg[j]], v, resolvent) &&
-                !addClause_(resolvent, removable, id)) {
-                return false;
-            }
+          if (merge(ca[pos[i]], ca[neg[j]], v, resolvent))
+          {
+            return false;
+          }
+          addClause_(resolvent,
+                     ca[pos[i]].removable() && ca[pos[neg[j]]].removable());
+          if (!ok)
+          {
+            return false;
+          }
         }
 
     // Free occurs list for this variable:
@@ -620,14 +623,13 @@ bool SimpSolver::substitute(Var v, Lit x)
     }
 
     removeClause(cls[i]);
-    ClauseId id = ClauseIdUndef;
-    if (!addClause_(subst_clause, c.removable(), id))
+    addClause_(subst_clause, c.removable());
+    if (!ok)
     {
-      return ok = false;
+      return true;
     }
   }
-
-    return true;
+  return true;
 }
 
 

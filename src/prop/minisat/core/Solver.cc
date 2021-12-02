@@ -31,7 +31,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "options/main_options.h"
 #include "options/prop_options.h"
 #include "options/smt_options.h"
-#include "proof/clause_id.h"
 #include "prop/minisat/minisat.h"
 #include "prop/minisat/mtl/Sort.h"
 #include "prop/theory_proxy.h"
@@ -418,7 +417,7 @@ CRef Solver::reason(Var x) {
   return real_reason;
 }
 
-bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
+bool Solver::addClause_(vec<Lit>& ps, bool removable)
 {
     if (!ok) return false;
 
@@ -438,14 +437,13 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
                         : std::max(clauseLevel, intro_level(var(ps[i])));
       // Tautologies are ignored
       if (ps[i] == ~p) {
-        id = ClauseIdUndef;
-        // Clause can be ignored
-        return true;
+        return false;
       }
       // Clauses with 0-level true literals are also ignored
-      if (value(ps[i]) == l_True && level(var(ps[i])) == 0 && user_level(var(ps[i])) == 0) {
-        id = ClauseIdUndef;
-        return true;
+      if (value(ps[i]) == l_True && level(var(ps[i])) == 0
+          && user_level(var(ps[i])) == 0)
+      {
+        return false;
       }
       // Ignore repeated literals
       if (ps[i] == p) {
@@ -484,16 +482,18 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
       lemmas.push();
       ps.copyTo(lemmas.last());
       lemmas_removable.push(removable);
-    } else {
+      // lemmas will always be added
+      return true;
+    }
       Assert(decisionLevel() == 0);
 
       // If all false, we're in conflict
       if (ps.size() == falseLiteralsCount) {
         if (options::unsatCores() || needProof())
         {
-          // Take care of false units here; otherwise, we need to
-          // construct the clause below to give to the proof manager
-          // as the final conflict.
+          // Take care of false units here; otherwise, we need to construct the
+          // clause after this block to give to the proof manager as the final
+          // conflict.
           if(falseLiteralsCount == 1) {
             if (needProof())
             {
@@ -566,12 +566,8 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
               }
             }
           }
-          return ok;
-        } else {
-          return ok;
         }
       }
-    }
 
     return true;
 }
@@ -1285,8 +1281,7 @@ void Solver::propagateTheory() {
                                     explanation_cl);
         vec<Lit> explanation;
         MinisatSatSolver::toMinisatClause(explanation_cl, explanation);
-        ClauseId id; // FIXME: mark it as explanation here somehow?
-        addClause(explanation, true, id);
+        addClause(explanation, true);
       }
     }
   }

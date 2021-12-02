@@ -22,7 +22,6 @@
 #include "expr/node.h"
 #include "options/bv_options.h"
 #include "printer/printer.h"
-#include "proof/clause_id.h"
 #include "prop/minisat/minisat.h"
 #include "prop/prop_engine.h"
 #include "prop/theory_proxy.h"
@@ -60,10 +59,7 @@ CnfStream::CnfStream(SatSolver* satSolver,
 bool CnfStream::assertClause(TNode node, SatClause& c)
 {
   Trace("cnf") << "Inserting into stream " << c << " node = " << node << "\n";
-
-  ClauseId clauseId = d_satSolver->addClause(c, d_removable);
-
-  return clauseId != ClauseIdUndef;
+  return d_satSolver->addClause(c, d_removable);
 }
 
 bool CnfStream::assertClause(TNode node, SatLiteral a)

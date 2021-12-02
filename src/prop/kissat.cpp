@@ -84,7 +84,7 @@ void KissatSolver::init()
 
 KissatSolver::~KissatSolver() { kissat_release(d_solver); }
 
-ClauseId KissatSolver::addClause(SatClause& clause, bool removable)
+bool KissatSolver::addClause(SatClause& clause, bool removable)
 {
   for (const SatLiteral& lit : clause)
   {
@@ -92,10 +92,10 @@ ClauseId KissatSolver::addClause(SatClause& clause, bool removable)
   }
   kissat_add(d_solver, 0);
   ++d_statistics.d_numClauses;
-  return ClauseIdError;
+  return false;
 }
 
-ClauseId KissatSolver::addXorClause(SatClause& clause, bool rhs, bool removable)
+bool KissatSolver::addXorClause(SatClause& clause, bool rhs, bool removable)
 {
   Unreachable() << "Kissat does not support adding XOR clauses.";
 }

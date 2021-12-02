@@ -21,7 +21,6 @@
 #include "options/decision_options.h"
 #include "options/prop_options.h"
 #include "options/smt_options.h"
-#include "proof/clause_id.h"
 #include "prop/minisat/simp/SimpSolver.h"
 #include "util/statistics_stats.h"
 
@@ -155,20 +154,15 @@ void MinisatSatSolver::setupOptions() {
   d_minisat->restart_inc = options().prop.satRestartInc;
 }
 
-ClauseId MinisatSatSolver::addClause(SatClause& clause, bool removable) {
+bool MinisatSatSolver::addClause(SatClause& clause, bool removable) {
   Minisat::vec<Minisat::Lit> minisat_clause;
   toMinisatClause(clause, minisat_clause);
-  ClauseId clause_id = ClauseIdError;
   // FIXME: This relies on the invariant that when ok() is false
   // the SAT solver does not add the clause (which is what Minisat currently does)
   if (!ok()) {
-    return ClauseIdUndef;
+    return false;
   }
-  d_minisat->addClause(minisat_clause, removable, clause_id);
-  // FIXME: to be deleted when we kill old proof code for unsat cores
-  Assert(!options().smt.unsatCores || options().smt.produceProofs
-         || clause_id != ClauseIdError);
-  return clause_id;
+  return d_minisat->addClause(minisat_clause, removable);
 }
 
 SatVariable MinisatSatSolver::newVar(bool isTheoryAtom, bool preRegister, bool canErase) {

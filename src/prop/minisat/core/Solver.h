@@ -27,7 +27,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "base/output.h"
 #include "context/context.h"
 #include "cvc5_private.h"
-#include "proof/clause_id.h"
 #include "proof/proof_node_manager.h"
 #include "prop/minisat/core/SolverTypes.h"
 #include "prop/minisat/mtl/Alg.h"
@@ -208,30 +207,24 @@ public:
   * level.
   */
  void resetTrail();
- // addClause returns the ClauseId corresponding to the clause added in the
- // reference parameter id.
+ // addClause returns whether the clause was added to the solver
  bool addClause(const vec<Lit>& ps,
-                bool removable,
-                ClauseId& id);  // Add a clause to the solver.
+                bool removable);  // Add a clause to the solver.
  bool addEmptyClause(
      bool removable);  // Add the empty clause, making the solver contradictory.
  bool addClause(Lit p,
-                bool removable,
-                ClauseId& id);  // Add a unit clause to the solver.
+                bool removable);  // Add a unit clause to the solver.
  bool addClause(Lit p,
                 Lit q,
-                bool removable,
-                ClauseId& id);  // Add a binary clause to the solver.
+                bool removable);  // Add a binary clause to the solver.
  bool addClause(Lit p,
                 Lit q,
                 Lit r,
-                bool removable,
-                ClauseId& id);  // Add a ternary clause to the solver.
+                bool removable);  // Add a ternary clause to the solver.
  bool addClause_(
      vec<Lit>& ps,
-     bool removable,
-     ClauseId& id);  // Add a clause to the solver without making superflous
-                     // internal copy. Will change the passed vector 'ps'.
+     bool removable);  // Add a clause to the solver without making superflous
+                      // internal copy. Will change the passed vector 'ps'.
 
  // Solving:
  //
@@ -638,15 +631,15 @@ inline void Solver::checkGarbage(double gf){
 
 // NOTE: enqueue does not set the ok flag! (only public methods do)
 inline bool     Solver::enqueue         (Lit p, CRef from)      { return value(p) != l_Undef ? value(p) != l_False : (uncheckedEnqueue(p, from), true); }
-inline bool     Solver::addClause       (const vec<Lit>& ps, bool removable, ClauseId& id)
-                                                                { ps.copyTo(add_tmp); return addClause_(add_tmp, removable, id); }
-inline bool     Solver::addEmptyClause  (bool removable)        { add_tmp.clear(); ClauseId tmp; return addClause_(add_tmp, removable, tmp); }
-inline bool     Solver::addClause       (Lit p, bool removable, ClauseId& id)
-                                                                { add_tmp.clear(); add_tmp.push(p); return addClause_(add_tmp, removable, id); }
-inline bool     Solver::addClause       (Lit p, Lit q, bool removable, ClauseId& id)
-                                                                { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); return addClause_(add_tmp, removable, id); }
-inline bool     Solver::addClause       (Lit p, Lit q, Lit r, bool removable, ClauseId& id)
-                                                                { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); add_tmp.push(r); return addClause_(add_tmp, removable, id); }
+inline bool     Solver::addClause       (const vec<Lit>& ps, bool removable)
+                                                                { ps.copyTo(add_tmp); return addClause_(add_tmp, removable); }
+inline bool     Solver::addEmptyClause  (bool removable)        { add_tmp.clear(); return addClause_(add_tmp, removable); }
+inline bool     Solver::addClause       (Lit p, bool removable)
+                                                                { add_tmp.clear(); add_tmp.push(p); return addClause_(add_tmp, removable); }
+inline bool     Solver::addClause       (Lit p, Lit q, bool removable)
+                                                                { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); return addClause_(add_tmp, removable); }
+inline bool     Solver::addClause       (Lit p, Lit q, Lit r, bool removable)
+                                                                { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); add_tmp.push(r); return addClause_(add_tmp, removable); }
 inline bool     Solver::locked          (const Clause& c) const { return value(c[0]) == l_True && isPropagatedBy(var(c[0]), c); }
 inline void Solver::newDecisionLevel()
 {

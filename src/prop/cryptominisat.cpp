@@ -94,15 +94,15 @@ void CryptoMinisatSolver::init()
 
 CryptoMinisatSolver::~CryptoMinisatSolver() {}
 
-ClauseId CryptoMinisatSolver::addXorClause(SatClause& clause,
-                                           bool rhs,
-                                           bool removable)
+bool CryptoMinisatSolver::addXorClause(SatClause& clause,
+                                       bool rhs,
+                                       bool removable)
 {
   Debug("sat::cryptominisat") << "Add xor clause " << clause <<" = " << rhs << "\n";
 
   if (!d_okay) {
     Debug("sat::cryptominisat") << "Solver unsat: not adding clause.\n";
-    return ClauseIdError;
+    return false;
   }
 
   ++(d_statistics.d_xorClausesAdded);
@@ -116,15 +116,15 @@ ClauseId CryptoMinisatSolver::addXorClause(SatClause& clause,
   }
   bool res = d_solver->add_xor_clause(xor_clause, rhs);
   d_okay &= res;
-  return ClauseIdError;
+  return false;
 }
 
-ClauseId CryptoMinisatSolver::addClause(SatClause& clause, bool removable){
+bool CryptoMinisatSolver::addClause(SatClause& clause, bool removable){
   Debug("sat::cryptominisat") << "Add clause " << clause <<"\n";
 
   if (!d_okay) {
     Debug("sat::cryptominisat") << "Solver unsat: not adding clause.\n";
-    return ClauseIdError;
+    return false;
   }
 
   ++(d_statistics.d_clausesAdded);
@@ -132,12 +132,8 @@ ClauseId CryptoMinisatSolver::addClause(SatClause& clause, bool removable){
   std::vector<CMSat::Lit> internal_clause;
   toInternalClause(clause, internal_clause);
   bool nowOkay = d_solver->add_clause(internal_clause);
-
-  ClauseId freshId;
-  freshId = ClauseIdError;
-
   d_okay &= nowOkay;
-  return freshId;
+  return false;
 }
 
 bool CryptoMinisatSolver::ok() const { return d_okay; }

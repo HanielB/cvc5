@@ -23,7 +23,6 @@
 #include "context/cdlist.h"
 #include "context/context.h"
 #include "expr/node.h"
-#include "proof/clause_id.h"
 #include "proof/proof_node_manager.h"
 #include "prop/sat_solver_types.h"
 #include "util/statistics_stats.h"
@@ -42,14 +41,13 @@ public:
   virtual ~SatSolver() { }
 
   /** Assert a clause in the solver. */
-  virtual ClauseId addClause(SatClause& clause,
-                             bool removable) = 0;
+  virtual bool addClause(SatClause& clause, bool removable) = 0;
 
   /** Return true if the solver supports native xor resoning */
   virtual bool nativeXor() { return false; }
 
   /** Add a clause corresponding to rhs = l1 xor .. xor ln  */
-  virtual ClauseId addXorClause(SatClause& clause, bool rhs, bool removable) = 0;
+  virtual bool addXorClause(SatClause& clause, bool rhs, bool removable) = 0;
 
   /**
    * Create a new boolean variable in the solver.

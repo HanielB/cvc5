@@ -80,7 +80,7 @@ void CadicalSolver::init()
 
 CadicalSolver::~CadicalSolver() {}
 
-ClauseId CadicalSolver::addClause(SatClause& clause, bool removable)
+bool CadicalSolver::addClause(SatClause& clause, bool removable)
 {
   for (const SatLiteral& lit : clause)
   {
@@ -88,12 +88,10 @@ ClauseId CadicalSolver::addClause(SatClause& clause, bool removable)
   }
   d_solver->add(0);
   ++d_statistics.d_numClauses;
-  return ClauseIdError;
+  return false;
 }
 
-ClauseId CadicalSolver::addXorClause(SatClause& clause,
-                                     bool rhs,
-                                     bool removable)
+bool CadicalSolver::addXorClause(SatClause& clause, bool rhs, bool removable)
 {
   Unreachable() << "CaDiCaL does not support adding XOR clauses.";
 }
