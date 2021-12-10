@@ -376,8 +376,8 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofForInternal(Node fact,
   }
   Trace("lazy-cdproofchain")
       << "LazyCDProofChain::getProofFor: Call generator " << pg->identify()
-      << " for chain link " << cur << "\n";
-  return pg->getProofFor(cur);
+      << " for chain link " << fact << "\n";
+  return pg->getProofFor(fact);
 }
 
 std::string LazyCDProofChain::identify() const { return d_name; }
