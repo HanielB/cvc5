@@ -179,7 +179,7 @@ void ProofCnfStream::convertAndAssertAnd(TNode node, bool negated)
     for (unsigned i = 0, size = node.getNumChildren(); i < size; ++i)
     {
       // Create a proof step for each n_i
-      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONAL, i);
+      Node iNode = nm->mkConstInt(i);
       d_proof.addStep(node[i], PfRule::AND_ELIM, {node}, {iNode});
       Trace("cnf") << "ProofCnfStream::convertAndAssertAnd: AND_ELIM " << i
                    << " added norm " << node[i] << "\n";
@@ -240,7 +240,7 @@ void ProofCnfStream::convertAndAssertOr(TNode node, bool negated)
     for (unsigned i = 0, size = node.getNumChildren(); i < size; ++i)
     {
       // Create a proof step for each (not n_i)
-      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONAL, i);
+      Node iNode = nm->mkConstInt(i);
       d_proof.addStep(
           node[i].notNode(), PfRule::NOT_OR_ELIM, {node.notNode()}, {iNode});
       Trace("cnf") << "ProofCnfStream::convertAndAssertOr: NOT_OR_ELIM " << i
@@ -755,7 +755,7 @@ SatLiteral ProofCnfStream::handleAnd(TNode node)
     if (added)
     {
       Node clauseNode = nm->mkNode(kind::OR, node.notNode(), node[i]);
-      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONAL, i);
+      Node iNode = nm->mkConstInt(i);
       d_proof.addStep(clauseNode, PfRule::CNF_AND_POS, {}, {node, iNode});
       Trace("cnf") << "ProofCnfStream::handleAnd: CNF_AND_POS " << i
                    << " added " << clauseNode << "\n";
@@ -815,7 +815,7 @@ SatLiteral ProofCnfStream::handleOr(TNode node)
     if (added)
     {
       Node clauseNode = nm->mkNode(kind::OR, node, node[i].notNode());
-      Node iNode = nm->mkConst<Rational>(kind::CONST_RATIONAL, i);
+      Node iNode = nm->mkConstInt(i);
       d_proof.addStep(clauseNode, PfRule::CNF_OR_NEG, {}, {node, iNode});
       Trace("cnf") << "ProofCnfStream::handleOr: CNF_OR_NEG " << i << " added "
                    << clauseNode << "\n";

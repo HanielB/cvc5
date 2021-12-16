@@ -96,30 +96,10 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
       Trace("lazy-cdproofchain")
           << "LazyCDProofChain::getProofFor: check " << cur << "\n";
       Assert(toConnect.find(cur) == toConnect.end());
+      // The current fact may be justified by concrete steps added to this
+      // proof, in which case we do not use the generators.
       bool rec = true;
-      ProofGenerator* pg = getGeneratorForInternal(cur, rec);
-      if (!pg)
-      {
-        Trace("lazy-cdproofchain")
-            << "LazyCDProofChain::getProofFor: nothing to do\n";
-        // nothing to do for this fact, it'll be a leaf in the final proof
-        // node, don't post-traverse.
-        visited[cur] = true;
-        // before being done, check whether underlying proof has a justification for the fact
-        std::shared_ptr<ProofNode> maybePf = CDProof::getProofFor(cur);
-        Assert(maybePf != nullptr);
-        if (maybePf->getRule() != PfRule::ASSUME)
-        {
-          Trace("lazy-cdproofchain")
-              << "..internal proof already justifies it, save it\n";
-          toConnect[cur] = maybePf;
-        }
-        continue;
-      }
-      Trace("lazy-cdproofchain")
-          << "LazyCDProofChain::getProofFor: Call generator " << pg->identify()
-          << " for chain link " << cur << "\n";
-      std::shared_ptr<ProofNode> curPfn = pg->getProofFor(cur);
+      std::shared_ptr<ProofNode> curPfn = getProofForInternal(cur, rec);
       if (curPfn == nullptr)
       {
         Trace("lazy-cdproofchain")
@@ -127,7 +107,8 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
         visited[cur] = true;
         continue;
       }
-      // map node whose proof node must be expanded to the respective poof node
+      // map node whose proof node must be expanded to the respective poof
+      // node
       toConnect[cur] = curPfn;
       // We may not want to recursively connect this proof so we skip.
       if (!rec)
@@ -386,6 +367,27 @@ ProofGenerator* LazyCDProofChain::getGeneratorForInternal(Node fact, bool& rec)
     return d_defGen;
   }
   return nullptr;
+}
+
+std::shared_ptr<ProofNode> LazyCDProofChain::getProofForInternal(Node fact,
+                                                                 bool& rec)
+{
+  std::shared_ptr<ProofNode> pfn = CDProof::getProofFor(fact);
+  Assert(pfn != nullptr);
+  // If concrete proof, save it, otherwise try generators.
+  if (pfn->getRule() != PfRule::ASSUME)
+  {
+    return pfn;
+  }
+  ProofGenerator* pg = getGeneratorForInternal(fact, rec);
+  if (!pg)
+  {
+    return nullptr;
+  }
+  Trace("lazy-cdproofchain")
+      << "LazyCDProofChain::getProofFor: Call generator " << pg->identify()
+      << " for chain link " << fact << "\n";
+  return pg->getProofFor(fact);
 }
 
 std::string LazyCDProofChain::identify() const { return d_name; }

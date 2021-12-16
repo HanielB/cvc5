@@ -430,6 +430,8 @@ libcvc5_add_sources(
   theory/arith/nl/cad/proof_generator.h
   theory/arith/nl/cad/variable_ordering.cpp
   theory/arith/nl/cad/variable_ordering.h
+  theory/arith/nl/equality_substitution.cpp
+  theory/arith/nl/equality_substitution.h
   theory/arith/nl/ext/constraint.cpp
   theory/arith/nl/ext/constraint.h
   theory/arith/nl/ext/factoring_check.cpp
@@ -545,6 +547,8 @@ libcvc5_add_sources(
   theory/bags/bags_rewriter.h
   theory/bags/bag_solver.cpp
   theory/bags/bag_solver.h
+  theory/bags/bag_reduction.cpp
+  theory/bags/bag_reduction.h
   theory/bags/bags_statistics.cpp
   theory/bags/bags_statistics.h
   theory/bags/infer_info.cpp
@@ -918,10 +922,12 @@ libcvc5_add_sources(
   theory/quantifiers/sygus/sygus_pbe.h
   theory/quantifiers/sygus/sygus_process_conj.cpp
   theory/quantifiers/sygus/sygus_process_conj.h
-  theory/quantifiers/sygus/sygus_reconstruct.cpp
-  theory/quantifiers/sygus/sygus_reconstruct.h
   theory/quantifiers/sygus/sygus_qe_preproc.cpp
   theory/quantifiers/sygus/sygus_qe_preproc.h
+  theory/quantifiers/sygus/sygus_random_enumerator.cpp
+  theory/quantifiers/sygus/sygus_random_enumerator.h
+  theory/quantifiers/sygus/sygus_reconstruct.cpp
+  theory/quantifiers/sygus/sygus_reconstruct.h
   theory/quantifiers/sygus/sygus_repair_const.cpp
   theory/quantifiers/sygus/sygus_repair_const.h
   theory/quantifiers/sygus/sygus_stats.cpp
@@ -1025,6 +1031,8 @@ libcvc5_add_sources(
   theory/sort_inference.h
   theory/strings/array_solver.cpp
   theory/strings/array_solver.h
+  theory/strings/array_core_solver.cpp
+  theory/strings/array_core_solver.h
   theory/strings/arith_entail.cpp
   theory/strings/arith_entail.h
   theory/strings/base_solver.cpp

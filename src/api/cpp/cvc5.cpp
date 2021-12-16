@@ -313,6 +313,7 @@ const static std::unordered_map<Kind, cvc5::Kind> s_kinds{
     {BAG_FROM_SET, cvc5::Kind::BAG_FROM_SET},
     {BAG_TO_SET, cvc5::Kind::BAG_TO_SET},
     {BAG_MAP, cvc5::Kind::BAG_MAP},
+    {BAG_FOLD, cvc5::Kind::BAG_FOLD},
     /* Strings ------------------------------------------------------------- */
     {STRING_CONCAT, cvc5::Kind::STRING_CONCAT},
     {STRING_IN_REGEXP, cvc5::Kind::STRING_IN_REGEXP},
@@ -624,6 +625,7 @@ const static std::unordered_map<cvc5::Kind, Kind, cvc5::kind::KindHashFunction>
         {cvc5::Kind::BAG_FROM_SET, BAG_FROM_SET},
         {cvc5::Kind::BAG_TO_SET, BAG_TO_SET},
         {cvc5::Kind::BAG_MAP, BAG_MAP},
+        {cvc5::Kind::BAG_FOLD, BAG_FOLD},
         /* Strings --------------------------------------------------------- */
         {cvc5::Kind::STRING_CONCAT, STRING_CONCAT},
         {cvc5::Kind::STRING_IN_REGEXP, STRING_IN_REGEXP},
@@ -1761,7 +1763,7 @@ size_t Sort::getDatatypeArity() const
   CVC5_API_CHECK_NOT_NULL;
   CVC5_API_CHECK(isDatatype()) << "Not a datatype sort.";
   //////// all checks before this line
-  return d_type->getNumChildren() - 1;
+  return d_type->isParametricDatatype() ? d_type->getNumChildren() - 1 : 0;
   ////////
   CVC5_API_TRY_CATCH_END;
 }
@@ -2906,7 +2908,7 @@ std::int64_t Term::getInt64Value() const
   CVC5_API_ARG_CHECK_EXPECTED(detail::isInt64(*d_node), *d_node)
       << "Term to be a 64-bit integer value when calling getInt64Value()";
   //////// all checks before this line
-  return detail::getInteger(*d_node).getLong();
+  return detail::getInteger(*d_node).getSigned64();
   ////////
   CVC5_API_TRY_CATCH_END;
 }
@@ -2929,7 +2931,7 @@ std::uint64_t Term::getUInt64Value() const
       << "Term to be a unsigned 64-bit integer value when calling "
          "getUInt64Value()";
   //////// all checks before this line
-  return detail::getInteger(*d_node).getUnsignedLong();
+  return detail::getInteger(*d_node).getUnsigned64();
   ////////
   CVC5_API_TRY_CATCH_END;
 }
@@ -3027,8 +3029,8 @@ std::pair<std::int64_t, std::uint64_t> Term::getReal64Value() const
       << "Term to be a 64-bit rational value when calling getReal64Value()";
   //////// all checks before this line
   const Rational& r = detail::getRational(*d_node);
-  return std::make_pair(r.getNumerator().getLong(),
-                        r.getDenominator().getUnsignedLong());
+  return std::make_pair(r.getNumerator().getSigned64(),
+                        r.getDenominator().getUnsigned64());
   ////////
   CVC5_API_TRY_CATCH_END;
 }
@@ -3556,6 +3558,11 @@ std::ostream& operator<<(std::ostream& out,
 
 bool DatatypeConstructorDecl::isNullHelper() const { return d_ctor == nullptr; }
 
+bool DatatypeConstructorDecl::isResolved() const
+{
+  return d_ctor == nullptr || d_ctor->isResolved();
+}
+
 /* DatatypeDecl ------------------------------------------------------------- */
 
 DatatypeDecl::DatatypeDecl() : d_solver(nullptr), d_dtype(nullptr) {}
@@ -3797,7 +3804,7 @@ Term DatatypeConstructor::getConstructorTerm() const
   CVC5_API_TRY_CATCH_END;
 }
 
-Term DatatypeConstructor::getSpecializedConstructorTerm(
+Term DatatypeConstructor::getInstantiatedConstructorTerm(
     const Sort& retSort) const
 {
   CVC5_API_TRY_CATCH_BEGIN;
@@ -3808,13 +3815,7 @@ Term DatatypeConstructor::getSpecializedConstructorTerm(
       << "Cannot get specialized constructor type for non-datatype type "
       << retSort;
   //////// all checks before this line
-
-  NodeManager* nm = d_solver->getNodeManager();
-  Node ret =
-      nm->mkNode(kind::APPLY_TYPE_ASCRIPTION,
-                 nm->mkConst(AscriptionType(
-                     d_ctor->getSpecializedConstructorType(*retSort.d_type))),
-                 d_ctor->getConstructor());
+  Node ret = d_ctor->getInstantiatedConstructor(*retSort.d_type);
   (void)ret.getType(true); /* kick off type checking */
   // apply type ascription to the operator
   Term sctor = api::Term(d_solver, ret);
@@ -4104,6 +4105,18 @@ size_t Datatype::getNumConstructors() const
   CVC5_API_CHECK_NOT_NULL;
   //////// all checks before this line
   return d_dtype->getNumConstructors();
+  ////////
+  CVC5_API_TRY_CATCH_END;
+}
+
+std::vector<Sort> Datatype::getParameters() const
+{
+  CVC5_API_TRY_CATCH_BEGIN;
+  CVC5_API_CHECK_NOT_NULL;
+  CVC5_API_CHECK(isParametric()) << "Expected parametric datatype";
+  //////// all checks before this line
+  std::vector<cvc5::TypeNode> params = d_dtype->getParameters();
+  return Sort::typeNodeVectorToSorts(d_solver, params);
   ////////
   CVC5_API_TRY_CATCH_END;
 }
@@ -5081,6 +5094,7 @@ Term Solver::mkBVFromStrHelper(uint32_t size,
                                const std::string& s,
                                uint32_t base) const
 {
+  CVC5_API_ARG_CHECK_EXPECTED(size > 0, size) << "a bit-width > 0";
   CVC5_API_ARG_CHECK_EXPECTED(!s.empty(), s) << "a non-empty string";
   CVC5_API_ARG_CHECK_EXPECTED(base == 2 || base == 10 || base == 16, base)
       << "base 2, 10, or 16";
@@ -5090,7 +5104,7 @@ Term Solver::mkBVFromStrHelper(uint32_t size,
 
   if (val.strictlyNegative())
   {
-    CVC5_API_CHECK(val >= -Integer("2", 10).pow(size - 1))
+    CVC5_API_CHECK(val >= -Integer(2).pow(size - 1))
         << "Overflow in bitvector construction (specified bitvector size "
         << size << " too small to hold value " << s << ")";
   }
@@ -6734,6 +6748,11 @@ Sort Solver::declareDatatype(
   CVC5_API_ARG_CHECK_EXPECTED(ctors.size() > 0, ctors)
       << "a datatype declaration with at least one constructor";
   CVC5_API_SOLVER_CHECK_DTCTORDECLS(ctors);
+  for (size_t i = 0, size = ctors.size(); i < size; i++)
+  {
+    CVC5_API_CHECK(!ctors[i].isResolved())
+        << "cannot use a constructor for multiple datatypes";
+  }
   //////// all checks before this line
   DatatypeDecl dtdecl(this, symbol);
   for (size_t i = 0, size = ctors.size(); i < size; i++)
@@ -7293,6 +7312,9 @@ Term Solver::getValue(const Term& term) const
   CVC5_API_SOLVER_CHECK_TERM(term);
   CVC5_API_RECOVERABLE_CHECK(term.getSort().isFirstClass())
       << "Cannot get value of a term that is not first class.";
+  CVC5_API_RECOVERABLE_CHECK(!term.getSort().isDatatype()
+                             || term.getSort().getDatatype().isWellFounded())
+      << "Cannot get value of a term of non-well-founded datatype sort.";
   //////// all checks before this line
   return getValueHelper(term);
   ////////
@@ -7311,6 +7333,9 @@ std::vector<Term> Solver::getValue(const std::vector<Term>& terms) const
   {
     CVC5_API_RECOVERABLE_CHECK(t.getSort().isFirstClass())
         << "Cannot get value of a term that is not first class.";
+    CVC5_API_RECOVERABLE_CHECK(!t.getSort().isDatatype()
+                               || t.getSort().getDatatype().isWellFounded())
+        << "Cannot get value of a term of non-well-founded datatype sort.";
   }
   CVC5_API_SOLVER_CHECK_TERMS(terms);
   //////// all checks before this line

@@ -110,6 +110,7 @@ Node NormalForm::evaluate(TNode n)
     case BAG_FROM_SET: return evaluateFromSet(n);
     case BAG_TO_SET: return evaluateToSet(n);
     case BAG_MAP: return evaluateBagMap(n);
+    case BAG_FOLD: return evaluateBagFold(n);
     default: break;
   }
   Unhandled() << "Unexpected bag kind '" << n.getKind() << "' in node " << n
@@ -169,8 +170,6 @@ Node NormalForm::evaluateBinaryOperation(const TNode& n,
 
 std::map<Node, Rational> NormalForm::getBagElements(TNode n)
 {
-  Assert(n.isConst()) << "node " << n << " is not in a normal form"
-                      << std::endl;
   std::map<Node, Rational> elements;
   if (n.getKind() == BAG_EMPTY)
   {
@@ -202,14 +201,10 @@ Node NormalForm::constructConstantBagFromElements(
   }
   TypeNode elementType = t.getBagElementType();
   std::map<Node, Rational>::const_reverse_iterator it = elements.rbegin();
-  Node bag = nm->mkBag(elementType,
-                       it->first,
-                       nm->mkConst<Rational>(CONST_RATIONAL, it->second));
+  Node bag = nm->mkBag(elementType, it->first, nm->mkConstInt(it->second));
   while (++it != elements.rend())
   {
-    Node n = nm->mkBag(elementType,
-                       it->first,
-                       nm->mkConst<Rational>(CONST_RATIONAL, it->second));
+    Node n = nm->mkBag(elementType, it->first, nm->mkConstInt(it->second));
     bag = nm->mkNode(BAG_UNION_DISJOINT, n, bag);
   }
   return bag;
@@ -262,10 +257,10 @@ Node NormalForm::evaluateBagCount(TNode n)
   NodeManager* nm = NodeManager::currentNM();
   if (it != elements.end())
   {
-    Node count = nm->mkConst(CONST_RATIONAL, it->second);
+    Node count = nm->mkConstInt(it->second);
     return count;
   }
-  return nm->mkConst(CONST_RATIONAL, Rational(0));
+  return nm->mkConstInt(Rational(0));
 }
 
 Node NormalForm::evaluateDuplicateRemoval(TNode n)
@@ -593,7 +588,7 @@ Node NormalForm::evaluateCard(TNode n)
   }
 
   NodeManager* nm = NodeManager::currentNM();
-  Node sumNode = nm->mkConst(CONST_RATIONAL, sum);
+  Node sumNode = nm->mkConstInt(sum);
   return sumNode;
 }
 
@@ -689,6 +684,41 @@ Node NormalForm::evaluateBagMap(TNode n)
   }
   TypeNode t = nm->mkBagType(n[0].getType().getRangeType());
   Node ret = NormalForm::constructConstantBagFromElements(t, mappedElements);
+  return ret;
+}
+
+Node NormalForm::evaluateBagFold(TNode n)
+{
+  Assert(n.getKind() == BAG_FOLD);
+
+  // Examples
+  // --------
+  // minimum string
+  // - (bag.fold
+  //     ((lambda ((x String) (y String)) (ite (str.< x y) x y))
+  //     ""
+  //     (bag.union_disjoint (bag "a" 2) (bag "b" 3))
+  //   = "a"
+
+  Node f = n[0];    // combining function
+  Node ret = n[1];  // initial value
+  Node A = n[2];    // bag
+  std::map<Node, Rational> elements = NormalForm::getBagElements(A);
+
+  std::map<Node, Rational>::iterator it = elements.begin();
+  NodeManager* nm = NodeManager::currentNM();
+  while (it != elements.end())
+  {
+    // apply the combination function n times, where n is the multiplicity
+    Rational count = it->second;
+    Assert(count.sgn() >= 0) << "negative multiplicity" << std::endl;
+    while (!count.isZero())
+    {
+      ret = nm->mkNode(APPLY_UF, f, it->first, ret);
+      count = count - 1;
+    }
+    ++it;
+  }
   return ret;
 }
 

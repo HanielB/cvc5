@@ -51,6 +51,7 @@ void BuiltinProofRuleChecker::registerTo(ProofChecker* pc)
   pc->registerChecker(PfRule::MACRO_SR_PRED_ELIM, this);
   pc->registerChecker(PfRule::MACRO_SR_PRED_TRANSFORM, this);
   pc->registerChecker(PfRule::THEORY_REWRITE, this);
+  pc->registerChecker(PfRule::ANNOTATION, this);
   pc->registerChecker(PfRule::REMOVE_TERM_FORMULA_AXIOM, this);
   pc->registerChecker(PfRule::ENCODE_PRED_TRANSFORM, this);
   pc->registerChecker(PfRule::ANNOTATION, this);
@@ -477,8 +478,8 @@ bool BuiltinProofRuleChecker::getTheoryId(TNode n, TheoryId& tid)
 
 Node BuiltinProofRuleChecker::mkTheoryIdNode(TheoryId tid)
 {
-  return NodeManager::currentNM()->mkConst(
-      CONST_RATIONAL, Rational(static_cast<uint32_t>(tid)));
+  return NodeManager::currentNM()->mkConstInt(
+      Rational(static_cast<uint32_t>(tid)));
 }
 
 }  // namespace builtin

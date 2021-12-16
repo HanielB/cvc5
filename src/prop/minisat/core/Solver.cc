@@ -131,12 +131,14 @@ class ScopedBool
 //=================================================================================================
 // Constructor/Destructor:
 
-Solver::Solver(cvc5::prop::TheoryProxy* proxy,
+Solver::Solver(Env& env,
+               cvc5::prop::TheoryProxy* proxy,
                cvc5::context::Context* context,
                cvc5::context::UserContext* userContext,
                ProofNodeManager* pnm,
                bool enableIncremental)
-    : d_proxy(proxy),
+    : EnvObj(env),
+      d_proxy(proxy),
       d_context(context),
       d_userContext(userContext),
       assertionLevel(0),
@@ -443,7 +445,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
       // If a literal is false at 0 level (both sat and user level) we also
       // ignore it, unless we are tracking the SAT solver's reasoning
       if (value(ps[i]) == l_False) {
-        if (!options::unsatCores() && !needProof() && level(var(ps[i])) == 0
+        if (!options().smt.unsatCores && !needProof() && level(var(ps[i])) == 0
             && user_level(var(ps[i])) == 0)
         {
           continue;
@@ -481,7 +483,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
 
       // If all false, we're in conflict
       if (ps.size() == falseLiteralsCount) {
-        if (options::unsatCores() || needProof())
+        if (options().smt.unsatCores || needProof())
         {
           // Take care of false units here; otherwise, we need to
           // construct the clause below to give to the proof manager
@@ -521,7 +523,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           Trace("pf::sat") << " clause/assert levels " << clauseLevel << " / "
                            << assertionLevel << "\n";
         }
-        if (options::unsatCores() || needProof())
+        if (options().smt.unsatCores || needProof())
         {
           if (ps.size() == falseLiteralsCount)
           {
@@ -2061,7 +2063,7 @@ CRef Solver::updateLemmas() {
 
       // If it's an empty lemma, we have a conflict at zero level
       if (lemma.size() == 0) {
-        Assert(!options::unsatCores() && !needProof());
+        Assert(!options().smt.unsatCores && !needProof());
         conflict = CRef_Lazy;
         backtrackLevel = 0;
         Debug("minisat::lemmas") << "Solver::updateLemmas(): found empty clause" << std::endl;
@@ -2225,8 +2227,8 @@ bool Solver::isProofEnabled() const { return d_pfManager != nullptr; }
 bool Solver::needProof() const
 {
   return isProofEnabled()
-         && options::unsatCoresMode() != options::UnsatCoresMode::ASSUMPTIONS
-         && options::unsatCoresMode() != options::UnsatCoresMode::PP_ONLY;
+         && options().smt.unsatCoresMode != options::UnsatCoresMode::ASSUMPTIONS
+         && options().smt.unsatCoresMode != options::UnsatCoresMode::PP_ONLY;
 }
 
 bool Solver::assertionLevelOnly() const
