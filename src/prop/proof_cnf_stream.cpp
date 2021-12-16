@@ -32,7 +32,7 @@ ProofCnfStream::ProofCnfStream(context::UserContext* u,
       d_proof(pnm, nullptr, u, "ProofCnfStream::LazyCDProof"),
       d_userContext(u),
       d_blocked(u),
-      d_optClausesLvls(userContext),
+      d_optClausesLvls(u),
       d_optClausesManager(u, &d_proof, d_optClausesPfs)
 {
 }
@@ -631,7 +631,7 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
                << explLevel + 1 << " despite being currently in level "
                << d_userContext->getLevel() << "\n";
   AlwaysAssert(explLevel < (d_userContext->getLevel() - 1));
-  d_optClausesLvls.emplace_back(currPropagationProcPf, explLevel + 1);
+  d_optClausesLvls.emplace_back(d_currPropagationProccessed, explLevel + 1);
   d_currPropagationProccessed = Node::null();
 }
 
