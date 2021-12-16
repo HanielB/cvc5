@@ -823,12 +823,14 @@ void SatProofManager::notifyPop()
 {
   for (const std::pair<const Node, int>& p : d_optResLevels)
   {
+    // Save into map the proof of the resolution chain. We copy to prevent the
+    // proof node saved to be restored to suffering unintended updates. This is
+    // *necessary*.
     std::shared_ptr<ProofNode> clauseResPf =
         d_pnm->clone(d_resChains.getProofFor(p.first));
     AlwaysAssert(clauseResPf && clauseResPf->getRule() != PfRule::ASSUME);
     d_optResProofs[p.second].push_back(clauseResPf);
   }
-
 }
 
 }  // namespace prop

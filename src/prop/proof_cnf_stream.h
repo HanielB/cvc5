@@ -113,6 +113,8 @@ class ProofCnfStream : public ProofGenerator
 
   context::Context* getContext() { return d_userContext; }
 
+  void notifyPop();
+
  private:
   /**
    * Same as above, except that uses the saved d_removable flag. It calls the
@@ -184,8 +186,9 @@ class ProofCnfStream : public ProofGenerator
       d_blocked;
 
   Node d_currPropagationProccessed;
-  std::map<int, std::vector<std::shared_ptr<ProofNode>>> d_optPropagations;
-  OptimizedClausesManager d_optPropagationsManager;
+  context::CDList<std::pair<Node, int>> d_optClausesLvls;
+  std::map<int, std::vector<std::shared_ptr<ProofNode>>> d_optClausesPfs;
+  OptimizedClausesManager d_optClausesManager;
 };
 
 }  // namespace prop
