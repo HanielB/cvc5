@@ -161,6 +161,11 @@ void TheoryProxy::notifyOptClause(const SatClause& clause, int clLevel)
   d_propEngine->getProofCnfStream()->notifyOptClause(clause, clLevel);
 }
 
+void TheoryProxy::notifyPop()
+{
+  d_propEngine->getProofCnfStream()->notifyPop();
+}
+
 void TheoryProxy::enqueueTheoryLiteral(const SatLiteral& l) {
   Node literalNode = d_cnfStream->getNode(l);
   Debug("prop") << "enqueueing theory literal " << l << " " << literalNode << std::endl;

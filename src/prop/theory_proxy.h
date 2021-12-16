@@ -78,6 +78,7 @@ class TheoryProxy : protected EnvObj, public Registrar
   void explainPropagation(SatLiteral l, SatClause& explanation);
   void notifyOptPropagation(int explLevel);
   void notifyOptClause(const SatClause& clause, int clLevel);
+  void notifyPop();
 
   void theoryPropagate(SatClause& output);
 
