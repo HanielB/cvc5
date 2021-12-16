@@ -1985,12 +1985,10 @@ void Solver::pop()
   Assert(d_enable_incremental);
 
   Assert(decisionLevel() == 0);
-  // Notify sat proof manager and proof cnf stream (via theory proxy) that we
-  // have popped and now potentially we need to retrieve the proofs for the
-  // clauses inserted into optimized levels
+  // Notify sat proof manager that we have popped and now potentially we need to
+  // retrieve the proofs for the clauses inserted into optimized levels
   if (needProof())
   {
-    d_proxy->notifyPop();
     d_pfManager->notifyPop();
   }
   // Pop the trail below the user level
