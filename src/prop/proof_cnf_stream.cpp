@@ -32,7 +32,6 @@ ProofCnfStream::ProofCnfStream(context::UserContext* u,
       d_proof(pnm, nullptr, u, "ProofCnfStream::LazyCDProof"),
       d_userContext(u),
       d_blocked(u),
-      d_optClausesLvls(u),
       d_optClausesManager(u, &d_proof, d_optClausesPfs)
 {
 }
@@ -634,9 +633,12 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
                << explLevel + 1 << " despite being currently in level "
                << d_userContext->getLevel() << "\n";
   // Save into map the proof of the processed propagation. Note that
-  // propagations must be explained eagerly, since their justification may be
-  // different if we only get its proof when the SAT solver pops the user
-  // context. Not doing this may lead to open proofs.
+  // propagations must be explained eagerly, since their justification depends
+  // on the theory engine and may be different if we only get its proof when the
+  // SAT solver pops the user context. Not doing this may lead to open proofs.
+  //
+  // It's also necessary to copy the proof node, so we prevent unintended
+  // updates to the saved proof. Not doing this may also lead to open proofs.
   std::shared_ptr<ProofNode> currPropagationProcPf =
       d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
   AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
@@ -655,25 +657,12 @@ void ProofCnfStream::notifyOptClause(const SatClause& clause, int clLevel)
   Node clauseNode = getClauseNode(clause);
   Trace("cnf") << "Node equivalent: " << clauseNode << "\n";
   AlwaysAssert(clLevel < (d_userContext->getLevel() - 1));
-  d_optClausesLvls.emplace_back(clauseNode, clLevel + 1);
+  // As above, also justify eagerly.
+  std::shared_ptr<ProofNode> clauseCnfPf =
+      d_pnm->clone(d_proof.getProofFor(clauseNode));
+  AlwaysAssert(clauseCnfPf->getRule() != PfRule::ASSUME);
+  d_optClausesPfs[clLevel + 1].push_back(clauseCnfPf);
 }
-
-void ProofCnfStream::notifyPop()
-{
-  for (const std::pair<const Node, int>& p : d_optClausesLvls)
-  {
-    // Save into map the proof of the processed propagation / added clause. We
-    // copy to prevent the proof node saved to be restored to suffering
-    // unintended updates. This is *necessary*.
-    std::shared_ptr<ProofNode> clausePf =
-        d_pnm->clone(d_proof.getProofFor(p.first));
-    Trace("cnf-debug") << "\t..for " << p.first << " saved pf {" << clausePf
-                       << "} " << *clausePf.get() << "\n";
-    AlwaysAssert(clausePf && clausePf->getRule() != PfRule::ASSUME);
-    d_optClausesPfs[p.second].push_back(clausePf);
-  }
-}
-
 
 void ProofCnfStream::ensureLiteral(TNode n)
 {
