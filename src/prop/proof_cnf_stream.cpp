@@ -80,8 +80,7 @@ void ProofCnfStream::convertAndAssert(TNode node,
   Trace("cnf") << "ProofCnfStream::convertAndAssert(" << node
                << ", negated = " << (negated ? "true" : "false")
                << ", removable = " << (removable ? "true" : "false")
-               << "), level " << d_userContext->getLevel()
-               << "\n";
+               << "), level " << d_userContext->getLevel() << "\n";
   d_cnfStream.d_removable = removable;
   if (pg)
   {

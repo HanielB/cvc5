@@ -211,8 +211,8 @@ Solver::Solver(Env& env,
 {
   if (pnm)
   {
-    d_pfManager.reset(new SatProofManager(
-        this, proxy->getCnfStream(), userContext, pnm));
+    d_pfManager.reset(
+        new SatProofManager(this, proxy->getCnfStream(), userContext, pnm));
   }
 
   // Create the constant variables
@@ -2237,7 +2237,6 @@ bool Solver::assertionLevelOnly() const
 {
   return options::unsatCores() && !needProof() && options::incrementalSolving();
 }
-
 
 }  // namespace Minisat
 }  // namespace cvc5

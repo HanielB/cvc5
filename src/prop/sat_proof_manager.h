@@ -18,8 +18,8 @@
 #ifndef CVC5__SAT_PROOF_MANAGER_H
 #define CVC5__SAT_PROOF_MANAGER_H
 
-#include "context/cdhashset.h"
 #include "context/cdhashmap.h"
+#include "context/cdhashset.h"
 #include "expr/node.h"
 #include "proof/buffered_proof_generator.h"
 #include "proof/lazy_proof_chain.h"
