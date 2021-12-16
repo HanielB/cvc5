@@ -170,14 +170,8 @@ void SatProofManager::endResChain(const Minisat::Clause& clause)
   int clauseLevel = clause.level() + 1;
   if (clauseLevel < d_userContext->getLevel())
   {
-    if (Configuration::isDebugBuild())
-    {
-      for (const std::pair<const Node, int>& p : d_optResLevels)
-      {
-        AlwaysAssert(conclusion != p.first);
-      }
-    }
-    d_optResLevels.emplace_back(conclusion, clauseLevel);
+    Assert(!d_optResLevels.count(conclusion));
+    d_optResLevels[conclusion] = clauseLevel;
     Trace("sat-proof") << "SatProofManager::endResChain: ..clause's lvl "
                        << clause.level() + 1 << " below curr user level "
                        << d_userContext->getLevel() << "\n";

@@ -19,7 +19,7 @@
 #define CVC5__SAT_PROOF_MANAGER_H
 
 #include "context/cdhashset.h"
-#include "context/cdlist.h"
+#include "context/cdhashmap.h"
 #include "expr/node.h"
 #include "proof/buffered_proof_generator.h"
 #include "proof/lazy_proof_chain.h"
@@ -363,6 +363,7 @@ class SatProofManager
   /** Register a set clause inputs. */
   void registerSatAssumptions(const std::vector<Node>& assumps);
 
+  /** Notify this proof manager that the SAT solver has user-context popped. */
   void notifyPop();
 
  private:
@@ -589,10 +590,20 @@ class SatProofManager
   /** Prints clause, as a sequence of literals, in the "sat-proof" trace. */
   void printClause(const Minisat::Clause& clause);
 
+  /** The user context */
   context::UserContext* d_userContext;
 
-  context::CDList<std::pair<Node, int>> d_optResLevels;
+  /** User-context dependent map from resolution conclusions to their assertion
+      level. */
+  context::CDHashMap<Node, int> d_optResLevels;
+  /** User-context dependent map assertion level to proof nodes.
+   *
+   * This map is used to update the internal proof of this manager when the
+   * context pops.
+   */
   std::map<int, std::vector<std::shared_ptr<ProofNode>>> d_optResProofs;
+  /** Manager for optimized resolution conclusions, inserted at assertion levels
+   * below the current user level. */
   OptimizedClausesManager d_optResManager;
 }; /* class SatProofManager */
 
