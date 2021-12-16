@@ -63,16 +63,6 @@ std::shared_ptr<ProofNode> LazyCDProofChain::getProofFor(Node fact)
       << "LazyCDProofChain::getProofFor of gen " << d_name << "\n";
   Trace("lazy-cdproofchain")
       << "LazyCDProofChain::getProofFor: " << fact << "\n";
-  // make the proof, which should always be non-null, since we construct an
-  // assumption in the worst case. Only when the result is an assumption we
-  // proceed to expand generators.
-  std::shared_ptr<ProofNode> opf = CDProof::getProofFor(fact);
-  Assert(opf != nullptr);
-  if (opf->getRule() != PfRule::ASSUME)
-  {
-    Trace("lazy-cdproofchain") << "...internal proof already justifies it\n";
-    return opf;
-  }
   // which facts have had proofs retrieved for. This is maintained to avoid
   // cycles. It also saves the proof node of the fact
   std::unordered_map<Node, std::shared_ptr<ProofNode>> toConnect;
