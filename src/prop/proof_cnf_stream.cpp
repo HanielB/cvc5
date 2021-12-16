@@ -631,7 +631,19 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
                << explLevel + 1 << " despite being currently in level "
                << d_userContext->getLevel() << "\n";
   AlwaysAssert(explLevel < (d_userContext->getLevel() - 1));
-  d_optClausesLvls.emplace_back(d_currPropagationProccessed, explLevel + 1);
+  AlwaysAssert(!d_currPropagationProccessed.isNull());
+  // d_optClausesLvls.emplace_back(d_currPropagationProccessed, explLevel + 1);
+
+  // Save into map the proof of the processed propagation. We copy to prevent
+  // the proof node saved to be restored to suffering unintended updates. This
+  // is *necessary*.
+  std::shared_ptr<ProofNode> currPropagationProcPf =
+      d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
+  AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
+  Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
+                     << *currPropagationProcPf.get() << "\n";
+  d_optClausesPfs[explLevel + 1].push_back(currPropagationProcPf);
+
   d_currPropagationProccessed = Node::null();
 }
 
