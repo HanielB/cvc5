@@ -627,22 +627,24 @@ void ProofCnfStream::convertPropagation(TrustNode trn)
 
 void ProofCnfStream::notifyOptPropagation(int explLevel)
 {
-  Trace("cnf") << "Need to save curr propagation proof in level "
-               << explLevel + 1 << " despite being currently in level "
-               << d_userContext->getLevel() << "\n";
   AlwaysAssert(explLevel < (d_userContext->getLevel() - 1));
   AlwaysAssert(!d_currPropagationProccessed.isNull());
-  // d_optClausesLvls.emplace_back(d_currPropagationProccessed, explLevel + 1);
+  Trace("cnf") << "Need to save curr propagation "
+               << d_currPropagationProccessed << "'s proof in level "
+               << explLevel + 1 << " despite being currently in level "
+               << d_userContext->getLevel() << "\n";
+
+  d_optClausesLvls.emplace_back(d_currPropagationProccessed, explLevel + 1);
 
   // Save into map the proof of the processed propagation. We copy to prevent
   // the proof node saved to be restored to suffering unintended updates. This
   // is *necessary*.
-  std::shared_ptr<ProofNode> currPropagationProcPf =
-      d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
-  AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
-  Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
-                     << *currPropagationProcPf.get() << "\n";
-  d_optClausesPfs[explLevel + 1].push_back(currPropagationProcPf);
+  // std::shared_ptr<ProofNode> currPropagationProcPf =
+  //     d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
+  // AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
+  // Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
+  //                    << *currPropagationProcPf.get() << "\n";
+  // d_optClausesPfs[explLevel + 1].push_back(currPropagationProcPf);
 
   d_currPropagationProccessed = Node::null();
 }
@@ -667,6 +669,8 @@ void ProofCnfStream::notifyPop()
     // unintended updates. This is *necessary*.
     std::shared_ptr<ProofNode> clausePf =
         d_pnm->clone(d_proof.getProofFor(p.first));
+    Trace("cnf-debug") << "\t..for " << p.first << " saved pf {" << clausePf
+                       << "} " << *clausePf.get() << "\n";
     AlwaysAssert(clausePf && clausePf->getRule() != PfRule::ASSUME);
     d_optClausesPfs[p.second].push_back(clausePf);
   }
