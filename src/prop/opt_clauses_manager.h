@@ -30,26 +30,42 @@ namespace prop {
  * A manager for the proofs of clauses that are stored in the SAT solver in a
  * context level below the one in which its proof is generated.
  *
- * Due to the above when popping the context in which the proof was generated
+ * Due to the above, when popping the context in which the proof was generated
  * the respective clause, if ever needed in a subsequent (lower than generated)
- * context, would be proofless. To prevent the issue, this manager allows, for a
+ * context, would be proofless. To prevent the issue this manager allows, for a
  * given context, storing a proof in a given level and, when the the respective
  * context pops, proofs of level no greater than the new one are reinserted in
- * proof marked to be notified.
+ * the proof marked to be notified.
  */
 class OptimizedClausesManager : context::ContextNotifyObj
 {
  public:
+  /** Constructor for OptimizedClausesManager
+   *
+   * @param context The context generating notifications
+   * @param parentProof The proof to be updated when context pops
+   * @param optProofs A mapping from context levels (note it has to be `int`) to
+   * proof nodes to be reinserted at these levels
+   */
   OptimizedClausesManager(
       context::Context* context,
       CDProof* parentProof,
       std::map<int, std::vector<std::shared_ptr<ProofNode>>>& optProofs);
 
  private:
+  /** Event triggered by the tracked contexting popping
+   *
+   * When the context pops, every proof node associated with a level up to new
+   * level is reinsented in `d_parentProof`. Proof nodes with levels above the
+   * current one are discarded.
+   */
   void contextNotifyPop() override;
 
+  /** The context being tracked. */
   context::Context* d_context;
+  /** Map from levels to proof nodes. */
   std::map<int, std::vector<std::shared_ptr<ProofNode>>>& d_optProofs;
+  /** Proof to be updated when context pops. */
   CDProof* d_parentProof;
 };
 
