@@ -578,8 +578,6 @@ class SatProofManager
    * conflict.
    */
   SatLiteral d_conflictLit;
-  /** Gets node equivalent to literal */
-  Node getClauseNode(SatLiteral satLit);
   /** Gets node equivalent to clause.
    *
    * To avoid generating different nodes for the same clause, modulo ordering,
@@ -596,13 +594,13 @@ class SatProofManager
   /** User-context dependent map from resolution conclusions to their assertion
       level. */
   context::CDHashMap<Node, int> d_optResLevels;
-  /** User-context dependent map assertion level to proof nodes.
+  /** User-context-dependent map assertion level to proof nodes.
    *
    * This map is used to update the internal proof of this manager when the
    * context pops.
    */
   std::map<int, std::vector<std::shared_ptr<ProofNode>>> d_optResProofs;
-  /** Manager for optimized resolution conclusions, inserted at assertion levels
+  /** Manager for optimized resolution conclusions inserted at assertion levels
    * below the current user level. */
   OptimizedClausesManager d_optResManager;
 }; /* class SatProofManager */

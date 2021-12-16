@@ -534,23 +534,6 @@ void ProofCnfStream::convertAndAssertIte(TNode node, bool negated)
   Trace("cnf") << pop;
 }
 
-Node ProofCnfStream::getClauseNode(const SatClause& clause)
-{
-  std::vector<Node> clauseNodes;
-  for (unsigned i = 0, size = clause.size(); i < size; ++i)
-  {
-    SatLiteral satLit = clause[i];
-    Assert(d_cnfStream.getNodeCache().find(satLit)
-           != d_cnfStream.getNodeCache().end())
-        << "SatProofManager::getClauseNode: literal " << satLit
-        << " undefined\n";
-    clauseNodes.push_back(d_cnfStream.getNodeCache()[satLit]);
-  }
-  // order children by node id
-  std::sort(clauseNodes.begin(), clauseNodes.end());
-  return NodeManager::currentNM()->mkNode(kind::OR, clauseNodes);
-}
-
 void ProofCnfStream::convertPropagation(TrustNode trn)
 {
   Node proven = trn.getProven();
@@ -662,6 +645,19 @@ void ProofCnfStream::notifyOptClause(const SatClause& clause, int clLevel)
       d_pnm->clone(d_proof.getProofFor(clauseNode));
   AlwaysAssert(clauseCnfPf->getRule() != PfRule::ASSUME);
   d_optClausesPfs[clLevel + 1].push_back(clauseCnfPf);
+}
+
+Node ProofCnfStream::getClauseNode(const SatClause& clause)
+{
+  std::vector<Node> clauseNodes;
+  for (size_t i = 0, size = clause.size(); i < size; ++i)
+  {
+    SatLiteral satLit = clause[i];
+    clauseNodes.push_back(getNode(satLit));
+  }
+  // order children by node id
+  std::sort(clauseNodes.begin(), clauseNodes.end());
+  return NodeManager::currentNM()->mkNode(kind::OR, clauseNodes);
 }
 
 void ProofCnfStream::ensureLiteral(TNode n)
