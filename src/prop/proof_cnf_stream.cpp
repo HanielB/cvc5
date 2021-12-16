@@ -653,7 +653,7 @@ Node ProofCnfStream::getClauseNode(const SatClause& clause)
   for (size_t i = 0, size = clause.size(); i < size; ++i)
   {
     SatLiteral satLit = clause[i];
-    clauseNodes.push_back(getNode(satLit));
+    clauseNodes.push_back(d_cnfStream.getNode(satLit));
   }
   // order children by node id
   std::sort(clauseNodes.begin(), clauseNodes.end());
