@@ -633,18 +633,16 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
                << d_currPropagationProccessed << "'s proof in level "
                << explLevel + 1 << " despite being currently in level "
                << d_userContext->getLevel() << "\n";
-
-  d_optClausesLvls.emplace_back(d_currPropagationProccessed, explLevel + 1);
-
-  // Save into map the proof of the processed propagation. We copy to prevent
-  // the proof node saved to be restored to suffering unintended updates. This
-  // is *necessary*.
-  // std::shared_ptr<ProofNode> currPropagationProcPf =
-  //     d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
-  // AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
-  // Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
-  //                    << *currPropagationProcPf.get() << "\n";
-  // d_optClausesPfs[explLevel + 1].push_back(currPropagationProcPf);
+  // Save into map the proof of the processed propagation. Note that
+  // propagations must be explained eagerly, since their justification may be
+  // different if we only get its proof when the SAT solver pops the user
+  // context. Not doing this may lead to open proofs.
+  std::shared_ptr<ProofNode> currPropagationProcPf =
+      d_pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
+  AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
+  Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
+                     << *currPropagationProcPf.get() << "\n";
+  d_optClausesPfs[explLevel + 1].push_back(currPropagationProcPf);
 
   d_currPropagationProccessed = Node::null();
 }
