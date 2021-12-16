@@ -513,7 +513,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
         cr = ca.alloc(clauseLevel, ps, false);
         clauses_persistent.push(cr);
         attachClause(cr);
-        if (clauseLevel < assertionLevel)
+        if (Trace.isOn("pf::sat") && clauseLevel < assertionLevel)
         {
           Trace("pf::sat") << "addClause_: ";
           for (int k = 0, size = ps.size(); k < size; ++k)
