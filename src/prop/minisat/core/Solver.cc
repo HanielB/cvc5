@@ -513,15 +513,21 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
         cr = ca.alloc(clauseLevel, ps, false);
         clauses_persistent.push(cr);
         attachClause(cr);
-        if (Trace.isOn("pf::sat") && clauseLevel < assertionLevel)
+        if (needProof() && clauseLevel < assertionLevel)
         {
-          Trace("pf::sat") << "addClause_: ";
-          for (int k = 0, size = ps.size(); k < size; ++k)
+          if (Trace.isOn("pf::sat"))
           {
-            Trace("pf::sat") << ps[k] << " ";
+            Trace("pf::sat") << "addClause_: ";
+            for (int k = 0, size = ps.size(); k < size; ++k)
+            {
+              Trace("pf::sat") << ps[k] << " ";
+            }
+            Trace("pf::sat") << " clause/assert levels " << clauseLevel << " / "
+                             << assertionLevel << "\n";
           }
-          Trace("pf::sat") << " clause/assert levels " << clauseLevel << " / "
-                           << assertionLevel << "\n";
+          SatClause satClause;
+          MinisatSatSolver::toSatClause(ca[cr], satClause);
+          d_proxy->notifyOptClause(satClause, clauseLevel);
         }
         if (options().smt.unsatCores || needProof())
         {
