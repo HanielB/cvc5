@@ -114,3 +114,11 @@ name   = "Proof"
   type       = "bool"
   default    = "false"
   help       = "Add pivots to Alethe resolution steps"
+
+[[option]]
+  name       = "produceFinalProof"
+  category   = "regular"
+  long       = "produce-final-proof"
+  type       = "bool"
+  default    = "false"
+  help       = "produce final proof regardless of printing or checking it"
