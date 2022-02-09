@@ -122,3 +122,11 @@ name   = "Proof"
   type       = "bool"
   default    = "false"
   help       = "produce final proof regardless of printing or checking it"
+
+[[option]]
+  name       = "macroResExpansion"
+  category   = "regular"
+  long       = "macro-res-expansion"
+  type       = "bool"
+  default    = "true"
+  help       = "Expand MacroResolution"
