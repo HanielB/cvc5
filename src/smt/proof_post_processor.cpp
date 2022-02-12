@@ -20,6 +20,7 @@
 #include "preprocessing/assertion_pipeline.h"
 #include "proof/proof_node_algorithm.h"
 #include "proof/proof_node_manager.h"
+#include "smt/smt_statistics_registry.h"
 #include "smt/solver_engine.h"
 #include "theory/arith/arith_utilities.h"
 #include "theory/builtin/proof_checker.h"
@@ -44,7 +45,15 @@ ProofPostprocessCallback::ProofPostprocessCallback(Env& env,
       d_pnm(env.getProofNodeManager()),
       d_pppg(pppg),
       d_wfpm(env),
-      d_updateScopedAssumptions(updateScopedAssumptions)
+      d_updateScopedAssumptions(updateScopedAssumptions),
+      d_macroResElimTime(smtStatisticsRegistry().registerTimer(
+          "finalProof::macroResElimTime")),
+      d_bitblastElimTime(smtStatisticsRegistry().registerTimer(
+          "finalProof::bitblastElimTime")),
+      d_subsRwElimTime(
+                        smtStatisticsRegistry().registerTimer("finalProof::subsRwElimTime")),
+      d_macroScaleSumBdElimTime(smtStatisticsRegistry().registerTimer("finalProof::macroArithScaleSumBoundElimTime")),
+      d_stringInferenceElimTime(smtStatisticsRegistry().registerTimer("finalProof::strInfElimTime"))
 {
   d_true = NodeManager::currentNM()->mkConst(true);
 }
@@ -426,6 +435,8 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   // macro elimination
   if (id == PfRule::MACRO_SR_EQ_INTRO)
   {
+    TimerStat::CodeTimer codeTimer(d_subsRwElimTime, true);
+
     // (TRANS
     //   (SUBS <children> :args args[0:1])
     //   (REWRITE :args <t.substitute(x1,t1). ... .substitute(xn,tn)> args[2]))
@@ -510,6 +521,8 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::MACRO_SR_PRED_INTRO)
   {
+    TimerStat::CodeTimer codeTimer(d_subsRwElimTime, true);
+
     std::vector<Node> tchildren;
     std::vector<Node> sargs = args;
     // take into account witness form, if necessary
@@ -559,6 +572,8 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::MACRO_SR_PRED_ELIM)
   {
+    TimerStat::CodeTimer codeTimer(d_subsRwElimTime, true);
+
     // (EQ_RESOLVE
     //   children[0]
     //   (MACRO_SR_EQ_INTRO children[1:] :args children[0] ++ args))
@@ -576,6 +591,8 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::MACRO_SR_PRED_TRANSFORM)
   {
+    TimerStat::CodeTimer codeTimer(d_subsRwElimTime, true);
+
     // (EQ_RESOLVE
     //   children[0]
     //   (TRANS
@@ -666,6 +683,7 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   else if (id == PfRule::MACRO_RESOLUTION
            || id == PfRule::MACRO_RESOLUTION_TRUST)
   {
+    TimerStat::CodeTimer codeTimer(d_macroResElimTime);
     // first generate the naive chain_resolution
     std::vector<Node> chainResArgs{args.begin() + 1, args.end()};
     Node chainConclusion = d_pnm->getChecker()->checkDebug(
@@ -810,6 +828,8 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::SUBS)
   {
+    TimerStat::CodeTimer codeTimer(d_subsRwElimTime, true);
+
     NodeManager* nm = NodeManager::currentNM();
     // Notice that a naive way to reconstruct SUBS is to do a term conversion
     // proof for each substitution.
@@ -974,6 +994,8 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::REWRITE)
   {
+    TimerStat::CodeTimer codeTimer(d_subsRwElimTime, true);
+
     // get the kind of rewrite
     MethodId idr = MethodId::RW_REWRITE;
     TheoryId theoryId = Theory::theoryOf(args[0]);
@@ -1067,6 +1089,7 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::MACRO_ARITH_SCALE_SUM_UB)
   {
+    TimerStat::CodeTimer codeTimer(d_macroScaleSumBdElimTime);
     Debug("macro::arith") << "Expand MACRO_ARITH_SCALE_SUM_UB" << std::endl;
     if (Debug.isOn("macro::arith"))
     {
@@ -1121,6 +1144,8 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::STRING_INFERENCE)
   {
+    TimerStat::CodeTimer codeTimer(d_stringInferenceElimTime);
+
     // get the arguments
     Node conc;
     InferenceId iid;
@@ -1136,6 +1161,7 @@ Node ProofPostprocessCallback::expandMacros(PfRule id,
   }
   else if (id == PfRule::BV_BITBLAST)
   {
+    TimerStat::CodeTimer codeTimer(d_bitblastElimTime);
     bv::BBProof bb(d_env, nullptr, d_pnm, true);
     Node eq = args[0];
     Assert(eq.getKind() == EQUAL);

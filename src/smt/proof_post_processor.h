@@ -237,6 +237,11 @@ class ProofPostprocessCallback : public ProofNodeUpdaterCallback, protected EnvO
                              const std::vector<Node>& children,
                              const std::vector<Node>& args,
                              CDProof* cdp);
+  TimerStat d_macroResElimTime;
+  TimerStat d_bitblastElimTime;
+  TimerStat d_subsRwElimTime;
+  TimerStat d_macroScaleSumBdElimTime;
+  TimerStat d_stringInferenceElimTime;
 };
 
 /**
