@@ -18,29 +18,86 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "options/expr_options.h"
 #include "proof/alethe/alethe_proof_rule.h"
 
 namespace cvc5 {
 
 namespace proof {
 
-AletheProofPrinter::AletheProofPrinter() {}
+LetUpdaterPfCallback::LetUpdaterPfCallback(LetBinding& lbind)
+    : d_lbind(lbind)
+{
+}
+
+LetUpdaterPfCallback::~LetUpdaterPfCallback() {}
+
+bool LetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
+                                        const std::vector<Node>& fa,
+                                        bool& continueUpdate)
+{
+  return true;
+}
+
+bool LetUpdaterPfCallback::update(Node res,
+                                  PfRule id,
+                                  const std::vector<Node>& children,
+                                  const std::vector<Node>& args,
+                                  CDProof* cdp,
+                                  bool& continueUpdate)
+{
+  // Letification done on the converted terms and potentially on arguments
+  AlwaysAssert(args.size() > 2) << "res: " << res << "\nid: " << id;
+  for (size_t i = 2, size = args.size(); i < size; ++i)
+  {
+    d_lbind.process(args[i]);
+  }
+  return false;
+}
+
+AletheProofPrinter::AletheProofPrinter()
+    : d_lbind(options::defaultDagThresh() ? options::defaultDagThresh() + 1
+                                          : 0),
+      d_cb(new LetUpdaterPfCallback(d_lbind))
+{
+}
 
 void AletheProofPrinter::print(std::ostream& out,
                                std::shared_ptr<ProofNode> pfn)
 {
   Trace("alethe-printer") << "- Print proof in Alethe format. " << std::endl;
+  std::shared_ptr<ProofNode> innerPf = pfn->getChildren()[0];
+  AlwaysAssert(innerPf);
+  // Traverse the proof node to letify the (converted) conclusions of proof
+  // steps. TODO This traversal will collect the skolems to de defined.
+  ProofNodeUpdater updater(nullptr, *(d_cb.get()), false, false);
+  Trace("alethe-printer") << "- letify.\n";
+  updater.process(innerPf);
+
+  Trace("alethe-printer") << "- Print assumptions.\n";
   std::unordered_map<Node, std::string> assumptions;
   const std::vector<Node>& args = pfn->getArguments();
   // Special handling for the first scope
   // Print assumptions and add them to the list but do not print anchor.
   for (size_t i = 3, size = args.size(); i < size; i++)
   {
-    Trace("alethe-printer") << "... print assumption " << args[i] << std::endl;
-    out << "(assume a" << i - 3 << " " << args[i] << ")\n";
+    // assumptions are always being declared
+    Node nc = d_lbind.convert(args[i], "@p_", false);
+    bool naming = nc != args[i];
+    Trace("alethe-printer") << "... print assumption " << nc << std::endl;
+    if (naming)
+    {
+      out << "(assume a" << i - 3 << " (! " << nc << " :named "
+          << d_lbind.convert(args[i], "@p_") << ")\n";
+    }
+    else
+    {
+      out << "(assume a" << i - 3 << " " << nc << ")\n";
+    }
     assumptions[args[i]] = "a" + std::to_string(i - 3);
+    AlwaysAssert(!letDeclared.count(args[i]));
+    letDeclared.insert(args[i]);
   }
-
   // Then, print the rest of the proof node
   uint32_t start_t = 1;
   printInternal(out, pfn->getChildren()[0], assumptions, {}, "", start_t);
@@ -77,7 +134,7 @@ std::string AletheProofPrinter::printInternal(
   // In case the rule is an anchor it is printed before its children.
   if (arule == AletheRule::ANCHOR_SUBPROOF || arule == AletheRule::ANCHOR_BIND)
   {
-	  Trace("alethe-printer") <<"steps " <<  steps << std::endl; 
+    Trace("alethe-printer") <<"steps " <<  steps << std::endl;
     // Look up if subproof has already been printed
     auto it = steps.find(args[2]);
     if (it != steps.end())
