@@ -1,3 +1,4 @@
+; --dump-proofs --proof-format=alethe --proof-granularity=dsl-rewrite --simplification=none -t alethe-printer
 (set-logic QF_UF)
 
 (declare-sort U 0)
