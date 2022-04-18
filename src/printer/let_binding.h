@@ -133,6 +133,10 @@ class LetBinding
    */
   Node convert(Node n, const std::string& prefix, bool letTop = true) const;
 
+  Node myConvert(Node n, const std::string& prefix);
+
+  std::unordered_set<Node> d_declared;
+
  private:
   /**
    * Compute the count of sub nodes in n, store in d_count. Additionally,

@@ -36,7 +36,19 @@ bool LetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
                                         const std::vector<Node>& fa,
                                         bool& continueUpdate)
 {
-  return true;
+  // We do this here so we do not go into update, as we are never updating the
+  // proof node, not even do we pass a node manager to the proof node updater.
+  const std::vector<Node>& args = pn->getArguments();
+  // Letification done on the converted terms and potentially on arguments
+  AlwaysAssert(args.size() > 2)
+      << "res: " << pn->getResult() << "\nid: " << getAletheRule(args[0]);
+  for (size_t i = 2, size = args.size(); i < size; ++i)
+  {
+    Trace("alethe-printer") << "Process " << args[i] << "\n";
+    d_lbind.process(args[i]);
+  }
+
+  return false;
 }
 
 bool LetUpdaterPfCallback::update(Node res,
@@ -46,12 +58,6 @@ bool LetUpdaterPfCallback::update(Node res,
                                   CDProof* cdp,
                                   bool& continueUpdate)
 {
-  // Letification done on the converted terms and potentially on arguments
-  AlwaysAssert(args.size() > 2) << "res: " << res << "\nid: " << id;
-  for (size_t i = 2, size = args.size(); i < size; ++i)
-  {
-    d_lbind.process(args[i]);
-  }
   return false;
 }
 
@@ -74,6 +80,17 @@ void AletheProofPrinter::print(std::ostream& out,
   Trace("alethe-printer") << "- letify.\n";
   updater.process(innerPf);
 
+  if (options::defaultDagThresh())
+  {
+    std::vector<Node> letList;
+    d_lbind.letify(letList);
+    for (TNode n : letList)
+    {
+      Trace("alethe-printer")
+          << "Term " << n << " has id " << d_lbind.getId(n) << "\n";
+    }
+  }
+
   Trace("alethe-printer") << "- Print assumptions.\n";
   std::unordered_map<Node, std::string> assumptions;
   const std::vector<Node>& args = pfn->getArguments();
@@ -82,13 +99,13 @@ void AletheProofPrinter::print(std::ostream& out,
   for (size_t i = 3, size = args.size(); i < size; i++)
   {
     // assumptions are always being declared
-    Node nc = d_lbind.convert(args[i], "@p_", false);
+    Node nc = d_lbind.myConvert(args[i], "@p_");
     bool naming = nc != args[i];
     Trace("alethe-printer") << "... print assumption " << nc << std::endl;
     if (naming)
     {
       out << "(assume a" << i - 3 << " (! " << nc << " :named "
-          << d_lbind.convert(args[i], "@p_") << ")\n";
+          << d_lbind.myConvert(args[i], "@p_") << ")\n";
     }
     else
     {
