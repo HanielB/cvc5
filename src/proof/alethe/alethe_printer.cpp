@@ -173,17 +173,7 @@ std::string AletheProofPrinter::printInternal(
   // In case the rule is an anchor it is printed before its children.
   if (arule == AletheRule::ANCHOR_SUBPROOF || arule == AletheRule::ANCHOR_BIND)
   {
-    Trace("alethe-printer") <<"steps " <<  steps << std::endl;
-    // Look up if subproof has already been printed
-    auto it = steps.find(args[2]);
-    if (it != steps.end())
-    {
-      Trace("alethe-printer")
-          << "... subproof is already printed " << it->second << ": " << pfn->getResult() << " "
-          << arule << " / " << args << std::endl;
-      return it->second;
-    }
-
+    // Print anchor
     std::string current_t =
         current_prefix + "t" + std::to_string(current_step_id);
     Trace("alethe-printer")
