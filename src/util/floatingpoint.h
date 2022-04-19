@@ -5,7 +5,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -30,7 +30,7 @@
 
 /* -------------------------------------------------------------------------- */
 
-namespace cvc5 {
+namespace cvc5::internal {
 
 /* -------------------------------------------------------------------------- */
 
@@ -148,10 +148,11 @@ class FloatingPoint
   std::string toString(bool printAsIndexed = false) const;
 
   /**
-   * Get the bitvectors to print, returns bitvectors such that this floating
-   * point should print as (fp s e i).
+   * Get the IEEE bit-vector representation of this floating-point value.
+   * Stores the sign bit in `sign`, the exponent in `exp` and the significand
+   * in `sig`.
    */
-  void getToStringBitvectors(BitVector& s, BitVector& e, BitVector& i) const;
+  void getIEEEBitvectors(BitVector& sign, BitVector& exp, BitVector& sig) const;
 
   /** Return the packed (IEEE-754) representation of this floating-point. */
   BitVector pack(void) const;
@@ -437,20 +438,6 @@ class FloatingPointToFPUnsignedBitVector : public FloatingPointConvertSort
   }
 };
 
-class FloatingPointToFPGeneric : public FloatingPointConvertSort
-{
- public:
-  /** Constructors. */
-  FloatingPointToFPGeneric(uint32_t _e, uint32_t _s)
-      : FloatingPointConvertSort(_e, _s)
-  {
-  }
-  FloatingPointToFPGeneric(const FloatingPointConvertSort& old)
-      : FloatingPointConvertSort(old)
-  {
-  }
-};
-
 /**
  * Base type for floating-point to bit-vector conversion.
  */
@@ -521,7 +508,7 @@ struct FloatingPointToBVHashFunction
 {
   inline size_t operator()(const FloatingPointToBV& fptbv) const
   {
-    UnsignedHashFunction< ::cvc5::BitVectorSize> f;
+    UnsignedHashFunction<cvc5::internal::BitVectorSize> f;
     return (key ^ 0x46504256) ^ f(fptbv.d_bv_size);
   }
 }; /* struct FloatingPointToBVHashFunction */
@@ -540,6 +527,6 @@ std::ostream& operator<<(std::ostream& os, const FloatingPointSize& fps);
 std::ostream& operator<<(std::ostream& os,
                          const FloatingPointConvertSort& fpcs);
 
-}  // namespace cvc5
+}  // namespace cvc5::internal
 
 #endif /* CVC5__FLOATINGPOINT_H */

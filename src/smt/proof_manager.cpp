@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Andrew Reynolds, Haniel Barbosa, Diego Della Rocca de Camargos
+ *   Andrew Reynolds, Haniel Barbosa, Gereon Kremer
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -37,7 +37,7 @@
 #include "smt/preprocess_proof_generator.h"
 #include "smt/proof_post_processor.h"
 
-namespace cvc5 {
+namespace cvc5::internal {
 namespace smt {
 
 PfManager::PfManager(Env& env)
@@ -45,7 +45,7 @@ PfManager::PfManager(Env& env)
       d_rewriteDb(new rewriter::RewriteDb),
       d_pchecker(new ProofChecker(
           options().proof.proofCheck == options::ProofCheckMode::EAGER,
-          options().proof.proofPedantic,
+          static_cast<uint32_t>(options().proof.proofPedantic),
           d_rewriteDb.get())),
       d_pnm(new ProofNodeManager(
           env.getOptions(), env.getRewriter(), d_pchecker.get())),
@@ -122,7 +122,7 @@ void PfManager::setFinalProof(std::shared_ptr<ProofNode> pfn, Assertions& as)
   // response. This method would need to cache its result otherwise.
   Trace("smt-proof") << "SolverEngine::setFinalProof(): get proof body...\n";
 
-  if (Trace.isOn("smt-proof-debug"))
+  if (TraceIsOn("smt-proof-debug"))
   {
     Trace("smt-proof-debug")
         << "SolverEngine::setFinalProof(): Proof node for false:\n";
@@ -133,7 +133,7 @@ void PfManager::setFinalProof(std::shared_ptr<ProofNode> pfn, Assertions& as)
   std::vector<Node> assertions;
   getAssertions(as, assertions);
 
-  if (Trace.isOn("smt-proof"))
+  if (TraceIsOn("smt-proof"))
   {
     Trace("smt-proof")
         << "SolverEngine::setFinalProof(): get free assumptions..."
@@ -336,4 +336,4 @@ void PfManager::getAssertions(Assertions& as,
 }
 
 }  // namespace smt
-}  // namespace cvc5
+}  // namespace cvc5::internal

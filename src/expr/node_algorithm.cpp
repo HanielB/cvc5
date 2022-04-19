@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -18,10 +18,9 @@
 #include "expr/node_algorithm.h"
 
 #include "expr/attribute.h"
-#include "expr/cardinality_constraint.h"
 #include "expr/dtype.h"
 
-namespace cvc5 {
+namespace cvc5::internal {
 namespace expr {
 
 bool hasSubterm(TNode n, TNode t, bool strict)
@@ -275,7 +274,7 @@ bool hasBoundVar(TNode n)
     }
     n.setAttribute(HasBoundVarAttr(), hasBv);
     n.setAttribute(HasBoundVarComputedAttr(), true);
-    Debug("bva") << n << " has bva : " << n.getAttribute(HasBoundVarAttr())
+    Trace("bva") << n << " has bva : " << n.getAttribute(HasBoundVarAttr())
                  << std::endl;
     return hasBv;
   }
@@ -746,18 +745,6 @@ void getTypes(TNode n,
     {
       visited.insert(cur);
       types.insert(cur.getType());
-      // special case where the type is embedded in the operator
-      Kind k = cur.getKind();
-      if (k == kind::CARDINALITY_CONSTRAINT)
-      {
-        const CardinalityConstraint& cc =
-            cur.getOperator().getConst<CardinalityConstraint>();
-        types.insert(cc.getType());
-      }
-      else if (cur.hasOperator() && !cur.isConst())
-      {
-        visit.push_back(cur.getOperator());
-      }
       visit.insert(visit.end(), cur.begin(), cur.end());
     }
   } while (!visit.empty());
@@ -878,4 +865,4 @@ bool isBooleanConnective(TNode cur)
 }
 
 }  // namespace expr
-}  // namespace cvc5
+}  // namespace cvc5::internal

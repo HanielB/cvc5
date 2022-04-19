@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Haniel Barbosa
+ *   Haniel Barbosa, Andrew Reynolds
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -18,7 +18,7 @@
 #include "expr/node_algorithm.h"
 #include "theory/theory.h"
 
-namespace cvc5 {
+namespace cvc5::internal {
 namespace proof {
 
 Node AletheNoSubtypeNodeConverter::postConvert(Node n)
@@ -200,7 +200,7 @@ Node AletheNoSubtypeNodeConverter::traverseAndConvertAllConsts(Node n)
         children.push_back(visited[child]);
       }
       visited[cur] = !childChanged ? cur : nm->mkNode(cur.getKind(), children);
-      if (Trace.isOn("alethe-proof-subtyping-convert") && childChanged)
+      if (TraceIsOn("alethe-proof-subtyping-convert") && childChanged)
       {
         Trace("alethe-proof-subtyping-convert")
             << "..rebuilt " << cur << " into " << visited[cur] << "\n";
@@ -211,4 +211,4 @@ Node AletheNoSubtypeNodeConverter::traverseAndConvertAllConsts(Node n)
 }
 
 }  // namespace proof
-}  // namespace cvc5
+}  // namespace cvc5::internal

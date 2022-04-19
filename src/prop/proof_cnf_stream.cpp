@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -20,7 +20,7 @@
 #include "theory/builtin/proof_checker.h"
 #include "util/rational.h"
 
-namespace cvc5 {
+namespace cvc5::internal {
 namespace prop {
 
 ProofCnfStream::ProofCnfStream(Env& env,
@@ -63,7 +63,7 @@ std::string ProofCnfStream::identify() const { return "ProofCnfStream"; }
 Node ProofCnfStream::normalizeAndRegister(TNode clauseNode)
 {
   Node normClauseNode = d_psb.factorReorderElimDoubleNeg(clauseNode);
-  if (Trace.isOn("cnf") && normClauseNode != clauseNode)
+  if (TraceIsOn("cnf") && normClauseNode != clauseNode)
   {
     Trace("cnf") << push
                  << "ProofCnfStream::normalizeAndRegister: steps to normalized "
@@ -596,7 +596,9 @@ void ProofCnfStream::convertPropagation(TrustNode trn)
     clauseExp = nm->mkNode(kind::OR, proven[0].notNode(), proven[1]);
   }
   d_currPropagationProccessed = normalizeAndRegister(clauseExp);
-  // consume steps
+  // consume steps if clausification being recorded. If we are not logging it,
+  // we need to add the clause as a closed step to the proof so that the SAT
+  // proof does not have non-input formulas as assumptions.
   if (proofLogging)
   {
     const std::vector<std::pair<Node, ProofStep>>& steps = d_psb.getSteps();
@@ -606,12 +608,16 @@ void ProofCnfStream::convertPropagation(TrustNode trn)
     }
     d_psb.clear();
   }
+  else
+  {
+    d_proof.addStep(clauseExp, PfRule::THEORY_LEMMA, {}, {clauseExp});
+  }
 }
 
-void ProofCnfStream::notifyOptPropagation(int explLevel)
+void ProofCnfStream::notifyCurrPropagationInsertedAtLevel(int explLevel)
 {
-  AlwaysAssert(explLevel < (userContext()->getLevel() - 1));
-  AlwaysAssert(!d_currPropagationProccessed.isNull());
+  Assert(explLevel < (userContext()->getLevel() - 1));
+  Assert(!d_currPropagationProccessed.isNull());
   Trace("cnf") << "Need to save curr propagation "
                << d_currPropagationProccessed << "'s proof in level "
                << explLevel + 1 << " despite being currently in level "
@@ -623,31 +629,38 @@ void ProofCnfStream::notifyOptPropagation(int explLevel)
   //
   // It's also necessary to copy the proof node, so we prevent unintended
   // updates to the saved proof. Not doing this may also lead to open proofs.
-  ProofNodeManager * pnm = d_env.getProofNodeManager();
   std::shared_ptr<ProofNode> currPropagationProcPf =
-      pnm->clone(d_proof.getProofFor(d_currPropagationProccessed));
-  AlwaysAssert(currPropagationProcPf->getRule() != PfRule::ASSUME);
+      d_env.getProofNodeManager()->clone(
+          d_proof.getProofFor(d_currPropagationProccessed));
+  Assert(currPropagationProcPf->getRule() != PfRule::ASSUME);
   Trace("cnf-debug") << "\t..saved pf {" << currPropagationProcPf << "} "
                      << *currPropagationProcPf.get() << "\n";
   d_optClausesPfs[explLevel + 1].push_back(currPropagationProcPf);
-
+  // Notify SAT proof manager that the propagation (which is a SAT assumption)
+  // had its level optimized
+  d_satPM->notifyAssumptionInsertedAtLevel(explLevel,
+                                           d_currPropagationProccessed);
+  // Reset
   d_currPropagationProccessed = Node::null();
 }
 
-void ProofCnfStream::notifyOptClause(const SatClause& clause, int clLevel)
+void ProofCnfStream::notifyClauseInsertedAtLevel(const SatClause& clause,
+                                                 int clLevel)
 {
   Trace("cnf") << "Need to save clause " << clause << " in level "
                << clLevel + 1 << " despite being currently in level "
                << userContext()->getLevel() << "\n";
   Node clauseNode = getClauseNode(clause);
   Trace("cnf") << "Node equivalent: " << clauseNode << "\n";
-  AlwaysAssert(clLevel < (userContext()->getLevel() - 1));
+  Assert(clLevel < (userContext()->getLevel() - 1));
   // As above, also justify eagerly.
-  ProofNodeManager * pnm = d_env.getProofNodeManager();
   std::shared_ptr<ProofNode> clauseCnfPf =
-      pnm->clone(d_proof.getProofFor(clauseNode));
-  AlwaysAssert(clauseCnfPf->getRule() != PfRule::ASSUME);
+      d_env.getProofNodeManager()->clone(d_proof.getProofFor(clauseNode));
+  Assert(clauseCnfPf->getRule() != PfRule::ASSUME);
   d_optClausesPfs[clLevel + 1].push_back(clauseCnfPf);
+  // Notify SAT proof manager that the propagation (which is a SAT assumption)
+  // had its level optimized
+  d_satPM->notifyAssumptionInsertedAtLevel(clLevel, clauseNode);
 }
 
 Node ProofCnfStream::getClauseNode(const SatClause& clause)
@@ -1105,4 +1118,4 @@ SatLiteral ProofCnfStream::handleIte(TNode node)
 }
 
 }  // namespace prop
-}  // namespace cvc5
+}  // namespace cvc5::internal

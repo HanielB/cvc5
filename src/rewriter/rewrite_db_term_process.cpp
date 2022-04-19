@@ -18,9 +18,9 @@
 #include "expr/nary_term_util.h"
 #include "util/string.h"
 
-using namespace cvc5::kind;
+using namespace cvc5::internal::kind;
 
-namespace cvc5 {
+namespace cvc5::internal {
 namespace rewriter {
 
 Node RewriteDbNodeConverter::postConvert(Node n)
@@ -50,4 +50,4 @@ Node RewriteDbNodeConverter::postConvert(Node n)
 }
 
 }  // namespace rewriter
-}  // namespace cvc5
+}  // namespace cvc5::internal
