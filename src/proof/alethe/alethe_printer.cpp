@@ -68,6 +68,11 @@ AletheProofPrinter::AletheProofPrinter()
 {
 }
 
+void AletheProofPrinter::printTerm(std::ostream& out, TNode n)
+{
+  out << d_lbind.myConvert(n, "@p_");
+}
+
 void AletheProofPrinter::print(std::ostream& out,
                                std::shared_ptr<ProofNode> pfn)
 {
@@ -99,12 +104,10 @@ void AletheProofPrinter::print(std::ostream& out,
   for (size_t i = 3, size = args.size(); i < size; i++)
   {
     // assumptions are always being declared
-    Node nc = d_lbind.myConvert(args[i], "@p_");
-    Trace("alethe-printer") << "... print assumption " << nc << std::endl;
-    out << "(assume a" << i - 3 << nc << "\n";
+    out << "(assume a" << i - 3 << " ";
+    printTerm(out, args[i]);
+    out << ")\n";
     assumptions[args[i]] = "a" + std::to_string(i - 3);
-    AlwaysAssert(!letDeclared.count(args[i]));
-    letDeclared.insert(args[i]);
   }
   // Then, print the rest of the proof node
   uint32_t start_t = 1;
@@ -190,6 +193,8 @@ std::string AletheProofPrinter::printInternal(
 
     // If the subproof is a bind the arguments need to be printed as
     // assignments, i.e. args=[(= v0 v1)] is printed as (:= (v0 Int) v1).
+    //
+    // Note that since these are variables there is no need to letify.
     if (arule == AletheRule::ANCHOR_BIND)
     {
       out << " :args (";
@@ -214,7 +219,9 @@ std::string AletheProofPrinter::printInternal(
             current_prefix + "a" + std::to_string(i - 3);
         Trace("alethe-printer")
             << "... print assumption " << args[i] << std::endl;
-        out << "(assume " << assumption_name << " " << args[i] << ")\n";
+        out << "(assume " << assumption_name << " ";
+        printTerm(out, args[i]);
+        out << ")\n";
         assumptions[args[i]] = assumption_name;
         current_assumptions.push_back(assumption_name);
       }
@@ -238,7 +245,9 @@ std::string AletheProofPrinter::printInternal(
                             << " " << arule << " / " << args << std::endl;
 
     current_prefix.pop_back();
-    out << "(step " << current_prefix << " " << args[2] << " :rule " << arule;
+    out << "(step " << current_prefix << " ";
+    printTerm(out, args[2]);
+    out << " :rule " << arule;
 
     // Reset steps array to the steps before the subproof since steps inside the
     // subproof cannot be accessed anymore
@@ -260,8 +269,7 @@ std::string AletheProofPrinter::printInternal(
       out << " :discharge (";
       for (size_t j = 0, size = current_assumptions.size(); j < size; j++)
       {
-        out << current_assumptions[j]
-            << (j != current_assumptions.size() - 1 ? " " : "");
+        out << current_assumptions[j] << (j != current_assumptions.size() - 1 ? " " : "");
       }
       out << ")";
     }
@@ -283,7 +291,9 @@ std::string AletheProofPrinter::printInternal(
                           << " " << current_t << std::endl;
   current_step_id++;
 
-  out << "(step " << current_t << " " << args[2] << " :rule " << arule;
+  out << "(step " << current_t << " ";
+  printTerm(out, args[2]);
+  out << " :rule " << arule;
   if (args.size() > 3)
   {
     out << " :args (";
@@ -291,11 +301,13 @@ std::string AletheProofPrinter::printInternal(
     {
       if (arule == AletheRule::FORALL_INST)
       {
-        out << "(:= " << args[i][0] << " " << args[i][1] << ")";
+        out << "(:= " << args[i][0] << " ";
+        printTerm(out, args[i][1]);
+        out << ")";
       }
       else
       {
-        out << args[i];
+        printTerm(out, args[i]);
       }
       if (i != args.size() - 1)
       {

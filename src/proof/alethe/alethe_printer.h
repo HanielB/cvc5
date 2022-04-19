@@ -102,10 +102,11 @@ class AletheProofPrinter
       std::string current_prefix,
       uint32_t& current_step_id);
 
+  void printTerm(std::ostream& out, TNode n);
+
+
   /** The let binder for printing with sharing. */
   LetBinding d_lbind;
-
-  std::unordered_set<Node> letDeclared;
 
   std::unique_ptr<LetUpdaterPfCallback> d_cb;
 };

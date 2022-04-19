@@ -243,7 +243,7 @@ Node LetBinding::myConvert(Node n, const std::string& prefix)
         ret.toStream(ss, -1, 0);
         ss << " :named @p_" << id << ")";
         // TODO use nm->mkRawSymbol after merging main
-        visited[cur] = nm->mkBoundVar(ss.str(), ret.getType());
+        visited[cur] = nm->mkRawSymbol(ss.str(), ret.getType());
         continue;
       }
       visited[cur] = ret;
