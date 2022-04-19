@@ -100,17 +100,8 @@ void AletheProofPrinter::print(std::ostream& out,
   {
     // assumptions are always being declared
     Node nc = d_lbind.myConvert(args[i], "@p_");
-    bool naming = nc != args[i];
     Trace("alethe-printer") << "... print assumption " << nc << std::endl;
-    if (naming)
-    {
-      out << "(assume a" << i - 3 << " (! " << nc << " :named "
-          << d_lbind.myConvert(args[i], "@p_") << ")\n";
-    }
-    else
-    {
-      out << "(assume a" << i - 3 << " " << nc << ")\n";
-    }
+    out << "(assume a" << i - 3 << nc << "\n";
     assumptions[args[i]] = "a" + std::to_string(i - 3);
     AlwaysAssert(!letDeclared.count(args[i]));
     letDeclared.insert(args[i]);
