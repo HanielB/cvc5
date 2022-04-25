@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <set>
 #include <unordered_map>
 
 #include "options/expr_options.h"
@@ -35,6 +36,7 @@ Node AletheLetBinding::convert(Node n, const std::string& prefix)
     return n;
   }
   NodeManager* nm = NodeManager::currentNM();
+  std::multiset<TNode> declaring;
   std::unordered_map<TNode, Node> visited;
   std::unordered_map<TNode, Node>::iterator it;
   std::vector<TNode> visit;
@@ -53,8 +55,8 @@ Node AletheLetBinding::convert(Node n, const std::string& prefix)
       if (id > 0)
       {
         Trace("alethe-printer") << "Node " << cur << " has id " << id << "\n";
-        // if cur has already been declared, make the let variable
-        if (d_declared.find(cur) != d_declared.end())
+        // if cur has already been declared, make the let variable. If we it has not but we are declaring it
+        if (d_declared.find(cur) != d_declared.end() || declaring.count(cur) > 0)
         {
           std::stringstream ss;
           ss << prefix << id;
@@ -62,7 +64,8 @@ Node AletheLetBinding::convert(Node n, const std::string& prefix)
           continue;
         }
         // otherwise declare it and continue visiting
-        d_declared.insert(cur);
+        d_declaring.insert(cur);
+        visiting.insert
       }
       if (cur.isClosure())
       {
@@ -84,9 +87,9 @@ Node AletheLetBinding::convert(Node n, const std::string& prefix)
       }
       visited[cur] = Node::null();
       visit.push_back(cur);
-      // we insert in reverse order to guarantee that first (left-to-right)
-      // occurrence, if more than one equal children of id > 0, is the one that
-      // is declared rather than replaced
+      // add reversed because we must do post-order traversal (last added to the
+      // list are first visited, thus this entails left-to-right traversal of
+      // children)
       visit.insert(visit.end(), cur.rbegin(), cur.rend());
     }
     else if (it->second.isNull())
@@ -119,7 +122,6 @@ Node AletheLetBinding::convert(Node n, const std::string& prefix)
             visited[cn] = nm->mkBoundVar(ss.str(), cn.getType());
           }
         }
-
       }
       if (childChanged)
       {
@@ -140,6 +142,10 @@ Node AletheLetBinding::convert(Node n, const std::string& prefix)
         continue;
       }
       visited[cur] = ret;
+    }
+    else
+    {
+      // i'm visiting an already post-visited guy. If it has id > 0 and I'm declaring, I increase the counter
     }
   } while (!visit.empty());
   Assert(visited.find(n) != visited.end());
