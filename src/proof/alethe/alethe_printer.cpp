@@ -16,6 +16,7 @@
 #include "proof/alethe/alethe_printer.h"
 
 #include <iostream>
+#include <sstream>
 #include <unordered_map>
 
 #include "options/expr_options.h"
@@ -25,7 +26,128 @@ namespace cvc5::internal {
 
 namespace proof {
 
-LetUpdaterPfCallback::LetUpdaterPfCallback(LetBinding& lbind)
+AletheLetBinding::AletheLetBinding(uint32_t thresh) : LetBinding(thresh) {}
+
+Node AletheLetBinding::convert(Node n, const std::string& prefix)
+{
+  if (d_letMap.empty())
+  {
+    return n;
+  }
+  NodeManager* nm = NodeManager::currentNM();
+  std::unordered_map<TNode, Node> visited;
+  std::unordered_map<TNode, Node>::iterator it;
+  std::vector<TNode> visit;
+  TNode cur;
+  visit.push_back(n);
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    it = visited.find(cur);
+
+    if (it == visited.end())
+    {
+      uint32_t id = getId(cur);
+      // do not letify id 0
+      if (id > 0)
+      {
+        Trace("alethe-printer") << "Node " << cur << " has id " << id << "\n";
+        // if cur has already been declared, make the let variable
+        if (d_declared.find(cur) != d_declared.end())
+        {
+          std::stringstream ss;
+          ss << prefix << id;
+          visited[cur] = nm->mkBoundVar(ss.str(), cur.getType());
+          continue;
+        }
+        // otherwise declare it and continue visiting
+        d_declared.insert(cur);
+      }
+      if (cur.isClosure())
+      {
+        // we do not convert beneath quantifiers, so we need to finish the
+        // traversal here. However if id > 0, then we need to declare cur's
+        // variable.
+        if (id == 0)
+        {
+          visited[cur] = cur;
+          continue;
+        }
+        std::stringstream ss;
+        ss << "(! ";
+        options::ioutils::applyOutputLang(ss, Language::LANG_SMTLIB_V2_6);
+        cur.toStream(ss, -1, 0);
+        ss << " :named @p_" << id << ")";
+        visited[cur] = nm->mkRawSymbol(ss.str(), cur.getType());
+        continue;
+      }
+      visited[cur] = Node::null();
+      visit.push_back(cur);
+      // we insert in reverse order to guarantee that first (left-to-right)
+      // occurrence, if more than one equal children of id > 0, is the one that
+      // is declared rather than replaced
+      visit.insert(visit.end(), cur.rbegin(), cur.rend());
+    }
+    else if (it->second.isNull())
+    {
+      Node ret = cur;
+      bool childChanged = false;
+      uint32_t id;
+      std::vector<Node> children;
+      if (cur.getMetaKind() == kind::metakind::PARAMETERIZED)
+      {
+        children.push_back(cur.getOperator());
+      }
+      for (const Node& cn : cur)
+      {
+        it = visited.find(cn);
+        Assert(it != visited.end());
+        Assert(!it->second.isNull());
+        children.push_back(it->second);
+        // if cn changed and if it has id > 0 and is *not* a variable, then
+        // necessarily it is being declared, and from now on when it occurs it
+        // must be mapped to its variable
+        if (cn != it->second)
+        {
+          childChanged = true;
+          id = getId(cn);
+          if (id > 0)
+          {
+            std::stringstream ss;
+            ss << prefix << id;
+            visited[cn] = nm->mkBoundVar(ss.str(), cn.getType());
+          }
+        }
+
+      }
+      if (childChanged)
+      {
+        ret = nm->mkNode(cur.getKind(), children);
+      }
+      id = getId(cur);
+      // if cur has id bigger than 0, it should be letified. If we are here
+      // is because it's being declared and this is the first time it's
+      // re-visited. So we turn it into a declaration (! ret :named @p_{id})
+      if (id > 0)
+      {
+        std::stringstream ss;
+        ss << "(! ";
+        options::ioutils::applyOutputLang(ss, Language::LANG_SMTLIB_V2_6);
+        ret.toStream(ss, -1, 0);
+        ss << " :named @p_" << id << ")";
+        visited[cur] = nm->mkRawSymbol(ss.str(), ret.getType());
+        continue;
+      }
+      visited[cur] = ret;
+    }
+  } while (!visit.empty());
+  Assert(visited.find(n) != visited.end());
+  Assert(!visited.find(n)->second.isNull());
+  return visited[n];
+}
+
+LetUpdaterPfCallback::LetUpdaterPfCallback(AletheLetBinding& lbind)
     : d_lbind(lbind)
 {
 }
@@ -45,6 +167,18 @@ bool LetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
   for (size_t i = 2, size = args.size(); i < size; ++i)
   {
     Trace("alethe-printer") << "Process " << args[i] << "\n";
+    // We do not go *below* cl, since the clause itself cannot be shared (goes
+    // against the Alethe specification)
+    // TODO strengthen this to guarantee this var is indeed the "cl" one
+    if (args[i].getKind() == kind::SEXPR
+        && args[i][0].getKind() == kind::BOUND_VARIABLE)
+    {
+      for (const auto& arg : args[i])
+      {
+        d_lbind.process(arg);
+      }
+      continue;
+    }
     d_lbind.process(args[i]);
   }
 
@@ -70,7 +204,7 @@ AletheProofPrinter::AletheProofPrinter()
 
 void AletheProofPrinter::printTerm(std::ostream& out, TNode n)
 {
-  out << d_lbind.myConvert(n, "@p_");
+  out << d_lbind.convert(n, "@p_");
 }
 
 void AletheProofPrinter::print(std::ostream& out,

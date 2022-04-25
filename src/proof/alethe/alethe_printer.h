@@ -26,10 +26,30 @@ namespace cvc5::internal {
 
 namespace proof {
 
+class AletheLetBinding : public LetBinding
+{
+ public:
+  AletheLetBinding(uint32_t thresh);
+
+  /**
+   * Convert n based on the state of the let binding. This replaces all
+   * letified subterms of n with a fresh variable whose name prefix is the
+   * given one.
+   *
+   * @param n The node to convert
+   * @param prefix The prefix of variables to convert
+   * @return the converted node.
+   */
+  Node convert(Node n, const std::string& prefix);
+
+ private:
+  std::unordered_set<Node> d_declared;
+};
+
 class LetUpdaterPfCallback : public ProofNodeUpdaterCallback
 {
  public:
-  LetUpdaterPfCallback(LetBinding& lbind);
+  LetUpdaterPfCallback(AletheLetBinding& lbind);
   ~LetUpdaterPfCallback();
   /**
    * Initialize, called once for each new ProofNode to process. This
@@ -49,7 +69,7 @@ class LetUpdaterPfCallback : public ProofNodeUpdaterCallback
               bool& continueUpdate) override;
 
  protected:
-  LetBinding& d_lbind;
+  AletheLetBinding& d_lbind;
 };
 
 /**
@@ -106,7 +126,7 @@ class AletheProofPrinter
 
 
   /** The let binder for printing with sharing. */
-  LetBinding d_lbind;
+  AletheLetBinding d_lbind;
 
   std::unique_ptr<LetUpdaterPfCallback> d_cb;
 };
