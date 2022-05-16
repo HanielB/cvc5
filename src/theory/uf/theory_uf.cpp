@@ -33,6 +33,7 @@
 #include "theory/uf/cardinality_extension.h"
 #include "theory/uf/ho_extension.h"
 #include "theory/uf/lambda_lift.h"
+#include "theory/uf/recFun_extension.h"
 #include "theory/uf/theory_uf_rewriter.h"
 
 using namespace std;
@@ -50,6 +51,7 @@ TheoryUF::TheoryUF(Env& env,
       d_thss(nullptr),
       d_lambdaLift(new LambdaLift(env)),
       d_ho(nullptr),
+      d_recFun(new RefFunExtension(env, d_state, d_im)),
       d_functionsTerms(context()),
       d_symb(env, instanceName),
       d_rewriter(logicInfo().isHigherOrder()),
@@ -134,6 +136,9 @@ void TheoryUF::postCheck(Effort level)
     {
       d_ho->check();
     }
+    // if we have recursive functions, try to evaluate them
+    d_
+
   }
 }
 

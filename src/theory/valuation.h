@@ -66,6 +66,7 @@ bool equalityStatusCompatible(EqualityStatus s1, EqualityStatus s2);
 
 class Valuation {
   TheoryEngine* d_engine;
+
 public:
   Valuation(TheoryEngine* engine) :
     d_engine(engine) {

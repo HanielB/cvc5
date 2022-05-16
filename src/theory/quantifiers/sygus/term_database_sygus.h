@@ -299,7 +299,10 @@ class TermDbSygus : protected EnvObj
   static void toStreamSygus(const char* c, Node n);
   /** print to sygus stream n on output out */
   static void toStreamSygus(std::ostream& out, Node n);
-  
+
+  /** (recursive) function evaluator utility */
+  std::unique_ptr<FunDefEvaluator> d_funDefEval;
+
  private:
   /** Reference to the quantifiers state */
   QuantifiersState& d_qstate;
@@ -309,8 +312,6 @@ class TermDbSygus : protected EnvObj
   //------------------------------utilities
   /** sygus explanation */
   std::unique_ptr<SygusExplain> d_syexp;
-  /** (recursive) function evaluator utility */
-  std::unique_ptr<FunDefEvaluator> d_funDefEval;
   /** evaluation function unfolding utility */
   std::unique_ptr<SygusEvalUnfold> d_eval_unfold;
   /** Pointer to the oracle checker */
@@ -322,7 +323,7 @@ class TermDbSygus : protected EnvObj
    */
   std::map<Node, SynthConjecture*> d_enum_to_conjecture;
   /** mapping from enumerator terms to the function-to-synthesize they are
-   * associated with 
+   * associated with
    */
   std::map<Node, Node> d_enum_to_synth_fun;
   /** mapping from enumerator terms to the guard they are associated with

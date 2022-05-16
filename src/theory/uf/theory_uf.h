@@ -35,6 +35,7 @@ namespace uf {
 
 class CardinalityExtension;
 class HoExtension;
+class RecFunExtension;
 class LambdaLift;
 
 class TheoryUF : public Theory {
@@ -79,6 +80,8 @@ private:
   std::unique_ptr<LambdaLift> d_lambdaLift;
   /** the higher-order solver extension (or nullptr if it does not exist) */
   std::unique_ptr<HoExtension> d_ho;
+  /** the recursive function solver extension (or nullptr if it does not exist) */
+  std::unique_ptr<RecFunExtension> d_recFun;
 
   /** node for true */
   Node d_true;
