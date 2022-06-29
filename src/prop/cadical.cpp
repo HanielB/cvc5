@@ -214,8 +214,9 @@ void CadicalSolver::setDrat(std::ostream& os)
   // FILE* dratFile;
   // std::cout << d_solver.get(d_solver.);
   // Trace("test")
-  d_solver->trace_proof(d_dratFile, "temp-drat-file.drat");
-  d_solver->set("--no-binary", 1);
+  d_solver->set_long_option("--no-binary");
+  d_solver->trace_proof(stdout, "<stdout>");
+
 
   // d_solver->close_proof_trace();
   // std::cout << d_solver->trace_proof("temp-drat-file");
