@@ -214,15 +214,17 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
 
   if (val == prop::SatValue::SAT_VALUE_FALSE)
   {
+    // d_satSolver->closeProof();
     std::vector<prop::SatLiteral> unsat_assumptions;
     d_satSolver->getUnsatAssumptions(unsat_assumptions);
     std::cout << "\nd_binaryDratProof after getUnsatAssumptions: \"" << d_binaryDratProof.str() << "\"\n";
 
-    // std::ifstream t("file.txt");
-    // std::stringstream buffer;
-    // buffer << t.rdbuf();
+    std::ifstream t("temp-drat-file.drat");
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    std::cout << buffer.str() << "\n";
     // proof::DratProof dratProof = proof::DratProof::fromPlain(buffer.str());
-    // proof::DratProof dratProof = proof::DratProof::fromBinary(input);
+    proof::DratProof dratProof = proof::DratProof::fromBinary(buffer.str());
     // std::vector<Node> proofNodes = getProofNodes(dratProof);
 
     Node conflict;

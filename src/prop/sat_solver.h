@@ -119,6 +119,11 @@ public:
     Unimplemented() << "setDrat not implemented";
   }
 
+  virtual void closeProof()
+  {
+    Unimplemented() << "closeProof not implemented";
+  }
+
 };/* class SatSolver */
 
 
