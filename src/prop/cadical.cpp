@@ -163,6 +163,7 @@ SatValue CadicalSolver::solve(const std::vector<SatLiteral>& assumptions)
   SatValue res = toSatValue(d_solver->solve());
   d_inSatMode = (res == SAT_VALUE_TRUE);
   ++d_statistics.d_numSatCalls;
+  // d_solver->close_proof_trace();
   return res;
 }
 
@@ -181,6 +182,7 @@ void CadicalSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
       assumptions.push_back(lit);
     }
   }
+  d_solver->close_proof_trace();
 }
 
 void CadicalSolver::interrupt() { d_solver->terminate(); }
@@ -203,6 +205,18 @@ unsigned CadicalSolver::getAssertionLevel() const
 }
 
 bool CadicalSolver::ok() const { return d_inSatMode; }
+
+void CadicalSolver::setDrat(std::ostream& os)
+{
+  // std::ofstream file;
+  d_dratFile = fopen("temp-drat-file.drat", "w+");
+
+  // FILE* dratFile;
+  // std::cout << d_solver.get(d_solver.);
+  std::cout << d_solver->trace_proof(d_dratFile, "temp-drat-file.drat");
+  // d_solver->close_proof_trace();
+  // std::cout << d_solver->trace_proof("temp-drat-file");
+}
 
 CadicalSolver::Statistics::Statistics(StatisticsRegistry& registry,
                                       const std::string& prefix)

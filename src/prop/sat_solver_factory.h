@@ -37,10 +37,12 @@ class SatSolverFactory
 
   static SatSolver* createCryptoMinisat(StatisticsRegistry& registry,
                                         ResourceManager* resmgr,
+                                        std::ostream& drat_stream,
                                         const std::string& name = "");
 
   static SatSolver* createCadical(StatisticsRegistry& registry,
                                   ResourceManager* resmgr,
+                                  std::ostream& drat_stream,
                                   const std::string& name = "");
 
   static SatSolver* createKissat(StatisticsRegistry& registry,

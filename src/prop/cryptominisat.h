@@ -69,6 +69,7 @@ class CryptoMinisatSolver : public SatSolver
   SatValue modelValue(SatLiteral l) override;
 
   unsigned getAssertionLevel() const override;
+  void setDrat(std::ostream& os) override;
 
  private:
   class Statistics

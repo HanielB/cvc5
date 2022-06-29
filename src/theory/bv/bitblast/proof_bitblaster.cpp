@@ -192,6 +192,16 @@ bool BBProof::hasBBAtom(TNode atom) const { return d_bb->hasBBAtom(atom); }
 
 bool BBProof::hasBBTerm(TNode atom) const { return d_bb->hasBBTerm(atom); }
 
+void BBProof::computeRelevantTerms(std::set<Node>& termSet)
+{
+  return d_bb->computeRelevantTerms(termSet);
+}
+
+bool BBProof::isVariable(TNode node)
+{
+  return d_bb->isVariable(node);
+}
+
 Node BBProof::getStoredBBAtom(TNode node)
 {
   return d_bb->getStoredBBAtom(node);

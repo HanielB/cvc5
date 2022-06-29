@@ -22,6 +22,7 @@
 
 #include "context/cdqueue.h"
 #include "proof/eager_proof_generator.h"
+#include "proof/drat/drat_proof.h"
 #include "prop/cnf_stream.h"
 #include "prop/sat_solver.h"
 #include "smt/env_obj.h"
@@ -126,6 +127,14 @@ class BVSolverBitblast : public BVSolver
   std::unique_ptr<EagerProofGenerator> d_epg;
 
   BVProofRuleChecker d_bvProofChecker;
+  /** get the proof checker of this theory */
+  BVProofRuleChecker* getProofChecker();
+
+  std::ostringstream d_binaryDratProof{};
+
+  std::ostream& getDratOstream() { return d_binaryDratProof; }
+
+  std::vector<Node> getProofNodes(proof::DratProof dratProof);
 
   /** Stores the SatLiteral for a given fact. */
   context::CDHashMap<Node, prop::SatLiteral> d_factLiteralCache;

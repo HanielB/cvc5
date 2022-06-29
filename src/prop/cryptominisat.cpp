@@ -150,10 +150,26 @@ ClauseId CryptoMinisatSolver::addClause(SatClause& clause, bool removable){
   bool nowOkay = d_solver->add_clause(internal_clause);
 
   ClauseId freshId;
+  // if (true)
+  // {
+  //   freshId = ClauseId(d_nextId++);
+  //   // If this clause results in a conflict, then `nowOkay` may be false, but
+  //   // we still need to register this clause as used. Thus, we look at
+  //   // `d_okay` instead
+  //   if (d_bvp && d_okay)
+  //   {
+  //     d_bvp->registerUsedClause(freshId, clause);
+  //   }
+  // }
+  // else
+  // {
+  //   freshId = ClauseIdError;
+  // }
   freshId = ClauseIdError;
 
   d_okay &= nowOkay;
   return freshId;
+// d_okay &= nowOkay;
 }
 
 bool CryptoMinisatSolver::ok() const { return d_okay; }
@@ -232,6 +248,13 @@ SatValue CryptoMinisatSolver::modelValue(SatLiteral l) { return value(l); }
 unsigned CryptoMinisatSolver::getAssertionLevel() const {
   Unreachable() << "No interface to get assertion level in Cryptominisat";
   return -1;
+}
+
+void CryptoMinisatSolver::setDrat(std::ostream& os)
+{
+  d_solver->set_drat(&os, false);
+  // os << "test";
+  // std::cout << "drat set";
 }
 
 // Satistics for CryptoMinisatSolver

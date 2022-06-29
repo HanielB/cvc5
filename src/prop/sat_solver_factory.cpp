@@ -31,10 +31,12 @@ MinisatSatSolver* SatSolverFactory::createCDCLTMinisat(
 
 SatSolver* SatSolverFactory::createCryptoMinisat(StatisticsRegistry& registry,
                                                  ResourceManager* resmgr,
+                                                 std::ostream& drat_stream,
                                                  const std::string& name)
 {
 #ifdef CVC5_USE_CRYPTOMINISAT
   CryptoMinisatSolver* res = new CryptoMinisatSolver(registry, name);
+  res->setDrat(drat_stream);
   res->init();
   if (resmgr->limitOn())
   {
@@ -48,9 +50,11 @@ SatSolver* SatSolverFactory::createCryptoMinisat(StatisticsRegistry& registry,
 
 SatSolver* SatSolverFactory::createCadical(StatisticsRegistry& registry,
                                            ResourceManager* resmgr,
+                                           std::ostream& drat_stream,
                                            const std::string& name)
 {
   CadicalSolver* res = new CadicalSolver(registry, name);
+  res->setDrat(drat_stream);
   res->init();
   res->setResourceLimit(resmgr);
   return res;

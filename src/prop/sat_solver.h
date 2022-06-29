@@ -114,6 +114,11 @@ public:
     Unimplemented() << "getUnsatAssumptions not implemented";
   }
 
+  virtual void setDrat(std::ostream& os)
+  {
+    Unimplemented() << "setDrat not implemented";
+  }
+
 };/* class SatSolver */
 
 

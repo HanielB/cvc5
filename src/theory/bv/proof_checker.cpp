@@ -24,6 +24,7 @@ void BVProofRuleChecker::registerTo(ProofChecker* pc)
   pc->registerChecker(PfRule::BV_BITBLAST, this);
   pc->registerChecker(PfRule::BV_BITBLAST_STEP, this);
   pc->registerChecker(PfRule::BV_EAGER_ATOM, this);
+  // pc->registerChecker(PfRule::DRAT_REFUTATION, this);
 }
 
 Node BVProofRuleChecker::checkInternal(PfRule id,
