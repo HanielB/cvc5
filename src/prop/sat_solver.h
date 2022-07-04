@@ -119,9 +119,9 @@ public:
     Unimplemented() << "setDrat not implemented";
   }
 
-  virtual void closeProof()
+  virtual std::string getDrat()
   {
-    Unimplemented() << "closeProof not implemented";
+    Unimplemented() << "getDrat not implemented";
   }
 
 };/* class SatSolver */

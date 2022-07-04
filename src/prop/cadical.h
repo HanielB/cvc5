@@ -63,7 +63,8 @@ class CadicalSolver : public SatSolver
   bool ok() const override;
 
   void setDrat(std::ostream& os) override;
-  void closeProof() override;
+
+  std::string getDrat() override;
 
  private:
   /**

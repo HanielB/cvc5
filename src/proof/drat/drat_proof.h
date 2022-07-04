@@ -50,7 +50,7 @@ struct DratInstruction
   DratInstruction(DratInstructionKind kind, prop::SatLiteral literal);
 
   DratInstructionKind d_kind;
-  // prop::SatClause d_clause;
+  prop::SatClause d_clause;
   prop::SatLiteral d_literal;
 };
 
