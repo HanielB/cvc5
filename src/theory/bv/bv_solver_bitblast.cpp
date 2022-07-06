@@ -443,13 +443,15 @@ void BVSolverBitblast::initSatSolver()
           getDratOstream(),
           "theory::bv::BVSolverBitblast::"));
   }
-  d_cnfStream.reset(new prop::CnfStream(d_env,
-                                        d_satSolver.get(),
-                                        d_bbRegistrar.get(),
-                                        d_nullContext.get(),
-                                        prop::FormulaLitPolicy::INTERNAL,
-                                        "theory::bv::BVSolverBitblast"));
   if (d_env.isTheoryProofProducing())
+  bool proofs = d_env.isTheoryProofProducing();
+  d_cnfStream.reset(new prop::CnfStream(
+      d_env,
+      d_satSolver.get(),
+      d_bbRegistrar.get(),
+      d_nullContext.get(),
+      proofs ? prop::FormulaLitPolicy::TRACK : prop::FormulaLitPolicy::INTERNAL,
+      "theory::bv::BVSolverBitblast"));
   {
     d_pfCnfStream.reset(new prop::ProofCnfStream(d_env, *d_cnfStream, nullptr));
   }
