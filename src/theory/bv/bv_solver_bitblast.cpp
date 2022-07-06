@@ -443,7 +443,6 @@ void BVSolverBitblast::initSatSolver()
           getDratOstream(),
           "theory::bv::BVSolverBitblast::"));
   }
-  if (d_env.isTheoryProofProducing())
   bool proofs = d_env.isTheoryProofProducing();
   d_cnfStream.reset(new prop::CnfStream(
       d_env,
@@ -452,6 +451,7 @@ void BVSolverBitblast::initSatSolver()
       d_nullContext.get(),
       proofs ? prop::FormulaLitPolicy::TRACK : prop::FormulaLitPolicy::INTERNAL,
       "theory::bv::BVSolverBitblast"));
+  if (proofs)
   {
     d_pfCnfStream.reset(new prop::ProofCnfStream(d_env, *d_cnfStream, nullptr));
   }
