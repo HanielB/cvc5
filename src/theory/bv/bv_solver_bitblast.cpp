@@ -173,7 +173,14 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
       {
         d_bitblaster->bbAtom(fact);
         Node bb_fact = d_bitblaster->getStoredBBAtom(fact);
-        d_cnfStream->convertAndAssert(bb_fact, false, false);
+        if (d_pfCnfStream)
+        {
+          d_pfCnfStream->convertAndAssert(bb_fact, false, false, nullptr);
+        }
+        else
+        {
+          d_cnfStream->convertAndAssert(bb_fact, false, false);
+        }
       }
     }
     d_assertions.push_back(fact);
@@ -191,14 +198,29 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
       if (fact.getKind() == kind::BITVECTOR_EAGER_ATOM)
       {
         handleEagerAtom(fact, false);
-        lit = d_cnfStream->getLiteral(fact[0]);
+        if (d_pfCnfStream)
+        {
+          lit = d_pfCnfStream->getLiteral(fact[0]);
+        }
+        else
+        {
+          lit = d_cnfStream->getLiteral(fact[0]);
+        }
       }
       else
       {
         d_bitblaster->bbAtom(fact);
         Node bb_fact = d_bitblaster->getStoredBBAtom(fact);
-        d_cnfStream->ensureLiteral(bb_fact);
-        lit = d_cnfStream->getLiteral(bb_fact);
+        if (d_pfCnfStream)
+        {
+          d_pfCnfStream->ensureLiteral(bb_fact);
+          lit = d_pfCnfStream->getLiteral(bb_fact);
+        }
+        else
+        {
+          d_cnfStream->ensureLiteral(bb_fact);
+          lit = d_cnfStream->getLiteral(bb_fact);
+        }
       }
       d_factLiteralCache[fact] = lit;
       d_literalFactCache[lit] = fact;
@@ -307,11 +329,19 @@ bool BVSolverBitblast::collectModelValues(TheoryModel* m,
   {
     NodeManager* nm = NodeManager::currentNM();
     std::vector<TNode> vars;
-    d_cnfStream->getBooleanVariables(vars);
+    if (d_pfCnfStream)
+    {
+      d_pfCnfStream->getBooleanVariables(vars);
+    }
+    else
+    {
+      d_cnfStream->getBooleanVariables(vars);
+    }
     for (TNode var : vars)
     {
-      Assert(d_cnfStream->hasLiteral(var));
-      prop::SatLiteral bit = d_cnfStream->getLiteral(var);
+      Assert(d_pfCnfStream || d_cnfStream->hasLiteral(var));
+      prop::SatLiteral bit = d_pfCnfStream ? d_pfCnfStream->getLiteral(var)
+                                           : d_cnfStream->getLiteral(var);
       prop::SatValue value = d_satSolver->value(bit);
       Assert(value != prop::SAT_VALUE_UNKNOWN);
       if (!m->assertEquality(
@@ -347,6 +377,10 @@ void BVSolverBitblast::initSatSolver()
                                         d_nullContext.get(),
                                         prop::FormulaLitPolicy::INTERNAL,
                                         "theory::bv::BVSolverBitblast"));
+  if (d_env.isTheoryProofProducing())
+  {
+    d_pfCnfStream.reset(new prop::ProofCnfStream(d_env, *d_cnfStream, nullptr));
+  }
 }
 
 Node BVSolverBitblast::getValue(TNode node, bool initialize)
@@ -366,9 +400,13 @@ Node BVSolverBitblast::getValue(TNode node, bool initialize)
   Integer value(0), one(1), zero(0), bit;
   for (size_t i = 0, size = bits.size(), j = size - 1; i < size; ++i, --j)
   {
-    if (d_cnfStream->hasLiteral(bits[j]))
+    prop::SatLiteral lit = (d_pfCnfStream && d_pfCnfStream->hasLiteral(bits[j]))
+                               ? d_pfCnfStream->getLiteral(bits[j])
+                               : (d_cnfStream->hasLiteral(bits[j])
+                                      ? d_cnfStream->getLiteral(bits[j])
+                                      : prop::undefSatVariable);
+    if (lit != prop::undefSatVariable)
     {
-      prop::SatLiteral lit = d_cnfStream->getLiteral(bits[j]);
       prop::SatValue val = d_satSolver->modelValue(lit);
       bit = val == prop::SatValue::SAT_VALUE_TRUE ? one : zero;
     }
@@ -388,11 +426,25 @@ void BVSolverBitblast::handleEagerAtom(TNode fact, bool assertFact)
 
   if (assertFact)
   {
-    d_cnfStream->convertAndAssert(fact[0], false, false);
+    if (d_pfCnfStream)
+    {
+      d_pfCnfStream->convertAndAssert(fact[0], false, false, nullptr);
+    }
+    else
+    {
+      d_cnfStream->convertAndAssert(fact[0], false, false);
+    }
   }
   else
   {
-    d_cnfStream->ensureLiteral(fact[0]);
+    if (d_pfCnfStream)
+    {
+      d_pfCnfStream->ensureLiteral(fact[0]);
+    }
+    else
+    {
+      d_cnfStream->ensureLiteral(fact[0]);
+    }
   }
 
   /* convertAndAssert() does not make the connection between the bit-vector
@@ -402,7 +454,15 @@ void BVSolverBitblast::handleEagerAtom(TNode fact, bool assertFact)
   for (auto atom : registeredAtoms)
   {
     Node bb_atom = d_bitblaster->getStoredBBAtom(atom);
-    d_cnfStream->convertAndAssert(atom.eqNode(bb_atom), false, false);
+    if (d_pfCnfStream)
+    {
+      d_pfCnfStream->convertAndAssert(
+          atom.eqNode(bb_atom), false, false, nullptr);
+    }
+    else
+    {
+      d_cnfStream->convertAndAssert(atom.eqNode(bb_atom), false, false);
+    }
   }
   // Clear cache since we only need to do this once per bit-blasted atom.
   registeredAtoms.clear();

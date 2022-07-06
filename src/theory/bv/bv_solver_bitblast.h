@@ -101,6 +101,8 @@ class BVSolverBitblast : public BVSolver
   std::unique_ptr<prop::SatSolver> d_satSolver;
   /** CNF stream. */
   std::unique_ptr<prop::CnfStream> d_cnfStream;
+  /** Proof-producing CNF converter */
+  std::unique_ptr<prop::ProofCnfStream> d_pfCnfStream;
 
   /**
    * Bit-blast queue for facts sent to this solver.
