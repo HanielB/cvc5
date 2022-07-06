@@ -258,8 +258,7 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
       conflict = nm->mkAnd(assertions);
     }
 
-    // if (options().bv.bvSatSolver == options::SatSolverMode::CADICAL && options().smt.produceProofs)
-    if (options().bv.bvSatSolver == options::SatSolverMode::CADICAL)
+    if (options().bv.bvSatSolver == options::SatSolverMode::CADICAL && options().smt.produceProofs)
     {
       d_dratProof << d_satSolver->getDrat();
     }
