@@ -130,9 +130,9 @@ class BVSolverBitblast : public BVSolver
   /** get the proof checker of this theory */
   BVProofRuleChecker* getProofChecker();
 
-  std::ostringstream d_binaryDratProof{};
+  std::ostringstream d_dratProof{};
 
-  std::ostream& getDratOstream() { return d_binaryDratProof; }
+  std::ostream& getDratOstream() { return d_dratProof; }
 
   std::vector<Node> getProofNodes(proof::DratProof dratProof);
 

@@ -181,7 +181,6 @@ void CadicalSolver::getUnsatAssumptions(std::vector<SatLiteral>& assumptions)
       assumptions.push_back(lit);
     }
   }
-  d_solver->close_proof_trace();
 }
 
 void CadicalSolver::interrupt() { d_solver->terminate(); }
@@ -214,11 +213,10 @@ void CadicalSolver::setDrat(std::ostream& os)
 
 std::string CadicalSolver::getDrat() {
   fclose(d_dratFile);
-  // taking file as inputstream
+  d_solver->close_proof_trace();
   std::ifstream dratFile("temp-drat-file.drat", std::ios::binary);
   std::ostringstream dratFileStringStream;
-  dratFileStringStream << dratFile.rdbuf(); // reading data
-  std::cout << "drat stream:\n" << dratFileStringStream.str() << "\n";
+  dratFileStringStream << dratFile.rdbuf();
   return dratFileStringStream.str();
 }
 

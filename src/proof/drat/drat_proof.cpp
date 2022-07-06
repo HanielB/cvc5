@@ -44,9 +44,6 @@ prop::SatLiteral parse_binary_literal(std::string::const_iterator& start,
   {
     // Check whether shift is so large that we're going to lose some
     // information
-    std::cout << "\nshift " << shift << ".";
-    std::cout << "\nstart " << *start << ".";
-    std::cout << "\nproof_end " << *proof_end << ".";
     if (shift + 7 >= 64)
     {
       throw InvalidDratProofException(
@@ -124,16 +121,13 @@ void outputLiteralAsDimacs(std::ostream& os, prop::SatLiteral l)
     os << '-';
   }
   // add 1 to  convert between internal literals and their DIMACS
-  // representaations.
+  // representations.
   os << l.getSatVariable() + 1;
 }
 
 // DratInstruction implementation
-
-DratInstruction::DratInstruction(DratInstructionKind kind, prop::SatLiteral literal)
-    : d_kind(kind), d_literal(literal)
-// DratInstruction::DratInstruction(DratInstructionKind kind, prop::SatClause clause)
-//     : d_kind(kind), d_clause(clause)
+DratInstruction::DratInstruction(DratInstructionKind kind, prop::SatClause clause)
+    : d_kind(kind), d_clause(clause)
 {
   // All intialized
 }
@@ -149,26 +143,23 @@ DratProof DratProof::fromBinary(const std::string& s)
   DratProof dratProof;
 
   // For each instruction
-  std::cout << s;
   for (auto i = s.cbegin(), end = s.cend(); i != end;)
   {
-    std::cout << "\n begin: " << *i << " " << std::bitset<8>(*i);
-    std::cout << "\n empty: " << std::bitset<8>(' ') << ".";
     switch (*i)
     {
       case 'd':
       {
         ++i;
-        // dratProof.d_instructions.emplace_back(DELETION,
-        //                                   parse_binary_clause(i, end));
+        dratProof.d_instructions.emplace_back(DELETION,
+                                              parse_binary_clause(i, end));
         break;
       }
       case 'a':
       case ' ':
       {
         ++i;
-        // dratProof.d_instructions.emplace_back(ADDITION,
-        //                                   parse_binary_clause(i, end));
+        dratProof.d_instructions.emplace_back(ADDITION,
+                                              parse_binary_clause(i, end));
         break;
       }
       default:
@@ -206,15 +197,14 @@ std::vector<std::string> splitString(std::string s, std::string splitter) {
     return lines;
 }
 
-void insertSatLiteral(std::vector<DratInstruction>* instructions, DratInstructionKind kind,
-                      const std::vector<std::string> columns, int literalIndex) {
-  int literal = stoi(columns[literalIndex]);
+void insertSatLiteralIntoClause(prop::SatClause* clause, std::string dratLiteral) {
+  int literal = stoi(dratLiteral);
   bool negated = literal < 0;
   if (literal < 0)
   {
     literal *= -1;
   }
-  instructions->emplace_back(kind, prop::SatLiteral((uint64_t)literal, negated));
+  clause->emplace_back(prop::SatLiteral((uint64_t)literal, negated));
 }
 
 // See the "binary format" section of
@@ -234,27 +224,26 @@ DratProof DratProof::fromPlain(const std::string& s)
     // last line, false derivation
     if (line == lines[lines.size()-1] && columns.size() == 1 && columns[0] == "0")
     {
-      dratProof.d_instructions.emplace_back(ADDITION, prop::SatLiteral(0));
+      dratProof.d_instructions.emplace_back(ADDITION, prop::SatClause({prop::SatLiteral(0)}));
       break;
     }
-    // derived literal
-    int literalIndex = -1;
     DratInstructionKind kind = ADDITION;
-    if (columns.size() >= 2)
-    {
-      // last but one column is the literal, last column is 0
-      literalIndex = columns.size() - 2;
-    }
-    // deleted literal
+    int columnsStart = 0;
     if (columns[0] == "d")
     {
       // last but one column is the literal, last column is 0
       kind = DELETION;
+      columnsStart = 1;
     }
-    Trace("drat") << "Line " << lineC << " has litIndex " << literalIndex << "\n";
-    if (literalIndex != -1)
+    prop::SatClause currentClause;
+    // last column is 0
+    for (std::size_t i = columnsStart; i < columns.size() - 1; i++)
     {
-      insertSatLiteral(&dratProof.d_instructions, kind, columns, literalIndex);
+      insertSatLiteralIntoClause(&currentClause, columns[i]);
+    }
+    if (currentClause.size() > 0)
+    {
+      dratProof.d_instructions.emplace_back(kind, currentClause);
       continue;
     }
     std::ostringstream errmsg;
