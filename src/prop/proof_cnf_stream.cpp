@@ -732,8 +732,6 @@ void ProofCnfStream::getBooleanVariables(
   d_cnfStream.getBooleanVariables(outputVariables);
 }
 
-
-
 SatLiteral ProofCnfStream::toCNF(TNode node, bool negated)
 {
   Trace("cnf") << "toCNF(" << node
