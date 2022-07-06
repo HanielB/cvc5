@@ -65,6 +65,8 @@ class TBitblaster
   // sat solver used for bitblasting and associated CnfStream
   std::unique_ptr<context::Context> d_nullContext;
   std::unique_ptr<prop::CnfStream> d_cnfStream;
+  /** Proof-producing CNF converter */
+  std::unique_ptr<prop::ProofCnfStream> d_pfCnfStream;
 
   void initAtomBBStrategies();
   void initTermBBStrategies();
@@ -169,7 +171,8 @@ TBitblaster<T>::TBitblaster()
     : d_termCache(),
       d_modelCache(),
       d_nullContext(new context::Context()),
-      d_cnfStream()
+      d_cnfStream(),
+      d_pfCnfStream(nullptr)
 {
   initAtomBBStrategies();
   initTermBBStrategies();
