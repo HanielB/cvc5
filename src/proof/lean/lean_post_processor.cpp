@@ -609,7 +609,8 @@ bool LeanProofPostprocessCallback::update(Node res,
         // the congruence operator
         if (args.size() == 1 && res[0].getKind() == kind::EQUAL)
         {
-          if (res[0][0].getType().isBoolean())
+          // if (res[0][0].getType().isBoolean())
+          if (false)
           {
             opConverted = d_lnc.mkInternalSymbol("Iff");
           }

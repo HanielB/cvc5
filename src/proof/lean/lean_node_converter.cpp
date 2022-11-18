@@ -342,8 +342,9 @@ Node LeanNodeConverter::convert(Node n)
         // which must be represented as Iff
         case kind::EQUAL:
         {
-          resChildren.push_back(mkInternalSymbol(
-              cur[0].getType().isBoolean() ? "Iff" : s_kindToString[k]));
+          // resChildren.push_back(mkInternalSymbol(
+          //     cur[0].getType().isBoolean() ? "Iff" : s_kindToString[k]));
+          resChildren.push_back(mkInternalSymbol(s_kindToString[k]));
           resChildren.push_back(children[0]);
           resChildren.push_back(children[1]);
           res = nm->mkNode(kind::SEXPR, resChildren);
