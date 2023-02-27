@@ -569,6 +569,10 @@ class SatProofManager : protected EnvObj
   /** The proof generator for resolution chains */
   BufferedProofGenerator d_resChainPg;
 
+  // Learned clauses, their level, wether unit
+  context::CDHashMap<Node, std::pair<int, bool>> d_clauseDb;
+  context::CDHashMap<Node, bool> d_assumptionsDb;
+
   /** The true/false nodes */
   Node d_true;
   Node d_false;

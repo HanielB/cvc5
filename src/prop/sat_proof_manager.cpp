@@ -38,6 +38,8 @@ SatProofManager::SatProofManager(Env& env,
       // post-processing). Symmetry we can disable because there is no equality
       // reasoning performed here
       d_resChainPg(d_env, userContext(), true, false),
+      d_clauseDb(userContext()),
+      d_assumptionsDb(userContext()),
       d_assumptions(userContext()),
       d_conflictLit(undefSatVariable),
       d_optResLevels(userContext()),
@@ -137,7 +139,19 @@ void SatProofManager::endResChain(Minisat::Lit lit)
                      << userContext()->getLevel() << "\n";
   Trace("sat-proof") << "SatProofManager::endResChain: chain_res for "
                      << satLit;
-  endResChain(d_cnfStream->getNode(satLit), {satLit});
+  Node conclusion = d_cnfStream->getNode(satLit);
+  if (d_resChains.hasGenerator(conclusion))
+  {
+    Trace("sat-proof")
+        << "SatProofManager::endResChain: skip repeated proof of " << conclusion
+        << "\n";
+    // clearing
+    d_resLinks.clear();
+    d_redundantLits.clear();
+    return;
+  }
+  // save to database
+  endResChain(conclusion, {satLit});
 }
 
 void SatProofManager::endResChain(const Minisat::Clause& clause)
@@ -791,6 +805,8 @@ void SatProofManager::registerSatLitAssumption(Minisat::Lit lit)
                      << "\n";
   d_assumptions.insert(
       d_cnfStream->getNode(MinisatSatSolver::toSatLiteral(lit)));
+  d_assumptionsDb[d_cnfStream->getNode(MinisatSatSolver::toSatLiteral(lit))] =
+      true;
 }
 
 void SatProofManager::registerSatAssumptions(const std::vector<Node>& assumps)
