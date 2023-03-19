@@ -504,9 +504,9 @@ bool EqualityEngine::assertEquality(TNode eq,
     // If two terms are already equal, don't assert anything
     if (hasTerm(eq[0]) && hasTerm(eq[1]) && areEqual(eq[0], eq[1])) {
       if (options().uf.ufKeepRedundant) {
-        std::cout << "redundant equality added: " << eq << std::endl;
+        Trace("test") << "redundant equality added: " << eq << std::endl;
       } else {
-        std::cout << "redundant equality ignored: " << eq << std::endl;
+        Trace("test") << "redundant equality ignored: " << eq << std::endl;
         return false;
       }
     }
@@ -1925,11 +1925,19 @@ void EqualityEngine::propagate() {
     EqualityNodeId t1classId = getEqualityNode(current.d_t1Id).getFind();
     EqualityNodeId t2classId = getEqualityNode(current.d_t2Id).getFind();
 
-    // If already the same, we're done
+    // If already the same, we're done, unless we are keeping redundant
+    // equalities. Note that we de not keep redundant equalities between
+    // constants, since that would break assumptions below (namely that when
+    // propagating constant merging they are different and therefore we are in
+    // conflict)
     if (t1classId == t2classId) {
-      if (!options().uf.ufKeepRedundant) {
+      if (!options().uf.ufKeepRedundant || (d_isConstant[t1classId] && d_isConstant[t2classId])) {
+        Trace("test") << "..ignoring redundant propagated equality <"
+                      << t1classId << ", " << t2classId << ">\n";
         continue;
       }
+      Trace("test") << "..keep redundant propagated equality <" << t1classId
+                    << ", " << t2classId << ">\n";
     }
 
     Trace("equality::internal") << d_name << "::eq::propagate(): t1: " << (d_isInternal[t1classId] ? "internal" : "proper") << std::endl;
