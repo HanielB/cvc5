@@ -58,6 +58,7 @@ std::unordered_map<Kind, std::string> s_kindToString = {
     {kind::ADD, "HAdd.hAdd"},
     {kind::SUB, "HSub.hSub"},
     {kind::MULT, "HMul.hMul"},
+    {kind::NONLINEAR_MULT, "HMul.hMul"},
     {kind::DIVISION, "HDiv.hDiv"},
     {kind::INTS_DIVISION, "HDiv.hDiv"},
     {kind::INTS_DIVISION_TOTAL, "HDiv.hDiv"},
@@ -372,6 +373,7 @@ Node LeanNodeConverter::convert(Node n)
         }
         // n-ary arith kinds
         case kind::ADD:
+        case kind::NONLINEAR_MULT:
         case kind::MULT:
         {
           TypeNode retType = cur.getType();
@@ -563,7 +565,6 @@ Node LeanNodeConverter::convert(Node n)
         case kind::BITVECTOR_ULE:
         case kind::SELECT:
         case kind::XOR:
-        case kind::NONLINEAR_MULT:
         {
           Unreachable() << "Kind " << k << " is not supported\n";
           resChildren.push_back(mkInternalSymbol(s_kindToString[k]));
@@ -718,6 +719,7 @@ Node LeanNodeConverter::mkPrintableOp(Kind k)
     {
       return mkInternalSymbol("HSub.hSub");
     }
+    case kind::NONLINEAR_MULT:
     case kind::MULT:
     {
       return mkInternalSymbol("HMul.hMul");
