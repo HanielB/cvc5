@@ -122,8 +122,9 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(bool connectCnf)
     return it->second;
   }
   // retrieve the SAT solver's refutation proof
-  Trace("sat-proof")
-      << "PropPfManager::getProof: Getting resolution proof of false\n";
+  Trace("sat-proof") << "PropPfManager::getProof: Getting resolution proof of "
+                        "false. connectCnf: "
+                     << connectCnf << "\n";
   std::shared_ptr<ProofNode> conflictProof = d_satSolver->getProof();
   Assert(conflictProof);
   if (TraceIsOn("sat-proof"))
@@ -131,21 +132,20 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(bool connectCnf)
     std::vector<Node> fassumps;
     expr::getFreeAssumptions(conflictProof.get(), fassumps);
     Trace("sat-proof")
-        << "PropPfManager::getProof: initial free assumptions are:\n";
+        << "PropPfManager::getProof: SAT proof free assumptions are:\n";
     for (const Node& a : fassumps)
     {
       Trace("sat-proof") << "- " << a << "\n";
     }
     Trace("sat-proof-debug")
         << "PropPfManager::getProof: proof is " << *conflictProof.get() << "\n";
-    Trace("sat-proof")
-        << "PropPfManager::getProof: Connecting with CNF proof\n";
   }
   if (!connectCnf)
   {
     d_propProofs[connectCnf] = conflictProof;
     return conflictProof;
   }
+  Trace("sat-proof") << "PropPfManager::getProof: Connecting with CNF proof\n";
   // connect it with CNF proof
   d_pfpp->process(conflictProof);
   if (TraceIsOn("sat-proof"))

@@ -729,8 +729,10 @@ void PropEngine::getUnsatCore(std::vector<Node>& core)
   else
   {
     Trace("unsat-core") << "PropEngine::getUnsatCore: via proof" << std::endl;
-    // otherwise, it is just the free assumptions of the proof
-    std::shared_ptr<ProofNode> pfn = getProof();
+    // otherwise, it is just the free assumptions of the proof. Note that we do
+    // not need to connect the SAT proof to the theory proof, so we pass `false`
+    // as an argument to `getProof`.
+    std::shared_ptr<ProofNode> pfn = getProof(false);
     expr::getFreeAssumptions(pfn.get(), core);
   }
 }
@@ -738,6 +740,8 @@ void PropEngine::getUnsatCore(std::vector<Node>& core)
 std::vector<Node> PropEngine::getUnsatCoreLemmas()
 {
   Assert(d_env.isSatProofProducing());
+  Trace("unsat-core") << "PropEngine::getUnsatCoreLemmas: get unsat core "
+                         "lemmas from proof manager\n";
   return d_ppm->getUnsatCoreLemmas();
 }
 

@@ -1343,8 +1343,8 @@ UnsatCore SolverEngine::getUnsatCoreInternal()
   std::shared_ptr<ProofNode> pepf = cdp.getProofFor(fnode);
 
   Assert(pepf != nullptr);
-  std::shared_ptr<ProofNode> pfn =
-      d_pfManager->connectProofToAssertions(pepf, *d_smtSolver.get());
+  std::shared_ptr<ProofNode> pfn = d_pfManager->connectProofToAssertions(
+      pepf, *d_smtSolver.get(), ProofScopeMode::UNIFIED_AND_LEMMAS);
   std::vector<Node> core;
   d_ucManager->getUnsatCore(pfn, d_smtSolver->getAssertions(), core);
   if (options().smt.minimalUnsatCores)
@@ -1499,11 +1499,13 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
 {
   Trace("smt") << "SMT getUnsatCoreLemmas()" << std::endl;
   finishInit();
-  if (!d_env->getOptions().smt.produceUnsatCores)
+  if (!d_env->getOptions().smt.produceUnsatCores
+      || d_env->getOptions().smt.unsatCoresMode
+             != options::UnsatCoresMode::SAT_PROOF)
   {
     throw ModalException(
         "Cannot get lemmas used to derive unsat when produce-unsat-cores is "
-        "off.");
+        "off or the unsat cores mode is not via proofs.");
   }
   if (d_state->getMode() != SmtMode::UNSAT)
   {

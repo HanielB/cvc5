@@ -48,6 +48,9 @@ enum class ProofScopeMode
   NONE,
   /** Proof closed by a unified scope introducing definitions and assertions. */
   UNIFIED,
+  /** Proof closed by a unified scope introducing definitions and assertions as
+   * well as arbitrary lemmas (typically theory lemmas). */
+  UNIFIED_AND_LEMMAS,
   /** Proof closed by 2 nested scopes introducing definitions and assertions. */
   DEFINITIONS_AND_ASSERTIONS,
 };

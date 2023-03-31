@@ -174,14 +174,18 @@ std::shared_ptr<ProofNode> PfManager::connectProofToAssertions(
     // Now make the final scope(s), which ensure(s) that the only open leaves
     // of the proof are the assertions (and definitions). If we are pruning
     // the input, we will try to minimize the used assertions (and definitions).
+    //
+    // If the mode allows arbitrary lemmas as well then we do not require the
+    // scope to be closed.
     case ProofScopeMode::UNIFIED:
+    case ProofScopeMode::UNIFIED_AND_LEMMAS:
     {
       Trace("smt-proof") << "SolverEngine::connectProofToAssertions(): make "
                             "unified scope...\n";
       std::vector<Node> assertions;
       getAssertions(as, assertions);
       return d_pnm->mkScope(
-          pfn, assertions, true, options().proof.proofPruneInput);
+          pfn, assertions, scopeMode == ProofScopeMode::UNIFIED, options().proof.proofPruneInput);
     }
     case ProofScopeMode::DEFINITIONS_AND_ASSERTIONS:
     {
