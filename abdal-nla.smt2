@@ -1,0 +1,8 @@
+(declare-const x Real)
+(declare-const y Real)
+(declare-const B Real)
+(declare-const A Real)
+(declare-const u Real)
+(declare-const v Real)
+(assert (not (=> (= (< 0 A) true) (=> (= (< 1 A) false) (=> (= (< B 1) false) (=> (= (< B x) false) (=> (= (< B y) false) (=> (= (< u 0) false) (=> (= (< v 0) false) (=> (= (< u A) true) (=> (= (< v A) true) (= (< (+ (+ (* u y) (* v x)) (* u v)) (* (* 3 A) B)) true))))))))))))
+(check-sat)

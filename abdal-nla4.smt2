@@ -1,0 +1,5 @@
+(declare-const B Real)
+(declare-const A Real)
+(assert (= (< 0 (* A B)) true))
+(assert (not (= (< 0 (* (* 8 A) B)) true)))
+(check-sat)

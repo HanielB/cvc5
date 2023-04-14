@@ -1,0 +1,8 @@
+(declare-const u Real)
+(declare-const t Real)
+(declare-const r Real)
+(declare-const v Real)
+(declare-const s Real)
+(assert (= (< 0 (* u (+ (+ (* t v) (* t r)) s))) true))
+(assert (not (= (< 0 (* (* (+ (* t (+ r v)) s) 3) u)) true)))
+(check-sat)

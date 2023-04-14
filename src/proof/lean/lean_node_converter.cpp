@@ -375,6 +375,7 @@ Node LeanNodeConverter::convert(Node n)
         case kind::ADD:
         case kind::NONLINEAR_MULT:
         case kind::MULT:
+        case kind::NONLINEAR_MULT:
         {
           TypeNode retType = cur.getType();
           size_t i = 1, size = cur.getNumChildren();
