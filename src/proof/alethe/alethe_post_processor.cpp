@@ -53,11 +53,15 @@ std::unordered_map<Kind, AletheRule> s_bvKindToAletheRule = {
 };
 
 AletheProofPostprocessCallback::AletheProofPostprocessCallback(
-    Env& env, AletheNodeConverter& anc, bool resPivots)
-    : EnvObj(env), d_anc(anc), d_resPivots(resPivots)
+    Env& env,
+    AletheNodeConverter& anc,
+    rewriter::RewriteDb* rdb,
+    bool resPivots)
+    : EnvObj(env), d_anc(anc), d_rdb(rdb), d_resPivots(resPivots)
 {
   NodeManager* nm = NodeManager::currentNM();
   d_cl = nm->mkBoundVar("cl", nm->sExprType());
+  d_defineRule = nm->mkBoundVar("define-rule", nm->sExprType());
   d_true = nm->mkConst(true);
   d_false = nm->mkConst(false);
 }
@@ -423,11 +427,39 @@ bool AletheProofPostprocessCallback::update(Node res,
           }
         }
       }
+      const rewriter::RewriteProofRule& rpr = d_rdb->getRule(di);
+      const std::vector<Node>& varList = rpr.getVarList();
+      const std::vector<Node>& uvarList = rpr.getUserVarList();
+      const std::vector<Node>& conds = rpr.getConditions();
+      Node conc = rpr.getConclusion();
+      Trace("test") << "DSL instance: " << res << ", args: " << new_args << "\n";
+      Trace("test") << "DSL rule " << rule << ": " << varList << ", "
+                    << uvarList << ", " << conds << ", " << conc << "\n";
+      conc = conds.empty() ? conc
+                           : nm->mkNode(kind::IMPLIES, nm->mkAnd(conds), conc);
+      Node ruleDef = nm->mkNode(kind::SEXPR,
+                                {d_defineRule,
+                                 rule,
+                                 nm->mkNode(kind::BOUND_VAR_LIST, varList),
+                                 conc});
+
+      d_rareRulesUsed.insert(ruleDef);
+      Trace("test") << ".. rule def: " << ruleDef << "\n\n";
+
       return addAletheStep(AletheRule::ALL_SIMPLIFY,
                            res,
                            nm->mkNode(kind::SEXPR, d_cl, res),
                            children,
                            new_args,
+                           *cdp);
+    }
+    case PfRule::ARITH_POLY_NORM:
+    {
+      return addAletheStep(AletheRule::ALL_SIMPLIFY,
+                           res,
+                           nm->mkNode(kind::SEXPR, d_cl, res),
+                           children,
+                           {nm->mkBoundVar("arith-poly-norm", nm->sExprType())},
                            *cdp);
     }
     case PfRule::EVALUATE:
@@ -2437,8 +2469,9 @@ bool AletheProofPostprocessCallback::addAletheStepFromOr(
 
 AletheProofPostprocess::AletheProofPostprocess(Env& env,
                                                AletheNodeConverter& anc,
+                                               rewriter::RewriteDb* rdb,
                                                bool resPivots)
-    : EnvObj(env), d_cb(env, anc, resPivots)
+    : EnvObj(env), d_cb(env, anc, rdb, resPivots)
 {
 }
 
