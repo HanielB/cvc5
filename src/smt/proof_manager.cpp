@@ -250,7 +250,7 @@ void PfManager::printProof(std::ostream& out,
   {
     proof::AletheNodeConverter anc;
     proof::AletheProofPostprocess vpfpp(
-        d_env, anc, options().proof.proofAletheResPivots);
+        d_env, anc, d_rewriteDb.get(), options().proof.proofAletheResPivots);
     vpfpp.process(fp);
     proof::AletheProofPrinter vpp(d_env);
     vpp.print(out, fp);

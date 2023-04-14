@@ -19,6 +19,7 @@
 #include "proof/alethe/alethe_node_converter.h"
 #include "proof/alethe/alethe_proof_rule.h"
 #include "proof/proof_node_updater.h"
+#include "rewriter/rewrite_db.h"
 
 namespace cvc5::internal {
 
@@ -34,6 +35,7 @@ class AletheProofPostprocessCallback : protected EnvObj,
  public:
   AletheProofPostprocessCallback(Env& env,
                                  AletheNodeConverter& anc,
+                                 rewriter::RewriteDb* rdb,
                                  bool resPivots);
   ~AletheProofPostprocessCallback() {}
   /** Should proof pn be updated? Only if its top-level proof rule is not an
@@ -91,6 +93,9 @@ class AletheProofPostprocessCallback : protected EnvObj,
  private:
   /** The Alethe node converter */
   AletheNodeConverter& d_anc;
+
+  rewriter::RewriteDb* d_rdb;
+
   /** Whether to keep the pivots in the alguments of the resolution rule */
   bool d_resPivots;
   /** The cl operator
@@ -99,6 +104,8 @@ class AletheProofPostprocessCallback : protected EnvObj,
    *of more than one argument it corresponds to or otherwise it is the identity.
    **/
   Node d_cl;
+  /** A marker for RARE rewite rule "assumptions" */
+  Node d_defineRule;
   /**
    * This method adds a new ALETHE_RULE step to the proof, with `rule` as the
    * first argument, the original conclusion `res` as the second and
@@ -151,6 +158,9 @@ class AletheProofPostprocessCallback : protected EnvObj,
   /** Nodes corresponding to the Boolean values. */
   Node d_true;
   Node d_false;
+
+
+  std::unordered_set<Node> d_rareRulesUsed;
 };
 
 /**
@@ -160,7 +170,10 @@ class AletheProofPostprocessCallback : protected EnvObj,
 class AletheProofPostprocess : protected EnvObj
 {
  public:
-  AletheProofPostprocess(Env& env, AletheNodeConverter& anc, bool resPivots);
+  AletheProofPostprocess(Env& env,
+                         AletheNodeConverter& anc,
+                         rewriter::RewriteDb* rdb,
+                         bool resPivots);
   ~AletheProofPostprocess();
   /** post-process */
   void process(std::shared_ptr<ProofNode> pf);
