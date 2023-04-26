@@ -106,6 +106,8 @@ class AletheProofPostprocessCallback : protected EnvObj,
   Node d_cl;
   /** A marker for RARE rewite rule "assumptions" */
   Node d_defineRule;
+  Node d_defineRuleVars;
+  Node d_defineRuleConclusion;
   /**
    * This method adds a new ALETHE_RULE step to the proof, with `rule` as the
    * first argument, the original conclusion `res` as the second and

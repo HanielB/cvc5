@@ -61,7 +61,9 @@ AletheProofPostprocessCallback::AletheProofPostprocessCallback(
 {
   NodeManager* nm = NodeManager::currentNM();
   d_cl = nm->mkBoundVar("cl", nm->sExprType());
-  d_defineRule = nm->mkBoundVar("define-rule", nm->sExprType());
+  d_defineRule = nm->mkRawSymbol("define :rule", nm->sExprType());
+  d_defineRuleVars = nm->mkRawSymbol(":vars", nm->sExprType());
+  d_defineRuleConclusion = nm->mkRawSymbol(":conclusion", nm->sExprType());
   d_true = nm->mkConst(true);
   d_false = nm->mkConst(false);
 }
@@ -435,12 +437,37 @@ bool AletheProofPostprocessCallback::update(Node res,
       Trace("test") << "DSL instance: " << res << ", args: " << new_args << "\n";
       Trace("test") << "DSL rule " << rule << ": " << varList << ", "
                     << uvarList << ", " << conds << ", " << conc << "\n";
+      std::vector<Node> vars;
+      for (size_t i = 0, size = varList.size(); i < size; ++i)
+      {
+        Node var = varList[i];
+        TypeNode tn = var.getType();
+        if (expr::isListVar(var))
+        {
+          // create a new variable with the same name as var but with an
+          // attribute :list
+          std::stringstream varName;
+          varName << "(! " << var << " :list)";
+          var = nm->mkRawSymbol(varName.str(), var.getType());
+        }
+        vars.push_back(var);
+        if (tn.isAbstract())
+        {
+          Trace("test") << "var " << i << " has abstract type. Arg " << i + 1
+                        << " has type " << args[i + 1].getType() << "\n";
+          std::stringstream varName;
+          varName << var;
+          vars[i] = nm->mkRawSymbol(varName.str(), args[i + 1].getType());
+        }
+      }
       conc = conds.empty() ? conc
                            : nm->mkNode(kind::IMPLIES, nm->mkAnd(conds), conc);
       Node ruleDef = nm->mkNode(kind::SEXPR,
                                 {d_defineRule,
                                  rule,
-                                 nm->mkNode(kind::BOUND_VAR_LIST, varList),
+                                 d_defineRuleVars,
+                                 nm->mkNode(kind::BOUND_VAR_LIST, vars),
+                                 d_defineRuleConclusion,
                                  conc});
 
       d_rareRulesUsed.insert(ruleDef);
