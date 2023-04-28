@@ -469,9 +469,37 @@ bool AletheProofPostprocessCallback::update(Node res,
                                  nm->mkNode(kind::BOUND_VAR_LIST, vars),
                                  d_defineRuleConclusion,
                                  conc});
-
-      d_rareRulesUsed.insert(ruleDef);
-      Trace("test") << ".. rule def: " << ruleDef << "\n\n";
+      bool fresh = true;
+      for (const auto& r : d_definedRules)
+      {
+        // if conclusion matches, it's only fresh if types of the vars
+        // differ. Note that this can only happen when there are variables with
+        // abstract types
+        if (r[5] != ruleDef[5])
+        {
+          continue;
+        }
+        // go through the vars and test each type. If
+        size_t i = 0, size = vars.size();
+        for (; i < size; ++i)
+        {
+          if (vars[i].getType() != r[3][i].getType())
+          {
+            break;
+          }
+        }
+        if (i != size)
+        {
+          continue;
+        }
+        fresh = false;
+        break;
+      }
+      if (fresh)
+      {
+        d_definedRules.insert(ruleDef);
+        Trace("test") << ".. rule def: " << ruleDef << "\n\n";
+      }
 
       return addAletheStep(AletheRule::ALL_SIMPLIFY,
                            res,
@@ -2550,6 +2578,30 @@ void AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
     Trace("pf-process-debug") << "Update node..." << std::endl;
     d_env.getProofNodeManager()->updateNode(pf.get(), npn.get());
     Trace("pf-process-debug") << "...update node finished." << std::endl;
+  }
+  // if there have been new rules defined, we wrap the proof in an Alethe DEFINE
+  // step, which has as arguments the defined rules.
+  if (!d_cb.d_definedRules.empty())
+  {
+    NodeManager* nm = NodeManager::currentNM();
+    CDProof cpfDefs(d_env, nullptr, "AletheProofPostProcess::process");
+    cpfDefs.addProof(pf->getChildren()[0]);
+    args.clear();
+    args.push_back(NodeManager::currentNM()->mkConstInt(
+        Rational(static_cast<uint32_t>(AletheRule::DEFINE))));
+    args.insert(
+        args.end(), d_cb.d_definedRules.begin(), d_cb.d_definedRules.end());
+    // Trace("test") << "rules: " << args << "\n";
+    Node conclusionStandIn = nm->mkNode(kind::SEXPR, pf->getResult());
+    cpfDefs.addStep(conclusionStandIn,
+                    PfRule::ALETHE_RULE,
+                    {pf->getChildren()[0]->getResult()},
+                    pf->getArguments());
+    cpfDefs.addStep(pf->getResult(), PfRule::ALETHE_RULE, {conclusionStandIn}, args);
+    std::shared_ptr<ProofNode> npn = cpfDefs.getProofFor(pf->getResult());
+    // Trace("test") << "npn: " << *npn.get() << "\n";
+
+    d_env.getProofNodeManager()->updateNode(pf.get(), npn.get());
   }
 }
 

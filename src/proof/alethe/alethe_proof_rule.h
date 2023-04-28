@@ -73,6 +73,20 @@ enum class AletheRule : uint32_t
   // ======== input
   // > i. F
   ASSUME,
+  // ======== Rule definition
+  // (define :rule ID :vars ((x1 T1) ... (xn Tn)) :conclusion t :premises (t1 ... tn))
+  //  where the only free variables of t are in {x1, ..., xn}.
+  //
+  // This command adds a rule definition, which can then be used in the proof and
+  // is correctly applied in a given step command if that step:
+  // - has as its rule the same string as ID
+  // - has arguments s1 ... sn such that the step's conclusion t' is matched* by
+  //   t{x1 -> s1, ..., xn -> sn}
+  // - has premises whose conclusions are the same same as t1 ... tn.
+  //
+  // * The matching must be done considering that some variables may allow "list
+  // * semantics". This follows the handling specified in the RARE language.
+  DEFINE,
   //================================================= Rules of the Alethe
   // calculus
   //

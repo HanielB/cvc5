@@ -90,6 +90,9 @@ class AletheProofPostprocessCallback : protected EnvObj,
                  const std::vector<Node>& args,
                  CDProof* cdp);
 
+  /* A set of defined rules, like for example RARE rules. */
+  std::unordered_set<Node> d_definedRules;
+
  private:
   /** The Alethe node converter */
   AletheNodeConverter& d_anc;
@@ -160,9 +163,6 @@ class AletheProofPostprocessCallback : protected EnvObj,
   /** Nodes corresponding to the Boolean values. */
   Node d_true;
   Node d_false;
-
-
-  std::unordered_set<Node> d_rareRulesUsed;
 };
 
 /**
