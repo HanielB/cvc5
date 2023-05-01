@@ -136,7 +136,7 @@ Node ProofCnfStream::normalizeAndRegister(TNode clauseNode)
   }
   if (d_satPM)
   {
-    d_satPM->registerSatAssumptions({normClauseNode});
+    d_satPM->registerSatAssumptions(normClauseNode);
   }
   return normClauseNode;
 }
@@ -230,7 +230,7 @@ void ProofCnfStream::convertAndAssert(TNode node, bool negated)
         // note that we do not need to do the normalization here since this is
         // not a clause and double negation is tracked in a dedicated manner
         // above
-        d_satPM->registerSatAssumptions({nnode});
+        d_satPM->registerSatAssumptions(nnode, true);
         if (d_input)
         {
           d_inputClauses.insert(nnode);

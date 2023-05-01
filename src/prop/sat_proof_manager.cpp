@@ -759,7 +759,7 @@ void SatProofManager::finalizeProof(Minisat::Lit inConflict, bool adding)
   Node clauseNode = d_cnfStream->getNode(satLit);
   if (adding)
   {
-    registerSatAssumptions({clauseNode});
+    registerSatAssumptions(clauseNode, true);
   }
   finalizeProof(clauseNode, {satLit});
 }
@@ -782,7 +782,8 @@ void SatProofManager::finalizeProof(const Minisat::Clause& inConflict,
   Node clauseNode = getClauseNode(inConflict);
   if (adding)
   {
-    registerSatAssumptions({clauseNode});
+    AlwaysAssert(inConflict.size() > 1);
+    registerSatAssumptions(clauseNode);
   }
   finalizeProof(clauseNode, clause);
 }
@@ -809,14 +810,12 @@ void SatProofManager::registerSatLitAssumption(Minisat::Lit lit)
       true;
 }
 
-void SatProofManager::registerSatAssumptions(const std::vector<Node>& assumps)
+void SatProofManager::registerSatAssumptions(Node assump, bool isSingleton)
 {
-  for (const Node& a : assumps)
-  {
-    Trace("sat-proof") << "SatProofManager::registerSatAssumptions: - " << a
-                       << "\n";
-    d_assumptions.insert(a);
-  }
+  Trace("sat-proof") << "SatProofManager::registerSatAssumptions: - " << assump
+                     << "\n";
+  d_assumptions.insert(assump);
+  d_assumptionsDb[assump] = isSingleton;
 }
 
 void SatProofManager::notifyAssumptionInsertedAtLevel(int level,

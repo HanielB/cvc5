@@ -358,8 +358,9 @@ class SatProofManager : protected EnvObj
 
   /** Register a unit clause input, converted to its node representation.  */
   void registerSatLitAssumption(Minisat::Lit lit);
-  /** Register a set clause inputs. */
-  void registerSatAssumptions(const std::vector<Node>& assumps);
+  /** Register a clause input. We also allow providing the information of
+   * whether it's a singleton clause (i.e., the node stands for a literal). */
+  void registerSatAssumptions(Node assump, bool isSingleton = false);
 
   /** Notify this proof manager that the SAT solver has user-context popped. */
   void notifyPop();
@@ -569,8 +570,9 @@ class SatProofManager : protected EnvObj
   /** The proof generator for resolution chains */
   BufferedProofGenerator d_resChainPg;
 
-  // Learned clauses, their level, wether unit
-  context::CDHashMap<Node, std::pair<int, bool>> d_clauseDb;
+  /** Learned clauses, their level, whether unit */
+  context::CDHashMap<Node, std::pair<uint32_t, bool>> d_clauseDb;
+  /** Assumptions and whether they are unit */
   context::CDHashMap<Node, bool> d_assumptionsDb;
 
   /** The true/false nodes */

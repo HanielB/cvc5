@@ -126,7 +126,7 @@ void PropEngine::finishInit()
   {
     static_cast<MinisatSatSolver*>(d_satSolver)
         ->getProofManager()
-        ->registerSatAssumptions({nm->mkConst(true)});
+        ->registerSatAssumptions(nm->mkConst(true), true);
   }
   d_cnfStream->convertAndAssert(nm->mkConst(false).notNode(), false, false);
 }
