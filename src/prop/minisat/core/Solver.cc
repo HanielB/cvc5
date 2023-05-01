@@ -659,7 +659,7 @@ void Solver::removeClause(CRef cr) {
         {
           d_pfManager->addResolutionStep(c[i]);
         }
-        d_pfManager->endResChain(c[0]);
+        d_pfManager->endResChain(c[0], c.level() + 1);
       }
       vardata[var(c[0])].d_reason = CRef_Undef;
     }
@@ -1559,7 +1559,7 @@ lbool Solver::search(int nof_conflicts)
         uncheckedEnqueue(learnt_clause[0]);
         if (needProof())
         {
-          d_pfManager->endResChain(learnt_clause[0]);
+          d_pfManager->endResChain(learnt_clause[0], max_level + 1);
         }
       }
       else

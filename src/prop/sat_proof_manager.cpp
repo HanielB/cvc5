@@ -132,7 +132,7 @@ void SatProofManager::addResolutionStep(const Minisat::Clause& clause,
   }
 }
 
-void SatProofManager::endResChain(Minisat::Lit lit)
+void SatProofManager::endResChain(Minisat::Lit lit, uint32_t level)
 {
   SatLiteral satLit = MinisatSatSolver::toSatLiteral(lit);
   Trace("sat-proof") << "SatProofManager::endResChain: curr user level: "
@@ -150,6 +150,9 @@ void SatProofManager::endResChain(Minisat::Lit lit)
     d_redundantLits.clear();
     return;
   }
+
+  d_clauseDb[conclusion] = std::pair<uint32_t, bool>(level, true);
+
   // save to database
   endResChain(conclusion, {satLit});
 }
@@ -177,6 +180,7 @@ void SatProofManager::endResChain(const Minisat::Clause& clause)
     Trace("sat-proof") << "SatProofManager::endResChain: ..clause's lvl "
                        << clause.level() + 1 << " below curr user level "
                        << userContext()->getLevel() << "\n";
+    d_clauseDb[conclusion] = std::pair<uint32_t, bool>(clauseLevel, false);
   }
   endResChain(conclusion, clauseLits);
 }
