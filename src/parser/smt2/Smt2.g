@@ -100,7 +100,7 @@ class Sort;
 #include <unordered_set>
 #include <vector>
 
-#include "api/cpp/cvc5.h"
+#include <cvc5/cvc5.h>
 #include "base/output.h"
 #include "parser/antlr_input.h"
 #include "parser/parser_antlr.h"
@@ -145,13 +145,13 @@ parseExpr returns [cvc5::Term expr = cvc5::Term()]
  * Parses a command
  * @return the parsed command, or NULL if we've reached the end of the input
  */
-parseCommand returns [cvc5::parser::Command* cmd_return = NULL]
+parseCommand returns [std::unique_ptr<cvc5::parser::Command> cmd_return = NULL]
 @declarations {
   std::unique_ptr<cvc5::parser::Command> cmd;
   std::string name;
 }
 @after {
-  cmd_return = cmd.release();
+  cmd_return = std::move(cmd);
 }
   : LPAREN_TOK command[&cmd] RPAREN_TOK
 
@@ -181,12 +181,12 @@ parseCommand returns [cvc5::parser::Command* cmd_return = NULL]
  * @return the parsed SyGuS command, or NULL if we've reached the end of the
  * input
  */
-parseSygus returns [cvc5::parser::Command* cmd_return = NULL]
+parseSygus returns [std::unique_ptr<cvc5::parser::Command> cmd_return = NULL]
 @declarations {
   std::string name;
 }
 @after {
-  cmd_return = cmd.release();
+  cmd_return = std::move(cmd);
 }
   : LPAREN_TOK cmd=sygusCommand RPAREN_TOK
   | EOF
@@ -410,6 +410,9 @@ command [std::unique_ptr<cvc5::parser::Command>* cmd]
   | /* get-unsat-core */
     GET_UNSAT_CORE_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     { cmd->reset(new GetUnsatCoreCommand); }
+  | /* get-timeout-core */
+    GET_TIMEOUT_CORE_TOK { PARSER_STATE->checkThatLogicIsSet(); }
+    { cmd->reset(new GetTimeoutCoreCommand); }
   | /* get-difficulty */
     GET_DIFFICULTY_TOK { PARSER_STATE->checkThatLogicIsSet(); }
     { cmd->reset(new GetDifficultyCommand); }
@@ -713,11 +716,23 @@ setOptionInternal[std::unique_ptr<cvc5::parser::Command>* cmd]
   cvc5::Term sexpr;
 }
   : keyword[name] symbolicExpr[sexpr]
-    { cmd->reset(new SetOptionCommand(name.c_str() + 1, sexprToString(sexpr)));
+    { 
+      std::string key = name.c_str() + 1;
+      std::string ss = sexprToString(sexpr);
+      // special case: for channel settings, we are expected to parse e.g.
+      // `"stdin"` which should be treated as `stdin`
+      // Note we could consider a more general solution where knowing whether
+      // this special case holds can be queried via OptionInfo.
+      if (key == "diagnostic-output-channel" || key == "regular-output-channel"
+          || key == "in" || key == "out")
+      {
+        ss = PARSER_STATE->stripQuotes(ss);
+      }
+      cmd->reset(new SetOptionCommand(key, ss));
       // Ugly that this changes the state of the parser; but
       // global-declarations affects parsing, so we can't hold off
       // on this until some SolverEngine eventually (if ever) executes it.
-      if(name == ":global-declarations")
+      if(key == "global-declarations")
       {
         SYM_MAN->setGlobalDeclarations(sexprToString(sexpr) == "true");
       }
@@ -1101,7 +1116,7 @@ datatypesDef[bool isCo,
     }
     PARSER_STATE->popScope();
     cmd->reset(new DatatypeDeclarationCommand(
-        PARSER_STATE->bindMutualDatatypeTypes(dts, true)));
+        PARSER_STATE->mkMutualDatatypeTypes(dts)));
   }
   ;
 
@@ -1146,7 +1161,7 @@ symbolicExpr[cvc5::Term& sexpr]
   std::vector<cvc5::Term> children;
 }
   : simpleSymbolicExpr[s]
-    { sexpr = SOLVER->mkString(PARSER_STATE->processAdHocStringEsc(s)); }
+    { sexpr = SOLVER->mkVar(SOLVER->getBooleanSort(), s); }
   | LPAREN_TOK
     ( symbolicExpr[sexpr] { children.push_back(sexpr); } )* RPAREN_TOK
     { sexpr = SOLVER->mkTerm(cvc5::SEXPR, children); }
@@ -1950,6 +1965,7 @@ GET_ASSERTIONS_TOK : 'get-assertions';
 GET_PROOF_TOK : 'get-proof';
 GET_UNSAT_ASSUMPTIONS_TOK : 'get-unsat-assumptions';
 GET_UNSAT_CORE_TOK : 'get-unsat-core';
+GET_TIMEOUT_CORE_TOK : 'get-timeout-core';
 GET_DIFFICULTY_TOK : 'get-difficulty';
 GET_LEARNED_LITERALS_TOK : 'get-learned-literals';
 EXIT_TOK : 'exit';

@@ -495,10 +495,6 @@ void TheoryEngine::check(Theory::Effort effort) {
       }
       // reset the model in the combination engine
       d_tc->resetModel();
-      // Disable resource manager limit while building the model. This ensures
-      // that building the model is not interrupted (and shouldn't take too
-      // long).
-      rm->setEnabled(false);
       //checks for theories requiring the model go at last call
       for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
       {
@@ -525,14 +521,22 @@ void TheoryEngine::check(Theory::Effort effort) {
           // quantifiers engine must check at last call effort
           d_quantEngine->check(Theory::EFFORT_LAST_CALL);
         }
+        // notify the theory modules of the model
+        for (TheoryEngineModule* tem : d_modules)
+        {
+          if (!tem->needsCandidateModel())
+          {
+            // module does not need candidate model
+            continue;
+          }
+          if (!d_tc->buildModel())
+          {
+            // model failed to build, we are done
+            break;
+          }
+          tem->notifyCandidateModel(getModel());
+        }
       }
-      // notify the theory modules of the model
-      for (TheoryEngineModule* tem : d_modules)
-      {
-        tem->notifyCandidateModel(getModel());
-      }
-      // Enable resource management again.
-      rm->setEnabled(true);
     }
 
     Trace("theory") << "TheoryEngine::check(" << effort << "): done, we are " << (d_inConflict ? "unsat" : "sat") << (d_lemmasAdded ? " with new lemmas" : " with no new lemmas");
@@ -828,7 +832,7 @@ TrustNode TheoryEngine::ppRewrite(TNode term,
     stringstream ss;
     ss << "The logic was specified as " << logicInfo().getLogicString()
        << ", which doesn't include " << tid
-       << ", but got a preprocessing-time term for that theory." << std::endl
+       << ", but got a term for that theory during solving." << std::endl
        << "The term:" << std::endl
        << term;
     throw LogicException(ss.str());
@@ -859,6 +863,23 @@ TrustNode TheoryEngine::ppRewrite(TNode term,
   // trust node, this is the responsibility of the caller, i.e. theory
   // preprocessor.
   return trn;
+}
+
+TrustNode TheoryEngine::ppStaticRewrite(TNode term)
+{
+  TheoryId tid = d_env.theoryOf(term);
+  if (!isTheoryEnabled(tid) && tid != THEORY_SAT_SOLVER)
+  {
+    stringstream ss;
+    ss << "The logic was specified as " << logicInfo().getLogicString()
+       << ", which doesn't include " << tid
+       << ", but got a preprocessing-time term for that theory."
+       << std::endl
+       << "The term:" << std::endl
+       << term;
+    throw LogicException(ss.str());
+  }
+  return d_theoryTable[tid]->ppStaticRewrite(term);
 }
 
 void TheoryEngine::notifyPreprocessedAssertions(
@@ -1152,10 +1173,11 @@ theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b)
   return d_sharedSolver->getEqualityStatus(a, b);
 }
 
-void TheoryEngine::getDifficultyMap(std::map<Node, Node>& dmap)
+void TheoryEngine::getDifficultyMap(std::map<Node, Node>& dmap,
+                                    bool includeLemmas)
 {
   Assert(d_relManager != nullptr);
-  d_relManager->getDifficultyMap(dmap);
+  d_relManager->getDifficultyMap(dmap, includeLemmas);
 }
 
 theory::IncompleteId TheoryEngine::getModelUnsoundId() const
@@ -1200,13 +1222,14 @@ TrustNode TheoryEngine::getExplanation(TNode node)
   TNode atom = polarity ? node : node[0];
 
   // If we're not in shared mode, explanations are simple
+  TrustNode texplanation;
   if (!logicInfo().isSharingEnabled())
   {
     Trace("theory::explain")
         << "TheoryEngine::getExplanation: sharing is NOT enabled. "
         << " Responsible theory is: " << theoryOf(atom)->getId() << std::endl;
 
-    TrustNode texplanation = theoryOf(atom)->explain(node);
+    texplanation = theoryOf(atom)->explain(node);
     Node explanation = texplanation.getNode();
     Trace("theory::explain") << "TheoryEngine::getExplanation(" << node
                              << ") => " << explanation << endl;
@@ -1225,28 +1248,36 @@ TrustNode TheoryEngine::getExplanation(TNode node)
             TrustNode::mkTrustPropExp(node, explanation, d_lazyProof.get());
       }
     }
-    return texplanation;
   }
+  else
+  {
+    Trace("theory::explain")
+        << "TheoryEngine::getExplanation: sharing IS enabled" << std::endl;
 
-  Trace("theory::explain") << "TheoryEngine::getExplanation: sharing IS enabled"
-                           << std::endl;
+    // Initial thing to explain
+    NodeTheoryPair toExplain(
+        node, THEORY_SAT_SOLVER, d_propagationMapTimestamp);
+    Assert(d_propagationMap.find(toExplain) != d_propagationMap.end());
 
-  // Initial thing to explain
-  NodeTheoryPair toExplain(node, THEORY_SAT_SOLVER, d_propagationMapTimestamp);
-  Assert(d_propagationMap.find(toExplain) != d_propagationMap.end());
+    NodeTheoryPair nodeExplainerPair = d_propagationMap[toExplain];
+    Trace("theory::explain")
+        << "TheoryEngine::getExplanation: explainer for node "
+        << nodeExplainerPair.d_node
+        << " is theory: " << nodeExplainerPair.d_theory << std::endl;
 
-  NodeTheoryPair nodeExplainerPair = d_propagationMap[toExplain];
-  Trace("theory::explain")
-      << "TheoryEngine::getExplanation: explainer for node "
-      << nodeExplainerPair.d_node
-      << " is theory: " << nodeExplainerPair.d_theory << std::endl;
-
-  // Create the workplace for explanations
-  std::vector<NodeTheoryPair> vec{d_propagationMap[toExplain]};
-  // Process the explanation
-  TrustNode texplanation = getExplanation(vec);
-  Trace("theory::explain") << "TheoryEngine::getExplanation(" << node << ") => "
-                           << texplanation.getNode() << endl;
+    // Create the workplace for explanations
+    std::vector<NodeTheoryPair> vec{d_propagationMap[toExplain]};
+    // Process the explanation
+    texplanation = getExplanation(vec);
+    Trace("theory::explain") << "TheoryEngine::getExplanation(" << node
+                             << ") => " << texplanation.getNode() << endl;
+  }
+  // notify the conflict as a lemma
+  for (TheoryEngineModule* tem : d_modules)
+  {
+    tem->notifyLemma(
+        texplanation.getProven(), LemmaProperty::REMOVABLE, {}, {});
+  }
   return texplanation;
 }
 
