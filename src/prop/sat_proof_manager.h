@@ -20,6 +20,7 @@
 
 #include "context/cdhashmap.h"
 #include "context/cdhashset.h"
+#include "context/cdlist.h"
 #include "expr/node.h"
 #include "proof/buffered_proof_generator.h"
 #include "proof/lazy_proof_chain.h"
@@ -573,10 +574,10 @@ class SatProofManager : protected EnvObj
   /** The proof generator for resolution chains */
   BufferedProofGenerator d_resChainPg;
 
-  /** Learned clauses, their level, whether unit */
-  context::CDHashMap<Node, std::pair<uint32_t, bool>> d_clauseDb;
-  /** Assumptions and whether they are unit */
-  context::CDHashMap<Node, bool> d_assumptionsDb;
+  /** Learned clauses and their levels */
+  context::CDList<std::pair<std::vector<Node>, uint32_t>> d_clauseDb;
+  /** Assumptions */
+  context::CDList<std::vector<Node>> d_assumptionsDb;
 
   /** The true/false nodes */
   Node d_true;
