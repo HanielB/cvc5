@@ -151,8 +151,8 @@ void SatProofManager::endResChain(Minisat::Lit lit, uint32_t level)
     return;
   }
 
-  d_clauseDb.push_back(
-      std::pair<std::vector<Node>, uint32_t>({conclusion}, level));
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(kind::SEXPR, conclusion), level));
 
   // save to database
   endResChain(conclusion, {satLit});
@@ -181,8 +181,11 @@ void SatProofManager::endResChain(const Minisat::Clause& clause)
     Trace("sat-proof") << "SatProofManager::endResChain: ..clause's lvl "
                        << clause.level() + 1 << " below curr user level "
                        << userContext()->getLevel() << "\n";
-    d_clauseDb.push_back(std::pair<std::vector<Node>, uint32_t>(
-        {conclusion.begin(), conclusion.end()}, clauseLevel));
+    d_clauseDb.push_back(std::pair<Node, uint32_t>(
+        NodeManager::currentNM()->mkNode(
+            kind::SEXPR,
+            std::vector<Node>{conclusion.begin(), conclusion.end()}),
+        clauseLevel));
   }
   endResChain(conclusion, clauseLits);
 }
@@ -812,8 +815,8 @@ void SatProofManager::registerSatLitAssumption(Minisat::Lit lit)
                      << "\n";
   d_assumptions.insert(
       d_cnfStream->getNode(MinisatSatSolver::toSatLiteral(lit)));
-  d_assumptionsDb.push_back(
-      {d_cnfStream->getNode(MinisatSatSolver::toSatLiteral(lit))});
+  d_assumptionsDb.push_back(NodeManager::currentNM()->mkNode(
+      kind::SEXPR, d_cnfStream->getNode(MinisatSatSolver::toSatLiteral(lit))));
 }
 
 void SatProofManager::registerSatAssumptions(Node assump, bool isSingleton)
@@ -821,9 +824,10 @@ void SatProofManager::registerSatAssumptions(Node assump, bool isSingleton)
   Trace("sat-proof") << "SatProofManager::registerSatAssumptions: - " << assump
                      << "\n";
   d_assumptions.insert(assump);
-  d_assumptionsDb.push_back(
+  d_assumptionsDb.push_back(NodeManager::currentNM()->mkNode(
+      kind::SEXPR,
       isSingleton ? std::vector<Node>{assump}
-                  : std::vector<Node>{assump.begin(), assump.end()});
+                  : std::vector<Node>{assump.begin(), assump.end()}));
 }
 
 void SatProofManager::notifyAssumptionInsertedAtLevel(int level,

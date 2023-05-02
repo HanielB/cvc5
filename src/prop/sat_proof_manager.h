@@ -575,9 +575,9 @@ class SatProofManager : protected EnvObj
   BufferedProofGenerator d_resChainPg;
 
   /** Learned clauses and their levels */
-  context::CDList<std::pair<std::vector<Node>, uint32_t>> d_clauseDb;
+  context::CDList<std::pair<Node, uint32_t>> d_clauseDb;
   /** Assumptions */
-  context::CDList<std::vector<Node>> d_assumptionsDb;
+  context::CDList<Node> d_assumptionsDb;
 
   /** The true/false nodes */
   Node d_true;
