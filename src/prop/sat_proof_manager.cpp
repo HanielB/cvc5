@@ -59,6 +59,104 @@ void SatProofManager::printClause(const Minisat::Clause& clause)
   }
 }
 
+void addUnit(std::unordered_set<Node>& falsified, Node unit)
+{
+  falsified.insert(unit.notNode());
+  if (unit.getKind() == kind::NOT)
+  {
+    falsified.insert(unit[0]);
+  }
+}
+
+bool getNextUnassigned(TNode clause,
+                       const std::unordered_set<Node>& falsified,
+                       size_t& w1,
+                       size_t w2)
+{
+  // find the first position not in falsified that is different from w1 and w2
+  for (size_t i = 0, size = clause.getNumChildren(); i < size; ++i)
+  {
+    if (i != w1 && i != w2 && !falsified.count(clause[i]))
+    {
+      w1 = i;
+      return true;
+    }
+  }
+  return false;
+}
+
+bool bcp(const std::vector<Node> clauses,
+         std::unordered_set<Node>& falsified,
+         std::vector<Node>& core)
+{
+  // clauses used to derive conflict via resolution
+  std::set<Node> used;
+  // Watched positions for each clause
+  std::map<Node, std::pair<size_t, size_t>> watched;
+  for (const auto& c : clauses)
+  {
+    // short-circuit to either kill or to add literals falsified by this unit
+    if (c.getNumChildren() == 1)
+    {
+      if (falsified.count(c[0]))
+      {
+        core.push_back(c);
+        return true;
+      }
+      used.insert(c);
+      addUnit(falsified, c[0]);
+      continue;
+    }
+    // by default watch first two positions
+    watched[c] = std::pair<size_t, size_t>(0, 1);
+  }
+  do
+  {
+    bool madeProgress = false;
+    // see if any watched clause is fully falsified by units or if it becomes
+    // unit
+    for (const auto& w : watched)
+    {
+      TNode c = w.first;
+      AlwaysAssert(c.getKind() == kind::SEXPR);
+      size_t w1, w2;
+      std::tie(w1, w2) = w.second;
+      // if w1 is falsified and there is no other unassigned position
+      // (different from w2), then w2 is unit if not falsified. Otherwise c is
+      // falsified.
+      if (falsified.count(c[w1]) && !getNextUnassigned(c, falsified, w1, w2))
+      {
+        if (falsified.count(c[w2]))
+        {
+          // TODO compute core
+          return true;
+        }
+        // w2 is unit
+        used.insert(c);
+        addUnit(falsified, c[w2]);
+        madeProgress = true;
+        continue;
+      }
+      // here I know that w1 is in an unassigned position. If w2 is false and
+      // cannot be changed to an unassigned position then w1 is unit
+      if (falsified.count(c[w2]) && !getNextUnassigned(c, falsified, w2, w1))
+      {
+        // w1 is unit
+        used.insert(c);
+        addUnit(falsified, c[w1]);
+        madeProgress = true;
+        continue;
+      }
+    }
+    // if no progress was made (i.e., did not find conflict or did find new
+    // unit), then we have failed
+    if (!madeProgress)
+    {
+      return false;
+    }
+  } while (true);
+}
+
 Node SatProofManager::getClauseNode(const Minisat::Clause& clause)
 {
   std::vector<Node> clauseNodes;
