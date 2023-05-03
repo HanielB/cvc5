@@ -38,12 +38,12 @@ SatProofManager::SatProofManager(Env& env,
       // post-processing). Symmetry we can disable because there is no equality
       // reasoning performed here
       d_resChainPg(d_env, userContext(), true, false),
-      d_clauseDb(userContext()),
-      d_assumptionsDb(userContext()),
       d_assumptions(userContext()),
       d_conflictLit(undefSatVariable),
       d_optResLevels(userContext()),
-      d_optResManager(userContext(), &d_resChains, d_optResProofs)
+      d_optResManager(userContext(), &d_resChains, d_optResProofs),
+      d_clauseDb(userContext()),
+      d_assumptionsDb(userContext())
 {
   d_true = NodeManager::currentNM()->mkConst(true);
   d_false = NodeManager::currentNM()->mkConst(false);
@@ -59,7 +59,7 @@ void SatProofManager::printClause(const Minisat::Clause& clause)
   }
 }
 
-void addUnit(std::unordered_set<Node>& falsified, Node unit)
+void SatProofManager::addUnit(std::unordered_set<Node>& falsified, Node unit)
 {
   falsified.insert(unit.notNode());
   if (unit.getKind() == kind::NOT)
@@ -68,10 +68,11 @@ void addUnit(std::unordered_set<Node>& falsified, Node unit)
   }
 }
 
-bool getNextUnassigned(TNode clause,
-                       const std::unordered_set<Node>& falsified,
-                       size_t& w1,
-                       size_t w2)
+bool SatProofManager::getNextUnassigned(
+    TNode clause,
+    const std::unordered_set<Node>& falsified,
+    size_t& w1,
+    size_t w2)
 {
   // find the first position not in falsified that is different from w1 and w2
   for (size_t i = 0, size = clause.getNumChildren(); i < size; ++i)
@@ -85,9 +86,99 @@ bool getNextUnassigned(TNode clause,
   return false;
 }
 
-bool bcp(const std::vector<Node> clauses,
-         std::unordered_set<Node>& falsified,
-         std::vector<Node>& core)
+void SatProofManager::markCore(const std::set<Node>& used,
+                               std::vector<Node>& core,
+                               Node conflictClause)
+{
+  AlwaysAssert(conflictClause.getKind() == kind::SEXPR
+               && conflictClause.getNumChildren() > 1);
+  core.push_back(conflictClause);
+  std::unordered_set<Node> conflictLits{conflictClause.begin(),
+                                        conflictClause.end()};
+  for (const auto& u : used)
+  {
+    uint32_t clashing = 0;
+    Node pivot, pol;
+    for (const auto& l : u)
+    {
+      // search in conflictLits for: (not l) and, if l is (not l'), for l'
+      if (conflictLits.count(l.notNode()))
+      {
+        if (++clashing > 1)
+        {
+          if (l != pivot)
+          {
+            --clashing;
+          }
+          else
+          {
+            break;
+          }
+        }
+        pivot = l;
+        pol = d_true;
+      }
+      if (l.getKind() == kind::NOT && conflictLits.count(l[0]))
+      {
+        if (++clashing > 1)
+        {
+          if (l[0] != pivot)
+          {
+            --clashing;
+          }
+          else
+          {
+            break;
+          }
+        }
+        pivot = l[0];
+        pol = d_false;
+      }
+    }
+    if (clashing != 1)
+    {
+      continue;
+    }
+    core.push_back(u);
+    // resolve u and conflictClause with the given pivot. That'll be the new
+    // conflictClause. We do this by collecting all lits of u and conflictLits
+    // minus the first pivots. Repetitions are ignored
+    Node pivots[2];
+    if (pol == d_true)
+    {
+      pivots[0] = pivot;
+      pivots[1] = pivot.notNode();
+    }
+    else
+    {
+      Assert(pol == d_false);
+      pivots[0] = pivot.notNode();
+      pivots[1] = pivot;
+    }
+
+    std::unordered_set<Node> result;
+    for (const auto& l : u)
+    {
+      if (l != pivot[0])
+      {
+        result.insert(l);
+      }
+    }
+    for (const auto& l : conflictLits)
+    {
+      if (l != pivot[1])
+      {
+        result.insert(l);
+      }
+    }
+    conflictLits.clear();
+    conflictLits.insert(result.begin(), result.end());
+  }
+}
+
+bool SatProofManager::bcp(const std::vector<Node> clauses,
+                          std::unordered_set<Node>& falsified,
+                          std::vector<Node>& core)
 {
   // clauses used to derive conflict via resolution
   std::set<Node> used;
@@ -128,7 +219,7 @@ bool bcp(const std::vector<Node> clauses,
       {
         if (falsified.count(c[w2]))
         {
-          // TODO compute core
+          markCore(used, core, c);
           return true;
         }
         // w2 is unit

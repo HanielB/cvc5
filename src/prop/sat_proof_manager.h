@@ -574,11 +574,6 @@ class SatProofManager : protected EnvObj
   /** The proof generator for resolution chains */
   BufferedProofGenerator d_resChainPg;
 
-  /** Learned clauses and their levels */
-  context::CDList<std::pair<Node, uint32_t>> d_clauseDb;
-  /** Assumptions */
-  context::CDList<Node> d_assumptionsDb;
-
   /** The true/false nodes */
   Node d_true;
   Node d_false;
@@ -622,6 +617,29 @@ class SatProofManager : protected EnvObj
   /** Manager for optimized resolution conclusions inserted at assertion levels
    * below the current user level. */
   OptimizedClausesManager d_optResManager;
+
+  /****************** Proof compression ******************/
+
+  /** Learned clauses and their levels */
+  context::CDList<std::pair<Node, uint32_t>> d_clauseDb;
+  /** Assumptions */
+  context::CDList<Node> d_assumptionsDb;
+
+  void addUnit(std::unordered_set<Node>& falsified, Node unit);
+
+  bool getNextUnassigned(TNode clause,
+                         const std::unordered_set<Node>& falsified,
+                         size_t& w1,
+                         size_t w2);
+
+  void markCore(const std::set<Node>& used,
+                std::vector<Node>& core,
+                Node conflictClause);
+
+  bool bcp(const std::vector<Node> clauses,
+           std::unordered_set<Node>& falsified,
+           std::vector<Node>& core);
+
 }; /* class SatProofManager */
 
 }  // namespace prop
