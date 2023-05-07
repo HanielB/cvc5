@@ -347,11 +347,11 @@ class SatProofManager : protected EnvObj
    *
    * @param adding whether the conflict is coming from a freshly added clause
    */
-  void finalizeProof(Minisat::Lit inConflict, bool adding = false);
+  void finalizeProof(Minisat::Lit inConflict, uint32_t level, bool adding = false);
   /** As above, but uses the unit conflict clause saved in d_conflictLit. */
   void finalizeProof();
   /** Set the unit conflict clause d_conflictLit. */
-  void storeUnitConflict(Minisat::Lit inConflict);
+  void storeUnitConflict(Minisat::Lit inConflict, uint32_t level);
 
   /** Retrive the refutation proof
    *
@@ -620,6 +620,13 @@ class SatProofManager : protected EnvObj
 
   /****************** Proof compression ******************/
 
+  /** The proof generator for the trimmed proof node */
+  CDProof d_trimmedPf;
+
+  std::shared_ptr<ProofNode> getTrimmedProof();
+
+  bool backwardsRUP(std::vector<Node>& clauses);
+
   /** Learned clauses and their levels */
   context::CDList<std::pair<Node, uint32_t>> d_clauseDb;
   /** Assumptions */
@@ -632,13 +639,18 @@ class SatProofManager : protected EnvObj
                          size_t& w1,
                          size_t w2);
 
+  /** Determine which clauses in use where needed for the conflict
+   *
+   * This method populates d_trimmedPf by determining the resolution step
+   * justifying the derivation of conflictClause.
+   */
   void markCore(const std::set<Node>& used,
-                std::vector<Node>& core,
+                std::unordered_set<Node>& core,
                 Node conflictClause);
 
-  bool bcp(const std::vector<Node> clauses,
+  bool bcp(const std::vector<Node>& clauses,
            std::unordered_set<Node>& falsified,
-           std::vector<Node>& core);
+           std::unordered_set<Node>& core);
 
 }; /* class SatProofManager */
 

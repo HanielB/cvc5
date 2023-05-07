@@ -42,6 +42,7 @@ SatProofManager::SatProofManager(Env& env,
       d_conflictLit(undefSatVariable),
       d_optResLevels(userContext()),
       d_optResManager(userContext(), &d_resChains, d_optResProofs),
+      d_trimmedPf(d_env, userContext()),
       d_clauseDb(userContext()),
       d_assumptionsDb(userContext())
 {
@@ -87,16 +88,17 @@ bool SatProofManager::getNextUnassigned(
 }
 
 void SatProofManager::markCore(const std::set<Node>& used,
-                               std::vector<Node>& core,
+                               std::unordered_set<Node>& core,
                                Node conflictClause)
 {
   AlwaysAssert(conflictClause.getKind() == kind::SEXPR
                && conflictClause.getNumChildren() > 1);
-  core.push_back(conflictClause);
+  core.insert(conflictClause);
   std::unordered_set<Node> conflictLits{conflictClause.begin(),
                                         conflictClause.end()};
   for (const auto& u : used)
   {
+    Trace("sat-proof") << "\t\t\ttesting used " << u << "\n";
     uint32_t clashing = 0;
     Node pivot, pol;
     for (const auto& l : u)
@@ -139,7 +141,7 @@ void SatProofManager::markCore(const std::set<Node>& used,
     {
       continue;
     }
-    core.push_back(u);
+    core.insert(u);
     // resolve u and conflictClause with the given pivot. That'll be the new
     // conflictClause. We do this by collecting all lits of u and conflictLits
     // minus the first pivots. Repetitions are ignored
@@ -155,18 +157,17 @@ void SatProofManager::markCore(const std::set<Node>& used,
       pivots[0] = pivot.notNode();
       pivots[1] = pivot;
     }
-
     std::unordered_set<Node> result;
     for (const auto& l : u)
     {
-      if (l != pivot[0])
+      if (l != pivots[0])
       {
         result.insert(l);
       }
     }
     for (const auto& l : conflictLits)
     {
-      if (l != pivot[1])
+      if (l != pivots[1])
       {
         result.insert(l);
       }
@@ -176,10 +177,15 @@ void SatProofManager::markCore(const std::set<Node>& used,
   }
 }
 
-bool SatProofManager::bcp(const std::vector<Node> clauses,
+bool SatProofManager::bcp(const std::vector<Node>& clauses,
                           std::unordered_set<Node>& falsified,
-                          std::vector<Node>& core)
+                          std::unordered_set<Node>& core)
 {
+  Trace("sat-proof") << "BCP with falsified:\n";
+  for (auto l : falsified)
+  {
+    Trace("sat-proof") << "\t" << l << "\n";
+  }
   // clauses used to derive conflict via resolution
   std::set<Node> used;
   // Watched positions for each clause
@@ -191,9 +197,10 @@ bool SatProofManager::bcp(const std::vector<Node> clauses,
     {
       if (falsified.count(c[0]))
       {
-        core.push_back(c);
+        core.insert(c);
         return true;
       }
+      Trace("sat-proof") << "\t\tclause unit " << c << "\n";
       used.insert(c);
       addUnit(falsified, c[0]);
       continue;
@@ -212,6 +219,8 @@ bool SatProofManager::bcp(const std::vector<Node> clauses,
       AlwaysAssert(c.getKind() == kind::SEXPR);
       size_t w1, w2;
       std::tie(w1, w2) = w.second;
+      // Trace("sat-proof") << "\tClause " << c << " has watched [" << w1 << ", "
+      //                    << w2 << "]\n";
       // if w1 is falsified and there is no other unassigned position
       // (different from w2), then w2 is unit if not falsified. Otherwise c is
       // falsified.
@@ -219,9 +228,21 @@ bool SatProofManager::bcp(const std::vector<Node> clauses,
       {
         if (falsified.count(c[w2]))
         {
-          markCore(used, core, c);
+          Trace("sat-proof") << "\t\tclause falsified " << c << "\n";
+          std::unordered_set<Node> localCore;
+          markCore(used, localCore, c);
+          if (TraceIsOn("sat-proof"))
+          {
+            Trace("sat-proof") << "\t\tlocal core:\n";
+            for (const Node& n : localCore)
+            {
+              Trace("sat-proof") << "\t\t\t" << n << "\n";
+            }
+          }
+          core.insert(localCore.begin(), localCore.end());
           return true;
         }
+        Trace("sat-proof") << "\t\tclause unit " << c << "\n";
         // w2 is unit
         used.insert(c);
         addUnit(falsified, c[w2]);
@@ -232,6 +253,7 @@ bool SatProofManager::bcp(const std::vector<Node> clauses,
       // cannot be changed to an unassigned position then w1 is unit
       if (falsified.count(c[w2]) && !getNextUnassigned(c, falsified, w2, w1))
       {
+        Trace("sat-proof") << "\t\tclause unit " << c << "\n";
         // w1 is unit
         used.insert(c);
         addUnit(falsified, c[w1]);
@@ -246,6 +268,52 @@ bool SatProofManager::bcp(const std::vector<Node> clauses,
       return false;
     }
   } while (true);
+}
+
+bool SatProofManager::backwardsRUP(std::vector<Node>& clauses)
+{
+  std::unordered_set<Node> core;
+  Assert(clauses[0].getKind() == kind::SEXPR && clauses[0][0] == d_false);
+  core.insert(clauses[0]);
+  // add the assumptions to the beginning of the clauses. Start justifying from
+  // the empty clause
+  for (size_t i = 0, size = clauses.size(); i < size; ++i)
+  {
+    if (!core.count(clauses[i]))
+    {
+      continue;
+    }
+    Trace("sat-proof") << "TODO Falsify " << i << "-th: " << clauses[i] << "\n";
+    // get the complement of the literals of the clause. Each is gonna be a unit
+    // clause used for BCP
+    std::unordered_set<Node> falsified;
+    for (const auto& l : clauses[i])
+    {
+      addUnit(falsified, l);
+    }
+    // send clauses, which are the inputs + everything after the current point
+    std::vector<Node> workingClauses{d_assumptionsDb.begin(), d_assumptionsDb.end()};
+    workingClauses.insert(workingClauses.end(), clauses.begin() + i + 1, clauses.end());
+    if (!bcp(workingClauses, falsified, core))
+    {
+      Trace("sat-proof") << "Could not falsify " << clauses[i] << "\n";
+      Trace("sat-proof") << "Core:\n";
+      for (auto c : core)
+      {
+        Trace("sat-proof") << "\t" << c << "\n";
+      }
+      return false;
+    }
+    if (TraceIsOn("sat-proof"))
+    {
+      Trace("sat-proof") << "Falsified " << clauses[i] << "\nCore:\n";
+      for (auto c : core)
+      {
+        Trace("sat-proof") << "\t" << c << "\n";
+      }
+    }
+  }
+  return true;
 }
 
 Node SatProofManager::getClauseNode(const Minisat::Clause& clause)
@@ -605,6 +673,7 @@ void SatProofManager::explainLit(SatLiteral lit,
       << "reasonRef " << reasonRef << " and d_satSolver->ca.size() "
       << d_solver->ca.size() << "\n";
   const Minisat::Clause& reason = d_solver->ca[reasonRef];
+  uint32_t level = reason.level() + 1;
   unsigned size = reason.size();
   if (TraceIsOn("sat-proof"))
   {
@@ -696,6 +765,9 @@ void SatProofManager::explainLit(SatLiteral lit,
   // we are not ready yet to check closedness w.r.t. CNF transformation of the
   // preprocessed assertions
   d_resChains.addLazyStep(litNode, &d_resChainPg);
+  // save to clause database.
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(kind::SEXPR, litNode), level));
 }
 
 void SatProofManager::finalizeProof(Node inConflictNode,
@@ -932,10 +1004,18 @@ void SatProofManager::finalizeProof(Node inConflictNode,
   }
 }
 
-void SatProofManager::storeUnitConflict(Minisat::Lit inConflict)
+void SatProofManager::storeUnitConflict(Minisat::Lit inConflict, uint32_t level)
 {
   Assert(d_conflictLit == undefSatVariable);
   d_conflictLit = MinisatSatSolver::toSatLiteral(inConflict);
+  // save to clause database
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(
+          kind::SEXPR,
+          d_cnfStream->getNode(MinisatSatSolver::toSatLiteral(inConflict))),
+      level));
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(kind::SEXPR, d_false), level + 1));
 }
 
 void SatProofManager::finalizeProof()
@@ -944,12 +1024,15 @@ void SatProofManager::finalizeProof()
   Trace("sat-proof")
       << "SatProofManager::finalizeProof: conflicting (lazy) satLit: "
       << d_conflictLit << "\n";
-  finalizeProof(d_cnfStream->getNode(d_conflictLit), {d_conflictLit});
+  Node litNode = d_cnfStream->getNode(d_conflictLit);
+  finalizeProof(litNode, {d_conflictLit});
   // reset since if in incremental mode this may be used again
   d_conflictLit = undefSatVariable;
 }
 
-void SatProofManager::finalizeProof(Minisat::Lit inConflict, bool adding)
+void SatProofManager::finalizeProof(Minisat::Lit inConflict,
+                                    uint32_t level,
+                                    bool adding)
 {
   SatLiteral satLit = MinisatSatSolver::toSatLiteral(inConflict);
   Trace("sat-proof") << "SatProofManager::finalizeProof: conflicting satLit: "
@@ -959,6 +1042,11 @@ void SatProofManager::finalizeProof(Minisat::Lit inConflict, bool adding)
   {
     registerSatAssumptions(clauseNode, true);
   }
+  // save to clause database
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(kind::SEXPR, clauseNode), level));
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(kind::SEXPR, d_false), level + 1));
   finalizeProof(clauseNode, {satLit});
 }
 
@@ -983,17 +1071,53 @@ void SatProofManager::finalizeProof(const Minisat::Clause& inConflict,
     AlwaysAssert(inConflict.size() > 1);
     registerSatAssumptions(clauseNode);
   }
+  // save to clause database
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(kind::SEXPR, clauseNode),
+      inConflict.level() + 1));
+  d_clauseDb.push_back(std::pair<Node, uint32_t>(
+      NodeManager::currentNM()->mkNode(kind::SEXPR, d_false),
+      inConflict.level() + 2));
   finalizeProof(clauseNode, clause);
 }
 
 std::shared_ptr<ProofNode> SatProofManager::getProof()
 {
+  if (options().proof.resBackwardsTrimming)
+  {
+    return getTrimmedProof();
+  }
   std::shared_ptr<ProofNode> pfn = d_resChains.getProofFor(d_false);
   if (!pfn)
   {
     pfn = d_env.getProofNodeManager()->mkAssume(d_false);
   }
   return pfn;
+}
+
+std::shared_ptr<ProofNode> SatProofManager::getTrimmedProof()
+{
+  // order db so that highest levels are in the beginning, i.e., last deduced
+  // clauses are up front
+  auto cmp = [](std::pair<Node, uint32_t>& a, std::pair<Node, uint32_t>& b) {
+    return a.second > b.second;
+  };
+  std::vector<std::pair<Node, uint32_t>> clauseDb{d_clauseDb.begin(),
+                                                  d_clauseDb.end()};
+  std::sort(clauseDb.begin(), clauseDb.end(), cmp);
+  std::vector<Node> clauses;
+  for (auto p : clauseDb)
+  {
+    Trace("sat-proof") << "lvl/cl: " << p.second << " | " << p.first << "\n";
+    clauses.push_back(p.first);
+  }
+  if (backwardsRUP(clauses))
+  {
+    std::shared_ptr<ProofNode> pfn = d_trimmedPf.getProofFor(d_false);
+    Assert(pfn);
+    return pfn;
+  }
+  return d_env.getProofNodeManager()->mkAssume(d_false);
 }
 
 void SatProofManager::registerSatLitAssumption(Minisat::Lit lit)

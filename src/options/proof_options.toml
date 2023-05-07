@@ -109,6 +109,22 @@ name   = "Proof"
   help       = "add optional annotations to proofs, which enables statistics for inference ids for lemmas and conflicts appearing in final proof"
 
 [[option]]
+  name       = "produceFinalProof"
+  category   = "regular"
+  long       = "produce-final-proof"
+  type       = "bool"
+  default    = "false"
+  help       = "produce final proof regardless of printing or checking it"
+
+[[option]]
+  name       = "resBackwardsTrimming"
+  category   = "regular"
+  long       = "res-back-trimming"
+  type       = "bool"
+  default    = "false"
+  help       = "Regenerate resolution proof via backwards trimming"
+
+[[option]]
   name       = "optResReconSize"
   category   = "regular"
   long       = "opt-res-reconstruction-size"

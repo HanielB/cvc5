@@ -481,7 +481,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           if(falseLiteralsCount == 1) {
             if (needProof())
             {
-              d_pfManager->finalizeProof(ps[0], true);
+              d_pfManager->finalizeProof(ps[0], true, 0);
             }
             return ok = false;
           }
@@ -564,7 +564,7 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
           {
             if (ca[confl].size() == 1)
             {
-              d_pfManager->finalizeProof(ca[confl][0]);
+              d_pfManager->finalizeProof(ca[confl][0], ca[confl].level() + 1);
             }
             else
             {
@@ -2140,7 +2140,7 @@ CRef Solver::updateLemmas() {
             conflict = CRef_Lazy;
             if (needProof())
             {
-              d_pfManager->storeUnitConflict(lemma[0]);
+              d_pfManager->storeUnitConflict(lemma[0], intro_level(var(lemma[0])));
             }
           }
         } else {

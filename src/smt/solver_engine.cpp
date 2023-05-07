@@ -759,6 +759,15 @@ Result SolverEngine::checkSatInternal(const std::vector<Node>& assumptions)
       checkProof();
     }
   }
+  else if (d_env->getOptions().proof.produceFinalProof
+           && r.getStatus() == Result::UNSAT)
+  {
+    PropEngine* pe = d_smtSolver->getPropEngine();
+    Assert(pe->getProof() != nullptr);
+    std::shared_ptr<ProofNode> pePfn = pe->getProof();
+    d_pfManager->connectProofToAssertions(pePfn, *d_smtSolver.get());
+  }
+
   // Check that UNSAT results generate an unsat core correctly.
   if (d_env->getOptions().smt.checkUnsatCores)
   {
