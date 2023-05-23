@@ -811,6 +811,54 @@ bool LeanProofPostprocessCallback::update(Node res,
                     && k != kind::APPLY_TESTER;
       if (isNary && nchildren > 2)
       {
+        if (k == kind::ADD)
+        {
+          // state equality between the addition of the last two children
+          Node addLefts = nm->mkNode(kind::SEXPR,
+                                     op,
+                                     children[nchildren - 2][0],
+                                     children[nchildren - 1][0]);
+          Node addRights = nm->mkNode(kind::SEXPR,
+                                      op,
+                                      children[nchildren - 2][1],
+                                      children[nchildren - 1][1]);
+          Node currEq = nm->mkNode(kind::SEXPR, eqNode, addLefts, addRights);
+          addLeanStep(currEq,
+                      LeanRule::CONG_ADD,
+                      d_empty,
+                      {children[nchildren - 2], children[nchildren - 1]},
+                      {},
+                      *cdp);
+          // use cong_add to derive equality between the addition of each
+          // children and what is accumulated in currEq
+          for (size_t i = 2; i < nchildren; ++i)
+          {
+            size_t j = nchildren - i - 1;
+            if (j == 0)
+            {
+              addLeanStep(res,
+                          LeanRule::CONG_ADD,
+                          d_lnc.convert(res),
+                          {children[j], currEq},
+                          {},
+                          *cdp);
+            }
+            else
+            {
+              Node a1 = nm->mkNode(kind::SEXPR, op, children[j][0], currEq[0]);
+              Node a2 = nm->mkNode(kind::SEXPR, op, children[j][1], currEq[1]);
+              Node nxtEq = nm->mkNode(kind::SEXPR, eqNode, a1, a2);
+              addLeanStep(currEq,
+                          LeanRule::CONG_ADD,
+                          d_empty,
+                          {children[j], currEq},
+                          {},
+                          *cdp);
+              currEq = nxtEq;
+            }
+          }
+          break;
+        }
         // add internal refl step for operator. For now not using congrArg in this case
         Node opEq = nm->mkNode(kind::SEXPR,
                                d_lnc.mkPrintableOp(kind::EQUAL),
