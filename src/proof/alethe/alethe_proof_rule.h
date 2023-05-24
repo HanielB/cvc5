@@ -266,6 +266,11 @@ enum class AletheRule : uint32_t
   // ...
   // > j. (cl F1 ... Fn)
   OR,
+  // ======== cl_singleton
+  // > i. (cl F1 ... Fn)
+  // ...
+  // > j. (cl (or F1 ... Fn))
+  CL_SINGLETON,
   // ======== not_and
   // > i. (not (and F1 ... Fn))
   // ...

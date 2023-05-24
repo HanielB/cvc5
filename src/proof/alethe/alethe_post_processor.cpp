@@ -1839,9 +1839,8 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   {
     return false;
   }
-  // If this resolution child is used as a singleton OR but the rule
-  // justifying it concludes a clause, then we are necessarily in this
-  // scenario:
+  // If this resolution child is used as a singleton OR but the rule justifying
+  // it concludes a clause, then we may be in this scenario:
   //
   // (or t1 ... tn)
   // -------------- OR
@@ -1858,15 +1857,32 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   // The solution is to *not* use FACTORING/REORDERING (which in Alethe
   // operate on clauses) but generate a proof to obtain (via rewriting) the
   // expected node (or t1' ... tn') from the original node (or t1 ... tn).
+  //
+  // If we are not in the case above, where it is simple to find the original
+  // (cl (or ...)) node, then we create a new proof step:
+  //
+  // (cl t1' ... tn')
+  // ---------------- CL_SINGLETON
+  // (cl (or t1' ... tn'))
+  //
+  // which will allow the premise to be converted into a singleton clause.
   NodeManager* nm = NodeManager::currentNM();
   Trace("alethe-proof") << "\n";
-  CVC5_UNUSED AletheRule premisePfRule =
-      getAletheRule(premisePf->getArguments()[0]);
-  CVC5_UNUSED AletheRule premiseChildPfRule =
+  AletheRule premisePfRule = getAletheRule(premisePf->getArguments()[0]);
+  AletheRule premiseChildPfRule =
       getAletheRule(premisePf->getChildren()[0]->getArguments()[0]);
-  Assert((premisePfRule == AletheRule::CONTRACTION
-          || premisePfRule == AletheRule::REORDERING)
-         && premiseChildPfRule == AletheRule::OR);
+  // test if we are in the not-easily-recoverable case
+  if ((premisePfRule != AletheRule::CONTRACTION
+       && premisePfRule != AletheRule::REORDERING)
+      || premiseChildPfRule != AletheRule::OR)
+  {
+    // create intermediate step from premise to conclude the
+    // sigleton clause needed
+    Node newPremise = nm->mkNode(kind::SEXPR, d_cl, premise);
+    addAletheStep(
+        AletheRule::CL_SINGLETON, newPremise, newPremise, {premise}, {}, *cdp);
+    return true;
+  }
   // get great grand child
   std::shared_ptr<ProofNode> premiseChildPf =
       premisePf->getChildren()[0]->getChildren()[0];

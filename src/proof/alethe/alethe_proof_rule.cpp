@@ -80,6 +80,7 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::TAUTOLOGIC_CLAUSE: return "tautologic_clause";
     case AletheRule::NOT_OR: return "not_or";
     case AletheRule::OR: return "or";
+    case AletheRule::CL_SINGLETON: return "cl_singleton";
     case AletheRule::NOT_AND: return "not_and";
     case AletheRule::XOR1: return "xor1";
     case AletheRule::XOR2: return "xor2";
