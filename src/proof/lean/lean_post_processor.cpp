@@ -845,10 +845,10 @@ bool LeanProofPostprocessCallback::update(Node res,
             }
             else
             {
-              Node a1 = nm->mkNode(kind::SEXPR, op, children[j][0], currEq[0]);
-              Node a2 = nm->mkNode(kind::SEXPR, op, children[j][1], currEq[1]);
-              Node nxtEq = nm->mkNode(kind::SEXPR, eqNode, a1, a2);
-              addLeanStep(currEq,
+              Node add1 = nm->mkNode(kind::SEXPR, op, children[j][0], currEq[0]);
+              Node add2 = nm->mkNode(kind::SEXPR, op, children[j][1], currEq[1]);
+              Node nxtEq = nm->mkNode(kind::SEXPR, eqNode, add1, add2);
+              addLeanStep(nxtEq,
                           LeanRule::CONG_ADD,
                           d_empty,
                           {children[j], currEq},
