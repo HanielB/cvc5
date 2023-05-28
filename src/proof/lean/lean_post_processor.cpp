@@ -545,9 +545,37 @@ bool LeanProofPostprocessCallback::update(Node res,
       break;
     }
     // Arith
-    case PfRule::ARITH_SUM_UB:
     case PfRule::ARITH_MULT_POS:
     case PfRule::ARITH_MULT_NEG:
+    {
+      AlwaysAssert((int) args.size() == 2);
+      Node op = args[1];
+      int typeId;
+      switch (op.getKind())
+      {
+        case Kind::LT:     typeId = 0; break;
+        case Kind::LEQ:    typeId = 1; break;
+        case Kind::GT:     typeId = 2; break;
+        case Kind::GEQ:    typeId = 3; break;
+        case Kind::EQUAL:  typeId = 4; break;
+        /* unknown operator in arithMultPos/Neg (throw?) */
+        default: AlwaysAssert(false); typeId = -1; break;
+      }
+      Node m = args[0];
+      Node l = args[1][0];
+      Node r = args[1][1];
+      Node argsList =
+        nm->mkNode(kind::SEXPR, l, r, m);
+      std::vector<Node> newArgs { d_lnc.convert(argsList), nm->mkConstInt(typeId) };
+      addLeanStep(res,
+                  s_pfRuleToLeanRule.at(id),
+                  d_lnc.convert(res),
+                  children,
+                  newArgs,
+                  *cdp);
+      break;
+    }
+    case PfRule::ARITH_SUM_UB:
     case PfRule::INT_TIGHT_UB:
     case PfRule::INT_TIGHT_LB:
     {
