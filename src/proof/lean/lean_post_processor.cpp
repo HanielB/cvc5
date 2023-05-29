@@ -89,8 +89,7 @@ std::unordered_map<PfRule, LeanRule, PfRuleHashFunction> s_pfRuleToLeanRule = {
 };
 
 LeanProofPostprocess::LeanProofPostprocess(Env& env, LeanNodeConverter& lnc)
-    : EnvObj(env),
-      d_cb(new LeanProofPostprocessCallback(lnc))
+    : EnvObj(env), d_cb(new LeanProofPostprocessCallback(lnc))
 {
 }
 
@@ -112,10 +111,10 @@ void LeanProofPostprocessCallback::addLeanStep(
     const std::vector<Node>& args,
     CDProof& cdp)
 {
-  std::vector<Node> leanArgs = {
-      NodeManager::currentNM()->mkConstInt(Rational(static_cast<uint32_t>(rule))),
-      res,
-      convertedResult};
+  std::vector<Node> leanArgs = {NodeManager::currentNM()->mkConstInt(
+                                    Rational(static_cast<uint32_t>(rule))),
+                                res,
+                                convertedResult};
   leanArgs.insert(leanArgs.end(), args.begin(), args.end());
   bool success CVC5_UNUSED =
       cdp.addStep(res, PfRule::LEAN_RULE, children, leanArgs);
@@ -155,13 +154,13 @@ Node LeanProofPostprocessCallback::getLastDiffs(Node clause,
   return Node::null();
 }
 
-
 Node LeanProofPostprocessCallback::getSingletonPosition(
     Node clause, size_t pos, const std::vector<Node>& pivots)
 {
   NodeManager* nm = NodeManager::currentNM();
   if (clause.getKind() != kind::OR
-      || (pivots[2 * (pos - 1)] == d_false && pivots[2 * (pos - 1) + 1] == clause))
+      || (pivots[2 * (pos - 1)] == d_false
+          && pivots[2 * (pos - 1) + 1] == clause))
   {
     return nm->mkConstInt(Rational(0));
   }
@@ -284,13 +283,7 @@ bool LeanProofPostprocessCallback::update(Node res,
     }
     case PfRule::REFL:
     {
-      addLeanStep(
-          res,
-          LeanRule::REFL,
-          d_lnc.convert(res),
-          children,
-          {},
-          *cdp);
+      addLeanStep(res, LeanRule::REFL, d_lnc.convert(res), children, {}, *cdp);
       break;
     }
     case PfRule::NOT_OR_ELIM:
@@ -553,11 +546,11 @@ bool LeanProofPostprocessCallback::update(Node res,
       uint32_t typeId;
       switch (op.getKind())
       {
-        case Kind::LT:     typeId = 0; break;
-        case Kind::LEQ:    typeId = 1; break;
-        case Kind::GT:     typeId = 2; break;
-        case Kind::GEQ:    typeId = 3; break;
-        case Kind::EQUAL:  typeId = 4; break;
+        case Kind::LT: typeId = 0; break;
+        case Kind::LEQ: typeId = 1; break;
+        case Kind::GT: typeId = 2; break;
+        case Kind::GEQ: typeId = 3; break;
+        case Kind::EQUAL: typeId = 4; break;
         /* unknown operator in arithMultPos/Neg (throw?) */
         default:
         {
@@ -570,10 +563,9 @@ bool LeanProofPostprocessCallback::update(Node res,
       Node m = args[0];
       Node l = args[1][0];
       Node r = args[1][1];
-      Node argsList =
-        nm->mkNode(kind::SEXPR, l, r, m);
-      std::vector<Node> newArgs { d_lnc.convert(argsList),
-                                  nm->mkConstInt(Rational(typeId)) };
+      Node argsList = nm->mkNode(kind::SEXPR, l, r, m);
+      std::vector<Node> newArgs{d_lnc.convert(argsList),
+                                nm->mkConstInt(Rational(typeId))};
       addLeanStep(res,
                   s_pfRuleToLeanRule.at(id),
                   d_lnc.convert(res),
@@ -880,8 +872,10 @@ bool LeanProofPostprocessCallback::update(Node res,
             }
             else
             {
-              Node add1 = nm->mkNode(kind::SEXPR, op, children[j][0], currEq[0]);
-              Node add2 = nm->mkNode(kind::SEXPR, op, children[j][1], currEq[1]);
+              Node add1 =
+                  nm->mkNode(kind::SEXPR, op, children[j][0], currEq[0]);
+              Node add2 =
+                  nm->mkNode(kind::SEXPR, op, children[j][1], currEq[1]);
               Node nxtEq = nm->mkNode(kind::SEXPR, eqNode, add1, add2);
               addLeanStep(nxtEq,
                           LeanRule::CONG_ADD_PARTIAL,
@@ -894,7 +888,8 @@ bool LeanProofPostprocessCallback::update(Node res,
           }
           break;
         }
-        // add internal refl step for operator. For now not using congrArg in this case
+        // add internal refl step for operator. For now not using congrArg in
+        // this case
         Node opEq = nm->mkNode(kind::SEXPR,
                                d_lnc.mkPrintableOp(kind::EQUAL),
                                opConverted,
@@ -1252,10 +1247,14 @@ bool LeanProofPostprocessCallback::update(Node res,
       }
       else
       {
-        singleton = nm->mkConstInt(Rational(- 1));
+        singleton = nm->mkConstInt(Rational(-1));
       }
-      addLeanStep(
-          res, LeanRule::FACTORING, d_lnc.convert(res), children, {singleton}, *cdp);
+      addLeanStep(res,
+                  LeanRule::FACTORING,
+                  d_lnc.convert(res),
+                  children,
+                  {singleton},
+                  *cdp);
       break;
     }
     case PfRule::CNF_AND_POS:
@@ -1341,7 +1340,8 @@ void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
   const std::vector<Node> args = scopePf->getArguments();
   std::vector<Node> newArgs{args[0], args[1], args[2]};
   NodeManager* nm = NodeManager::currentNM();
-  newArgs.push_back(nm->mkConstInt(Rational(d_cb->d_newHoleAssumptions.size())));
+  newArgs.push_back(
+      nm->mkConstInt(Rational(d_cb->d_newHoleAssumptions.size())));
   Trace("test")
       << newArgs.back().getConst<Rational>().getNumerator().toUnsignedInt()
       << "\n";
@@ -1349,7 +1349,8 @@ void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
   {
     newArgs.push_back(a);
   }
-  newArgs.push_back(nm->mkConstInt(Rational(d_cb->d_newRewriteAssumptions.size())));
+  newArgs.push_back(
+      nm->mkConstInt(Rational(d_cb->d_newRewriteAssumptions.size())));
   Trace("test")
       << newArgs.back().getConst<Rational>().getNumerator().toUnsignedInt()
       << "\n";
