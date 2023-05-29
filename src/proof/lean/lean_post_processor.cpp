@@ -548,9 +548,9 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::ARITH_MULT_POS:
     case PfRule::ARITH_MULT_NEG:
     {
-      AlwaysAssert((int) args.size() == 2);
+      Assert(args.size() == 2);
       Node op = args[1];
-      int typeId;
+      uint32_t typeId;
       switch (op.getKind())
       {
         case Kind::LT:     typeId = 0; break;
@@ -559,14 +559,21 @@ bool LeanProofPostprocessCallback::update(Node res,
         case Kind::GEQ:    typeId = 3; break;
         case Kind::EQUAL:  typeId = 4; break;
         /* unknown operator in arithMultPos/Neg (throw?) */
-        default: AlwaysAssert(false); typeId = -1; break;
+        default:
+        {
+          Unreachable() << "Unexpected operator kind in "
+                        << s_pfRuleToLeanRule.at(id) << "\n";
+          typeId = -1;
+          break;
+        }
       }
       Node m = args[0];
       Node l = args[1][0];
       Node r = args[1][1];
       Node argsList =
         nm->mkNode(kind::SEXPR, l, r, m);
-      std::vector<Node> newArgs { d_lnc.convert(argsList), nm->mkConstInt(typeId) };
+      std::vector<Node> newArgs { d_lnc.convert(argsList),
+                                  nm->mkConstInt(Rational(typeId)) };
       addLeanStep(res,
                   s_pfRuleToLeanRule.at(id),
                   d_lnc.convert(res),
