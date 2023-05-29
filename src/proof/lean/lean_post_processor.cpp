@@ -551,7 +551,6 @@ bool LeanProofPostprocessCallback::update(Node res,
         case Kind::GT: typeId = 2; break;
         case Kind::GEQ: typeId = 3; break;
         case Kind::EQUAL: typeId = 4; break;
-        /* unknown operator in arithMultPos/Neg (throw?) */
         default:
         {
           Unreachable() << "Unexpected operator kind in "
