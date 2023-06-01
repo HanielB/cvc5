@@ -112,6 +112,7 @@ const char* toString(LeanRule id)
     case LeanRule::SUM_BOUNDS: return "sumBounds";
     case LeanRule::ARITH_MULT_POS: return "arithMulPos";
     case LeanRule::ARITH_MULT_NEG: return "arithMulNeg";
+    case LeanRule::ARITH_MULT_SIGN: return "arithMulSign";
     case LeanRule::TRICHOTOMY: return "trichotomy";
     case LeanRule::INT_TIGHT_UB: return "intTightUb";
     case LeanRule::INT_TIGHT_LB: return "intTightLb";

@@ -83,6 +83,7 @@ std::unordered_map<PfRule, LeanRule, PfRuleHashFunction> s_pfRuleToLeanRule = {
     {PfRule::ARITH_SUM_UB, LeanRule::SUM_BOUNDS},
     {PfRule::ARITH_MULT_POS, LeanRule::ARITH_MULT_POS},
     {PfRule::ARITH_MULT_NEG, LeanRule::ARITH_MULT_NEG},
+    {PfRule::ARITH_MULT_SIGN, LeanRule::ARITH_MULT_SIGN},
     {PfRule::ARITH_TRICHOTOMY, LeanRule::TRICHOTOMY},
     {PfRule::INT_TIGHT_UB, LeanRule::INT_TIGHT_UB},
     {PfRule::INT_TIGHT_LB, LeanRule::INT_TIGHT_LB},
@@ -1301,6 +1302,72 @@ bool LeanProofPostprocessCallback::update(Node res,
                   d_lnc.convert(res),
                   children,
                   {d_lnc.convert(nm->mkNode(kind::SEXPR, resArgs)), args[1]},
+                  *cdp);
+      break;
+    }
+    case PfRule::ARITH_MULT_SIGN:
+    {
+      std::vector<Node> variables;
+      std::vector<Node> pols;
+      // last element is the conclusion
+      size_t numArgs = args.size();
+      for (size_t i = 0; i < numArgs - 1; i++)
+      {
+        Node currArg = args[i].getKind() == Kind::NOT ? args[i][0] : args[i];
+        Node toPush;
+        int32_t pol;
+        Assert(!currArg[0].isConst()
+               || currArg[0].getConst<Rational>() == Rational(0));
+        Assert(!currArg[1].isConst()
+               || currArg[1].getConst<Rational>() == Rational(0));
+        if (currArg[0].isConst())
+        {
+          toPush = currArg[1];
+          pol = currArg.getKind() == Kind::LT      ? 1
+                : currArg.getKind() == Kind::EQUAL ? 0
+                                                   : -1;
+        }
+        else
+        {
+          toPush = currArg[0];
+          pol = currArg.getKind() == Kind::LT      ? -1
+                : currArg.getKind() == Kind::EQUAL ? 0
+                                                   : 1;
+        }
+        pols.push_back(nm->mkConstInt(Rational(pol)));
+        variables.push_back(toPush);
+      }
+      Node variablesNode = nm->mkNode(Kind::SEXPR, variables);
+      Node polsNode = nm->mkNode(Kind::SEXPR, pols);
+      std::vector<Node> newArgs{d_lnc.convert(variablesNode),
+                                d_lnc.convert(polsNode)};
+      // assumption: the terms in the conclusion appear in the same
+      // order as they appear in the premisses
+      const Node& conclusion = args.back();
+      uint32_t countEqual = 1;
+      std::vector<Node> exponents;
+      for (size_t i = 1; i < conclusion.getNumChildren(); ++i)
+      {
+        if (conclusion[i] == conclusion[i - 1])
+        {
+          countEqual++;
+        }
+        else
+        {
+          Node currExponent = nm->mkConstInt(Rational(countEqual));
+          exponents.push_back(currExponent);
+          countEqual = 1;
+        }
+      }
+      Node currExponent = nm->mkConstInt(Rational(countEqual));
+      exponents.push_back(currExponent);
+      Node exponentsNode = nm->mkNode(Kind::SEXPR, exponents);
+      newArgs.push_back(d_lnc.convert(exponentsNode));
+      addLeanStep(res,
+                  LeanRule::ARITH_MULT_SIGN,
+                  d_lnc.convert(res),
+                  children,
+                  newArgs,
                   *cdp);
       break;
     }

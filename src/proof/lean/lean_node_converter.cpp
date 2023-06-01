@@ -60,6 +60,7 @@ std::unordered_map<Kind, std::string> s_kindToString = {
     {kind::MULT, "HMul.hMul"},
     {kind::NONLINEAR_MULT, "HMul.hMul"},
     {kind::DIVISION, "HDiv.hDiv"},
+    {kind::DIVISION_TOTAL, "HDiv.hDiv"},
     {kind::INTS_DIVISION, "HDiv.hDiv"},
     {kind::INTS_DIVISION_TOTAL, "HDiv.hDiv"},
 };
@@ -353,6 +354,7 @@ Node LeanNodeConverter::convert(Node n)
         case kind::LT:
         case kind::SUB:
         case kind::DIVISION:
+        case kind::DIVISION_TOTAL:
         case kind::INTS_DIVISION:
         case kind::INTS_DIVISION_TOTAL:
         {
@@ -726,6 +728,7 @@ Node LeanNodeConverter::mkPrintableOp(Kind k)
     }
     case kind::INTS_DIVISION_TOTAL:
     case kind::INTS_DIVISION:
+    case kind::DIVISION_TOTAL:
     case kind::DIVISION:
     {
       return mkInternalSymbol("HDiv.hDiv");
