@@ -1313,10 +1313,10 @@ bool LeanProofPostprocessCallback::update(Node res,
       // last element is the conclusion
       for (size_t i = 0; i < numArgs - 1; i++)
       {
-        Assert(arg[i].getKind() == Kind::NOT ||
-               arg[i].getKind() == Kind::LT  ||
-               arg[i].getKind() == Kind::GT);
-        const Node& currArg = args[i].getKind() == Kind::NOT ? args[i][0] : args[i];
+        Assert(arg[i].getKind() == Kind::NOT || arg[i].getKind() == Kind::LT
+               || arg[i].getKind() == Kind::GT);
+        const Node& currArg =
+            args[i].getKind() == Kind::NOT ? args[i][0] : args[i];
         Node toPush;
         int32_t pol;
         Assert(!currArg[0].isConst()
