@@ -105,6 +105,7 @@ LeanPrinter::LeanPrinter(Env& env, LeanNodeConverter& lnc)
           {LeanRule::INT_TIGHT_LB, false},
           {LeanRule::ARITH_MULT_POS, false},
           {LeanRule::ARITH_MULT_NEG, false},
+          {LeanRule::ARITH_MULT_SIGN, false},
       }),
       d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
                                           : 0),
