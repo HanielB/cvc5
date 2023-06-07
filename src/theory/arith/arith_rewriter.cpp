@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "expr/algorithm/flatten.h"
+#include "expr/node_algorithm.h"
 #include "smt/logic_exception.h"
 #include "theory/arith/arith_msum.h"
 #include "theory/arith/arith_utilities.h"
@@ -50,6 +51,10 @@ ArithRewriter::ArithRewriter(OperatorElim& oe) : d_opElim(oe) {}
 RewriteResponse ArithRewriter::preRewrite(TNode t)
 {
   Trace("arith-rewriter") << "preRewrite(" << t << ")" << std::endl;
+  if (expr::hasAbstractSubterm(t))
+  {
+    return RewriteResponse(REWRITE_DONE, t);
+  }
   if (rewriter::isAtom(t))
   {
     auto res = preRewriteAtom(t);
@@ -65,6 +70,10 @@ RewriteResponse ArithRewriter::preRewrite(TNode t)
 RewriteResponse ArithRewriter::postRewrite(TNode t)
 {
   Trace("arith-rewriter") << "postRewrite(" << t << ")" << std::endl;
+  if (expr::hasAbstractSubterm(t))
+  {
+    return RewriteResponse(REWRITE_DONE, t);
+  }
   if (rewriter::isAtom(t))
   {
     auto res = postRewriteAtom(t);
@@ -188,16 +197,6 @@ RewriteResponse ArithRewriter::postRewriteAtom(TNode atom)
   rewriter::addToSum(sum, left, negate);
   rewriter::addToSum(sum, right, !negate);
 
-  if (kind != Kind::EQUAL)
-  {
-    // see if we should convert the inequality to a bitvector inequality
-    RewriteResponse rineqBv = rewriteIneqToBv(kind, sum, atom);
-    if (rineqBv.d_node != atom)
-    {
-      return rineqBv;
-    }
-  }
-
   // Now we have (sum <kind> 0)
   if (rewriter::isIntegral(sum))
   {
@@ -238,6 +237,8 @@ RewriteResponse ArithRewriter::preRewriteTerm(TNode t){
       case kind::NONLINEAR_MULT: return preRewriteMult(t);
       case kind::IAND: return RewriteResponse(REWRITE_DONE, t);
       case kind::POW2: return RewriteResponse(REWRITE_DONE, t);
+      case kind::INTS_ISPOW2: return RewriteResponse(REWRITE_DONE, t);
+      case kind::INTS_LOG2: return RewriteResponse(REWRITE_DONE, t);
       case kind::EXPONENTIAL:
       case kind::SINE:
       case kind::COSINE:
@@ -287,6 +288,8 @@ RewriteResponse ArithRewriter::postRewriteTerm(TNode t){
       case kind::NONLINEAR_MULT: return postRewriteMult(t);
       case kind::IAND: return postRewriteIAnd(t);
       case kind::POW2: return postRewritePow2(t);
+      case kind::INTS_ISPOW2: return postRewriteIntsIsPow2(t);
+      case kind::INTS_LOG2: return postRewriteIntsLog2(t);
       case kind::EXPONENTIAL:
       case kind::SINE:
       case kind::COSINE:
@@ -323,17 +326,23 @@ RewriteResponse ArithRewriter::postRewriteTerm(TNode t){
             if (exp <= r)
             {
               unsigned num = exp.getNumerator().toUnsignedInt();
+              Node ret;
               if( num==1 ){
-                return RewriteResponse(REWRITE_AGAIN, base);
+                ret = base;
               }else{
                 NodeBuilder nb(kind::MULT);
                 for(unsigned i=0; i < num; ++i){
                   nb << base;
                 }
                 Assert(nb.getNumChildren() > 0);
-                Node mult = nb;
-                return RewriteResponse(REWRITE_AGAIN, mult);
+                ret = nb;
               }
+              // ensure type is preserved
+              if (t.getType().isReal())
+              {
+                ret = rewriter::ensureReal(ret);
+              }
+              return RewriteResponse(REWRITE_AGAIN, ret);
             }
           }
         }
@@ -342,8 +351,13 @@ RewriteResponse ArithRewriter::postRewriteTerm(TNode t){
                         == 2
                  && t[1].getType().isInteger())
         {
-          return RewriteResponse(
-              REWRITE_DONE, NodeManager::currentNM()->mkNode(kind::POW2, t[1]));
+          Node ret = NodeManager::currentNM()->mkNode(kind::POW2, t[1]);
+          // ensure type is preserved
+          if (t.getType().isReal())
+          {
+            ret = rewriter::ensureReal(ret);
+          }
+          return RewriteResponse(REWRITE_AGAIN, ret);
         }
 
         // Todo improve the exception thrown
@@ -551,9 +565,9 @@ RewriteResponse ArithRewriter::rewriteDiv(TNode t, bool pre)
     }
     if (rewriter::isRAN(left))
     {
-      return RewriteResponse(
-          REWRITE_DONE,
-          nm->mkRealAlgebraicNumber(rewriter::getRAN(left) / den));
+      return RewriteResponse(REWRITE_DONE,
+                             rewriter::ensureReal(nm->mkRealAlgebraicNumber(
+                                 rewriter::getRAN(left) / den)));
     }
 
     Node result = nm->mkConstReal(den.inverse());
@@ -572,9 +586,10 @@ RewriteResponse ArithRewriter::rewriteDiv(TNode t, bool pre)
     // mkConst is applied to RAN in this block, which are always Real
     if (left.isConst())
     {
-      return RewriteResponse(REWRITE_DONE,
-                             rewriter::ensureReal(rewriter::mkConst(
-                                 left.getConst<Rational>() / den)));
+      return RewriteResponse(
+          REWRITE_DONE,
+          rewriter::ensureReal(rewriter::mkConst(
+              RealAlgebraicNumber(left.getConst<Rational>()) / den)));
     }
     if (rewriter::isRAN(left))
     {
@@ -583,7 +598,7 @@ RewriteResponse ArithRewriter::rewriteDiv(TNode t, bool pre)
                                  rewriter::getRAN(left) / den)));
     }
 
-    Node result = rewriter::mkConst(inverse(den));
+    Node result = rewriter::mkConst(den.inverse());
     Node mult = rewriter::ensureReal(
         NodeManager::currentNM()->mkNode(kind::MULT, left, result));
     if (pre)
@@ -593,8 +608,13 @@ RewriteResponse ArithRewriter::rewriteDiv(TNode t, bool pre)
     // requires again full since ensureReal may have added a to_real
     return RewriteResponse(REWRITE_AGAIN_FULL, mult);
   }
-  Node ret = nm->mkNode(t.getKind(), left, right);
-  return RewriteResponse(REWRITE_DONE, ret);
+  // may have changed due to removing to_real
+  if (left!=t[0] || right!=t[1])
+  {
+    Node ret = nm->mkNode(t.getKind(), left, right);
+    return RewriteResponse(REWRITE_AGAIN_FULL, ret);
+  }
+  return RewriteResponse(REWRITE_DONE, t);
 }
 
 RewriteResponse ArithRewriter::rewriteToReal(TNode t)
@@ -611,6 +631,11 @@ RewriteResponse ArithRewriter::rewriteToReal(TNode t)
     // If the argument is constant, return a real constant.
     const Rational& rat = t[0].getConst<Rational>();
     return RewriteResponse(REWRITE_DONE, nm->mkConstReal(rat));
+  }
+  if (t[0].getKind()==kind::TO_REAL)
+  {
+    // (to_real (to_real t)) ---> (to_real t)
+    return RewriteResponse(REWRITE_DONE, t[0]);
   }
   return RewriteResponse(REWRITE_DONE, t);
 }
@@ -886,6 +911,35 @@ RewriteResponse ArithRewriter::postRewritePow2(TNode t)
   return RewriteResponse(REWRITE_DONE, t);
 }
 
+RewriteResponse ArithRewriter::postRewriteIntsIsPow2(TNode t)
+{
+  Assert(t.getKind() == kind::INTS_ISPOW2);
+  // if constant, we eliminate
+  if (t[0].isConst())
+  {
+    // pow2 is only supported for integers
+    Assert(t[0].getType().isInteger());
+    Integer i = t[0].getConst<Rational>().getNumerator();
+
+    return RewriteResponse(REWRITE_DONE, rewriter::mkConst(i.isPow2()));
+  }
+  return RewriteResponse(REWRITE_DONE, t);
+}
+RewriteResponse ArithRewriter::postRewriteIntsLog2(TNode t)
+{
+  Assert(t.getKind() == kind::INTS_LOG2);
+  // if constant, we eliminate
+  if (t[0].isConst())
+  {
+    // pow2 is only supported for integers
+    Assert(t[0].getType().isInteger());
+    Integer i = t[0].getConst<Rational>().getNumerator();
+    size_t const length = i.length();
+    return RewriteResponse(REWRITE_DONE, rewriter::mkConst(Integer(length)));
+  }
+  return RewriteResponse(REWRITE_DONE, t);
+}
+
 RewriteResponse ArithRewriter::preRewriteTranscendental(TNode t)
 {
   return RewriteResponse(REWRITE_DONE, t);
@@ -1134,9 +1188,23 @@ RewriteResponse ArithRewriter::returnRewrite(TNode t, Node ret, Rewrite r)
   return RewriteResponse(REWRITE_AGAIN_FULL, ret);
 }
 
-RewriteResponse ArithRewriter::rewriteIneqToBv(Kind kind,
-                                               const rewriter::Sum& sum,
-                                               const Node& ineq)
+Node ArithRewriter::rewriteIneqToBv(const Node& ineq)
+{
+  Assert(ineq.getKind() == kind::GEQ);
+
+  Node left = rewriter::removeToReal(ineq[0]);
+  Node right = rewriter::removeToReal(ineq[1]);
+
+  rewriter::Sum sum;
+  rewriter::addToSum(sum, left, false);
+  rewriter::addToSum(sum, right, true);
+
+  return rewriteIneqToBv(kind::GEQ, sum, ineq);
+}
+
+Node ArithRewriter::rewriteIneqToBv(Kind kind,
+                                    const rewriter::Sum& sum,
+                                    const Node& ineq)
 {
   bool convertible = true;
   // the (single) bv2nat term in the sum
@@ -1216,9 +1284,9 @@ RewriteResponse ArithRewriter::rewriteIneqToBv(Kind kind,
     //      (ite (>= N 2^w) false (ite (< N 0) true (bvuge x ((_ int2bv w) N))
     // where N is a constant. Note that ((_ int2bv w) N) will subsequently
     // be rewritten to the appropriate bitvector constant.
-    return returnRewrite(ineq, ret, Rewrite::INEQ_BV_TO_NAT_ELIM);
+    return ret;
   }
-  return RewriteResponse(REWRITE_DONE, ineq);
+  return ineq;
 }
 
 }  // namespace arith

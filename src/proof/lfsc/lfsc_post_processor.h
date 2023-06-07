@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Andrew Reynolds
+ *   Andrew Reynolds, Abdalrhman Mohamed
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -70,6 +70,10 @@ class LfscProofPostprocessCallback : protected EnvObj,
   uint8_t d_numIgnoredScopes;
   /** Assumptions corresponding to user-defined functions */
   std::unordered_set<Node> d_defs;
+  /** add refl step */
+  std::map<Node, std::shared_ptr<ProofNode> > d_refl;
+  /** add refl */
+  void addRefl(CDProof* cdp, Node t);
   /** Add LFSC rule to cdp with children, args, conc */
   void addLfscRule(CDProof* cdp,
                    Node conc,
@@ -78,7 +82,7 @@ class LfscProofPostprocessCallback : protected EnvObj,
                    const std::vector<Node>& args);
   /** Make chained form of a term */
   Node mkChain(Kind k, const std::vector<Node>& children);
-  /** 
+  /**
    * Reconstruct the proof for congruence proving res with the given
    * children, populate into cdp. Used for:
    * (1) CONG over operator startOp != null,

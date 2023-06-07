@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -58,6 +58,11 @@ bool BasicRewriteRCons::prove(
       return true;
     }
   }
+  if (tryRule(cdp, eq, PfRule::EXISTS_ELIM, {eq[0]}))
+  {
+    Trace("trewrite-rcons") << "...EXISTS_ELIM" << std::endl;
+    return true;
+  }
   Trace("trewrite-rcons") << "...(fail)" << std::endl;
   return false;
 }
@@ -67,6 +72,7 @@ bool BasicRewriteRCons::tryRule(CDProof* cdp,
                                 PfRule r,
                                 const std::vector<Node>& args)
 {
+  Trace("trewrite-rcons-debug") << "Try " << r << std::endl;
   ProofChecker* pc = d_env.getProofNodeManager()->getChecker();
   // do not provide expected, as this will always succeed if proof checking
   // is disabled

@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -204,6 +204,12 @@ TrustNode TheoryUF::ppRewrite(TNode node, std::vector<SkolemLemma>& lems)
                       << std::endl;
   Kind k = node.getKind();
   bool isHol = logicInfo().isHigherOrder();
+  if (node.getType().isAbstract())
+  {
+    std::stringstream ss;
+    ss << "Cannot process term of abstract type " << node;
+    throw LogicException(ss.str());
+  }
   if (k == kind::HO_APPLY || node.getType().isFunction())
   {
     if (!isHol)
@@ -620,6 +626,8 @@ void TheoryUF::computeCareGraph() {
     }
     if (has_trigger_arg)
     {
+      Trace("uf::sharing-terms")
+          << "...add: " << app << " / " << reps << std::endl;
       Kind k = app.getKind();
       if (k == kind::APPLY_UF)
       {
