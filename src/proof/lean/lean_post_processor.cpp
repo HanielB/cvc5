@@ -338,24 +338,24 @@ bool LeanProofPostprocessCallback::update(Node res,
       break;
     }
     // retrieve witness form
-    case PfRule::ARRAYS_EXT:
-    {
-      // The skolem is res[0][0][1]
-      Node k = res[0][0][1];
-      Node var = SkolemManager::getWitnessForm(k)[0][0];
-      Trace("test-lean") << "skolem " << k << " has witness form "
-                         << SkolemManager::getWitnessForm(k) << ", its ID is "
-                         << var.getId() << "\n";
-      // arguments will be the id of the variable and its sort
-      addLeanStep(res,
-                  s_pfRuleToLeanRule.at(id),
-                  d_lnc.convert(res),
-                  children,
-                  {nm->mkConstInt(Rational(var.getId())),
-                   nm->mkBoundVar(var.getType().getName(), nm->sExprType())},
-                  *cdp);
-      break;
-    }
+    // case PfRule::ARRAYS_EXT:
+    // {
+    //   // The skolem is res[0][0][1]
+    //   Node k = res[0][0][1];
+    //   Node var = SkolemManager::getWitnessForm(k)[0][0];
+    //   Trace("test-lean") << "skolem " << k << " has witness form "
+    //                      << SkolemManager::getWitnessForm(k) << ", its ID is "
+    //                      << var.getId() << "\n";
+    //   // arguments will be the id of the variable and its sort
+    //   addLeanStep(res,
+    //               s_pfRuleToLeanRule.at(id),
+    //               d_lnc.convert(res),
+    //               children,
+    //               {nm->mkConstInt(Rational(var.getId())),
+    //                nm->mkBoundVar(var.getType().getName(), nm->sExprType())},
+    //               *cdp);
+    //   break;
+    // }
     // We handle this as a reflexivity step since the original form of the
     // skolem at res[0] is res[1]
     case PfRule::SKOLEM_INTRO:
@@ -1313,8 +1313,8 @@ bool LeanProofPostprocessCallback::update(Node res,
       // last element is the conclusion
       for (size_t i = 0; i < numArgs - 1; i++)
       {
-        Assert(arg[i].getKind() == Kind::NOT || arg[i].getKind() == Kind::LT
-               || arg[i].getKind() == Kind::GT);
+        Assert(args[i].getKind() == Kind::NOT || args[i].getKind() == Kind::LT
+               || args[i].getKind() == Kind::GT);
         const Node& currArg =
             args[i].getKind() == Kind::NOT ? args[i][0] : args[i];
         Node toPush;
@@ -1390,8 +1390,15 @@ bool LeanProofPostprocessCallback::update(Node res,
 
 void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
 {
+  // first two nodes are scopes for definitions and other assumptions. We
+  // process only the internal proof node. And we merge these two scopes
+  Assert(pf->getRule() == PfRule::SCOPE
+         && pf->getChildren()[0]->getRule() == PfRule::SCOPE);
+  std::shared_ptr<ProofNode> definitionsScope = pf;
+  std::shared_ptr<ProofNode> assumptionsScope = pf->getChildren()[0];
+
   ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
-  updater.process(pf);
+  updater.process(assumptionsScope);
   // The resulting proof is the one under the original scope.  Since our
   // processing of scope converts it into two rules (scope and
   // lifnOrNToImp/lifnOrNToNeg), we wil exclude this outer one. Furthermore, we
@@ -1400,8 +1407,8 @@ void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
   // about the original conclusion, so this is fine
   CDProof cdp(
       d_env, nullptr, "LeanProofPostprocess::CDProofForNewAssumptions", false);
-  std::shared_ptr<ProofNode> scopePf = pf->getChildren()[0];
-  Node res = pf->getResult();
+  std::shared_ptr<ProofNode> scopePf = assumptionsScope->getChildren()[0];
+  Node res = assumptionsScope->getResult();
   const std::vector<std::shared_ptr<ProofNode>>& childrenPfs =
       scopePf->getChildren();
   Assert(childrenPfs.size() == 1);
@@ -1428,6 +1435,11 @@ void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
     newArgs.push_back(a);
   }
   newArgs.insert(newArgs.end(), args.begin() + 3, args.end());
+  // now add the define funs
+  newArgs.insert(newArgs.end(),
+                 definitionsScope->getArguments().begin(),
+                 definitionsScope->getArguments().end());
+  // finally, build the proof node
   cdp.addStep(res, PfRule::LEAN_RULE, {childrenPfs[0]->getResult()}, newArgs);
   d_env.getProofNodeManager()->updateNode(pf.get(), cdp.getProofFor(res).get());
 };
