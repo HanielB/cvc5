@@ -21,6 +21,7 @@
 #include "expr/bound_var_manager.h"
 #include "expr/node_algorithm.h"
 #include "expr/node_manager_attributes.h"
+#include "proof/proof_rule_checker.h"
 #include "util/rational.h"
 
 using namespace cvc5::internal::kind;
@@ -170,6 +171,22 @@ Node SkolemManager::mkSkolemFunction(SkolemFunId id,
     d_skolemFunMap[k] = key;
     Trace("sk-manager-skolem") << "mkSkolemFunction(" << id << ", " << cacheVal
                                << ") returns " << k << std::endl;
+    if (id == SkolemFunId::QUANTIFIERS_SKOLEMIZE)
+    {
+      Assert(cacheVal.getNumChildren() == 2
+             && cacheVal[0].getKind() == kind::EXISTS);
+      uint32_t index;
+      if (ProofRuleChecker::getUInt32(cacheVal[1], index))
+      {
+        Assert(index < cacheVal[0][0].getNumChildren());
+        d_bvarSkolemMap[cacheVal[0][0][index]] = k;
+      }
+      else
+      {
+        Unreachable() << "Wrong position for quantifiers skolemization skolem: "
+                      << cacheVal[1] << ", quant " << cacheVal[0];
+      }
+    }
     return k;
   }
   return it->second;
@@ -339,6 +356,16 @@ Node SkolemManager::getUnpurifiedForm(Node k)
     return k.getAttribute(ufa);
   }
   return k;
+}
+
+Node SkolemManager::getSkolemForBVar(Node v)
+{
+  auto it = d_bvarSkolemMap.find(v);
+  if (it == d_bvarSkolemMap.end())
+  {
+    return Node::null();
+  }
+  return it->second;
 }
 
 Node SkolemManager::mkSkolemInternal(Node w,
