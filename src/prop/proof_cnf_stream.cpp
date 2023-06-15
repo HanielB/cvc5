@@ -1230,7 +1230,7 @@ SatLiteral ProofCnfStream::handleImplies(TNode node)
   added = d_cnfStream.assertClause(node, ~b, lit);
   if (added)
   {
-    Node clauseNode = nm->mkNode(kind::OR, node, node[1].notNode());
+    Node clauseNode = nm->mkNode(kind::OR, node[1].notNode(), node);
     d_proof.addStep(clauseNode, PfRule::CNF_IMPLIES_NEG2, {}, {node});
     Trace("cnf") << "ProofCnfStream::handleImplies: CNF_IMPLIES_NEG2 added "
                  << clauseNode << "\n";
