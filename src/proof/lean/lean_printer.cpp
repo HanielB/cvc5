@@ -393,8 +393,7 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     Trace("test-lean-pf") << ss.str() << "\n";
   }
   // Print preamble
-  out << "import Smt.Reconstruction.Certifying\n\nopen Classical\nopen "
-         "Smt.Reconstruction.Certifying\n\n";
+  out << "open Classical\nopen Smt.Reconstruction.Certifying\n\n";
   // increase recursion depth and heartbeats
   out << "\n\nset_option maxRecDepth 10000\nset_option maxHeartbeats 500000\n\n";
   uint64_t thId;
