@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Liana Hadarean, Andres Noetzli, Andrew Reynolds
+ *   Liana Hadarean, Aina Niemetz, Andres Noetzli
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -90,9 +90,8 @@ class TheoryBVRewriter : public TheoryRewriter
   static RewriteResponse RewriteSsubo(TNode node, bool prerewrite = false);
   static RewriteResponse RewriteSdivo(TNode node, bool prerewrite = false);
   static RewriteResponse RewriteEagerAtom(TNode node, bool prerewrite = false);
-
-  static RewriteResponse RewriteBVToNat(TNode node, bool prerewrite = false);
-  static RewriteResponse RewriteIntToBV(TNode node, bool prerewrite = false);
+  static RewriteResponse RewriteSize(TNode node, bool prerewrite = false);
+  static RewriteResponse RewriteConstBvSym(TNode node, bool prerewrite = false);
 
   void initializeRewrites();
 

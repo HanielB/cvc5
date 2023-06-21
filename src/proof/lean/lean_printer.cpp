@@ -79,6 +79,7 @@ LeanPrinter::LeanPrinter(Env& env, LeanNodeConverter& lnc)
                   LeanRule::R1_PARTIAL,
                   LeanRule::CONG_PARTIAL,
                   LeanRule::CONG_ARG_PARTIAL,
+                  LeanRule::CONG_ADD_PARTIAL,
                   LeanRule::BIND_PARTIAL,
                   LeanRule::BIND_LAMBDA_PARTIAL,
                   LeanRule::TRANS_PARTIAL,
@@ -102,6 +103,9 @@ LeanPrinter::LeanPrinter(Env& env, LeanNodeConverter& lnc)
           {LeanRule::TRICHOTOMY, false},
           {LeanRule::INT_TIGHT_UB, false},
           {LeanRule::INT_TIGHT_LB, false},
+          {LeanRule::ARITH_MULT_POS, false},
+          {LeanRule::ARITH_MULT_NEG, false},
+          {LeanRule::ARITH_MULT_SIGN, false},
       }),
       d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
                                           : 0),
@@ -370,7 +374,7 @@ void LeanPrinter::printProof(std::ostream& out,
   out << (isNaryTactic ? "]" : "");
   for (size_t i = 3, size = args.size(); i < size; ++i)
   {
-    out << separator;
+    out << ((children.empty() && i == 3) ? " " : separator);
     printTerm(out, args[i]);
   }
   out << (firstScope ? ")" : "") << "\n";

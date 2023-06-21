@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -15,6 +15,8 @@
 
 #include "proof/alethe/alethe_post_processor.h"
 
+#include <sstream>
+
 #include "expr/node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "proof/alethe/alethe_proof_rule.h"
@@ -23,6 +25,7 @@
 #include "proof/proof_node_algorithm.h"
 #include "proof/proof_node_manager.h"
 #include "proof/resolution_proofs_util.h"
+#include "rewriter/rewrite_proof_rule.h"
 #include "smt/env.h"
 #include "theory/builtin/proof_checker.h"
 #include "util/rational.h"
@@ -35,7 +38,6 @@ namespace proof {
 
 std::unordered_map<Kind, AletheRule> s_bvKindToAletheRule = {
   {kind::BITVECTOR_ULT, AletheRule::BV_BITBLAST_STEP_BVULT},
-  {kind::VARIABLE, AletheRule::BV_BITBLAST_STEP_VAR},
   {kind::BITVECTOR_AND, AletheRule::BV_BITBLAST_STEP_BVAND},
   {kind::BITVECTOR_OR, AletheRule::BV_BITBLAST_STEP_BVOR},
   {kind::BITVECTOR_XOR, AletheRule::BV_BITBLAST_STEP_BVXOR},
@@ -83,8 +85,8 @@ bool AletheProofPostprocessCallback::update(Node res,
                                             CDProof* cdp,
                                             bool& continueUpdate)
 {
-  Trace("alethe-proof") << "- Alethe post process callback " << res << " " << id
-                        << " " << children << " / " << args << std::endl;
+  Trace("alethe-proof") << "...Alethe pre-update " << res << " " << id << " "
+                        << children << " / " << args << std::endl;
 
   NodeManager* nm = NodeManager::currentNM();
   std::vector<Node> new_args = std::vector<Node>();
@@ -383,9 +385,109 @@ bool AletheProofPostprocessCallback::update(Node res,
 
       return success;
     }
+    case PfRule::DSL_REWRITE:
+    {
+      // get the name
+      rewriter::DslPfRule di;
+      Node rule;
+      if (rewriter::getDslPfRule(args[0], di))
+      {
+        std::stringstream ss;
+        ss << di;
+        rule = nm->mkBoundVar(ss.str(), nm->sExprType());
+      }
+      else
+      {
+        Unreachable();
+      }
+      new_args.push_back(rule);
+      for (int i = 1, size = args.size(); i < size; i++)
+      {
+        if (!args[i].isNull())
+        {
+          if (args[i].toString() == "")
+          {  // TODO: better way
+            new_args.push_back(nm->mkNode(
+                kind::SEXPR, nm->mkBoundVar("cvc5_nary_op", nm->sExprType())));
+          }
+          else if (args[i].getKind() == kind::SEXPR)
+          {
+            new_args.push_back(
+                nm->mkNode(kind::SEXPR,
+                           nm->mkBoundVar("cvc5_nary_op", nm->sExprType()),
+                           args[i][0]));
+          }
+          else
+          {
+            new_args.push_back(args[i]);
+          }
+        }
+      }
+      return addAletheStep(AletheRule::ALL_SIMPLIFY,
+                           res,
+                           nm->mkNode(kind::SEXPR, d_cl, res),
+                           children,
+                           new_args,
+                           *cdp);
+    }
+    case PfRule::EVALUATE:
+    {
+      return addAletheStep(AletheRule::ALL_SIMPLIFY,
+                           res,
+                           nm->mkNode(kind::SEXPR, d_cl, res),
+                           children,
+                           {nm->mkBoundVar("evaluate", nm->sExprType())},
+                           *cdp);
+    }
     case PfRule::THEORY_REWRITE:
     {
       return addAletheStep(AletheRule::ALL_SIMPLIFY,
+                           res,
+                           nm->mkNode(kind::SEXPR, d_cl, res),
+                           children,
+                           {},
+                           *cdp);
+    }
+    case PfRule::PREPROCESS:
+    case PfRule::THEORY_PREPROCESS:
+    {
+      return addAletheStep(AletheRule::ALL_SIMPLIFY,
+                           res,
+                           nm->mkNode(kind::SEXPR, d_cl, res),
+                           children,
+                           {},
+                           *cdp);
+    }
+    case PfRule::THEORY_LEMMA:
+    {
+      // if we are in the arithmetic case, we rather add a LIA_GENERIC step
+      if (res.getKind() == kind::NOT && res[0].getKind() == kind::AND)
+      {
+        Trace("alethe-proof") << "... test each arg if ineq\n";
+        bool allIneqs = true;
+        for (const Node& arg : res[0])
+        {
+          Node toTest = arg.getKind() == kind::NOT ? arg[0] : arg;
+          Kind k = toTest.getKind();
+          if (k != kind::LT && k != kind::LEQ && k != kind::GT && k != kind::GEQ
+              && k != kind::EQUAL)
+          {
+            Trace("alethe-proof") << "... arg " << arg << " not ineq\n";
+            allIneqs = false;
+            break;
+          }
+        }
+        if (allIneqs)
+        {
+          return addAletheStep(AletheRule::LIA_GENERIC,
+                               res,
+                               nm->mkNode(kind::SEXPR, d_cl, res),
+                               children,
+                               {},
+                               *cdp);
+        }
+      }
+      return addAletheStep(AletheRule::HOLE,
                            res,
                            nm->mkNode(kind::SEXPR, d_cl, res),
                            children,
@@ -1114,6 +1216,15 @@ bool AletheProofPostprocessCallback::update(Node res,
                            {},
                            *cdp);
     }
+    case PfRule::HO_CONG:
+    {
+      return addAletheStep(AletheRule::HO_CONG,
+                           res,
+                           nm->mkNode(kind::SEXPR, d_cl, res),
+                           children,
+                           {},
+                           *cdp);
+    }
     // ======== True intro
     //
     // ------------------------------- EQUIV_SIMPLIFY
@@ -1408,12 +1519,14 @@ bool AletheProofPostprocessCallback::update(Node res,
     //  (cl (= t bitblast(t)))
     case PfRule::BV_BITBLAST_STEP:
     {
-      Assert(s_bvKindToAletheRule.find(res[0].getKind())
-             != s_bvKindToAletheRule.end())
-          << "Bit-blasted kind not supported in Alethe post-processing.";
-      return addAletheStep(s_bvKindToAletheRule.at(res[0].getKind()),
+      // if the term being bitblasted is a variable or a nonbv term, then this
+      // is a "bitblast var" step
+      auto it = s_bvKindToAletheRule.find(res[0].getKind());
+      return addAletheStep(it == s_bvKindToAletheRule.end()
+                               ? AletheRule::BV_BITBLAST_STEP_VAR
+                               : it->second,
                            res,
-                           nm->mkNode(kind::SEXPR, d_cl, res),
+                           nm->mkNode(kind::SEXPR, d_cl, d_anc.convert(res)),
                            children,
                            {},
                            *cdp);
@@ -1453,6 +1566,58 @@ bool AletheProofPostprocessCallback::update(Node res,
                               d_resPivots
                                   ? std::vector<Node>{children[0], d_false}
                                   : std::vector<Node>(),
+                              *cdp);
+    }
+    // ======== Alpha Equivalence
+    // See proof_rule.h for documentation on the ALPHA_EQUIV rule. This
+    // comment uses variable names as introduced there.
+    //
+    // Let F = (forall ((y1 A1) ... (yn An)) G) and F*sigma = (forall ((z1 A1)
+    // ... (zn An)) G*sigma)
+    //
+    //
+    // -----    ----- REFL  ----- REFL
+    //  VP1 .... VPn         VP
+    // -------------------------- BIND, ((:= (y1 A1) z1) ... (:= (yn An) zn))
+    //         (= F F*sigma)
+    //
+    // VPi: (cl (= yi zi))^
+    // VP: (cl (= G G*sigma))
+    //
+    // ^ the corresponding proof node is F*sigma
+    case PfRule::ALPHA_EQUIV:
+    {
+      // performance optimization
+      // If y1 ... yn are mapped to y1 ... yn it suffices to use a refl step
+      if (res[0].toString() == res[1].toString())
+      {
+        return addAletheStep(AletheRule::REFL,
+                             res,
+                             nm->mkNode(kind::SEXPR, d_cl, res),
+                             {},
+                             {},
+                             *cdp);
+      }
+
+      std::vector<Node> new_children;
+      bool success = true;
+      for (size_t i = 1, size = args.size(); i < size; i++)
+      {
+        Node vpi = nm->mkNode(kind::SEXPR, d_cl, args[i]);
+        new_children.push_back(vpi);
+        success&& addAletheStep(AletheRule::REFL, vpi, vpi, {}, {}, *cdp);
+      }
+      Node vp = nm->mkNode(
+          kind::SEXPR, d_cl, nm->mkNode(kind::EQUAL, res[0][1], res[1][1]));
+      success&& addAletheStep(AletheRule::REFL, vp, vp, {}, {}, *cdp);
+      new_children.push_back(vp);
+      new_args.insert(new_args.begin(), args.begin() + 1, args.end());
+      return success
+             && addAletheStep(AletheRule::ANCHOR_BIND,
+                              res,
+                              nm->mkNode(kind::SEXPR, d_cl, res),
+                              new_children,
+                              new_args,
                               *cdp);
     }
     //================================================= Arithmetic rules
@@ -1816,14 +1981,118 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     default:
     {
-      return addAletheStep(AletheRule::UNDEFINED,
+      Trace("alethe-proof")
+          << "... rule not translated yet " << id << " / " << res << " "
+          << children << " " << args << std::endl;
+      std::stringstream ss;
+      ss << id;
+      Node newVar = nm->mkBoundVar(ss.str(), nm->sExprType());
+      std::vector<Node> newArgs{newVar};
+      newArgs.insert(newArgs.end(), args.begin(), args.end());
+      return addAletheStep(AletheRule::HOLE,
                            res,
                            nm->mkNode(kind::SEXPR, d_cl, res),
                            children,
-                           args,
+                           newArgs,
                            *cdp);
     }
+      Trace("alethe-proof")
+          << "... error translating rule " << id << " / " << res << " "
+          << children << " " << args << std::endl;
+      return false;
   }
+
+  Trace("alethe-proof") << "... error translating rule " << id << " / " << res
+                        << " " << children << " " << args << std::endl;
+  return false;
+}
+
+bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
+                                                              CDProof* cdp)
+{
+  // This method is called only when the premise is used as a singleton
+  // clause. If its proof however concludes a non-singleton clause it'll fail
+  // the test below and we must change its proof.
+  std::shared_ptr<ProofNode> premisePf = cdp->getProofFor(premise);
+  Node premisePfConclusion = premisePf->getArguments()[2];
+  if (premisePfConclusion.getNumChildren() <= 2
+      || premisePfConclusion[0] != d_cl)
+  {
+    return false;
+  }
+  // If this resolution child is used as a singleton OR but the rule
+  // justifying it concludes a clause, then we are necessarily in this
+  // scenario:
+  //
+  // (or t1 ... tn)
+  // -------------- OR
+  // (cl t1 ... tn)
+  // ---------------- FACTORING/REORDERING
+  // (cl t1' ... tn')
+  //
+  // where what is used in the resolution is actually (or t1' ... tn').
+  //
+  // This happens when (or t1' ... tn') has been added to the SAT solver as
+  // a literal as well, and its node clashed with the conclusion of the
+  // FACTORING/REORDERING step.
+  //
+  // The solution is to *not* use FACTORING/REORDERING (which in Alethe
+  // operate on clauses) but generate a proof to obtain (via rewriting) the
+  // expected node (or t1' ... tn') from the original node (or t1 ... tn).
+  NodeManager* nm = NodeManager::currentNM();
+  Trace("alethe-proof") << "\n";
+  CVC5_UNUSED AletheRule premisePfRule =
+      getAletheRule(premisePf->getArguments()[0]);
+  CVC5_UNUSED AletheRule premiseChildPfRule =
+      getAletheRule(premisePf->getChildren()[0]->getArguments()[0]);
+  Assert((premisePfRule == AletheRule::CONTRACTION
+          || premisePfRule == AletheRule::REORDERING)
+         && premiseChildPfRule == AletheRule::OR);
+  // get great grand child
+  std::shared_ptr<ProofNode> premiseChildPf =
+      premisePf->getChildren()[0]->getChildren()[0];
+  Node premiseChildConclusion = premiseChildPf->getResult();
+  // Note that we need to add this proof node explicitly (i.e., as an ASSUME
+  // step) to cdp because cdp does not have a step for
+  // premiseChildConclusion. Rather it is only present in cdp as a descendant of
+  // premisePf (which is in cdp), so if premisePf is to be lost, then so will
+  // premiseChildPf. By adding the ASSUME step for premiseChildConclusion, a
+  // step will be present in cdp connecting premiseChildConclusion to
+  // premiseChildPf (since by default adding an ASSUME step will not rewrite an
+  // existing proof for a node).
+  addAletheStep(AletheRule::ASSUME,
+                premiseChildConclusion,
+                premiseChildConclusion,
+                {},
+                {},
+                *cdp);
+  // equate it to what we expect, use equiv elim and resolution to
+  // obtain a proof the expected
+  Node equiv = premiseChildConclusion.eqNode(premise);
+  addAletheStep(AletheRule::ALL_SIMPLIFY,
+                equiv,
+                nm->mkNode(kind::SEXPR, d_cl, equiv),
+                {},
+                {},
+                *cdp);
+  Node equivElim = nm->mkNode(
+      kind::SEXPR,
+      {d_cl, equiv.notNode(), premiseChildConclusion.notNode(), premise});
+  addAletheStep(AletheRule::EQUIV_POS2, equivElim, equivElim, {}, {}, *cdp);
+  Node newPremise = nm->mkNode(kind::SEXPR, d_cl, premise);
+  addAletheStep(
+      AletheRule::RESOLUTION,
+      newPremise,
+      newPremise,
+      {equivElim, equiv, premiseChildConclusion},
+      d_resPivots
+          ? std::vector<Node>{equiv, d_false, premiseChildConclusion, d_false}
+          : std::vector<Node>(),
+      *cdp);
+  Trace("alethe-proof") << "Reverted handling as a clause for converting "
+                        << premiseChildConclusion << " into " << premise
+                        << std::endl;
+  return true;
 }
 
 // Adds an OR rule to the premises of a step if the premise is not a clause and
@@ -1841,7 +2110,7 @@ bool AletheProofPostprocessCallback::updatePost(
 {
   NodeManager* nm = NodeManager::currentNM();
   AletheRule rule = getAletheRule(args[0]);
-  Trace("alethe-proof") << "... finalizer for rule " << rule << " / " << res
+  Trace("alethe-proof") << "...Alethe post-update " << rule << " / " << res
                         << " / args: " << args << std::endl;
   switch (rule)
   {
@@ -1871,7 +2140,7 @@ bool AletheProofPostprocessCallback::updatePost(
       // to its pivot L_1. Since it's the first clause in the resolution it can
       // only be equal to the pivot in the case the polarity is true.
       if (children[0].getKind() == kind::OR
-          && (args[polIdx] != d_true || children[0] != args[pivIdx]))
+          && (args[polIdx] != d_true || args[pivIdx] != children[0]))
       {
         std::shared_ptr<ProofNode> childPf = cdp->getProofFor(children[0]);
         Node childConclusion = childPf->getArguments()[2];
@@ -1905,9 +2174,19 @@ bool AletheProofPostprocessCallback::updatePost(
                         {},
                         *cdp);
           newChildren[0] = newConclusion;
-          Trace("alethe-proof")
-              << "Added OR step in finalizer " << childConclusion << " / "
-              << newConclusion << std::endl;
+          Trace("alethe-proof") << "Added OR step for " << childConclusion
+                                << " / " << newConclusion << std::endl;
+        }
+      }
+      // The premise is used a singleton clause. We must guarantee that its
+      // proof indeed concludes a singleton clause.
+      else if (children[0].getKind() == kind::OR)
+      {
+        Assert(args[polIdx] == d_true && args[pivIdx] == children[0]);
+        if (maybeReplacePremiseProof(children[0], cdp))
+        {
+          hasUpdated = true;
+          newChildren[0] = nm->mkNode(kind::SEXPR, d_cl, children[0]);
         }
       }
       // For all other children C_i the procedure is similar. There is however a
@@ -1963,9 +2242,19 @@ bool AletheProofPostprocessCallback::updatePost(
                           {},
                           *cdp);
             newChildren[i] = conclusion;
-            Trace("alethe-proof")
-                << "Added OR step in finalizer " << childConclusion << " / "
-                << conclusion << std::endl;
+            Trace("alethe-proof") << "Added OR step for " << childConclusion
+                                  << " / " << conclusion << std::endl;
+          }
+        }
+        // As for the first premise, we need to handle the case in which the
+        // premise is a singleton but the rule concluding it yields a clause.
+        else if (children[i].getKind() == kind::OR)
+        {
+          Assert(args[polIdx] == d_false && args[pivIdx] == children[i]);
+          if (maybeReplacePremiseProof(children[i], cdp))
+          {
+            hasUpdated = true;
+            newChildren[i] = nm->mkNode(kind::SEXPR, d_cl, children[i]);
           }
         }
       }
@@ -2073,6 +2362,7 @@ bool AletheProofPostprocessCallback::updatePost(
 //
 // *  the corresponding proof node is ((false))
 // ** the corresponding proof node is (false)
+
 //
 // This method also handles the case where the internal proof is "empty", i.e.,
 // it consists only of "false" as an assumption.
@@ -2165,29 +2455,36 @@ AletheProofPostprocess::~AletheProofPostprocess() {}
 
 void AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
 {
+  // first two nodes are scopes for definitions and other assumptions. We
+  // process only the internal proof node. And we merge these two scopes
+  Assert(pf->getRule() == PfRule::SCOPE
+         && pf->getChildren()[0]->getRule() == PfRule::SCOPE);
+  std::shared_ptr<ProofNode> definitionsScope = pf;
+  std::shared_ptr<ProofNode> assumptionsScope = pf->getChildren()[0];
+  std::shared_ptr<ProofNode> internalProof = assumptionsScope->getChildren()[0];
   // Translate proof node
   ProofNodeUpdater updater(d_env, d_cb, false, false);
-  updater.process(pf->getChildren()[0]);
+  updater.process(internalProof);
 
   // In the Alethe proof format the final step has to be (cl). However, after
   // the translation it might be (cl false). In that case additional steps are
   // required.
   // The function has the additional purpose of sanitizing the attributes of the
-  // first SCOPE
-  CDProof cpf(d_env, nullptr, "ProofNodeUpdater::CDProof", true);
-  const std::vector<std::shared_ptr<ProofNode>>& cc = pf->getChildren();
-  std::vector<Node> ccn;
-  for (const std::shared_ptr<ProofNode>& cp : cc)
-  {
-    Node cpres = cp->getResult();
-    ccn.push_back(cpres);
-    // store in the proof
-    cpf.addProof(cp);
-  }
+  // outer SCOPEs
+  CDProof cpf(
+      d_env, nullptr, "AletheProofPostProcess::finalStep::CDProof", true);
+  std::vector<Node> ccn{internalProof->getResult()};
+  cpf.addProof(internalProof);
+  std::vector<Node> args{definitionsScope->getArguments().begin(),
+                         definitionsScope->getArguments().end()};
+  args.insert(args.end(),
+              assumptionsScope->getArguments().begin(),
+              assumptionsScope->getArguments().end());
   if (d_cb.finalStep(
-          pf->getResult(), pf->getRule(), ccn, pf->getArguments(), &cpf))
+          definitionsScope->getResult(), PfRule::SCOPE, ccn, args, &cpf))
   {
-    std::shared_ptr<ProofNode> npn = cpf.getProofFor(pf->getResult());
+    std::shared_ptr<ProofNode> npn =
+        cpf.getProofFor(definitionsScope->getResult());
 
     // then, update the original proof node based on this one
     Trace("pf-process-debug") << "Update node..." << std::endl;
@@ -2197,5 +2494,4 @@ void AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
 }
 
 }  // namespace proof
-
 }  // namespace cvc5::internal

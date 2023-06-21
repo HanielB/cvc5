@@ -89,6 +89,8 @@ const char* toString(LeanRule id)
     case LeanRule::CONG_ARG: return "flipCongrArg";
     case LeanRule::CONG_ARG_PARTIAL: return "flipCongrArg";
     case LeanRule::CONG_ITE: return "congrIte";
+    case LeanRule::CONG_ADD: return "congrHAdd";
+    case LeanRule::CONG_ADD_PARTIAL: return "congrHAdd";
     case LeanRule::REFL: return "rfl";
     case LeanRule::TRANS: return "Eq.trans";
     case LeanRule::TRANS_PARTIAL: return "Eq.trans";
@@ -110,6 +112,7 @@ const char* toString(LeanRule id)
     case LeanRule::SUM_BOUNDS: return "sumBounds";
     case LeanRule::ARITH_MULT_POS: return "arithMulPos";
     case LeanRule::ARITH_MULT_NEG: return "arithMulNeg";
+    case LeanRule::ARITH_MULT_SIGN: return "arithMulSign";
     case LeanRule::TRICHOTOMY: return "trichotomy";
     case LeanRule::INT_TIGHT_UB: return "intTightUb";
     case LeanRule::INT_TIGHT_LB: return "intTightLb";

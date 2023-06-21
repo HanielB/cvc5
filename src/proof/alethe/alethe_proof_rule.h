@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -245,6 +245,15 @@ enum class AletheRule : uint32_t
   // G > j. (= (f F1 ... Fn) (f G1 ... Gn))
   // where f is an n-ary function symbol.
   CONG,
+  // ======== ho_cong
+  // G > i0. (= f g)
+  // G > i1. (= F1 G1)
+  // ...
+  // G > in. (= Fn Gn)
+  // ...
+  // G > j. (= (f F1 ... Fn) (g G1 ... Gn))
+  // where f and g are n-ary function symbols.
+  HO_CONG,
   // ======== and
   // > i. (and F1 ... Fn)
   // ...
