@@ -426,7 +426,6 @@ Node LeanNodeConverter::convert(Node n)
         }
         // n-ary arith kinds
         case kind::ADD:
-        case kind::NONLINEAR_MULT:
         case kind::MULT:
         case kind::NONLINEAR_MULT:
         {
