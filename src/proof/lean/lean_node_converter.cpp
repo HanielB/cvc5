@@ -63,6 +63,8 @@ std::unordered_map<Kind, std::string> s_kindToString = {
     {kind::DIVISION_TOTAL, "HDiv.hDiv"},
     {kind::INTS_DIVISION, "HDiv.hDiv"},
     {kind::INTS_DIVISION_TOTAL, "HDiv.hDiv"},
+    {kind::INTS_MODULUS, "HDiv.hDiv"},
+    {kind::INTS_MODULUS_TOTAL, "HMod.hMiv"},
 };
 
 // have underlying node converter *not* force type preservation
@@ -709,8 +711,7 @@ Node LeanNodeConverter::convert(Node n)
           res = childChanged ? nm->mkNode(k, children) : Node(cur);
         }
       }
-      Trace("lean-conv") << "..result is " << res << ", type " << res.getType()
-                          << "\n";
+      Trace("lean-conv") << "..result is " << res << "\n";
       d_cache[cur] = res;
       // force idempotency
       d_cache[res] = res;
@@ -874,7 +875,7 @@ Node LeanNodeConverter::mkPrintableOp(Kind k)
     }
     default:
     {
-      Trace("test-lean") << "non-handled kind " << k << "\n";
+      Trace("lean-conv") << "non-handled kind " << k << "\n";
     }
   }
   return Node::null();
