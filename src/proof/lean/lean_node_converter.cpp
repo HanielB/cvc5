@@ -413,6 +413,8 @@ Node LeanNodeConverter::convert(Node n)
         case kind::DIVISION_TOTAL:
         case kind::INTS_DIVISION:
         case kind::INTS_DIVISION_TOTAL:
+        case kind::INTS_MODULUS:
+        case kind::INTS_MODULUS_TOTAL:
         {
           TypeNode tn = cur[0].getType();
           res = mkBinArithApp(k,
@@ -781,6 +783,11 @@ Node LeanNodeConverter::mkPrintableOp(Kind k)
     case kind::MULT:
     {
       return mkInternalSymbol("HMul.hMul");
+    }
+    case kind::INTS_MODULUS:
+    case kind::INTS_MODULUS_TOTAL:
+    {
+      return mkInternalSymbol("HMod.hMod");
     }
     case kind::INTS_DIVISION_TOTAL:
     case kind::INTS_DIVISION:
