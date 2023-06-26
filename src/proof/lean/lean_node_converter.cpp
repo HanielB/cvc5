@@ -203,10 +203,10 @@ Node LeanNodeConverter::convert(Node n)
     Kind k = cur.getKind();
     if (it == d_cache.end())
     {
-      Trace("lean-conv2") << "convert " << cur << ", type " << cur.getType()
-                          << std::endl;
+      Trace("lean-conv") << "pre visit " << cur << "\n";
       if (!shouldTraverse(cur))
       {
+        Trace("lean-conv") << ".. do not traverse\n";
         d_cache[cur] = cur;
         continue;
       }
@@ -220,6 +220,7 @@ Node LeanNodeConverter::convert(Node n)
     }
     else if (it->second.isNull())
     {
+      Trace("lean-conv") << "post visit " << cur << "\n";
       // collect children
       bool childChanged = false;
       std::vector<Node> children;
@@ -233,6 +234,7 @@ Node LeanNodeConverter::convert(Node n)
       }
       for (const Node& cn : cur)
       {
+        Trace("lean-conv") << "..retrieve converted child " << cn << "\n";
         it = d_cache.find(cn);
         AlwaysAssert(it != d_cache.end());
         AlwaysAssert(!it->second.isNull());
@@ -250,28 +252,30 @@ Node LeanNodeConverter::convert(Node n)
         case kind::SKOLEM:
         case kind::BOOLEAN_TERM_VARIABLE:
         {
-          Trace("lean-conv")
-              << "LeanNodeConverter: handling skolem " << n << "\n";
           // skolems v print as their original forms
           // v is (skolem W) where W is the original or original form of v
-          Node wi = SkolemManager::getUnpurifiedForm(n);
-          if (!wi.isNull() && wi != n)
+          Node wi = SkolemManager::getUnpurifiedForm(cur);
+          if (!wi.isNull() && wi != cur)
           {
             Trace("lean-conv")
                 << "...to convert original form " << wi << std::endl;
-            return convert(wi);
+            res = convert(wi);
+            break;
           }
           // might be a skolem function. For now we only handle the function for
           // skolemization of strong quantifiers.
           SkolemManager* sm = nm->getSkolemManager();
           SkolemFunId sfi = SkolemFunId::NONE;
           Node cacheVal;
+          if (!sm->isSkolemFunction(cur, sfi, cacheVal))
+          {
+            Unreachable() << "Fresh Skolems are not allowed\n";
+          }
           // create the witness term (witness ((x_i T_i)) (exists ((x_i+1 T_i+1)
           // ... (x_n T_n)) body), where the bound variables and the body come
           // from the quantifier term which must be the first element of
           // cacheVal (which should be a list), and i the second.
-          if (sm->isSkolemFunction(n, sfi, cacheVal)
-              && sfi == SkolemFunId::QUANTIFIERS_SKOLEMIZE)
+          if (sfi == SkolemFunId::QUANTIFIERS_SKOLEMIZE)
           {
             Trace("lean-conv")
                 << ".. to build witness with index/quant: " << cacheVal[1]
@@ -317,10 +321,11 @@ Node LeanNodeConverter::convert(Node n)
                              nm->mkNode(kind::BOUND_VAR_LIST, quant[0][index]),
                              body);
               Trace("lean-conv") << ".. witness " << witness << "\n";
-              return convert(witness);
+              res = convert(witness);
+              break;
             }
           }
-          Unreachable() << "Fresh Skolems are not allowed\n";
+          Unreachable() << "Skolems function " << sfi << " conversion failed\n";
         }
         case kind::VARIABLE:
         {
@@ -702,7 +707,7 @@ Node LeanNodeConverter::convert(Node n)
           res = childChanged ? nm->mkNode(k, children) : Node(cur);
         }
       }
-      Trace("lean-conv2") << "..result is " << res << ", type " << res.getType()
+      Trace("lean-conv") << "..result is " << res << ", type " << res.getType()
                           << "\n";
       d_cache[cur] = res;
       // force idempotency
