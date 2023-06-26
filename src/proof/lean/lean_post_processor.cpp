@@ -315,6 +315,7 @@ bool LeanProofPostprocessCallback::update(Node res,
     }
     case PfRule::PREPROCESS:
     case PfRule::THEORY_PREPROCESS:
+    case PfRule::THEORY_PREPROCESS_LEMMA:
     case PfRule::THEORY_LEMMA:
     case PfRule::TRUST_SUBS:
     case PfRule::TRUST_SUBS_MAP:
