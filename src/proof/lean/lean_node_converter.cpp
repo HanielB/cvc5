@@ -63,8 +63,8 @@ std::unordered_map<Kind, std::string> s_kindToString = {
     {kind::DIVISION_TOTAL, "HDiv.hDiv"},
     {kind::INTS_DIVISION, "HDiv.hDiv"},
     {kind::INTS_DIVISION_TOTAL, "HDiv.hDiv"},
-    {kind::INTS_MODULUS, "HDiv.hDiv"},
-    {kind::INTS_MODULUS_TOTAL, "HMod.hMiv"},
+    {kind::INTS_MODULUS, "HMod.hMod"},
+    {kind::INTS_MODULUS_TOTAL, "HMod.hMod"},
 };
 
 // have underlying node converter *not* force type preservation
