@@ -22,6 +22,7 @@
 #include "proof/proof_checker.h"
 #include "proof/proof_node_algorithm.h"
 #include "proof/proof_node_manager.h"
+#include "rewriter/rewrite_proof_rule.h"
 #include "smt/env.h"
 #include "util/bitvector.h"
 #include "util/rational.h"
@@ -301,6 +302,31 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::CONTRA:
     {
       addLeanStep(res, LeanRule::CONTRADICTION, d_empty, children, {}, *cdp);
+      break;
+    }
+    case PfRule::DSL_REWRITE:
+    {
+      // get the name
+      rewriter::DslPfRule di;
+      Node rule;
+      if (rewriter::getDslPfRule(args[0], di))
+      {
+        std::stringstream ss;
+        ss << di;
+        rule = nm->mkBoundVar(ss.str(), nm->sExprType());
+      }
+      else
+      {
+        Unreachable();
+      }
+      std::vector<Node> newArgs{rule};
+      for (size_t i = 1, size = args.size(); i < size; ++i)
+      {
+        Assert(!args[i].isNull());
+        newArgs.push_back(d_lnc.convert(args[i]));;
+      }
+      addLeanStep(
+          res, LeanRule::RARE_REWRITE, d_lnc.convert(res), {}, newArgs, *cdp);
       break;
     }
     // minor reasoning to clean args

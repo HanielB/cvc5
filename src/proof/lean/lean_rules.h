@@ -139,6 +139,9 @@ enum class LeanRule : uint32_t
   BIND_PARTIAL,
   BIND_LAMBDA,
   BIND_LAMBDA_PARTIAL,
+  // RARE
+  RARE_REWRITE,
+
   // holes
   TRUST,
   TH_TRUST,

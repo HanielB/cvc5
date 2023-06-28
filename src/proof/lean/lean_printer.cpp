@@ -58,7 +58,7 @@ bool LeanLetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
     // the argument (as we do e.g. in printTerm), then check if its first
     // positions are "([". This is alike to what is done in cleanSymbols to
     // normalize the printed stuff.
-    if (args[i].getKind() == kind::SEXPR
+    if (args[i].getKind() == kind::SEXPR && args[i].getNumChildren() > 0
         && args[i][0].getKind() == kind::RAW_SYMBOL)
     {
       for (const auto& arg : args[i])
@@ -106,6 +106,7 @@ LeanPrinter::LeanPrinter(Env& env, LeanNodeConverter& lnc)
           {LeanRule::ARITH_MULT_POS, false},
           {LeanRule::ARITH_MULT_NEG, false},
           {LeanRule::ARITH_MULT_SIGN, false},
+          {LeanRule::RARE_REWRITE, false},
       }),
       d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
                                           : 0),
