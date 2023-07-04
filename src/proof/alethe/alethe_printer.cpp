@@ -81,6 +81,20 @@ void AletheProofPrinter::print(std::ostream& out,
                                std::shared_ptr<ProofNode> pfn)
 {
   Trace("alethe-printer") << "- Print proof in Alethe format. " << std::endl;
+  Trace("test") << *pfn.get() << "\n";
+  const std::vector<Node>& maybeDefs = pfn->getArguments();
+  if (!maybeDefs.empty() && getAletheRule(maybeDefs[0]) == AletheRule::DEFINE)
+  {
+    // print definitions
+    for (size_t i = 1, size = maybeDefs.size(); i < size; ++i)
+    {
+      printTerm(out, maybeDefs[i]);
+      out << "\n";
+    }
+    // ignore this step, so that it's not considered for lets etc
+    pfn = pfn->getChildren()[0];
+  }
+
   std::shared_ptr<ProofNode> innerPf = pfn->getChildren()[0];
   AlwaysAssert(innerPf);
 

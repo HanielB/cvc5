@@ -132,6 +132,36 @@ bool PolyNorm::isEqual(const PolyNorm& p) const
   return true;
 }
 
+bool PolyNorm::isEqualMod(const PolyNorm& p, Rational& c) const
+{
+  if (d_polyNorm.size() != p.d_polyNorm.size())
+  {
+    return false;
+  }
+  bool firstTime = true;
+  c = Rational(1);
+  std::unordered_map<Node, Rational>::const_iterator it;
+  for (const std::pair<const Node, Rational>& m : d_polyNorm)
+  {
+    Assert(m.second.sgn() != 0);
+    it = p.d_polyNorm.find(m.first);
+    if (it == p.d_polyNorm.end())
+    {
+      return false;
+    }
+    if (firstTime)
+    {
+      c = m.second/it->second;
+      firstTime = false;
+    }
+    else if (m.second/it->second!=c)
+    {
+      return false;
+    }
+  }
+  return true;
+}
+
 Node PolyNorm::multMonoVar(TNode m1, TNode m2)
 {
   std::vector<TNode> vars = getMonoVars(m1);
@@ -260,9 +290,56 @@ PolyNorm PolyNorm::mkPolyNorm(TNode n)
 
 bool PolyNorm::isArithPolyNorm(TNode a, TNode b)
 {
-  PolyNorm pa = PolyNorm::mkPolyNorm(a);
-  PolyNorm pb = PolyNorm::mkPolyNorm(b);
-  return pa.isEqual(pb);
+  TypeNode at = a.getType();
+  if (at.isRealOrInt())
+  {
+    PolyNorm pa = PolyNorm::mkPolyNorm(a);
+    PolyNorm pb = PolyNorm::mkPolyNorm(b);
+    return pa.isEqual(pb);
+  }
+  if (at.isBoolean())
+  {
+    // otherwise may be atoms
+    return isArithPolyNormAtom(a,b);
+  }
+  return false;
+}
+
+bool PolyNorm::isArithPolyNormAtom(TNode a, TNode b)
+{
+  Assert (a.getType().isBoolean());
+  Kind k = a.getKind();
+  if (b.getKind()!=k)
+  {
+    return false;
+  }
+  if (k==EQUAL)
+  {
+    if (!a[0].getType().isRealOrInt() || !b[0].getType().isRealOrInt())
+    {
+      return false;
+    }
+  }
+  else if (k!=GEQ && k!=LEQ && k!=GT && k!=LT)
+  {
+    return false;
+  }
+  NodeManager * nm =NodeManager::currentNM();
+  Node adiff = nm->mkNode(SUB, a[0], a[1]);
+  Node bdiff = nm->mkNode(SUB, b[0], b[1]);
+  PolyNorm pa = PolyNorm::mkPolyNorm(adiff);
+  PolyNorm pb = PolyNorm::mkPolyNorm(bdiff);
+  // check if the two polynomials are equal modulo a constant coefficient
+  // in other words, x ~ y is equivalent to z ~ w if 
+  // x-y = c*(z-w) for some c > 0.
+  Rational c;
+  if (!pa.isEqualMod(pb, c))
+  {
+    return false;
+  }
+  Assert (c.sgn()!=0);
+  // if equal, can be negative. Notice this shortcuts symmetry of equality.
+  return k==EQUAL || c.sgn()==1;
 }
 
 }  // namespace arith

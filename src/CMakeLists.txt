@@ -352,6 +352,8 @@ libcvc5_add_sources(
   smt/sygus_solver.h
   smt/term_formula_removal.cpp
   smt/term_formula_removal.h
+  smt/timeout_core_manager.cpp
+  smt/timeout_core_manager.h
   smt/unsat_core_manager.cpp
   smt/unsat_core_manager.h
   smt/witness_form.cpp
@@ -1369,7 +1371,9 @@ set(REWRITES_FILES
   ${PROJECT_SOURCE_DIR}/src/theory/booleans/rewrites
   ${PROJECT_SOURCE_DIR}/src/theory/builtin/rewrites
   ${PROJECT_SOURCE_DIR}/src/theory/bv/rewrites
-  ${PROJECT_SOURCE_DIR}/src/theory/strings/rewrites)
+  ${PROJECT_SOURCE_DIR}/src/theory/sets/rewrites
+  ${PROJECT_SOURCE_DIR}/src/theory/strings/rewrites
+  ${PROJECT_SOURCE_DIR}/src/theory/uf/rewrites)
 
 #-----------------------------------------------------------------------------#
 # Add subdirectories

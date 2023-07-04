@@ -234,7 +234,6 @@ bool RewriteDbProofCons::notifyMatch(Node s,
   // check each rule instance, succeed if one proves
   for (DslPfRule id : ids)
   {
-    Trace("rpc-debug2") << "Check rule " << id << std::endl;
     // try to prove target with the current rule, using inflection matching
     // and fixed point semantics
     if (proveWithRule(id, d_target, vars, subs, true, true, recurse))
@@ -356,16 +355,9 @@ bool RewriteDbProofCons::proveWithRule(DslPfRule id,
   }
   else if (id == DslPfRule::ARITH_POLY_NORM)
   {
-    if (!target[0].getType().isRealOrInt())
-    {
-      return false;
-    }
-    Trace("ajr-temp") << "Show " << target[0] << " == " << target[1] << "?"
-                      << std::endl;
     // only works with arithmetic terms
     if (!theory::arith::PolyNorm::isArithPolyNorm(target[0], target[1]))
     {
-      Trace("ajr-temp") << "...fail" << std::endl;
       return false;
     }
     pic.d_id = id;
@@ -383,6 +375,14 @@ bool RewriteDbProofCons::proveWithRule(DslPfRule id,
     Trace("rpc-debug2") << "            RHS: " << conc[1] << std::endl;
     Trace("rpc-debug2") << "Substituted RHS: " << stgt << std::endl;
     Trace("rpc-debug2") << "     Target RHS: " << target[1] << std::endl;
+    // check if conclusion is null
+    if (stgt.isNull())
+    {
+      // this is likely due to not finding a null terminator for a gradual
+      // type term
+      Trace("rpc-debug2") << "...fail (no construct conclusion)" << std::endl;
+      return false;
+    }
     // inflection substitution, used if conclusion does not exactly match
     std::unordered_map<Node, std::pair<Node, Node>> isubs;
     if (stgt != target[1])
@@ -390,6 +390,14 @@ bool RewriteDbProofCons::proveWithRule(DslPfRule id,
       if (!doInflectMatch)
       {
         Trace("rpc-debug2") << "...fail (no inflection)" << std::endl;
+        return false;
+      }
+      // The conclusion term may actually change type. Note that we must rewrite
+      // the terms, since they may involve operators with abstract type that
+      // evaluate to terms with concrete types.
+      if (!rewrite(stgt).getType().isComparableTo(rewrite(target[1]).getType()))
+      {
+        Trace("rpc-debug2") << "...fail (types)" << std::endl;
         return false;
       }
       // the missing transitivity link is a subgoal to prove
@@ -495,6 +503,7 @@ bool RewriteDbProofCons::proveInternalBase(Node eqi, DslPfRule& idb)
   // if we are currently trying to prove this, fail
   if (d_currProving.find(eqi) != d_currProving.end())
   {
+    Trace("rpc-debug2") << "...fail (already proving)" << std::endl;
     idb = DslPfRule::FAIL;
     return true;
   }
@@ -513,6 +522,7 @@ bool RewriteDbProofCons::proveInternalBase(Node eqi, DslPfRule& idb)
       idb = it->second.d_id;
       return true;
     }
+    Trace("rpc-debug2") << "...fail (already fail)" << std::endl;
     // Will not succeed below, since we know we've already tried. Hence, we
     // are in a situation where we have yet to succeed to prove eqi for some
     // depth, but we are currently trying at a higher maximum depth.
@@ -527,9 +537,11 @@ bool RewriteDbProofCons::proveInternalBase(Node eqi, DslPfRule& idb)
     pi.d_id = idb;
     return true;
   }
-  // variables and constants cannot be rewritten
-  if (eqi[0].isVar() || eqi[0].isConst())
+  // non-well-typed equalities cannot be proven
+  // also, variables cannot be rewritten
+  if (eqi.getTypeOrNull().isNull() || eqi[0].isVar())
   {
+    Trace("rpc-debug2") << "...fail (" << (eqi[0].isVar() ? "variable" : "ill-typed") << ")" << std::endl;
     ProvenInfo& pi = d_pcache[eqi];
     idb = DslPfRule::FAIL;
     pi.d_failMaxDepth = 0;
@@ -549,7 +561,16 @@ bool RewriteDbProofCons::proveInternalBase(Node eqi, DslPfRule& idb)
       // rewriting is more expensive than evaluation, so we do it as a second
       // resort.
       Node lhs = i == 1 ? ev[0] : eqi[0];
-      Node eqr = rewrite(lhs.eqNode(eqi[1]));
+      Node eq = lhs.eqNode(eqi[1]);
+      if (eq.getTypeOrNull().isNull())
+      {
+        ProvenInfo& pi = d_pcache[eqi];
+        idb = DslPfRule::FAIL;
+        pi.d_failMaxDepth = 0;
+        pi.d_id = idb;
+        return true;
+      }
+      Node eqr = rewrite(eq);
       if (eqr.isConst())
       {
         // definitely not true
@@ -585,6 +606,15 @@ bool RewriteDbProofCons::proveInternalBase(Node eqi, DslPfRule& idb)
       pi.d_failMaxDepth = 0;
     }
     // cache it
+    pi.d_id = idb;
+    return true;
+  }
+  if (eqi[0].isConst())
+  {
+    Trace("rpc-debug2") << "...fail (constant head)" << std::endl;
+    ProvenInfo& pi = d_pcache[eqi];
+    idb = DslPfRule::FAIL;
+    pi.d_failMaxDepth = 0;
     pi.d_id = idb;
     return true;
   }
@@ -687,9 +717,9 @@ bool RewriteDbProofCons::ensureProofInternal(CDProof* cdp, Node eqi)
             {
               pfArgs[cur].push_back(
                   ProofRuleChecker::mkKindNode(cur[0].getKind()));
-              if (cur.getMetaKind() == kind::metakind::PARAMETERIZED)
+              if (cur[0].getMetaKind() == kind::metakind::PARAMETERIZED)
               {
-                pfArgs[cur].push_back(cur.getOperator());
+                pfArgs[cur].push_back(cur[0].getOperator());
               }
             }
           }

@@ -111,7 +111,7 @@ class Op(Enum):
     SUB = ('-', 'SUB')
     MULT = ('*', 'MULT')
     INT_DIV = ('div', 'INTS_DIVISION')
-    DIV = ('/', 'DIV')
+    DIV = ('/', 'DIVISION')
     MOD = ('mod', 'INTS_MODULUS')
     ABS = ('abs', 'ABS')
     LT = ('<', 'LT')
@@ -131,6 +131,9 @@ class Op(Enum):
     LAMBDA = (None, 'LAMBDA')  # Special parser backdoor
     BOUND_VARS = (None, 'BOUND_VAR_LIST')
     DISTINCT = ('distinct', 'DISTINCT')
+
+    BV_TO_NAT = ('bv2nat', 'BITVECTOR_TO_NAT')
+    INT_TO_BV = ('int2bv', 'INT_TO_BITVECTOR')
 
     ###########################################################################
     # Strings
@@ -164,6 +167,9 @@ class Op(Enum):
     STRING_TOUPPER = ('str.toupper', 'STRING_TOUPPER')
     STRING_REV = ('str.rev', 'STRING_REV')
 
+    SEQ_UNIT = ('seq.unit', 'SEQ_UNIT')
+    SEQ_NTH = ('seq.nth', 'SEQ_NTH')
+
     STRING_TO_REGEXP = ('str.to_re', 'STRING_TO_REGEXP')
     REGEXP_CONCAT = ('re.++', 'REGEXP_CONCAT')
     REGEXP_UNION = ('re.union', 'REGEXP_UNION')
@@ -178,6 +184,16 @@ class Op(Enum):
     REGEXP_NONE = (None, 'REGEXP_NONE')  # Handled as constants
     REGEXP_ALLCHAR = (None, 'REGEXP_ALLCHAR')
 
+    ###########################################################################
+    # Sets
+    ###########################################################################
+
+    SET_INTER = ('set.inter', 'SET_INTER')
+    SET_UNION = ('set.union', 'SET_UNION')
+    SET_MINUS = ('set.minus', 'SET_MINUS')
+    SET_SUBSET = ('set.subset', 'SET_SUBSET')
+    SET_MEMBER = ('set.member', 'SET_MEMBER')
+    SET_SINGLETON = ('set.singleton', 'SET_SINGLETON')
 
 class BaseSort(Enum):
     Bool = auto()
@@ -188,6 +204,8 @@ class BaseSort(Enum):
     RegLan = auto()
     AbsArray = auto()
     AbsBitVec = auto()
+    AbsSeq = auto()
+    AbsSet = auto()
     AbsAbs = auto()
 
 

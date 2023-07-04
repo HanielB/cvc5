@@ -90,6 +90,9 @@ class AletheProofPostprocessCallback : protected EnvObj,
                  const std::vector<Node>& args,
                  CDProof* cdp);
 
+  /* A set of defined rules, like for example RARE rules. */
+  std::unordered_set<Node> d_definedRules;
+
  private:
   /** The Alethe node converter */
   AletheNodeConverter& d_anc;
@@ -106,6 +109,9 @@ class AletheProofPostprocessCallback : protected EnvObj,
   Node d_cl;
   /** A marker for RARE rewite rule "assumptions" */
   Node d_defineRule;
+
+  Node d_defineRuleVars;
+  Node d_defineRuleConclusion;
   /**
    * This method adds a new ALETHE_RULE step to the proof, with `rule` as the
    * first argument, the original conclusion `res` as the second and

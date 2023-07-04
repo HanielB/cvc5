@@ -94,7 +94,7 @@ PfManager::PfManager(Env& env)
           != options::ProofGranularityMode::THEORY_REWRITE)
       {
         // this eliminates theory rewriting steps with finer-grained DSL rules
-        d_pfpp->setEliminateRule(PfRule::THEORY_REWRITE);
+        d_pfpp->setEliminateAllTrustedRules();
       }
     }
     // theory-specific lazy proof reconstruction
@@ -229,7 +229,7 @@ void PfManager::printProof(std::ostream& out,
   if (options().base.incrementalSolving
       && mode != options::ProofFormatMode::NONE)
   {
-    fp = d_pnm->clone(fp);
+    fp = fp->clone();
   }
 
   // according to the proof format, post process and print the proof node

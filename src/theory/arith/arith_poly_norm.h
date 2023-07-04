@@ -57,12 +57,23 @@ class PolyNorm
   /** Is this polynomial equal to polynomial p? */
   bool isEqual(const PolyNorm& p) const;
   /**
+   * Is this polynomial equal to polynomial p*c for some c? If so, return
+   * true and store in c.
+   */
+  bool isEqualMod(const PolyNorm& p, Rational& c) const;
+  /**
    * Make polynomial from real term n. This method normalizes applications
    * of operators ADD, SUB, NEG, MULT, and NONLINEAR_MULT only.
    */
   static PolyNorm mkPolyNorm(TNode n);
-  /** Do a and b normalize to the same polynomial? */
+  /** 
+   * If a and b are real/int terms, do a and b normalize to the same polynomial?
+   * If a and b are real/int atoms, do they normalize to atoms over the same
+   * polynomial?
+   */
   static bool isArithPolyNorm(TNode a, TNode b);
+  /** Do a and b normalize to an atom over the same polynomial? */
+  static bool isArithPolyNormAtom(TNode a, TNode b);
 
  private:
   /**
