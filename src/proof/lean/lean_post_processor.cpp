@@ -339,9 +339,18 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::THEORY_REWRITE:
     case PfRule::EVALUATE:
     {
+      std::stringstream ss;
+      ss << id;
       d_newRewriteAssumptions.insert(d_lnc.convert(res));
       // Make this an assumption
-      cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
+      cdp->addStep(
+          res,
+          PfRule::ASSUME,
+          {},
+          {nm->mkNode(
+              kind::SEXPR, res, nm->mkBoundVar(ss.str(), nm->sExprType()))},
+          false,
+          CDPOverwrite::ALWAYS);
       break;
     }
     case PfRule::PREPROCESS:
@@ -353,8 +362,18 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::TRUST_SUBS_EQ:
     {
       d_newHoleAssumptions.insert(d_lnc.convert(res));
+      // collect reason
+      std::stringstream ss;
+      ss << id;
       // Make this an assumption
-      cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
+      cdp->addStep(
+          res,
+          PfRule::ASSUME,
+          {},
+          {nm->mkNode(
+              kind::SEXPR, res, nm->mkBoundVar(ss.str(), nm->sExprType()))},
+          false,
+          CDPOverwrite::ALWAYS);
       break;
     }
     case PfRule::ARRAYS_READ_OVER_WRITE:
@@ -493,11 +512,15 @@ bool LeanProofPostprocessCallback::update(Node res,
             kind::EXISTS, children[0][0][0], children[0][0][1].notNode());
         skolemSteps.push_back(children[0].eqNode(quant));
         // Make this an assumption
+        std::stringstream ss;
+        ss << "SKO_FORALL_PROCESSING";
         d_newHoleAssumptions.insert(d_lnc.convert(skolemSteps.back()));
         cdp->addStep(skolemSteps.back(),
                      PfRule::ASSUME,
                      {},
-                     {skolemSteps.back()},
+                     {nm->mkNode(kind::SEXPR,
+                                 skolemSteps.back(),
+                                 nm->mkBoundVar(ss.str(), nm->sExprType()))},
                      false,
                      CDPOverwrite::ALWAYS);
       }
@@ -841,10 +864,16 @@ bool LeanProofPostprocessCallback::update(Node res,
       if (res[0].isClosure())
       {
         // For now no proper support
+        std::stringstream ss;
+        ss << "CONG_CLOSURE";
         d_newHoleAssumptions.insert(d_lnc.convert(res));
         // Make this an assumption
-        cdp->addStep(
-            res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
+        cdp->addStep(res,
+                     PfRule::ASSUME,
+                     {},
+                     {nm->mkNode(kind::SEXPR, res, nm->mkBoundVar(ss.str(), nm->sExprType()))},
+                     false,
+                     CDPOverwrite::ALWAYS);
         break;
       }
       size_t nchildren = children.size();
