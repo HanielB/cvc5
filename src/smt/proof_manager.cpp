@@ -245,7 +245,7 @@ void PfManager::printProof(std::ostream& out,
     Trace("test-lean-pf") << "Original proof: " << *fp.get() << "\n";
     Trace("test-lean") << "Processing...\n";
     proof::LeanNodeConverter lnc;
-    proof::LeanProofPostprocess lpfpp(d_env, lnc);
+    proof::LeanProofPostprocess lpfpp(d_env, lnc, d_rewriteDb.get());
     lpfpp.process(fp);
     proof::LeanPrinter lp(d_env, lnc);
     lp.print(out, fp);

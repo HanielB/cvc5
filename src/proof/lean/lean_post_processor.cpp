@@ -90,14 +90,16 @@ std::unordered_map<PfRule, LeanRule, PfRuleHashFunction> s_pfRuleToLeanRule = {
     {PfRule::INT_TIGHT_LB, LeanRule::INT_TIGHT_LB},
 };
 
-LeanProofPostprocess::LeanProofPostprocess(Env& env, LeanNodeConverter& lnc)
-    : EnvObj(env), d_cb(new LeanProofPostprocessCallback(lnc))
+LeanProofPostprocess::LeanProofPostprocess(Env& env,
+                                           LeanNodeConverter& lnc,
+                                           rewriter::RewriteDb* rdb)
+    : EnvObj(env), d_cb(new LeanProofPostprocessCallback(lnc, rdb))
 {
 }
 
 LeanProofPostprocessCallback::LeanProofPostprocessCallback(
-    LeanNodeConverter& lnc)
-    : d_lnc(lnc)
+    LeanNodeConverter& lnc, rewriter::RewriteDb* rdb)
+    : d_lnc(lnc), d_rdb(rdb)
 {
   NodeManager* nm = NodeManager::currentNM();
   d_empty = d_lnc.convert(nm->mkNode(kind::SEXPR));
@@ -319,6 +321,9 @@ bool LeanProofPostprocessCallback::update(Node res,
       {
         Unreachable();
       }
+      // const rewriter::RewriteProofRule& rpr = d_rdb->getRule(di);
+      // const std::vector<Node>& varList = rpr.getVarList();
+
       std::vector<Node> newArgs{rule};
       for (size_t i = 1, size = args.size(); i < size; ++i)
       {

@@ -23,6 +23,7 @@
 #include "proof/lean/lean_node_converter.h"
 #include "proof/lean/lean_rules.h"
 #include "proof/proof_node_updater.h"
+#include "rewriter/rewrite_db.h"
 
 namespace cvc5::internal {
 
@@ -35,7 +36,8 @@ namespace proof {
 class LeanProofPostprocessCallback : public ProofNodeUpdaterCallback
 {
  public:
-  LeanProofPostprocessCallback(LeanNodeConverter& lnc);
+  LeanProofPostprocessCallback(LeanNodeConverter& lnc,
+                               rewriter::RewriteDb* rdb);
   /**
    * Initialize, called once for each new ProofNode to process. This
    * initializes static information to be used by successive calls to update.
@@ -66,6 +68,8 @@ class LeanProofPostprocessCallback : public ProofNodeUpdaterCallback
  protected:
   /** The node converter */
   LeanNodeConverter& d_lnc;
+
+  rewriter::RewriteDb* d_rdb;
 
   /** Placeholder for the empty clause */
   Node d_empty;
@@ -109,7 +113,9 @@ class LeanProofPostprocessCallback : public ProofNodeUpdaterCallback
 class LeanProofPostprocess : protected EnvObj
 {
  public:
-  LeanProofPostprocess(Env& env, LeanNodeConverter& lnc);
+  LeanProofPostprocess(Env& env,
+                       LeanNodeConverter& lnc,
+                       rewriter::RewriteDb* rdb);
   /** post-process */
   void process(std::shared_ptr<ProofNode> pf);
 

@@ -84,7 +84,7 @@ const char* toString(LeanRule id)
     case LeanRule::CNF_ITE_NEG3: return "cnfIteNeg3";
     case LeanRule::TRUST: return "sorry";
 
-    case LeanRule::RARE_REWRITE: return "rareRewrite";
+    case LeanRule::RARE_REWRITE: return "smt_list_simp";
 
     case LeanRule::CONG: return "congr";
     case LeanRule::CONG_PARTIAL: return "congr";

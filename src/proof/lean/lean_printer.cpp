@@ -269,6 +269,12 @@ void LeanPrinter::printProof(std::ostream& out,
     out << "Unhandled: " << rule << " " << args << "\n";
     return;
   }
+  // we handle DSL rewrites differently because what to print depends on whether
+  // it's a "list rule"
+  // if (rule == LeanRule::DSL_REWRITE)
+  // {
+
+  // }
   // we handle scope differently because it starts a subproof
   if (rule == LeanRule::SCOPE)
   {
