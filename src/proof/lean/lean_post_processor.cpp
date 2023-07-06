@@ -24,6 +24,7 @@
 #include "proof/proof_node_manager.h"
 #include "rewriter/rewrite_proof_rule.h"
 #include "smt/env.h"
+#include "theory/builtin/proof_checker.h"
 #include "util/bitvector.h"
 #include "util/rational.h"
 
@@ -341,14 +342,27 @@ bool LeanProofPostprocessCallback::update(Node res,
     {
       std::stringstream ss;
       ss << id;
-      d_newRewriteAssumptions.insert(d_lnc.convert(res));
+      if (id == PfRule::THEORY_REWRITE)
+      {
+        theory::TheoryId tid;
+        theory::builtin::BuiltinProofRuleChecker::getTheoryId(args[1], tid);
+        std::stringstream ssTid;
+        ssTid << tid;
+        std::string s = ssTid.str();
+        // delete "THEORY" prefix
+        s.erase(0, 6);
+        ss << s;
+      }
+      d_newRewriteAssumptions.insert(
+          nm->mkNode(kind::SEXPR,
+                     d_lnc.convert(res),
+                     nm->mkBoundVar(ss.str(), nm->sExprType())));
       // Make this an assumption
       cdp->addStep(
           res,
           PfRule::ASSUME,
           {},
-          {nm->mkNode(
-              kind::SEXPR, res, nm->mkBoundVar(ss.str(), nm->sExprType()))},
+          {res},
           false,
           CDPOverwrite::ALWAYS);
       break;
@@ -361,19 +375,26 @@ bool LeanProofPostprocessCallback::update(Node res,
     case PfRule::TRUST_SUBS_MAP:
     case PfRule::TRUST_SUBS_EQ:
     {
-      d_newHoleAssumptions.insert(d_lnc.convert(res));
       // collect reason
       std::stringstream ss;
       ss << id;
+      if (id == PfRule::THEORY_LEMMA)
+      {
+        theory::TheoryId tid;
+        theory::builtin::BuiltinProofRuleChecker::getTheoryId(args[1], tid);
+        std::stringstream ssTid;
+        ssTid << tid;
+        std::string s = ssTid.str();
+        // delete "THEORY" prefix
+        s.erase(0, 6);
+        ss << s;
+      }
       // Make this an assumption
-      cdp->addStep(
-          res,
-          PfRule::ASSUME,
-          {},
-          {nm->mkNode(
-              kind::SEXPR, res, nm->mkBoundVar(ss.str(), nm->sExprType()))},
-          false,
-          CDPOverwrite::ALWAYS);
+      d_newHoleAssumptions.insert(
+          nm->mkNode(kind::SEXPR,
+                     d_lnc.convert(res),
+                     nm->mkBoundVar(ss.str(), nm->sExprType())));
+      cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
       break;
     }
     case PfRule::ARRAYS_READ_OVER_WRITE:
@@ -514,13 +535,14 @@ bool LeanProofPostprocessCallback::update(Node res,
         // Make this an assumption
         std::stringstream ss;
         ss << "SKO_FORALL_PROCESSING";
-        d_newHoleAssumptions.insert(d_lnc.convert(skolemSteps.back()));
+        d_newHoleAssumptions.insert(
+            nm->mkNode(kind::SEXPR,
+                       d_lnc.convert(skolemSteps.back()),
+                       nm->mkBoundVar(ss.str(), nm->sExprType())));
         cdp->addStep(skolemSteps.back(),
                      PfRule::ASSUME,
                      {},
-                     {nm->mkNode(kind::SEXPR,
-                                 skolemSteps.back(),
-                                 nm->mkBoundVar(ss.str(), nm->sExprType()))},
+                     {skolemSteps.back()},
                      false,
                      CDPOverwrite::ALWAYS);
       }
@@ -866,14 +888,13 @@ bool LeanProofPostprocessCallback::update(Node res,
         // For now no proper support
         std::stringstream ss;
         ss << "CONG_CLOSURE";
-        d_newHoleAssumptions.insert(d_lnc.convert(res));
+        d_newHoleAssumptions.insert(
+            nm->mkNode(kind::SEXPR,
+                       d_lnc.convert(res),
+                       nm->mkBoundVar(ss.str(), nm->sExprType())));
         // Make this an assumption
-        cdp->addStep(res,
-                     PfRule::ASSUME,
-                     {},
-                     {nm->mkNode(kind::SEXPR, res, nm->mkBoundVar(ss.str(), nm->sExprType()))},
-                     false,
-                     CDPOverwrite::ALWAYS);
+        cdp->addStep(
+            res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
         break;
       }
       size_t nchildren = children.size();

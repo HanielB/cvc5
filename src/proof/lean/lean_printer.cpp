@@ -400,7 +400,7 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     Trace("test-lean-pf") << ss.str() << "\n";
   }
   // Print preamble
-  out << "open Classical\nopen Smt.Reconstruction.Certifying\n\n";
+  out << "-- import Smt.Reconstruction.Certifying\nopen Classical\nopen Smt.Reconstruction.Certifying\n\n";
   // increase recursion depth and heartbeats
   out << "\n\nset_option maxRecDepth 10000\nset_option maxHeartbeats 500000\n\n";
   uint64_t thId;
@@ -481,7 +481,8 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   size_t i = 4;
   for (; i < nHoles; ++i)
   {
-    convertedAssumptions[0].push_back(d_lnc.convert(assumptions[i]));
+    Trace("test") << "Hole: " << assumptions[i] << "\n";
+    convertedAssumptions[0].push_back(assumptions[i]);
     d_lbind.process(convertedAssumptions[0].back());
   }
   // to skip the position with the number of rewrites
@@ -489,7 +490,8 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   Trace("test") << "Went from 4 to " << i << ", " << assumptions[i] << "\n";
   for (; i < nRewrites; ++i)
   {
-    convertedAssumptions[1].push_back(d_lnc.convert(assumptions[i]));
+    Trace("test") << "Rewrite: " << assumptions[i] << "\n";
+    convertedAssumptions[1].push_back(assumptions[i]);
     d_lbind.process(convertedAssumptions[1].back());
   }
   Trace("test") << "Went to " << i << ", " << assumptions [i] << "\n";
@@ -513,7 +515,9 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   {
     for (const Node& a : convertedAssumptions[j])
     {
-      printTerm(out, d_lnc.convert(a));
+      Assert(j >= 2 || a.getKind() == kind::SEXPR)
+          << "Broke with j " << j << ", " << a;
+      printTerm(out, d_lnc.convert(j < 2 ? a[0] : a));
       out << " → ";
     }
   }
@@ -525,10 +529,16 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     std::string prefix = j == 0 ? "h" : j == 1 ? "r" : "a";
     for (size_t k = 0, size = convertedAssumptions[j].size(); k < size; ++k)
     {
-      pfAssumpMap[convertedAssumptions[j][k]] = id;
+      Node a = j < 2? convertedAssumptions[j][k][0] : convertedAssumptions[j][k];
+      pfAssumpMap[a] = id;
       out << "fun lean_" << prefix << id++ << " : ";
-      printTerm(out, convertedAssumptions[j][k]);
+      printTerm(out, a);
       out << " =>";
+      // print reason, if there is one
+      if (j < 2)
+      {
+        out << " -- " << convertedAssumptions[j][k][1];
+      }
       // guarantee we use Lean's tactic mode by adding " by " after last
       // assertion
       out << (j == 2 && k == size - 1 ? " by" : "") << "\n";
