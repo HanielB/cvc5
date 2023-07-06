@@ -181,12 +181,15 @@ Node LeanNodeConverter::mkBinArithApp(
                     c0);
   }
   // (binrel% op c0 c1) vs (op 0 c1)
-  return nm->mkNode(kind::APPLY_UF, {
-      mkInternalSymbol(
-          "binrel%",
-          nm->mkFunctionType({nm->sExprType(), c0.getType(), c1.getType()},
-                             retType)),
-      mkInternalSymbol(s_kindToString[k]), c0, c1});
+  return nm->mkNode(
+      kind::APPLY_UF,
+      {mkInternalSymbol(
+           "binrel%",
+           nm->mkFunctionType({nm->sExprType(), c0.getType(), c1.getType()},
+                              retType)),
+       mkInternalSymbol(s_kindToString[k]),
+       c0,
+       c1});
 }
 
 Node LeanNodeConverter::convert(Node n)
@@ -366,7 +369,7 @@ Node LeanNodeConverter::convert(Node n)
                                    nm->mkConstInt(i.abs()),
                                    nm->mkConstInt(r.getDenominator()));
           }
-          toConvert = negative? nm->mkNode(kind::NEG, toConvert) : toConvert;
+          toConvert = negative ? nm->mkNode(kind::NEG, toConvert) : toConvert;
           res = (fraction || negative) ? convert(toConvert) : toConvert;
           break;
         }
@@ -441,7 +444,8 @@ Node LeanNodeConverter::convert(Node n)
           TypeNode retType = cur.getType();
           size_t i = 1, size = cur.getNumChildren();
           Node newCur = children[size - 1];
-          do {
+          do
+          {
             TypeNode tn = cur[size - 1 - i].getType();
             bool instConstArgs =
                 cur[size - 1 - i].isConst() && newCur.isConst()
@@ -454,7 +458,7 @@ Node LeanNodeConverter::convert(Node n)
                 && cur[size - 1 - i].getConst<Rational>().sgn() >= 0;
             newCur = mkBinArithApp(
                 k, children[size - 1 - i], newCur, retType, instConstArgs);
-          }  while (++i < size);
+          } while (++i < size);
           res = newCur;
           break;
         }
@@ -479,14 +483,15 @@ Node LeanNodeConverter::convert(Node n)
           Node currBody = children[1];
           for (size_t size = vars.getNumChildren(), i = size; i > 0; --i)
           {
-            currBody = nm->mkNode(kind::APPLY_UF,
-                                  {op,
-                                   nm->mkNode(kind::SEXPR,
-                                              vars[i - 1],
-                                              d_colon,
-                                              typeAsNode(vars[i - 1].getType())),
-                                   d_Arrow,
-                                   currBody});
+            currBody =
+                nm->mkNode(kind::APPLY_UF,
+                           {op,
+                            nm->mkNode(kind::SEXPR,
+                                       vars[i - 1],
+                                       d_colon,
+                                       typeAsNode(vars[i - 1].getType())),
+                            d_Arrow,
+                            currBody});
           }
           res = currBody;
           break;

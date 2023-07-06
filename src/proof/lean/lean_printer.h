@@ -39,8 +39,8 @@ class LeanLetUpdaterPfCallback : public ProofNodeUpdaterCallback
 {
  public:
   LeanLetUpdaterPfCallback(LetBinding& lbind,
-                       std::map<Node, Node>& skMap,
-                       std::set<LeanRule>& letRules);
+                           std::map<Node, Node>& skMap,
+                           std::set<LeanRule>& letRules);
   ~LeanLetUpdaterPfCallback();
 
   /** Update let map according to terms in step pn. */

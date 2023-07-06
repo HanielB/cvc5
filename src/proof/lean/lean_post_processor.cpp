@@ -329,7 +329,8 @@ bool LeanProofPostprocessCallback::update(Node res,
       for (size_t i = 1, size = args.size(); i < size; ++i)
       {
         Assert(!args[i].isNull());
-        newArgs.push_back(d_lnc.convert(args[i]));;
+        newArgs.push_back(d_lnc.convert(args[i]));
+        ;
       }
       addLeanStep(
           res, LeanRule::RARE_REWRITE, d_lnc.convert(res), {}, newArgs, *cdp);
@@ -358,13 +359,7 @@ bool LeanProofPostprocessCallback::update(Node res,
                      d_lnc.convert(res),
                      nm->mkBoundVar(ss.str(), nm->sExprType())));
       // Make this an assumption
-      cdp->addStep(
-          res,
-          PfRule::ASSUME,
-          {},
-          {res},
-          false,
-          CDPOverwrite::ALWAYS);
+      cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
       break;
     }
     case PfRule::PREPROCESS:
@@ -416,7 +411,8 @@ bool LeanProofPostprocessCallback::update(Node res,
     //   Node k = res[0][0][1];
     //   Node var = SkolemManager::getWitnessForm(k)[0][0];
     //   Trace("test-lean") << "skolem " << k << " has witness form "
-    //                      << SkolemManager::getWitnessForm(k) << ", its ID is "
+    //                      << SkolemManager::getWitnessForm(k) << ", its ID is
+    //                      "
     //                      << var.getId() << "\n";
     //   // arguments will be the id of the variable and its sort
     //   addLeanStep(res,

@@ -28,8 +28,8 @@ namespace cvc5::internal {
 namespace proof {
 
 LeanLetUpdaterPfCallback::LeanLetUpdaterPfCallback(LetBinding& lbind,
-                                           std::map<Node, Node>& skMap,
-                                           std::set<LeanRule>& letRules)
+                                                   std::map<Node, Node>& skMap,
+                                                   std::set<LeanRule>& letRules)
     : d_lbind(lbind), d_skMap(skMap), d_letRules(letRules)
 {
 }
@@ -75,17 +75,18 @@ bool LeanLetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
 
 LeanPrinter::LeanPrinter(Env& env, LeanNodeConverter& lnc)
     : EnvObj(env),
-      d_letRules({LeanRule::R0_PARTIAL,
-                  LeanRule::R1_PARTIAL,
-                  LeanRule::CONG_PARTIAL,
-                  LeanRule::CONG_ARG_PARTIAL,
-                  LeanRule::CONG_ADD_PARTIAL,
-                  LeanRule::BIND_PARTIAL,
-                  LeanRule::BIND_LAMBDA_PARTIAL,
-                  LeanRule::TRANS_PARTIAL,
-                  LeanRule::AND_INTRO_PARTIAL,
-                  LeanRule::INST_FORALL_PARTIAL,
-                  LeanRule::SKOLEMIZE_PARTIAL,
+      d_letRules({
+          LeanRule::R0_PARTIAL,
+          LeanRule::R1_PARTIAL,
+          LeanRule::CONG_PARTIAL,
+          LeanRule::CONG_ARG_PARTIAL,
+          LeanRule::CONG_ADD_PARTIAL,
+          LeanRule::BIND_PARTIAL,
+          LeanRule::BIND_LAMBDA_PARTIAL,
+          LeanRule::TRANS_PARTIAL,
+          LeanRule::AND_INTRO_PARTIAL,
+          LeanRule::INST_FORALL_PARTIAL,
+          LeanRule::SKOLEMIZE_PARTIAL,
       }),
       d_tacticRules({
           {LeanRule::R0, false},
@@ -224,8 +225,9 @@ void LeanPrinter::printStepId(std::ostream& out,
     AlwaysAssert(pfAssumpMap.find(conv) != pfAssumpMap.end())
         << "Original: " << pfn->getResult() << "\nConverted: " << conv;
     size_t id = pfAssumpMap.find(conv)->second;
-    out << (id < d_nNewAssumptions[0] ? "h"
-                                      : id < d_nNewAssumptions[1] ? "r" : "a");
+    out << (id < d_nNewAssumptions[0]   ? "h"
+            : id < d_nNewAssumptions[1] ? "r"
+                                        : "a");
     out << id;
   }
   else
@@ -362,7 +364,7 @@ void LeanPrinter::printProof(std::ostream& out,
     Assert(!firstScope || pfn->getResult() == d_false);
     if (pfn->getResult() == d_false)
     {
-      out << (firstScope? "exact (" : "");
+      out << (firstScope ? "exact (" : "");
       out << "show False from " << (isTactic ? "by " : "") << rule;
     }
     else
@@ -400,9 +402,11 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     Trace("test-lean-pf") << ss.str() << "\n";
   }
   // Print preamble
-  out << "-- import Smt.Reconstruction.Certifying\nopen Classical\nopen Smt.Reconstruction.Certifying\n\n";
+  out << "-- import Smt.Reconstruction.Certifying\nopen Classical\nopen "
+         "Smt.Reconstruction.Certifying\n\n";
   // increase recursion depth and heartbeats
-  out << "\n\nset_option maxRecDepth 10000\nset_option maxHeartbeats 500000\n\n";
+  out << "\n\nset_option maxRecDepth 10000\nset_option maxHeartbeats "
+         "500000\n\n";
   uint64_t thId;
   const std::vector<Node>& assumptions = pfn->getArguments();
   // The proof we will print is the one under the scope
@@ -466,11 +470,9 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   std::vector<Node> convertedAssumptions[3];
   uint32_t nHoles =
       assumptions[3].getConst<Rational>().getNumerator().toUnsignedInt() + 4;
-  uint32_t nRewrites = assumptions[nHoles]
-                           .getConst<Rational>()
-                           .getNumerator()
-                           .toUnsignedInt()
-                       + nHoles + 1;
+  uint32_t nRewrites =
+      assumptions[nHoles].getConst<Rational>().getNumerator().toUnsignedInt()
+      + nHoles + 1;
   d_nNewAssumptions[0] = nHoles - 4;
   d_nNewAssumptions[1] = nRewrites - 5;
   Trace("test") << "nHoles: " << nHoles - 4 << ", " << assumptions[3] << "\n";
@@ -494,7 +496,7 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     convertedAssumptions[1].push_back(assumptions[i]);
     d_lbind.process(convertedAssumptions[1].back());
   }
-  Trace("test") << "Went to " << i << ", " << assumptions [i] << "\n";
+  Trace("test") << "Went to " << i << ", " << assumptions[i] << "\n";
   for (size_t size = assumptions.size(); i < size; ++i)
   {
     convertedAssumptions[2].push_back(d_lnc.convert(assumptions[i]));
@@ -529,7 +531,8 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     std::string prefix = j == 0 ? "h" : j == 1 ? "r" : "a";
     for (size_t k = 0, size = convertedAssumptions[j].size(); k < size; ++k)
     {
-      Node a = j < 2? convertedAssumptions[j][k][0] : convertedAssumptions[j][k];
+      Node a =
+          j < 2 ? convertedAssumptions[j][k][0] : convertedAssumptions[j][k];
       pfAssumpMap[a] = id;
       out << "fun lean_" << prefix << id++ << " : ";
       printTerm(out, a);
@@ -542,7 +545,7 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
       // guarantee we use Lean's tactic mode by adding " by " after last
       // assertion
       out << (j == 2 && k == size - 1 ? " by" : "") << "\n";
-  }
+    }
   }
   std::stringstream ss;
   ss << out.rdbuf();

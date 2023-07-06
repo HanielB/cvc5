@@ -65,6 +65,7 @@ class LeanProofPostprocessCallback : public ProofNodeUpdaterCallback
    */
   std::unordered_set<Node> d_newRewriteAssumptions;
   std::unordered_set<Node> d_newHoleAssumptions;
+
  protected:
   /** The node converter */
   LeanNodeConverter& d_lnc;

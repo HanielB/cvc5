@@ -58,7 +58,8 @@ class LeanNodeConverter
   /** The set of declared types */
   // std::unordered_set<TypeNode> d_declTypes;
 
-  Node mkList(const std::vector<Node>& nodes, const std::vector<Node>& prefix = {});
+  Node mkList(const std::vector<Node>& nodes,
+              const std::vector<Node>& prefix = {});
 
  private:
   /** Should we traverse n? */
@@ -91,6 +92,6 @@ class LeanNodeConverter
 };
 
 }  // namespace proof
-}  // namespace cvc5
+}  // namespace cvc5::internal
 
 #endif
