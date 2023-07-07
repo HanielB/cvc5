@@ -408,9 +408,9 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   out << "\n\nset_option maxRecDepth 10000\nset_option maxHeartbeats "
          "500000\n\n";
   uint64_t thId;
-  const std::vector<Node>& assumptions = pfn->getArguments();
   // The proof we will print is the one under the scope
   std::shared_ptr<ProofNode> innerPf = pfn->getChildren()[0];
+  const std::vector<Node>& assumptions = pfn->getArguments();
   // Print user defined sorts and constants of those sorts
   std::unordered_set<Node> syms;
   std::unordered_set<TNode> visited;

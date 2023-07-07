@@ -1486,7 +1486,6 @@ void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
   CDProof cdp(
       d_env, nullptr, "LeanProofPostprocess::CDProofForNewAssumptions", false);
   std::shared_ptr<ProofNode> scopePf = assumptionsScope->getChildren()[0];
-  Node res = assumptionsScope->getResult();
   const std::vector<std::shared_ptr<ProofNode>>& childrenPfs =
       scopePf->getChildren();
   Assert(childrenPfs.size() == 1);
@@ -1518,6 +1517,7 @@ void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
                  definitionsScope->getArguments().begin(),
                  definitionsScope->getArguments().end());
   // finally, build the proof node
+  Node res = definitionsScope->getResult();
   cdp.addStep(res, PfRule::LEAN_RULE, {childrenPfs[0]->getResult()}, newArgs);
   d_env.getProofNodeManager()->updateNode(pf.get(), cdp.getProofFor(res).get());
 };
