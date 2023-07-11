@@ -335,6 +335,13 @@ Node LeanNodeConverter::convert(Node n)
             res = mkInternalSymbol("Real.sqrt", cur.getType());
             break;
           }
+          // In Lean, division by zero is interpreted as zero
+          if (sfi == SkolemFunId::DIV_BY_ZERO
+              || sfi == SkolemFunId::INT_DIV_BY_ZERO)
+          {
+            res = mkInternalSymbol("HDiv.hDiv", cur.getType());
+            break;
+          }
           Unreachable() << "Skolems function " << sfi << " conversion failed\n";
         }
         case kind::PI:
@@ -852,69 +859,81 @@ Node LeanNodeConverter::mkPrintableOp(Kind k)
     {
       return mkInternalSymbol("Real.tan");
     }
-    case kind::SELECT:
+    case kind::ARCTANGENT:
     {
-      return mkInternalSymbol("selectConst");
+      return mkInternalSymbol("Real.arctan");
     }
-    case kind::STORE:
+    case kind::ARCSINE:
     {
-      return mkInternalSymbol("storeConst");
+      return mkInternalSymbol("Real.arcsin");
     }
-    case kind::BITVECTOR_CONCAT:
+    case kind::ARCCOSINE:
     {
-      return mkInternalSymbol("bvConcatConst");
+      return mkInternalSymbol("Real.arccos");
     }
-    case kind::BITVECTOR_AND:
-    {
-      return mkInternalSymbol("bvAndConst");
-    }
-    case kind::BITVECTOR_ADD:
-    {
-      return mkInternalSymbol("bvAddConst");
-    }
-    case kind::BITVECTOR_SUB:
-    {
-      return mkInternalSymbol("bvSubConst");
-    }
-    case kind::BITVECTOR_NEG:
-    {
-      return mkInternalSymbol("bvNegConst");
-    }
-    case kind::BITVECTOR_ULT:
-    {
-      return mkInternalSymbol("bvUltConst");
-    }
-    case kind::BITVECTOR_ULE:
-    {
-      return mkInternalSymbol("bvUleConst");
-    }
-    case kind::BITVECTOR_EXTRACT:
-    {
-      return mkInternalSymbol("bvExtConst");
-    }
-    case kind::BITVECTOR_REPEAT:
-    {
-      return mkInternalSymbol("bvRepeatConst");
-    }
-    case kind::BITVECTOR_ZERO_EXTEND:
-    {
-      return mkInternalSymbol("bvZeroExtConst");
-    }
-    case kind::BITVECTOR_SIGN_EXTEND:
-    {
-      return mkInternalSymbol("bvSignExtConst");
-    }
-    case kind::BITVECTOR_BITOF:
-    {
-      return mkInternalSymbol("bitOfConst");
-    }
-    case kind::BITVECTOR_BB_TERM:
-    {
-      return mkInternalSymbol("bbTConst");
-    }
+    // case kind::SELECT:
+    // {
+    //   return mkInternalSymbol("selectConst");
+    // }
+    // case kind::STORE:
+    // {
+    //   return mkInternalSymbol("storeConst");
+    // }
+    // case kind::BITVECTOR_CONCAT:
+    // {
+    //   return mkInternalSymbol("bvConcatConst");
+    // }
+    // case kind::BITVECTOR_AND:
+    // {
+    //   return mkInternalSymbol("bvAndConst");
+    // }
+    // case kind::BITVECTOR_ADD:
+    // {
+    //   return mkInternalSymbol("bvAddConst");
+    // }
+    // case kind::BITVECTOR_SUB:
+    // {
+    //   return mkInternalSymbol("bvSubConst");
+    // }
+    // case kind::BITVECTOR_NEG:
+    // {
+    //   return mkInternalSymbol("bvNegConst");
+    // }
+    // case kind::BITVECTOR_ULT:
+    // {
+    //   return mkInternalSymbol("bvUltConst");
+    // }
+    // case kind::BITVECTOR_ULE:
+    // {
+    //   return mkInternalSymbol("bvUleConst");
+    // }
+    // case kind::BITVECTOR_EXTRACT:
+    // {
+    //   return mkInternalSymbol("bvExtConst");
+    // }
+    // case kind::BITVECTOR_REPEAT:
+    // {
+    //   return mkInternalSymbol("bvRepeatConst");
+    // }
+    // case kind::BITVECTOR_ZERO_EXTEND:
+    // {
+    //   return mkInternalSymbol("bvZeroExtConst");
+    // }
+    // case kind::BITVECTOR_SIGN_EXTEND:
+    // {
+    //   return mkInternalSymbol("bvSignExtConst");
+    // }
+    // case kind::BITVECTOR_BITOF:
+    // {
+    //   return mkInternalSymbol("bitOfConst");
+    // }
+    // case kind::BITVECTOR_BB_TERM:
+    // {
+    //   return mkInternalSymbol("bbTConst");
+    // }
     default:
     {
-      Trace("lean-conv") << "non-handled kind " << k << "\n";
+      Unreachable() << "non-handled kind " << k << "\n";
     }
   }
   return Node::null();
