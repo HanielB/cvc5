@@ -41,6 +41,7 @@ enum class LeanRule : uint32_t
   MODUS_PONENS,
   NOT_NOT_ELIM,
   CONTRADICTION,
+  EM,
   // cnf
   AND_ELIM,
   AND_INTRO,

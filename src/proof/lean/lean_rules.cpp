@@ -40,6 +40,7 @@ const char* toString(LeanRule id)
     case LeanRule::MODUS_PONENS: return "modusPonens";
     case LeanRule::NOT_NOT_ELIM: return "notNotElim";
     case LeanRule::CONTRADICTION: return "contradiction";
+    case LeanRule::EM: return "Classical.em";
     case LeanRule::AND_ELIM: return "andElim";
     case LeanRule::NOT_OR_ELIM: return "notOrElim";
     case LeanRule::AND_INTRO: return "And.intro";

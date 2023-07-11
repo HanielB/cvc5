@@ -89,6 +89,7 @@ std::unordered_map<PfRule, LeanRule, PfRuleHashFunction> s_pfRuleToLeanRule = {
     {PfRule::ARITH_TRICHOTOMY, LeanRule::TRICHOTOMY},
     {PfRule::INT_TIGHT_UB, LeanRule::INT_TIGHT_UB},
     {PfRule::INT_TIGHT_LB, LeanRule::INT_TIGHT_LB},
+    {PfRule::SPLIT, LeanRule::EM},
 };
 
 LeanProofPostprocess::LeanProofPostprocess(Env& env,
@@ -291,6 +292,7 @@ bool LeanProofPostprocessCallback::update(Node res,
       addLeanStep(res, LeanRule::REFL, d_lnc.convert(res), children, {}, *cdp);
       break;
     }
+    case PfRule::SPLIT:
     case PfRule::NOT_OR_ELIM:
     case PfRule::AND_ELIM:
     {
