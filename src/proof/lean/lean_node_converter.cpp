@@ -330,6 +330,11 @@ Node LeanNodeConverter::convert(Node n)
               break;
             }
           }
+          if (sfi == SkolemFunId::SQRT)
+          {
+            res = mkInternalSymbol("Real.sqrt", cur.getType());
+            break;
+          }
           Unreachable() << "Skolems function " << sfi << " conversion failed\n";
         }
         case kind::PI:
