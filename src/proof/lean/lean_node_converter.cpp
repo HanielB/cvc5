@@ -332,6 +332,19 @@ Node LeanNodeConverter::convert(Node n)
           }
           Unreachable() << "Skolems function " << sfi << " conversion failed\n";
         }
+        case kind::PI:
+        {
+          res = mkInternalSymbol("Real.pi", cur.getType());
+          break;
+        }
+        case kind::SQRT:
+        {
+          Node op = mkInternalSymbol(
+              "Real.sqrt",
+              nm->mkFunctionType(children[0].getType(), cur.getType()));
+          res = nm->mkNode(kind::APPLY_UF, op, children[0]);
+          break;
+        }
         case kind::VARIABLE:
         {
           res = nm->mkRawSymbol(cur.getName(), cur.getType());
@@ -817,6 +830,22 @@ Node LeanNodeConverter::mkPrintableOp(Kind k)
     case kind::LT:
     {
       return mkInternalSymbol("LT.lt");
+    }
+    case kind::EXPONENTIAL:
+    {
+      return mkInternalSymbol("Real.exp");
+    }
+    case kind::SINE:
+    {
+      return mkInternalSymbol("Real.sin");
+    }
+    case kind::COSINE:
+    {
+      return mkInternalSymbol("Real.cos");
+    }
+    case kind::TANGENT:
+    {
+      return mkInternalSymbol("Real.tan");
     }
     case kind::SELECT:
     {
