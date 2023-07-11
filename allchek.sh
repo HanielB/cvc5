@@ -1,6 +1,6 @@
-solver="./lean-proof.sh"
-options=""
-options=""
+# solver="./lean-proof.sh"
+solver="./prod/bin/cvc5"
+options="--check-proofs --stats-internal --nl-ext=full --nl-ext-tplanes --no-nl-cov"
 time=""
 ulimit="ulimit -S -t 30"
 # file="qflia-liageneric-nocutlemmas.txt"
@@ -11,7 +11,8 @@ ulimit="ulimit -S -t 30"
 
 
 # file="leanUfRegressions.txt"
-file="leanUflraRegressions-smaller.txt"
+# file="leanUflraRegressions-smaller.txt"
+file="leanQfTranscendental.txt"
 
 echo "Options: $options"
 echo
