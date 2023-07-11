@@ -364,48 +364,6 @@ bool LeanProofPostprocessCallback::update(Node res,
       cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
       break;
     }
-    case PfRule::PREPROCESS:
-    case PfRule::THEORY_PREPROCESS:
-    case PfRule::THEORY_PREPROCESS_LEMMA:
-    case PfRule::THEORY_LEMMA:
-    case PfRule::TRUST_SUBS:
-    case PfRule::TRUST_SUBS_MAP:
-    case PfRule::TRUST_SUBS_EQ:
-    {
-      // collect reason
-      std::stringstream ss;
-      ss << id;
-      if (id == PfRule::THEORY_LEMMA)
-      {
-        theory::TheoryId tid;
-        theory::builtin::BuiltinProofRuleChecker::getTheoryId(args[1], tid);
-        std::stringstream ssTid;
-        ssTid << tid;
-        std::string s = ssTid.str();
-        // delete "THEORY" prefix
-        s.erase(0, 6);
-        ss << s;
-      }
-      // Make this an assumption
-      d_newHoleAssumptions.insert(
-          nm->mkNode(kind::SEXPR,
-                     d_lnc.convert(res),
-                     nm->mkBoundVar(ss.str(), nm->sExprType())));
-      cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
-      break;
-    }
-    case PfRule::ARRAYS_READ_OVER_WRITE:
-    case PfRule::ARRAYS_READ_OVER_WRITE_CONTRA:
-    case PfRule::ARRAYS_READ_OVER_WRITE_1:
-    {
-      addLeanStep(res,
-                  s_pfRuleToLeanRule.at(id),
-                  d_lnc.convert(res),
-                  children,
-                  {},
-                  *cdp);
-      break;
-    }
     // retrieve witness form
     // case PfRule::ARRAYS_EXT:
     // {
@@ -1456,13 +1414,27 @@ bool LeanProofPostprocessCallback::update(Node res,
     }
     default:
     {
-      Trace("test-lean") << "Unhandled rule " << id << "\n";
+      // collect reason
       std::stringstream ss;
       ss << id;
-      Node newVar = nm->mkBoundVar(ss.str(), nm->sExprType());
-      std::vector<Node> newArgs{newVar};
-      newArgs.insert(newArgs.end(), args.begin(), args.end());
-      addLeanStep(res, LeanRule::UNKNOWN, d_empty, children, newArgs, *cdp);
+      if (id == PfRule::THEORY_LEMMA)
+      {
+        theory::TheoryId tid;
+        theory::builtin::BuiltinProofRuleChecker::getTheoryId(args[1], tid);
+        std::stringstream ssTid;
+        ssTid << tid;
+        std::string s = ssTid.str();
+        // delete "THEORY" prefix
+        s.erase(0, 6);
+        ss << s;
+      }
+      // Make this an assumption
+      d_newHoleAssumptions.insert(
+          nm->mkNode(kind::SEXPR,
+                     d_lnc.convert(res),
+                     nm->mkBoundVar(ss.str(), nm->sExprType())));
+      cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
+      break;
     }
   };
   return true;
