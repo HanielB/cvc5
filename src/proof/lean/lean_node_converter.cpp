@@ -173,14 +173,14 @@ Node LeanNodeConverter::mkBinArithApp(
   // make n a nat and not try coercing it to int. But (binrel% op n (+ x
   // y)) will do the coercion.
   NodeManager* nm = NodeManager::currentNM();
-  if (intConstArgs)
-  {
-    TypeNode tn = c0.getType();
-    c0 = nm->mkNode(kind::APPLY_UF,
-                    mkInternalSymbol(tn.isInteger() ? "Int.ofNat" : "Rat.ofInt",
-                                     nm->mkFunctionType(tn, tn)),
-                    c0);
-  }
+  // if (intConstArgs)
+  // {
+  //   TypeNode tn = c0.getType();
+  //   c0 = nm->mkNode(kind::APPLY_UF,
+  //                   mkInternalSymbol(tn.isInteger() ? "Int.ofNat" : "Rat.ofInt",
+  //                                    nm->mkFunctionType(tn, tn)),
+  //                   c0);
+  // }
   // (binrel% op c0 c1) vs (op 0 c1)
   return nm->mkNode(
       kind::APPLY_UF,
@@ -375,6 +375,25 @@ Node LeanNodeConverter::convert(Node n)
                     : mkInternalSymbol("False", nm->booleanType());
           break;
         }
+        case kind::CONST_INTEGER:
+        {
+          TypeNode tn = cur.getType();
+          Rational r = cur.getConst<Rational>();
+          Integer i = r.getNumerator();
+          bool negative = i.strictlyNegative();
+          std::stringstream ss;
+          ss << "__LEAN_TMP" << i.abs();
+          res = nm->mkNode(
+              kind::APPLY_UF,
+              mkInternalSymbol("Int.ofNat", nm->mkFunctionType(tn, tn)),
+              mkInternalSymbol(ss.str(), tn));
+          res = negative ? nm->mkNode(
+                    kind::APPLY_UF,
+                    mkInternalSymbol("Neg.neg", nm->mkFunctionType(tn, tn)),
+                    res)
+                         : res;
+          break;
+        }
         case kind::CONST_RATIONAL:
         {
           TypeNode tn = cur.getType();
@@ -387,16 +406,22 @@ Node LeanNodeConverter::convert(Node n)
           if (!fraction)
           {
             ss << "__LEAN_TMP" << i.abs();
-            toConvert = mkInternalSymbol(ss.str(), tn);
+            toConvert = nm->mkNode(
+                kind::APPLY_UF,
+                mkInternalSymbol("Rat.ofInt", nm->mkFunctionType(tn, tn)),
+                mkInternalSymbol(ss.str(), tn));
           }
           else
           {
-            toConvert = nm->mkNode(kind::DIVISION,
-                                   nm->mkConstInt(i.abs()),
-                                   nm->mkConstInt(r.getDenominator()));
+            toConvert = convert(nm->mkNode(kind::DIVISION,
+                                           nm->mkConstInt(i.abs()),
+                                           nm->mkConstInt(r.getDenominator())));
           }
-          toConvert = negative ? nm->mkNode(kind::NEG, toConvert) : toConvert;
-          res = (fraction || negative) ? convert(toConvert) : toConvert;
+          res = negative ? nm->mkNode(
+                    kind::APPLY_UF,
+                    mkInternalSymbol("Neg.neg", nm->mkFunctionType(tn, tn)),
+                    toConvert)
+                         : toConvert;
           break;
         }
         case kind::CONST_BITVECTOR:
@@ -617,12 +642,12 @@ Node LeanNodeConverter::convert(Node n)
                       && cur[0].getConst<Rational>().getDenominator().isOne()))
               && cur[0].getConst<Rational>().sgn() >= 0)
           {
-            children[0] = nm->mkNode(
-                kind::APPLY_UF,
-                mkInternalSymbol(
-                    childrenType.isInteger() ? "Int.ofNat" : "Rat.ofInt",
-                    nm->mkFunctionType(childrenType, childrenType)),
-                children[0]);
+            // children[0] = nm->mkNode(
+            //     kind::APPLY_UF,
+            //     mkInternalSymbol(
+            //         childrenType.isInteger() ? "Int.ofNat" : "Rat.ofInt",
+            //         nm->mkFunctionType(childrenType, childrenType)),
+            //     children[0]);
           }
           if (childrenType.isInteger() && children[0].isConst())
           {
