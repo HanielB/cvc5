@@ -177,7 +177,8 @@ Node LeanNodeConverter::mkBinArithApp(
   {
     TypeNode tn = c0.getType();
     c0 = nm->mkNode(kind::APPLY_UF,
-                    mkInternalSymbol("Int.ofNat", nm->mkFunctionType(tn, tn)),
+                    mkInternalSymbol(tn.isInteger() ? "Int.ofNat" : "Rat.ofInt",
+                                     nm->mkFunctionType(tn, tn)),
                     c0);
   }
   // (binrel% op c0 c1) vs (op 0 c1)
@@ -447,18 +448,19 @@ Node LeanNodeConverter::convert(Node n)
         case kind::INTS_MODULUS_TOTAL:
         {
           TypeNode tn = cur[0].getType();
-          res = mkBinArithApp(k,
-                              children[0],
-                              children[1],
-                              cur.getType(),
-                              cur[0].isConst() && cur[1].isConst()
-                                  && (tn.isInteger()
-                                      || (tn.isReal()
-                                          && cur[0]
-                                                 .getConst<Rational>()
-                                                 .getDenominator()
-                                                 .isOne()))
-                                  && cur[0].getConst<Rational>().sgn() >= 0);
+          res =
+              mkBinArithApp(k,
+                            children[0],
+                            children[1],
+                            cur.getType(),
+                            cur[0].isConst()
+                                && ((cur[1].isConst() && tn.isInteger()
+                                     && cur[0].getConst<Rational>().sgn() >= 0)
+                                    || (tn.isReal()
+                                        && cur[0]
+                                               .getConst<Rational>()
+                                               .getDenominator()
+                                               .isOne())));
           break;
         }
         // n-ary arith kinds
@@ -473,14 +475,14 @@ Node LeanNodeConverter::convert(Node n)
           {
             TypeNode tn = cur[size - 1 - i].getType();
             bool instConstArgs =
-                cur[size - 1 - i].isConst() && newCur.isConst()
-                && (tn.isInteger()
+                cur[size - 1 - i].isConst()
+                && ((newCur.isConst() && tn.isInteger()
+                     && cur[size - 1 - i].getConst<Rational>().sgn() >= 0)
                     || (tn.isReal()
                         && cur[size - 1 - i]
                                .getConst<Rational>()
                                .getDenominator()
-                               .isOne()))
-                && cur[size - 1 - i].getConst<Rational>().sgn() >= 0;
+                               .isOne()));
             newCur = mkBinArithApp(
                 k, children[size - 1 - i], newCur, retType, instConstArgs);
           } while (++i < size);
@@ -615,12 +617,12 @@ Node LeanNodeConverter::convert(Node n)
                       && cur[0].getConst<Rational>().getDenominator().isOne()))
               && cur[0].getConst<Rational>().sgn() >= 0)
           {
-            children[0] =
-                nm->mkNode(kind::APPLY_UF,
-                           mkInternalSymbol(
-                               "Int.ofNat",
-                               nm->mkFunctionType(childrenType, childrenType)),
-                           children[0]);
+            children[0] = nm->mkNode(
+                kind::APPLY_UF,
+                mkInternalSymbol(
+                    childrenType.isInteger() ? "Int.ofNat" : "Rat.ofInt",
+                    nm->mkFunctionType(childrenType, childrenType)),
+                children[0]);
           }
           if (childrenType.isInteger() && children[0].isConst())
           {
