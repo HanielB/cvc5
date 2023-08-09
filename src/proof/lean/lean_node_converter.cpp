@@ -38,7 +38,7 @@ std::unordered_map<Kind, std::string> s_kindToString = {
     {kind::BITVECTOR_SIGN_EXTEND, "bvSignExt"},
     {kind::BITVECTOR_BITOF, "bitOf"},
     {kind::BITVECTOR_BB_TERM, "bbT"},
-    {kind::ITE, "ite"},
+    {kind::ITE, "smtIte"},
     {kind::SELECT, "select"},
     {kind::STORE, "store"},
     {kind::NOT, "Not"},
@@ -713,10 +713,12 @@ Node LeanNodeConverter::convert(Node n)
         case kind::ITE:
         {
           TypeNode retType = cur[1].getType();
+          Node retTypeNode = typeAsNode(retType);
           TypeNode fType = nm->mkFunctionType(
-              {nm->booleanType(), retType, retType}, retType);
+              {nm->booleanType(), retType, retType, nm->sExprType()}, retType);
           Node op = mkInternalSymbol(s_kindToString[k], fType);
           children.insert(children.begin(), op);
+          children.push_back(retTypeNode);
           res = nm->mkNode(kind::APPLY_UF, children);
           break;
         }
@@ -827,7 +829,7 @@ Node LeanNodeConverter::mkPrintableOp(Kind k)
     }
     case kind::ITE:
     {
-      return mkInternalSymbol("ite");
+      return mkInternalSymbol("smtIte");
     }
     case kind::ADD:
     {
