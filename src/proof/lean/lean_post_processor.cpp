@@ -356,10 +356,15 @@ bool LeanProofPostprocessCallback::update(Node res,
         s.erase(0, 6);
         ss << s;
       }
-      d_newRewriteAssumptions.insert(
-          nm->mkNode(kind::SEXPR,
-                     d_lnc.convert(res),
-                     nm->mkBoundVar(ss.str(), nm->sExprType())));
+      // we will only add if fresh, since when printing the assumptions are
+      // retrieved via node hashing
+      Node assump = d_lnc.convert(res);
+      if (!d_newAssumptionsCollected.count(assump))
+      {
+        d_newRewriteAssumptions.insert(nm->mkNode(
+            kind::SEXPR, assump, nm->mkBoundVar(ss.str(), nm->sExprType())));
+        d_newAssumptionsCollected.insert(assump);
+      }
       // Make this an assumption
       cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
       break;
@@ -1428,11 +1433,16 @@ bool LeanProofPostprocessCallback::update(Node res,
         s.erase(0, 6);
         ss << s;
       }
+      // we will only add if fresh, since when printing the assumptions are
+      // retrieved via node hashing
+      Node assump = d_lnc.convert(res);
+      if (!d_newAssumptionsCollected.count(assump))
+      {
+        d_newHoleAssumptions.insert(nm->mkNode(
+            kind::SEXPR, assump, nm->mkBoundVar(ss.str(), nm->sExprType())));
+        d_newAssumptionsCollected.insert(assump);
+      }
       // Make this an assumption
-      d_newHoleAssumptions.insert(
-          nm->mkNode(kind::SEXPR,
-                     d_lnc.convert(res),
-                     nm->mkBoundVar(ss.str(), nm->sExprType())));
       cdp->addStep(res, PfRule::ASSUME, {}, {res}, false, CDPOverwrite::ALWAYS);
       break;
     }
