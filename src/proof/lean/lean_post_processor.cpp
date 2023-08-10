@@ -1275,12 +1275,20 @@ bool LeanProofPostprocessCallback::update(Node res,
       // singleton *repeated* literal. This is marked by a number as in
       // resolution.
       Node singleton,
-          lastPremiseLit = children[0][children[0].getNumChildren() - 1];
+          lastPremiseLit = children[0][children[0].getNumChildren() - 1],
+          resOriginal = res;
       if (lastPremiseLit.getKind() == kind::SKOLEM
           || lastPremiseLit.getKind() == kind::BOOLEAN_TERM_VARIABLE)
       {
         lastPremiseLit = SkolemManager::getOriginalForm(lastPremiseLit);
       }
+      if (res.getKind() == kind::SKOLEM
+          || res.getKind() == kind::BOOLEAN_TERM_VARIABLE)
+      {
+        resOriginal = SkolemManager::getOriginalForm(res);
+      }
+      Trace("test") << "..res " << res << "\n";
+      Trace("test") << "..lastPL " << lastPremiseLit << "\n";
       // For the last premise literal to be a singleton repeated literal, either
       // it is equal to the result (in which case the premise was just n
       // occurrences of it), or the end of the original clause is different from
@@ -1290,13 +1298,16 @@ bool LeanProofPostprocessCallback::update(Node res,
       // purification boolean variables which can stand for OR nodes (and could
       // thus be ambiguous in the final step, with the purification remove), we
       // do the general test.
-      if (lastPremiseLit == res
-          || (res.getKind() == kind::OR
-              && lastPremiseLit != res[res.getNumChildren() - 1]))
+      if (lastPremiseLit == resOriginal
+          || (resOriginal.getKind() == kind::OR
+              && lastPremiseLit != resOriginal[resOriginal.getNumChildren() - 1]))
       {
-        // last lit must be repeated
-        Assert(std::find(children[0].begin(), children[0].end(), lastPremiseLit)
-               != children[0].end());
+        // last lit must be repeated. But we only check when we have not been
+        // removing skolems.
+        Assert(
+            lastPremiseLit != children[0][children[0].getNumChildren() - 1]
+            || std::find(children[0].begin(), children[0].end(), lastPremiseLit)
+                   != children[0].end());
         singleton = nm->mkConstInt(Rational(children[0].getNumChildren() - 1));
       }
       else
