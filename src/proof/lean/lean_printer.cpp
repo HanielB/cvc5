@@ -435,6 +435,10 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
         continue;
       }
       // only collect non-predefined sorts for declaration
+      if (stc.getKind() == kind::INSTANTIATED_SORT_TYPE)
+      {
+        Unreachable() << "Unsupported sort in Lean proofs\n";
+      }
       if (stc.isUninterpretedSort() && stc.getKind() != kind::TYPE_CONSTANT)
       {
         Trace("test-lean") << "collecting sort " << stc << " with kind "
@@ -557,8 +561,8 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   if (innerPf->getRule() == PfRule::ASSUME)
   {
     Assert(innerPf->getResult() == d_false);
-    out << "show ";
-    printTerm(out, d_false);
+    out << "exact show ";
+    printTerm(out, d_lnc.convert(d_false));
     out << " from ";
     printStepId(out, innerPf.get(), pfMap, pfAssumpMap);
     out << "\n";

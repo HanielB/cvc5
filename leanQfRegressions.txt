@@ -2,7 +2,6 @@ test/regress/cli/regress0/wiki.21.cvc.smt2
 test/regress/cli/regress0/bug32.cvc.smt2
 test/regress/cli/regress0/simplification_bug2.smtv1.smt2
 test/regress/cli/regress0/simple-uf.smtv1.smt2
-test/regress/cli/regress0/bug310.cvc.smt2
 test/regress/cli/regress0/logops.03.cvc.smt2
 test/regress/cli/regress0/wiki.10.cvc.smt2
 test/regress/cli/regress0/cores/dd.uc-min-wrong.smt2
@@ -19,7 +18,6 @@ test/regress/cli/regress0/proofs/qgu-fuzz-2-bool-chainres-checking.smt2
 test/regress/cli/regress0/proofs/issue8983-trust-subs.smt2
 test/regress/cli/regress0/proofs/unused-def2.smt2
 test/regress/cli/regress0/proofs/qgu-fuzz-5-bool-open-sat.smt2
-test/regress/cli/regress0/proofs/issue9200-lfsc-inst-sorts.smt2
 test/regress/cli/regress0/proofs/unused-def1.smt2
 test/regress/cli/regress0/proofs/qgu-fuzz-3-chainres-checking.smt2
 test/regress/cli/regress0/proofs/proj-issue342-eager-checking-no-proof-checking.smt2

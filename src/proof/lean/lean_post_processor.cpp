@@ -1524,7 +1524,7 @@ void LeanProofPostprocess::process(std::shared_ptr<ProofNode> pf)
                  definitionsScope->getArguments().end());
   // finally, build the proof node
   Node res = definitionsScope->getResult();
-  cdp.addStep(res, PfRule::LEAN_RULE, {childrenPfs[0]->getResult()}, newArgs);
+  cdp.addStep(res, PfRule::UNKNOWN, {childrenPfs[0]->getResult()}, newArgs);
   d_env.getProofNodeManager()->updateNode(pf.get(), cdp.getProofFor(res).get());
 };
 

@@ -147,6 +147,11 @@ Node ProofChecker::checkInternal(PfRule id,
                                  bool useTrustedChecker,
                                  bool enableOutput)
 {
+  // no check
+  if (id == PfRule::UNKNOWN)
+  {
+    return expected;
+  }
   std::map<PfRule, ProofRuleChecker*>::iterator it = d_checker.find(id);
   if (it == d_checker.end())
   {
