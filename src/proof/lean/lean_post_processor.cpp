@@ -1236,12 +1236,18 @@ bool LeanProofPostprocessCallback::update(Node res,
     {
       Assert(res.getNumChildren() == children[0].getNumChildren());
       size_t size = res.getNumChildren();
+      Node lastPremiseLit = children[0][size - 1];
+      if (lastPremiseLit.getKind() == kind::SKOLEM
+          || lastPremiseLit.getKind() == kind::BOOLEAN_TERM_VARIABLE)
+      {
+        lastPremiseLit = SkolemManager::getOriginalForm(lastPremiseLit);
+      }
+      // -1 if tail of the clause is not an OR (i.e., it cannot be a singleton)
       Node singleton = nm->mkConstInt(Rational(
-          children[0][size - 1].getKind() == kind::OR ? int(size - 1) : (-1)));
+          lastPremiseLit.getKind() == kind::OR ? int(size - 1) : (-1)));
       // for each literal in the resulting clause, get its position in the
       // premise
       std::vector<Node> pos;
-
       for (const Node& resLit : res)
       {
         for (size_t i = 0; i < size; ++i)
@@ -1270,6 +1276,11 @@ bool LeanProofPostprocessCallback::update(Node res,
       // resolution.
       Node singleton,
           lastPremiseLit = children[0][children[0].getNumChildren() - 1];
+      if (lastPremiseLit.getKind() == kind::SKOLEM
+          || lastPremiseLit.getKind() == kind::BOOLEAN_TERM_VARIABLE)
+      {
+        lastPremiseLit = SkolemManager::getOriginalForm(lastPremiseLit);
+      }
       // For the last premise literal to be a singleton repeated literal, either
       // it is equal to the result (in which case the premise was just n
       // occurrences of it), or the end of the original clause is different from
