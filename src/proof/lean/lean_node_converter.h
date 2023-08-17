@@ -61,6 +61,7 @@ class LeanNodeConverter
   Node mkList(const std::vector<Node>& nodes,
               const std::vector<Node>& prefix = {});
 
+  static void cleanIdentifier(std::string& s);
  private:
   /** Should we traverse n? */
   bool shouldTraverse(Node n);
@@ -77,8 +78,9 @@ class LeanNodeConverter
   /** Maps from internally generated symbols to the built nodes. */
   std::map<std::pair<TypeNode, std::string>, Node> d_symbolsMap;
 
-  /** Node cache for convert */
+  /** Caches for convert */
   std::unordered_map<Node, Node> d_cache;
+  std::unordered_map<TypeNode, TypeNode> d_tcache;
 
   /** Cache for typeAsNode */
   std::map<TypeNode, Node> d_typeAsNode;

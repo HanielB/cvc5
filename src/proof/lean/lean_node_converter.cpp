@@ -14,6 +14,8 @@
  */
 #include "proof/lean/lean_node_converter.h"
 
+#include <cctype>
+#include <iomanip>
 #include <sstream>
 
 #include "expr/skolem_manager.h"
@@ -360,7 +362,9 @@ Node LeanNodeConverter::convert(Node n)
         }
         case kind::VARIABLE:
         {
-          res = nm->mkRawSymbol(cur.getName(), cur.getType());
+          std::string s = cur.getName();
+          cleanIdentifier(s);
+          res = nm->mkRawSymbol(s, cur.getType());
           break;
         }
         case kind::BOUND_VARIABLE:
@@ -1025,10 +1029,42 @@ Node LeanNodeConverter::typeAsNode(TypeNode tn)
     std::stringstream ss;
     options::ioutils::applyOutputLanguage(ss, Language::LANG_SMTLIB_V2_6);
     tn.toStream(ss);
-    res = mkInternalSymbol(ss.str());
+    std::string s = ss.str();
+    cleanIdentifier(s);
+    res = mkInternalSymbol(s);
   }
   d_typeAsNode[tn] = res;
   return res;
+}
+
+void LeanNodeConverter::cleanIdentifier(std::string& s)
+{
+  // The following sanitizes symbols that are not allowed in Lean identifiers,
+  // which are any non-alphanumeric symbols except ' in a non-first position
+  // (and _ in a first position).
+  if (!isalpha(s[0]) && s[0] != '_')
+  {
+    // Emit hex sequence
+    std::stringstream seq;
+    seq << "x" << std::setbase(16) << std::setfill('0') << std::setw(2)
+        << static_cast<size_t>(s[0]);
+    s.replace(0, 1, seq.str());
+  }
+  size_t found = 1;
+  do
+  {
+    found = s.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'");
+    if (found != std::string::npos)
+    {
+      // Emit hex sequence
+      std::stringstream seq;
+      seq << "x" << std::setbase(16) << std::setfill('0') << std::setw(2)
+          << static_cast<size_t>(s[found]);
+      s.replace(found, 1, seq.str());
+      // increment found over the escape
+      found += 3;
+    }
+  } while (found != std::string::npos);
 }
 
 Node LeanNodeConverter::mkInternalSymbol(const std::string& name)

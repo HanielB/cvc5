@@ -20,6 +20,7 @@
 #include "expr/node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "options/printer_options.h"
+#include "proof/lean/lean_node_converter.h"
 #include "proof/lean/lean_rules.h"
 #include "util/string.h"
 
@@ -453,7 +454,11 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   }
   for (const auto& s : sts)
   {
-    out << "variable {" << s << " : Type u} [Nonempty " << s << "]\n";
+    out << "variable {";
+    printSort(out, s);
+    out << " : Type u} [Nonempty ";
+    printSort(out, s);
+    out << "]\n";
   }
   // uninterpreted functions
   for (const Node& s : syms)
@@ -463,7 +468,9 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     {
       continue;
     }
-    out << "variable {" << s.getName() << " : ";
+    std::string name = s.getName();
+    LeanNodeConverter::cleanIdentifier(name);
+    out << "variable {" << name << " : ";
     printSort(out, s.getType());
     out << "}\n";
   }
