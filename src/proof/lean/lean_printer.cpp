@@ -358,7 +358,7 @@ void LeanPrinter::printProof(std::ostream& out,
   // than have s....
   if (d_letRules.find(rule) != d_letRules.end())
   {
-    out << "let lean_s" << id << " := " << (isTactic ? "by " : "") << rule;
+    out << "let lean_s" << id << " := " << (isTactic ? "by " : "by timed ") << rule;
   }
   else
   {
@@ -366,13 +366,13 @@ void LeanPrinter::printProof(std::ostream& out,
     if (pfn->getResult() == d_false)
     {
       out << (firstScope ? "exact (" : "");
-      out << "show False from " << (isTactic ? "by " : "") << rule;
+      out << "show False from " << (isTactic ? "by " : "by timed ") << rule;
     }
     else
     {
       out << "have lean_s" << id << " : ";
       printTerm(out, res);
-      out << " := " << (isTactic ? "by " : "") << rule;
+      out << " := " << (isTactic ? "by " : "by timed ") << rule;
     }
   }
   std::string separator = isTactic ? ", " : " ";
