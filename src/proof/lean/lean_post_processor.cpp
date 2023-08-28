@@ -311,6 +311,20 @@ bool LeanProofPostprocessCallback::update(Node res,
     }
     case PfRule::DSL_REWRITE:
     {
+      // Need to do like:
+      //
+      // example : (x1 ∧ x2 ∧ x3 ∧ (b ∧ y1 ∧ y2 ∧ True) ∧ z1 ∧ z2 ∧ True) = (x1 ∧ x2 ∧ x3 ∧ b ∧ y1 ∧ y2 ∧ z1 ∧ z2 ∧ True) := by
+      //   smt_rw and_assoc_eq and_true bool_and_flatten [[x1, x2], [b], [y1, y2], [z1, z2]]
+
+      // example : (x1 ∧ x2 ∧ x3 ∧ b ∧ y1 ∧ y2 ∧ b ∧ z1 ∧ z2 ∧ True) = (x1 ∧ x2 ∧ x3 ∧ b ∧ y1 ∧ y2 ∧ z1 ∧ z2 ∧ True) := by
+      //   smt_rw and_assoc_eq and_true bool_and_dup [[x1, x2, x3], [b], [y1, y2], [b], [z1, z2]]
+
+      // example : (x1 ∨ x2 ∨ x3 ∨ b ∨ y1 ∨ y2 ∨ b ∨ z1 ∨ z2 ∨ False) = (x1 ∨ x2 ∨ x3 ∨ b ∨ y1 ∨ y2 ∨ z1 ∨ z2 ∨ False) := by
+      //   smt_rw or_assoc_eq or_false bool_or_dup [[x1, x2, x3], [b], [y1, y2], [b], [z1, z2]]
+
+      // example : (x1 ∧ x2 ∧ x3 ∧ b ∧ y1 ∧ y2 ∧ b ∧ z1 ∧ z2 ∧ True) = (x1 ∧ x2 ∧ x3 ∧ b ∧ y1 ∧ y2 ∧ z1 ∧ z2 ∧ True) := by
+      //   smt_rw and_assoc_eq and_true bool_and_dup [[x1, x2, x3], [b], [y1, y2], [b], [z1, z2]]
+
       // get the name
       rewriter::DslPfRule di;
       Node rule;
@@ -318,6 +332,7 @@ bool LeanProofPostprocessCallback::update(Node res,
       {
         std::stringstream ss;
         ss << di;
+        // TODO replace dashes in name by underscores
         rule = nm->mkBoundVar(ss.str(), nm->sExprType());
       }
       else
@@ -327,6 +342,7 @@ bool LeanProofPostprocessCallback::update(Node res,
       // const rewriter::RewriteProofRule& rpr = d_rdb->getRule(di);
       // const std::vector<Node>& varList = rpr.getVarList();
 
+      // all arguments to be given as lists. The non-list arguments should be singletons
       std::vector<Node> newArgs{rule};
       for (size_t i = 1, size = args.size(); i < size; ++i)
       {
