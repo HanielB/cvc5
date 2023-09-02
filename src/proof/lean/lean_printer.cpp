@@ -199,17 +199,12 @@ void LeanPrinter::printLetList(std::ostream& out)
 {
   std::vector<Node> letList;
   d_lbind.letify(letList);
-  out << (!letList.empty() ? "\n" : "");
   for (TNode n : letList)
   {
     size_t id = d_lbind.getId(n);
-    Trace("test-lean") << "printLetList, guy with id " << id << ": " << n
-                       << "\n";
-    Assert(id != 0);
-    out << "def let" << id << "' := ";
+
+    out << "  let let" << id << " := ";
     printTerm(out, n, false);
-    out << "#check let" << id << "'\n";
-    // out << "\nmacro \"let " << id << "\" : term => `(@let" << id << "'"
   }
 }
 
@@ -515,15 +510,18 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
   }
 
   // Traverse the proof node to letify the (converted) conclusions of explicit
-  // proof steps. This traversal will collect the skolems to de defined.
+  // proof steps.
   ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
   updater.process(innerPf);
 
-  printLetList(out);
   // print theorem statement, which is to get proofs of all the assumptions
   // and conclude a proof of False. The assumptions are args[3..]
   // out << "\ntheorem th" << thId << " : ";
-  out << "\ntheorem th0 : ";
+  out << "\ntheorem th0 :\n";
+  // if any lets, print them for the theory statement.
+  std::stringstream letList;
+  printLetList(letList);
+  out << letList.str();
   for (size_t j = 0; j < 3; ++j)
   {
     for (const Node& a : convertedAssumptions[j])
@@ -535,6 +533,8 @@ void LeanPrinter::print(std::ostream& out, std::shared_ptr<ProofNode> pfn)
     }
   }
   out << "False :=\n";
+  // if any lets, print them again, for the proof
+  out << letList.str();
   // print initial assumptions
   std::map<Node, size_t> pfAssumpMap;
   for (size_t j = 0, id = 0; j < 3; ++j)
