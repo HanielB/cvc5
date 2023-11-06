@@ -87,13 +87,6 @@ enum class LeanRule : uint32_t
   CNF_ITE_NEG3,
   // euf
   SMT_CONG,
-  /* CONG, */
-  /* CONG_PARTIAL, */
-  /* CONG_ARG, */
-  /* CONG_ARG_PARTIAL, */
-  /* CONG_ITE, */
-  /* CONG_ADD, */
-  /* CONG_ADD_PARTIAL, */
   REFL,
   TRANS,
   TRANS_PARTIAL,
