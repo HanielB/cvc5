@@ -79,9 +79,6 @@ LeanPrinter::LeanPrinter(Env& env, LeanNodeConverter& lnc)
       d_letRules({
           LeanRule::R0_PARTIAL,
           LeanRule::R1_PARTIAL,
-          LeanRule::CONG_PARTIAL,
-          LeanRule::CONG_ARG_PARTIAL,
-          LeanRule::CONG_ADD_PARTIAL,
           LeanRule::BIND_PARTIAL,
           LeanRule::BIND_LAMBDA_PARTIAL,
           LeanRule::TRANS_PARTIAL,
@@ -102,6 +99,7 @@ LeanPrinter::LeanPrinter(Env& env, LeanNodeConverter& lnc)
           {LeanRule::AND_ELIM, false},
           {LeanRule::NOT_OR_ELIM, false},
           {LeanRule::SUM_BOUNDS, true},
+          {LeanRule::SMT_CONG, true},
           {LeanRule::TRICHOTOMY, false},
           {LeanRule::INT_TIGHT_UB, false},
           {LeanRule::INT_TIGHT_LB, false},

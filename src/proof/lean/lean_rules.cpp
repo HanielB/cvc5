@@ -87,13 +87,7 @@ const char* toString(LeanRule id)
 
     case LeanRule::RARE_REWRITE: return "smt_rw";
 
-    case LeanRule::CONG: return "congr";
-    case LeanRule::CONG_PARTIAL: return "congr";
-    case LeanRule::CONG_ARG: return "flipCongrArg";
-    case LeanRule::CONG_ARG_PARTIAL: return "flipCongrArg";
-    case LeanRule::CONG_ITE: return "congrIte";
-    case LeanRule::CONG_ADD: return "congrHAdd";
-    case LeanRule::CONG_ADD_PARTIAL: return "congrHAdd";
+    case LeanRule::SMT_CONG: return "smtCongr";
     case LeanRule::REFL: return "rfl";
     case LeanRule::TRANS: return "Eq.trans";
     case LeanRule::TRANS_PARTIAL: return "Eq.trans";
