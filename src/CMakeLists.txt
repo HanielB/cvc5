@@ -877,6 +877,8 @@ libcvc5_add_sources(
   theory/quantifiers/proof_checker.h
   theory/quantifiers/quant_bound_inference.cpp
   theory/quantifiers/quant_bound_inference.h
+  theory/quantifiers/conflict_instantiation.cpp
+  theory/quantifiers/conflict_instantiation.h
   theory/quantifiers/quant_conflict_find.cpp
   theory/quantifiers/quant_conflict_find.h
   theory/quantifiers/quant_relevance.cpp
@@ -1481,8 +1483,8 @@ endif()
 add_dependencies(cvc5-obj SymFPU)
 target_include_directories(cvc5-obj SYSTEM PRIVATE ${SymFPU_INCLUDE_DIR})
 
-# GMP has to be included at the end because of linker ordering issues when 
-# generating a static library. 
+# GMP has to be included at the end because of linker ordering issues when
+# generating a static library.
 add_dependencies(cvc5-obj GMP)
 target_include_directories(cvc5-obj PRIVATE ${GMP_INCLUDE_DIR})
 if(BUILD_SHARED_LIBS)

@@ -31,6 +31,7 @@ QuantifiersModules::QuantifiersModules()
       d_model_engine(nullptr),
       d_bint(nullptr),
       d_qcf(nullptr),
+      d_qcfCCFV(nullptr),
       d_sg_gen(nullptr),
       d_synth_e(nullptr),
       d_fs(nullptr),
@@ -53,6 +54,9 @@ void QuantifiersModules::initialize(Env& env,
   const Options& options = env.getOptions();
   if (options.quantifiers.conflictBasedInst)
   {
+    d_qcfCCFV.reset(new ConflictInst(env, qs, qim, qr, tr));
+    modules.push_back(d_qcfCCFV.get());
+
     d_qcf.reset(new QuantConflictFind(env, qs, qim, qr, tr));
     modules.push_back(d_qcf.get());
   }

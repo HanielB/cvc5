@@ -29,6 +29,7 @@
 #include "theory/quantifiers/inst_strategy_mbqi.h"
 #include "theory/quantifiers/inst_strategy_pool.h"
 #include "theory/quantifiers/oracle_engine.h"
+#include "theory/quantifiers/conflict_instantiation.h"
 #include "theory/quantifiers/quant_conflict_find.h"
 #include "theory/quantifiers/quant_split.h"
 #include "theory/quantifiers/sygus/synth_engine.h"
@@ -82,6 +83,8 @@ class QuantifiersModules
   std::unique_ptr<BoundedIntegers> d_bint;
   /** Conflict find mechanism for quantifiers */
   std::unique_ptr<QuantConflictFind> d_qcf;
+  /** Conflict find mechanism for quantifiers (based on CCFV) */
+  std::unique_ptr<ConflictInst> d_qcfCCFV;
   /** subgoal generator */
   std::unique_ptr<ConjectureGenerator> d_sg_gen;
   /** ceg instantiation */
