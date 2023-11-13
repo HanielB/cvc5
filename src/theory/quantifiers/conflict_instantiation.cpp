@@ -52,7 +52,7 @@ void ConflictInst::check(Theory::Effort level, QEffort quant_e)
       continue;
     }
     std::vector<Node> negQuantLits;
-    for (const Node& n: q[1])
+    for (const Node& n : q[1])
     {
       bool notNode = n.getKind() == Kind::NOT;
       Kind k = notNode ? n[0].getKind() : n.getKind();
@@ -60,7 +60,7 @@ void ConflictInst::check(Theory::Effort level, QEffort quant_e)
       {
         break;
       }
-      negQuantLits.push_back(notNode? n[0] : n.notNode());
+      negQuantLits.push_back(notNode ? n[0] : n.notNode());
     }
     if (negQuantLits.size() != q[1].getNumChildren())
     {
@@ -70,7 +70,7 @@ void ConflictInst::check(Theory::Effort level, QEffort quant_e)
                            << " with negated lits\n\t.. " << negQuantLits
                            << "\n";
 
-      /** get term database */
+    /** get term database */
     TermDb* tdb = getTermDatabase();
     // TODO call CCFV module from here. The term database has the information
     // needed from E and the set of negated quantified literals will be L.

@@ -26,12 +26,12 @@ namespace quantifiers {
 
 class ConflictInst : public QuantifiersModule
 {
-public:
- ConflictInst(Env& env,
-              QuantifiersState& qs,
-              QuantifiersInferenceManager& qim,
-              QuantifiersRegistry& qr,
-              TermRegistry& tr);
+ public:
+  ConflictInst(Env& env,
+               QuantifiersState& qs,
+               QuantifiersInferenceManager& qim,
+               QuantifiersRegistry& qr,
+               TermRegistry& tr);
 
   /** needs check */
   bool needsCheck(Theory::Effort level) override;
@@ -45,7 +45,6 @@ public:
   void check(Theory::Effort level, QEffort quant_e) override;
   /** Identify this module */
   std::string identify() const override { return "ConflictInst"; }
-
 };
 
 }  // namespace quantifiers
