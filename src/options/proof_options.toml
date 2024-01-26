@@ -254,3 +254,12 @@ name   = "Proof"
   type       = "bool"
   default    = "true"
   help       = "Minimize the DIMACs emitted as the preamble"
+
+
+[[option]]
+  name       = "markLemmasDimacs"
+  category   = "expert"
+  long       = "mark-lemmas-dimacs"
+  type       = "bool"
+  default    = "false"
+  help       = "When printing the DIMACs for input+lemmas, mark the lemmas"

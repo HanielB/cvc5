@@ -38,4 +38,3 @@ else
       echo "error: $RESULT"
       exit 1
 fi
-

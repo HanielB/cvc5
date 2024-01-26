@@ -77,6 +77,7 @@ void BoolProofRuleChecker::registerTo(ProofChecker* pc)
   pc->registerTrustedChecker(ProofRule::SAT_REFUTATION, this, 1);
   pc->registerTrustedChecker(ProofRule::DRAT_REFUTATION, this, 1);
   pc->registerTrustedChecker(ProofRule::SAT_EXTERNAL_PROVE, this, 1);
+  pc->registerTrustedChecker(ProofRule::SAT_LEMMAS_EXTERNAL_PROVE, this, 1);
 }
 
 Node BoolProofRuleChecker::checkInternal(ProofRule id,
@@ -931,12 +932,14 @@ Node BoolProofRuleChecker::checkInternal(ProofRule id,
     return NodeManager::currentNM()->mkNode(Kind::OR, disjuncts);
   }
   if (id == ProofRule::SAT_REFUTATION || id == ProofRule::DRAT_REFUTATION
-      || id == ProofRule::SAT_EXTERNAL_PROVE)
+      || id == ProofRule::SAT_EXTERNAL_PROVE
+      || id == ProofRule::SAT_LEMMAS_EXTERNAL_PROVE)
   {
-    Assert(args.size()
-           == (id == ProofRule::SAT_REFUTATION
-                   ? 0
-                   : (id == ProofRule::SAT_EXTERNAL_PROVE ? 1 : 2)));
+    Assert(id == ProofRule::SAT_LEMMAS_EXTERNAL_PROVE
+           || args.size()
+                  == (id == ProofRule::SAT_REFUTATION
+                          ? 0
+                          : (id == ProofRule::SAT_EXTERNAL_PROVE ? 1 : 2)));
     return NodeManager::currentNM()->mkConst(false);
   }
   // no rule

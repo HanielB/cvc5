@@ -61,7 +61,7 @@ namespace cvc5 {
  *
  * where we call :math:`\varphi_i` its premises or children, :math:`t_i` its
  * arguments, :math:`\psi` its conclusion, and :math:`C` its side condition.
- * Alternatively, we can write the application of a proof rule as 
+ * Alternatively, we can write the application of a proof rule as
  * ``(RULENAME F1 ... Fn :args t1 ... tm)``, omitting the conclusion
  * (since it can be uniquely determined from premises and arguments).
  * Note that premises are sometimes given as proofs, i.e., application of
@@ -260,10 +260,10 @@ enum ENUM(ProofRule) : uint32_t
    * **Builtin theory -- Encode predicate transformation**
    * .. math::
    *   \inferrule{F \mid G}{G}
-   * 
+   *
    * where :math:`F` and :math:`G` are equivalent up to their encoding in an
    * external proof format. This is currently verified by
-   *   :math:`\texttt{RewriteDbNodeConverter::convert}(F) = 
+   *   :math:`\texttt{RewriteDbNodeConverter::convert}(F) =
    * \texttt{RewriteDbNodeConverter::convert}(G)`.
    * This rule can be treated as a no-op when appropriate in external proof
    * formats.
@@ -275,13 +275,13 @@ enum ENUM(ProofRule) : uint32_t
    * **Builtin theory -- DSL rewrite**
    * .. math::
    *   \inferrule{F_1 \dots F_n \mid id t_1 \dots t_n}{F}
-   * 
+   *
    * where the DSL rewrite rule with the given identifier is
    * :math:`\forall x_1 \dots x_n. (G_1 \wedge G_n) \Rightarrow G`
    * where for :math:`i=1, \dots n`, we have that :math:`F_i = \sigma(G_i)`
    * and :math:`F = \sigma(G)` where :math:`\sigma` is the substitution
    * :math:`\{x_1\mapsto t_1,\dots,x_n\mapsto t_n\}`.
-   * 
+   *
    * Notice that the application of the substitution takes into account the
    * possible list semantics of variables :math:`x_1 \ldots x_n`. If
    * :math:`x_i` is a variable with list semantics, then :math:`t_i` denotes a
@@ -369,6 +369,7 @@ enum ENUM(ProofRule) : uint32_t
   EVALUE(DRAT_REFUTATION),
 
   EVALUE(SAT_EXTERNAL_PROVE),
+  EVALUE(SAT_LEMMAS_EXTERNAL_PROVE),
   /**
    * \verbatim embed:rst:leading-asterisk
    * **Boolean -- Resolution**

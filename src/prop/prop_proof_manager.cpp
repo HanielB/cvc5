@@ -294,35 +294,56 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
   }
 
   std::shared_ptr<ProofNode> conflictProof;
-  if (hasFalseAssert)
+  if (!options().proof.mark-lemmas-dimacs && hasFalseAssert)
   {
     Assert(clauses.size() == 1 && clauses[0].isConst()
            && !clauses[0].getConst<bool>());
     conflictProof = d_env.getProofNodeManager()->mkAssume(clauses[0]);
   }
-  else
+  else if (!options().proof.mark-lemmas-dimacs)
   {
     conflictProof = d_satSolver->getProof(clauses);
   }
-  // if DRAT, must dump dimacs
-  ProofRule r = conflictProof->getRule();
-  if (r == ProofRule::DRAT_REFUTATION || r == ProofRule::SAT_EXTERNAL_PROVE)
+  else
   {
-    std::stringstream dinputFile;
-    dinputFile
-        << conflictProof->getArguments()[0].getConst<String>().toString();
-    std::fstream dout(dinputFile.str(), std::ios::out);
-    if (alreadyDumpDimacs)
-    {
-      dout << dumpDimacs.str();
-    }
-    else
-    {
-      d_proofCnfStream->dumpDimacs(dout, clauses);
-    }
-    dout.close();
-  }
+    // we will print a dimacs of inputs + lemmas, where lemmas are preceded by
+    // @ti. The proof step will have as arguments the name of the dimacs file
+    // and a set of equalities between the @ti's and the respective lemmas, as
+    // nodes
 
+    // TODO print the DIMACs
+    //
+    // will need to use void CnfStream::dumpDimacs, but a version that adds the
+    // t marker in front
+
+    // TODO build the arguments
+
+    // build the proof node
+    CDProof cdp(d_env);
+    cdp.addStep(falsen, ProofRule::SAT_LEMMAS_EXTERNAL_PROVE, clauses, args);
+    Node falseNode = NodeManager::currentNM()->mkConst(false);
+    conflictProof = cdp.getProofFor(falseNode);
+  }
+  if (!options().proof.mark-lemmas-dimacs)
+  {  // if DRAT, must dump dimacs
+    ProofRule r = conflictProof->getRule();
+    if (r == ProofRule::DRAT_REFUTATION || r == ProofRule::SAT_EXTERNAL_PROVE)
+    {
+      std::stringstream dinputFile;
+      dinputFile
+          << conflictProof->getArguments()[0].getConst<String>().toString();
+      std::fstream dout(dinputFile.str(), std::ios::out);
+      if (alreadyDumpDimacs)
+      {
+        dout << dumpDimacs.str();
+      }
+      else
+      {
+        d_proofCnfStream->dumpDimacs(dout, clauses);
+      }
+      dout.close();
+    }
+  }
   Assert(conflictProof);
   if (TraceIsOn("sat-proof"))
   {
