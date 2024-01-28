@@ -189,6 +189,10 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
   // output for dimacs file
   std::stringstream dumpDimacs;
   bool alreadyDumpDimacs = false;
+  NodeManager* nm = NodeManager::currentNM();
+  SkolemManager* skm = nm->getSkolemManager();
+  TypeNode bt = nm->booleanType();
+
   // go back and minimize assumptions if option is set and SAT solver uses it.
   // we don't do this if we found false as a (preprocessed) input formula
   if (computeClauses && !hasFalseAssert && options().proof.satProofMinDimacs)
@@ -203,10 +207,7 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
     std::vector<SatLiteral> csma;
     std::map<SatLiteral, Node> litToNode;
     std::map<SatLiteral, Node> litToNodeAbs;
-    NodeManager* nm = NodeManager::currentNM();
-    TypeNode bt = nm->booleanType();
     TypeNode ft = nm->mkFunctionType({bt}, bt);
-    SkolemManager* skm = nm->getSkolemManager();
     // Function used to ensure that subformulas are not treated by CNF below.
     Node litOf = skm->mkDummySkolem("litOf", ft);
     for (const Node& c : cset)
@@ -294,18 +295,24 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
   }
 
   std::shared_ptr<ProofNode> conflictProof;
-  if (!options().proof.mark-lemmas-dimacs && hasFalseAssert)
+  if (!options().proof.markLemmasDimacs && hasFalseAssert)
   {
     Assert(clauses.size() == 1 && clauses[0].isConst()
            && !clauses[0].getConst<bool>());
     conflictProof = d_env.getProofNodeManager()->mkAssume(clauses[0]);
   }
-  else if (!options().proof.mark-lemmas-dimacs)
+  else if (!options().proof.markLemmasDimacs)
   {
     conflictProof = d_satSolver->getProof(clauses);
   }
   else
   {
+    std::vector<Node> args;
+    std::stringstream dinputFile;
+    dinputFile << options().driver.filename << ".drat_input.cnf";
+    Node dfile = nm->mkConst(String(dinputFile.str()));
+    args.push_back(dfile);
+
     // we will print a dimacs of inputs + lemmas, where lemmas are preceded by
     // @ti. The proof step will have as arguments the name of the dimacs file
     // and a set of equalities between the @ti's and the respective lemmas, as
@@ -315,16 +322,34 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
     //
     // will need to use void CnfStream::dumpDimacs, but a version that adds the
     // t marker in front
+    std::fstream dout(dinputFile.str(), std::ios::out);
+    d_proofCnfStream->dumpDimacs(dout, inputs, lemmas);
+    dout.close();
 
-    // TODO build the arguments
-
+    // Build the equalities between the lemma ids and the lemmas. Note that we
+    // expect that the order in which the ids are assigned to lemma clauses is
+    // the same as the one in which they are converted to DIMACs.
+    std::vector<Node> namedLemmas;
+    for (size_t i = 0, size = lemmas.size(); i < size; ++i)
+    {
+      std::stringstream lemmaId;
+      lemmaId << "@l" << i;
+      Node lemmaIdNode = nm->mkRawSymbol(lemmaId.str(), bt);
+      namedLemmas.push_back(nm->mkNode(Kind::SEXPR,
+                                       {nm->mkRawSymbol("!", bt),
+                                        lemmas[i],
+                                        nm->mkRawSymbol(":named", bt),
+                                        lemmaIdNode}));
+    }
+    args.push_back(lemmas.size() > 1 ? nm->mkNode(Kind::AND, namedLemmas)
+                                     : namedLemmas[0]);
     // build the proof node
     CDProof cdp(d_env);
-    cdp.addStep(falsen, ProofRule::SAT_LEMMAS_EXTERNAL_PROVE, clauses, args);
-    Node falseNode = NodeManager::currentNM()->mkConst(false);
+    Node falseNode = nm->mkConst(false);
+    cdp.addStep(falseNode, ProofRule::SAT_LEMMAS_EXTERNAL_PROVE, inputs, args);
     conflictProof = cdp.getProofFor(falseNode);
   }
-  if (!options().proof.mark-lemmas-dimacs)
+  if (!options().proof.markLemmasDimacs)
   {  // if DRAT, must dump dimacs
     ProofRule r = conflictProof->getRule();
     if (r == ProofRule::DRAT_REFUTATION || r == ProofRule::SAT_EXTERNAL_PROVE)

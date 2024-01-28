@@ -808,5 +808,61 @@ void CnfStream::dumpDimacs(std::ostream& out, const std::vector<Node>& clauses)
   out << dclauses.str();
 }
 
+void CnfStream::dumpDimacs(std::ostream& out,
+                           const std::vector<Node>& inputs,
+                           const std::vector<Node>& lemmas)
+{
+  std::stringstream dclauses;
+  SatVariable maxVar = 0;
+  size_t lemmaId = 0;
+  for (const Node& n : inputs)
+  {
+    std::vector<Node> lits;
+    if (n.getKind() == Kind::OR)
+    {
+      lits.insert(lits.end(), n.begin(), n.end());
+    }
+    else
+    {
+      lits.push_back(n);
+    }
+    Trace("dimacs-debug") << "Print " << n << std::endl;
+    for (const Node& l : lits)
+    {
+      SatLiteral lit = getLiteral(l);
+      SatVariable v = lit.getSatVariable();
+      maxVar = v > maxVar ? v : maxVar;
+      dclauses << (lit.isNegated() ? "-" : "") << v << " ";
+    }
+    dclauses << "0" << std::endl;
+  }
+  for (const Node& n : lemmas)
+  {
+    std::vector<Node> lits;
+    if (n.getKind() == Kind::OR)
+    {
+      lits.insert(lits.end(), n.begin(), n.end());
+    }
+    else
+    {
+      lits.push_back(n);
+    }
+    Trace("dimacs-debug") << "Print " << n << std::endl;
+    dclauses << "@l" << lemmaId++ << " ";
+    for (const Node& l : lits)
+    {
+      SatLiteral lit = getLiteral(l);
+      SatVariable v = lit.getSatVariable();
+      maxVar = v > maxVar ? v : maxVar;
+      dclauses << (lit.isNegated() ? "-" : "") << v << " ";
+    }
+    dclauses << "0" << std::endl;
+  }
+  out << "p cnf " << maxVar << " " << (inputs.size() + lemmas.size())
+      << std::endl;
+  out << dclauses.str();
+}
+
+
 }  // namespace prop
 }  // namespace cvc5::internal

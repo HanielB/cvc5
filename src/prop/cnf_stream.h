@@ -164,6 +164,10 @@ class CnfStream : protected EnvObj
    */
   void dumpDimacs(std::ostream& out, const std::vector<Node>& clauses);
 
+  void dumpDimacs(std::ostream& out,
+                  const std::vector<Node>& inputs,
+                  const std::vector<Node>& lemmas);
+
  protected:
   /**
    * Same as above, except that uses the saved d_removable flag. It calls the
