@@ -97,7 +97,7 @@ class ProofCnfStream : protected EnvObj, public ProofGenerator
    * can be queried via getSatValue(). Essentially, this is like a "convert-but-
    * don't-assert" version of convertAndAssert().
    */
-  void ensureLiteral(TNode n);
+  void ensureLiteral(TNode n, bool input = false);
 
   /**
    * Returns true iff the node has an assigned literal (it might not be

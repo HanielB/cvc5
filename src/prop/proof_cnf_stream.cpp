@@ -778,7 +778,7 @@ Node ProofCnfStream::getClauseNode(const SatClause& clause)
   return NodeManager::currentNM()->mkNode(Kind::OR, clauseNodes);
 }
 
-void ProofCnfStream::ensureLiteral(TNode n)
+void ProofCnfStream::ensureLiteral(TNode n, bool input)
 {
   Trace("cnf") << "ProofCnfStream::ensureLiteral(" << n << ")\n";
   if (d_cnfStream.hasLiteral(n))
@@ -786,6 +786,7 @@ void ProofCnfStream::ensureLiteral(TNode n)
     d_cnfStream.ensureMappingForLiteral(n);
     return;
   }
+  d_input = input;
   // remove top level negation. We don't need to track this because it's a
   // literal.
   n = n.getKind() == Kind::NOT ? n[0] : n;
@@ -809,6 +810,7 @@ void ProofCnfStream::ensureLiteral(TNode n)
     d_proof.addStep(step.first, step.second);
   }
   d_psb.clear();
+  d_input = false;
 }
 
 bool ProofCnfStream::hasLiteral(TNode n) const

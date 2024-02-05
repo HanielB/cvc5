@@ -265,7 +265,7 @@ void PropEngine::assertInternal(
         && options().smt.unsatCoresMode == options::UnsatCoresMode::ASSUMPTIONS)
     {
       // use the proof CNF stream to ensure the literal
-      d_pfCnfStream->ensureLiteral(node);
+      d_pfCnfStream->ensureLiteral(node, true);
       addAssumption = true;
     }
     else
