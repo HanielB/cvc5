@@ -68,9 +68,14 @@
   :conclusion false
 )
 
+(declare-oracle-fun run_sat_lemmas_prove (String Bool) Bool ./sat-lemmas-prove.sh)
 
-
-
+(declare-rule sat_lemmas_external_prove ((F Bool) (D String) (L Bool))
+  :premise-list F and
+  :args (D L)
+  :requires (((run_sat_lemmas_prove D L) true))
+  :conclusion false
+)
 
 ; run_sat_prove_dimacs takes:
 ; - A string corresponding to a DIMACS input.

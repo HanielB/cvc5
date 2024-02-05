@@ -325,24 +325,8 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
     std::fstream dout(dinputFile.str(), std::ios::out);
     d_proofCnfStream->dumpDimacs(dout, inputs, lemmas);
     dout.close();
-
-    // Build the equalities between the lemma ids and the lemmas. Note that we
-    // expect that the order in which the ids are assigned to lemma clauses is
-    // the same as the one in which they are converted to DIMACs.
-    std::vector<Node> namedLemmas;
-    for (size_t i = 0, size = lemmas.size(); i < size; ++i)
-    {
-      std::stringstream lemmaId;
-      lemmaId << "@l" << i;
-      Node lemmaIdNode = nm->mkRawSymbol(lemmaId.str(), bt);
-      namedLemmas.push_back(nm->mkNode(Kind::SEXPR,
-                                       {nm->mkRawSymbol("!", bt),
-                                        lemmas[i],
-                                        nm->mkRawSymbol(":named", bt),
-                                        lemmaIdNode}));
-    }
-    args.push_back(lemmas.size() > 1 ? nm->mkNode(Kind::AND, namedLemmas)
-                                     : namedLemmas[0]);
+    args.push_back(lemmas.size() > 1 ? nm->mkNode(Kind::AND, lemmas)
+                                     : lemmas[0]);
     // build the proof node
     CDProof cdp(d_env);
     Node falseNode = nm->mkConst(false);
