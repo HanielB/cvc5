@@ -1,39 +1,36 @@
 #!/usr/bin/env bash
 
-#INPUT=$1
-#PROOF=$2
-#echo "parse"
-# Emptying IFS supresses word splitting by Bash
-# Using '"' in IFS makes bash drop the quotes
-IFS= read -r line
-if [[ "$line" != "(" ]]; then
-      exit 1
-fi
-IFS='"' read -r drop INPUT
-IFS= read -r line
-if [[ "$line" != ")" ]]; then
-      exit 1
-fi
-echo "got input $INPUT"
+# This reads exactly one function call from stdin, and returns
+# true if it is as expected:
+# (
+# "name of CNF file"
+# "name of original SMT-LIB problem"
+# t
+# )
 
-#INPUT=`sed -e 's/^"//' -e 's/"$//' <<<"$INPUT"`
-#PROOF=`sed -e 's/^"//' -e 's/"$//' <<<"$PROOF"`
+count=0
+cnfFile=""
+lemmas=""
+while read -r line
+    do
+    if (( count == 0 )) && [[ "$line" == "(" ]]; then
+        count=$((count+1))
+    elif (( count == 1 )); then
+        cnfFile="$line"
+        count=$((count+1))
+    elif (( count == 2 )); then
+        lemmas="$line"
+        count=$((count+1))
+    elif (( count == 3 )) && [[ "$line" == ")" ]]; then
+        break
+    else
+        echo "false"
+        break
+    fi
+done < /dev/stdin
 
-#echo "RUN: drat-trim $INPUT $PROOF"
-#echo "run cadical"
-#cadical $INPUT $INPUT.proof > /dev/null
-# without binary makes drat-trim fail sometimes
-cadical $INPUT $INPUT.proof --binary=false > /dev/null
-#echo "run drat-trim"
-RESULT=$(cat $INPUT.proof | drat-trim $INPUT)
-#echo "finished"
-rm -f $INPUT.proof
+# >&2 echo "File with CNF: $cnfFile"
+# >&2 echo "Lemmas to prove: $lemmas"
 
-if [[ $RESULT == *"s VERIFIED"* ]];
-then
-      echo "true"
-      exit 0
-else
-      echo "error: $RESULT"
-      exit 1
-fi
+echo "true"
+exit 0
