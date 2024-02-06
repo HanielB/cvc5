@@ -39,6 +39,7 @@
 #include "options/theory_options.h"
 #include "preprocessing/passes/synth_rew_rules.h"
 #include "printer/printer.h"
+#include "proof/proof_node_algorithm.h"
 #include "proof/unsat_core.h"
 #include "prop/prop_engine.h"
 #include "smt/abduction_solver.h"
@@ -1663,12 +1664,57 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
 
 std::vector<Node> SolverEngine::getHints()
 {
+  std::vector<Node> result;
+
   std::vector<std::shared_ptr<ProofNode>> lemmaProofs =
       getProof(modes::ProofComponent::THEORY_LEMMAS);
+  std::vector<std::shared_ptr<ProofNode>> preprocessProofs =
+      getProof(modes::ProofComponent::PREPROCESS);
+  Trace("test") << "Preprocess:\n";
+  for (auto p : preprocessProofs)
+  {
+    // ignore assertions that did not change and preprocessing of quantifiers
+    if (p->getRule() == ProofRule::ASSUME
+        || p->getResult().getKind() == Kind::FORALL)
+    {
+      continue;
+    }
+    Trace("test") << "\t" << p->getResult() << "\n";
+    Trace("test2") << "\t\t" << *p.get() << "\n";
+    result.push_back(p->getResult());
+  }
+  Trace("test") << "Lemmas:\n";
   for (auto p : lemmaProofs)
   {
-    Trace("test") << p->getResult() << "\n";
+    Assert(p->getRule() != ProofRule::ASSUME);
+    Node r = p->getResult();
+    // ignore "lemmas" that have no assumptions, which indicates these are
+    // just things generated during CNF conversion. Also ignore instantiations,
+    // i.e., (or (not (forall ...)))
+    if (!expr::containsAssumption(p.get())
+        || (r.getKind() == Kind::OR && r[0].getKind() == Kind::NOT
+            && r[0][0].getKind() == Kind::FORALL))
+    {
+      continue;
+    }
+    Trace("test") << "\t" << r << "\n";
+    Trace("test2") << "\t\t" << *p.get() << "\n";
+    result.push_back(r);
   }
+  Trace("test") << "Instantiations:\n";
+  for (auto p : lemmaProofs)
+  {
+    Assert(p->getRule() != ProofRule::ASSUME);
+    // Only consider instantiations
+    Node r = p->getResult();
+    if (r.getKind() == Kind::OR && r[0].getKind() == Kind::NOT && r[0][0].getKind() == Kind::FORALL)
+    {
+      Trace("test") << "\t" << r << "\n";
+      Trace("test2") << "\t\t" << *p.get() << "\n";
+      result.push_back(r);
+    }
+  }
+  return result;
 }
 
 void SolverEngine::getRelevantQuantTermVectors(
