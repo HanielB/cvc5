@@ -848,7 +848,7 @@ void CnfStream::dumpDimacs(std::ostream& out,
       lits.push_back(n);
     }
     Trace("dimacs-debug") << "Print " << n << std::endl;
-    dclauses << "@l" << lemmaId++ << " ";
+    // dclauses << "@l" << lemmaId++ << " ";
     for (const Node& l : lits)
     {
       SatLiteral lit = getLiteral(l);

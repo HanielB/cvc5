@@ -68,12 +68,12 @@
   :conclusion false
 )
 
-(declare-oracle-fun run_sat_lemmas_prove (String Bool) Bool ./sat-lemmas-prove.sh)
+(declare-oracle-fun run_sat_lemmas_prove (String String Bool) Bool ./sat-lemmas-prove.sh)
 
-(declare-rule sat_lemmas_external_prove ((F Bool) (D String) (L Bool))
+(declare-rule sat_lemmas_external_prove ((F Bool) (D String) (S String) (L Bool))
   :premise-list F and
-  :args (D L)
-  :requires (((run_sat_lemmas_prove D L) true))
+  :args (D S L)
+  :requires (((run_sat_lemmas_prove D S L) true))
   :conclusion false
 )
 

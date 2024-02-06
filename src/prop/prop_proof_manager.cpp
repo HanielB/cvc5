@@ -135,7 +135,7 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
 
   bool hasFalseAssert = false;
   bool computeClauses = d_satSolver->needsMinimizeClausesForGetProof();
-  if (computeClauses)
+  if (computeClauses || options().proof.markLemmasDimacs)
   {
     std::vector<Node> minAssumptions;
     std::vector<SatLiteral> unsatAssumptions;
@@ -178,7 +178,7 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
   Trace("cnf-input") << "#input=" << inputs.size() << std::endl;
   std::vector<Node> lemmas = d_proofCnfStream->getLemmaClauses();
   Trace("cnf-input") << "#lemmas=" << lemmas.size() << std::endl;
-  if (!hasFalseAssert)
+  if (!hasFalseAssert && !options().proof.markLemmasDimacs)
   {
     cset.insert(inputs.begin(), inputs.end());
     cset.insert(lemmas.begin(), lemmas.end());
@@ -195,7 +195,8 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
 
   // go back and minimize assumptions if option is set and SAT solver uses it.
   // we don't do this if we found false as a (preprocessed) input formula
-  if (computeClauses && !hasFalseAssert && options().proof.satProofMinDimacs)
+  if (computeClauses && !hasFalseAssert && options().proof.satProofMinDimacs
+      && !options().proof.markLemmasDimacs)
   {
     Trace("cnf-input-min") << "Make cadical..." << std::endl;
     CDCLTSatSolver* csm = SatSolverFactory::createCadical(
@@ -295,11 +296,18 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
   }
 
   std::shared_ptr<ProofNode> conflictProof;
-  if (!options().proof.markLemmasDimacs && hasFalseAssert)
+  if (hasFalseAssert)
   {
-    Assert(clauses.size() == 1 && clauses[0].isConst()
-           && !clauses[0].getConst<bool>());
-    conflictProof = d_env.getProofNodeManager()->mkAssume(clauses[0]);
+    if (!options().proof.markLemmasDimacs)
+    {
+      Assert(clauses.size() == 1 && clauses[0].isConst()
+             && !clauses[0].getConst<bool>());
+      conflictProof = d_env.getProofNodeManager()->mkAssume(clauses[0]);
+    }
+    else
+    {
+      conflictProof = d_env.getProofNodeManager()->mkAssume(nm->mkConst(false));
+    }
   }
   else if (!options().proof.markLemmasDimacs)
   {
@@ -308,29 +316,79 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
   else
   {
     std::vector<Node> args;
+    // Add as arguments the name of the file with the marked DIMACS input and
+    // the name of the original file. The first is for the checker to be able to
+    // attest propositional unsatisfiability and the second for the checker to
+    // be able to verify the needed theory lemmas.
     std::stringstream dinputFile;
-    dinputFile << options().driver.filename << ".drat_input.cnf";
-    Node dfile = nm->mkConst(String(dinputFile.str()));
-    args.push_back(dfile);
+    dinputFile << options().driver.filename << ".dratt_input.cnf";
+    args.push_back(nm->mkConst(String(dinputFile.str())));
+    std::stringstream inputFile;
+    inputFile << options().driver.filename;
+    args.push_back(nm->mkConst(String(inputFile.str())));
 
-    // we will print a dimacs of inputs + lemmas, where lemmas are preceded by
-    // @ti. The proof step will have as arguments the name of the dimacs file
-    // and a set of equalities between the @ti's and the respective lemmas, as
-    // nodes
-
-    // TODO print the DIMACs
+    // Print the DIMACs. It'll contain inputs + lemmas, where lemmas are
+    // preceded by @li. The proof step will have as its last argument a
+    // conjunction of all the clauses stemming from theory lemmas
     //
-    // will need to use void CnfStream::dumpDimacs, but a version that adds the
-    // t marker in front
+    // Before printing though, we need to "purify" the node clauses, as above,
+    // so that the (implicit) tseiting literals are treated as such, i.e., any
+    // clause with a subterm that has a Boolean structure needs to be
+    // abstracted. This is achived, as above, by creating a skolem variable
+    // corresponding to that subterm.
+    TypeNode ft = nm->mkFunctionType({bt}, bt);
+    // Function used to ensure that subformulas are not treated by CNF below.
+    Node litOf = skm->mkDummySkolem("litOf", ft);
+    std::vector<Node> input;
+    for (const Node& c : clauses)
+    {
+      Node ca = c;
+      std::vector<Node> lits;
+      if (c.getKind() == Kind::OR)
+      {
+        lits.insert(lits.end(), c.begin(), c.end());
+      }
+      else
+      {
+        lits.push_back(c);
+      }
+      // For each literal l in the current clause, if it has Boolean
+      // substructure, we replace it with (litOf l), which will be treated as a
+      // literal. We do this since we require that the clause be treated
+      // verbatim by the SAT solver, otherwise the unsat core will not include
+      // the necessary clauses (e.g. it will skip those corresponding to CNF
+      // conversion).
+      std::vector<Node> cls;
+      bool childChanged = false;
+      for (const Node& l : lits)
+      {
+        bool negated = l.getKind() == Kind::NOT;
+        Node la = negated ? l[0] : l;
+        if (d_env.theoryOf(la) == theory::THEORY_BOOL && !la.isVar())
+        {
+          Node k = nm->mkNode(Kind::APPLY_UF, {litOf, la});
+          cls.push_back(negated ? k.notNode() : k);
+          childChanged = true;
+        }
+        else
+        {
+          cls.push_back(l);
+        }
+      }
+      input.push_back(childChanged ? nm->mkOr(cls): c);
+    }
     std::fstream dout(dinputFile.str(), std::ios::out);
-    d_proofCnfStream->dumpDimacs(dout, inputs, lemmas);
+    d_proofCnfStream->dumpDimacs(dout, input, lemmas);
     dout.close();
-    args.push_back(lemmas.size() > 1 ? nm->mkNode(Kind::AND, lemmas)
-                                     : lemmas[0]);
+    if (!lemmas.empty())
+    {
+      args.push_back(lemmas.size() > 1 ? nm->mkNode(Kind::AND, lemmas)
+                                       : lemmas[0]);
+    }
     // build the proof node
     CDProof cdp(d_env);
     Node falseNode = nm->mkConst(false);
-    cdp.addStep(falseNode, ProofRule::SAT_LEMMAS_EXTERNAL_PROVE, inputs, args);
+    cdp.addStep(falseNode, ProofRule::SAT_LEMMAS_EXTERNAL_PROVE, clauses, args);
     conflictProof = cdp.getProofFor(falseNode);
   }
   if (!options().proof.markLemmasDimacs)
