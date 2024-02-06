@@ -315,6 +315,8 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
   }
   else
   {
+    Trace("mark") << "Inputs: " << clauses.size() << "\n";
+    Trace("mark") << "Lemmas: " << lemmas.size() << "\n";
     std::vector<Node> args;
     // Add as arguments the name of the file with the marked DIMACS input and
     // the name of the original file. The first is for the checker to be able to
@@ -340,6 +342,7 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
     // Function used to ensure that subformulas are not treated by CNF below.
     Node litOf = skm->mkDummySkolem("litOf", ft);
     std::vector<Node> input;
+    std::vector<Node> lemmasP;
     for (const Node& c : clauses)
     {
       Node ca = c;
@@ -367,6 +370,7 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
         if (d_env.theoryOf(la) == theory::THEORY_BOOL && !la.isVar())
         {
           Node k = nm->mkNode(Kind::APPLY_UF, {litOf, la});
+          d_proofCnfStream->ensureLiteral(k);
           cls.push_back(negated ? k.notNode() : k);
           childChanged = true;
         }
@@ -377,8 +381,46 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(
       }
       input.push_back(childChanged ? nm->mkOr(cls): c);
     }
+    for (const Node& c : lemmas)
+    {
+      Node ca = c;
+      std::vector<Node> lits;
+      if (c.getKind() == Kind::OR)
+      {
+        lits.insert(lits.end(), c.begin(), c.end());
+      }
+      else
+      {
+        lits.push_back(c);
+      }
+      // For each literal l in the current clause, if it has Boolean
+      // substructure, we replace it with (litOf l), which will be treated as a
+      // literal. We do this since we require that the clause be treated
+      // verbatim by the SAT solver, otherwise the unsat core will not include
+      // the necessary clauses (e.g. it will skip those corresponding to CNF
+      // conversion).
+      std::vector<Node> cls;
+      bool childChanged = false;
+      for (const Node& l : lits)
+      {
+        bool negated = l.getKind() == Kind::NOT;
+        Node la = negated ? l[0] : l;
+        if (d_env.theoryOf(la) == theory::THEORY_BOOL && !la.isVar())
+        {
+          Node k = nm->mkNode(Kind::APPLY_UF, {litOf, la});
+          d_proofCnfStream->ensureLiteral(k);
+          cls.push_back(negated ? k.notNode() : k);
+          childChanged = true;
+        }
+        else
+        {
+          cls.push_back(l);
+        }
+      }
+      lemmasP.push_back(childChanged ? nm->mkOr(cls): c);
+    }
     std::fstream dout(dinputFile.str(), std::ios::out);
-    d_proofCnfStream->dumpDimacs(dout, input, lemmas);
+    d_proofCnfStream->dumpDimacs(dout, input, lemmasP);
     dout.close();
     if (!lemmas.empty())
     {
