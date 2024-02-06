@@ -514,6 +514,11 @@ void Printer::toStreamCmdGetUnsatCore(std::ostream& out) const
   printUnknownCommand(out, "get-unsat-core");
 }
 
+void Printer::toStreamCmdGetHints(std::ostream& out) const
+{
+  printUnknownCommand(out, "get-hints");
+}
+
 void Printer::toStreamCmdGetDifficulty(std::ostream& out) const
 {
   printUnknownCommand(out, "get-difficulty");

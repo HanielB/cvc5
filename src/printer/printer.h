@@ -280,6 +280,8 @@ class CVC5_EXPORT Printer
   /** Print get-unsat-core command */
   virtual void toStreamCmdGetUnsatCore(std::ostream& out) const;
 
+  virtual void toStreamCmdGetHints(std::ostream& out) const;
+
   /** Print get-difficulty command */
   virtual void toStreamCmdGetDifficulty(std::ostream& out) const;
 

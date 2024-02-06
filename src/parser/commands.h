@@ -1022,6 +1022,25 @@ class CVC5_EXPORT GetUnsatCoreLemmasCommand : public Cmd
   std::vector<cvc5::Term> d_result;
 }; /* class GetUnsatCoreLemmasCommand */
 
+class CVC5_EXPORT GetHintsCommand : public Cmd
+{
+ public:
+  GetHintsCommand();
+  const std::vector<cvc5::Term>& getHints() const;
+
+  void invoke(cvc5::Solver* solver, parser::SymManager* sm) override;
+  void printResult(cvc5::Solver* solver, std::ostream& out) const override;
+
+  std::string getCommandName() const override;
+  void toStream(std::ostream& out) const override;
+
+ protected:
+  /** The solver we were invoked with */
+  cvc5::Solver* d_solver;
+  /** the resulting hints */
+  std::vector<cvc5::Term> d_result;
+}; /* class GetUnsatCoreLemmasCommand */
+
 class CVC5_EXPORT GetDifficultyCommand : public Cmd
 {
  public:

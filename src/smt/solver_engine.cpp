@@ -1661,6 +1661,16 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
   return pe->getUnsatCoreLemmas();
 }
 
+std::vector<Node> SolverEngine::getHints()
+{
+  std::vector<std::shared_ptr<ProofNode>> lemmaProofs =
+      getProof(modes::ProofComponent::THEORY_LEMMAS);
+  for (auto p : lemmaProofs)
+  {
+    Trace("test") << p->getResult() << "\n";
+  }
+}
+
 void SolverEngine::getRelevantQuantTermVectors(
     std::map<Node, InstantiationList>& insts,
     std::map<Node, std::vector<Node>>& sks,

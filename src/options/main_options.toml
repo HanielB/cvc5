@@ -160,6 +160,14 @@ name   = "Driver"
   help       = "dump the difficulty measure after every response to check-sat"
 
 [[option]]
+  name       = "dumpHints"
+  category   = "regular"
+  long       = "dump-hints"
+  type       = "bool"
+  default    = "false"
+  help       = "dump solving hints: instantiations, lemmas, rewrites"
+
+[[option]]
   name       = "forceNoLimitCpuWhileDump"
   category   = "expert"
   long       = "force-no-limit-cpu-while-dump"

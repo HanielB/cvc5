@@ -2106,6 +2106,46 @@ void GetUnsatCoreLemmasCommand::toStream(std::ostream& out) const
 }
 
 /* -------------------------------------------------------------------------- */
+/* class GetHintsCommand                                            */
+/* -------------------------------------------------------------------------- */
+
+GetHintsCommand::GetHintsCommand() : d_solver(nullptr) {}
+void GetHintsCommand::invoke(cvc5::Solver* solver, SymManager* sm)
+{
+  try
+  {
+    d_solver = solver;
+    d_result = solver->getHints();
+
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (cvc5::CVC5ApiRecoverableException& e)
+  {
+    d_commandStatus = new CommandRecoverableFailure(e.what());
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
+{
+  // use the assertions
+
+}
+
+std::string GetHintsCommand::getCommandName() const
+{
+  return "get-hints";
+}
+
+void GetHintsCommand::toStream(std::ostream& out) const
+{
+  internal::Printer::getPrinter(out)->toStreamCmdGetHints(out);
+}
+
+/* -------------------------------------------------------------------------- */
 /* class GetDifficultyCommand */
 /* -------------------------------------------------------------------------- */
 
