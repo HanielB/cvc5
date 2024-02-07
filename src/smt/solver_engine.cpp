@@ -1665,25 +1665,37 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
 std::vector<Node> SolverEngine::getHints()
 {
   std::vector<Node> result;
-
+  // collect the proofs for lemmas and of preprocessing
   std::vector<std::shared_ptr<ProofNode>> lemmaProofs =
       getProof(modes::ProofComponent::THEORY_LEMMAS);
   std::vector<std::shared_ptr<ProofNode>> preprocessProofs =
       getProof(modes::ProofComponent::PREPROCESS);
-  Trace("test") << "Preprocess:\n";
+  Trace("hints") << "Preprocess:\n";
+  NodeManager* nm = NodeManager::currentNM();
   for (auto p : preprocessProofs)
   {
-    // ignore assertions that did not change and preprocessing of quantifiers
-    if (p->getRule() == ProofRule::ASSUME
-        || p->getResult().getKind() == Kind::FORALL)
+    // ignore assertions that did not change
+    if (p->getRule() == ProofRule::ASSUME)
     {
       continue;
     }
-    Trace("test") << "\t" << p->getResult() << "\n";
-    Trace("test2") << "\t\t" << *p.get() << "\n";
-    result.push_back(p->getResult());
+    // get assumptions
+    std::vector<Node> assumptions;
+    expr::getFreeAssumptions(p.get(), assumptions);
+    // get original form of skolems in assumptions and conclusion, and build an
+    // implication
+    std::transform(assumptions.begin(),
+                   assumptions.end(),
+                   assumptions.begin(),
+                   [](Node n) { return SkolemManager::getOriginalForm(n); });
+    Node r = nm->mkNode(Kind::IMPLIES,
+                        nm->mkAnd(assumptions),
+                        SkolemManager::getOriginalForm(p->getResult()));
+    Trace("hints") << "\t" << r << "\n";
+    Trace("hints2") << "\t\t" << *p.get() << "\n";
+    result.push_back(r);
   }
-  Trace("test") << "Lemmas:\n";
+  Trace("hints") << "Lemmas:\n";
   for (auto p : lemmaProofs)
   {
     Assert(p->getRule() != ProofRule::ASSUME);
@@ -1697,20 +1709,23 @@ std::vector<Node> SolverEngine::getHints()
     {
       continue;
     }
-    Trace("test") << "\t" << r << "\n";
-    Trace("test2") << "\t\t" << *p.get() << "\n";
+    r = SkolemManager::getOriginalForm(r);
+    Trace("hints") << "\t" << r << "\n";
+    Trace("hints2") << "\t\t" << *p.get() << "\n";
     result.push_back(r);
   }
-  Trace("test") << "Instantiations:\n";
+  Trace("hints") << "Instantiations:\n";
   for (auto p : lemmaProofs)
   {
     Assert(p->getRule() != ProofRule::ASSUME);
     // Only consider instantiations
     Node r = p->getResult();
-    if (r.getKind() == Kind::OR && r[0].getKind() == Kind::NOT && r[0][0].getKind() == Kind::FORALL)
+    if (r.getKind() == Kind::OR && r[0].getKind() == Kind::NOT
+        && r[0][0].getKind() == Kind::FORALL)
     {
-      Trace("test") << "\t" << r << "\n";
-      Trace("test2") << "\t\t" << *p.get() << "\n";
+      r = SkolemManager::getOriginalForm(r);
+      Trace("hints") << "\t" << r << "\n";
+      Trace("hints2") << "\t\t" << *p.get() << "\n";
       result.push_back(r);
     }
   }
