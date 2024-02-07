@@ -4,7 +4,6 @@
 # true if it is as expected:
 # (
 # "name of CNF file"
-# "name of SMT-LIB file"
 # "name of original SMT-LIB problem"
 # t
 # )
