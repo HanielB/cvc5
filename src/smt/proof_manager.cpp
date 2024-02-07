@@ -292,6 +292,20 @@ void PfManager::printProof(std::ostream& out,
   }
 }
 
+void PfManager::removeSubtyping(std::shared_ptr<ProofNode> pf)
+{
+
+}
+
+void PfManager::removeSubtyping(std::vector<std::shared_ptr<ProofNode>>& pfs)
+{
+  Trace("pf-subtyping") << "oh\n";
+  std::transform(pfs.begin(), pfs.end(), pfs.begin(), [](auto pf) {
+    removeSubtyping(pf);
+    return pf;
+  });
+}
+
 void PfManager::translateDifficultyMap(std::map<Node, Node>& dmap,
                                        SmtSolver& smt)
 {

@@ -1754,6 +1754,11 @@ std::vector<std::shared_ptr<ProofNode>> SolverEngine::getProof(
           p, *d_smtSolver.get(), scopeMode);
     }
   }
+  // remove subtyping
+  if (d_env->getOptions().proof.proofNoArithSubtyping)
+  {
+    d_pfManager->removeSubtyping(ps);
+  }
   return ps;
 }
 

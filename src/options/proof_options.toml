@@ -222,3 +222,11 @@ name   = "Proof"
   type       = "bool"
   default    = "false"
   help       = "Print reference to original file instead of redeclaring"
+
+[[option]]
+  name       = "proofNoArithSubtyping"
+  category   = "expert"
+  long       = "proof-no-arith-subtyping"
+  type       = "bool"
+  default    = "false"
+  help       = "Remove mixing of integer and reals in arithmetic operators"

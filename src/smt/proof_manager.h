@@ -139,6 +139,9 @@ class PfManager : protected EnvObj
   /** Get the rewrite database, containing definitions of rewrites from DSL. */
   rewriter::RewriteDb* getRewriteDatabase() const;
   //--------------------------- end access to utilities
+
+  void removeSubtyping(std::vector<std::shared_ptr<ProofNode>>& pfs);
+
  private:
   /**
    * Get assertions from the assertions
