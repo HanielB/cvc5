@@ -232,8 +232,9 @@ std::string AletheProofPrinter::printInternal(
         {
           out << "(" << args[j][1] << " " << args[j][1].getType() << ") ";
         }
-        out << "(:= " << args[j][0] << " " << args[j][1] << ")"
-            << (j != args.size() - 1 ? " " : "");
+        out << "(:= " << args[j][0] << " ";
+        printTerm(out, args[j][1]);
+        out  << ")" << (j != args.size() - 1 ? " " : "");
       }
       out << ")";
     }
