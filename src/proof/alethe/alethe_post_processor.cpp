@@ -1445,21 +1445,20 @@ bool AletheProofPostprocessCallback::update(Node res,
         Node choiceBody =
             i == size - 1
                 ? quant[1]
-                : nm->mkNode(
-                    quantKind,
-                    nm->mkNode(Kind::BOUND_VAR_LIST,
-                               std::vector<Node>{bVars.begin() + (size - i),
-                                                 bVars.end()}),
-                    quant[1]);
+                : nm->mkNode(quantKind,
+                             nm->mkNode(Kind::BOUND_VAR_LIST,
+                                        std::vector<Node>{bVars.begin() + i + 1,
+                                                          bVars.end()}),
+                             quant[1]);
         // The choice term is for the i-th variable, with the body as defined
         // above. Remember that when doing SKO_FORALL the body of the choice is
         // negated.
         Node ithChoice =
             nm->mkNode(Kind::WITNESS,
-                       nm->mkNode(Kind::BOUND_VAR_LIST, quant[0][i - 1]),
+                       nm->mkNode(Kind::BOUND_VAR_LIST, quant[0][i]),
                        isExists ? choiceBody : choiceBody.notNode());
         // add to the substitution
-        skoSubstitutions.push_back(quant[0][i - 1].eqNode(ithChoice));
+        skoSubstitutions.push_back(quant[0][i].eqNode(ithChoice));
       }
       Node conclusion = nm->mkNode(
           Kind::SEXPR, d_cl, d_anc.convert(quant.eqNode(skolemized)));
