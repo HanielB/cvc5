@@ -387,6 +387,7 @@ bool AletheProofPostprocessCallback::update(Node res,
 
       return success;
     }
+
     case ProofRule::DSL_REWRITE:
     {
       // get the name
@@ -428,6 +429,15 @@ bool AletheProofPostprocessCallback::update(Node res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
                            new_args,
+                           *cdp);
+    }
+    case ProofRule::ARITH_POLY_NORM:
+    {
+      return addAletheStep(AletheRule::RARE_REWRITE,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           children,
+                           {nm->mkRawSymbol("\"arith-poly-norm\"", nm->sExprType())},
                            *cdp);
     }
     case ProofRule::EVALUATE:
