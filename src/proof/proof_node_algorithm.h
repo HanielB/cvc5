@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "expr/node.h"
+#include "cvc5/cvc5_proof_rule.h"
 
 namespace cvc5::internal {
 
@@ -55,6 +56,18 @@ void getFreeAssumptions(ProofNode* pn, std::vector<Node>& assump);
 void getFreeAssumptionsMap(
     std::shared_ptr<ProofNode> pn,
     std::map<Node, std::vector<std::shared_ptr<ProofNode>>>& amap);
+
+/**
+ * Traverse proof node and collect of all its subproofs that are instances of
+ * the given proof rules.
+ *
+ * @param pn The proof node.
+ * @param rules The rules.
+ * @param subproofs The found subproofs
+ */
+void getRuleApplications(std::shared_ptr<ProofNode> pn,
+                         const std::unordered_set<ProofRule>& rules,
+                         std::vector<std::shared_ptr<ProofNode>>& subproofs);
 
 /**
  * Return true if pn contains a subproof whose rule is ASSUME. Notice that we

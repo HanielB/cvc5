@@ -78,6 +78,11 @@
 #include "theory/quantifiers/sygus_sampler.h"
 #include "theory/quantifiers_engine.h"
 #include "theory/rewriter.h"
+
+#include "rewriter/rewrite_proof_rule.h"
+#include "rewriter/rewrites.h"
+#include "rewriter/rewrite_db.h"
+
 #include "theory/smt_engine_subsolver.h"
 #include "theory/theory_engine.h"
 #include "util/random.h"
@@ -1664,7 +1669,13 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
 
 std::vector<Node> SolverEngine::getHints()
 {
+  // The preprocessing and theory lemmas, as well as the instantiation lemmas
   std::vector<Node> result;
+  // All instances of given rewrite rule
+  std::map<rewriter::DslProofRule, std::vector<Node>> rewriteInsts;
+  // For each rewrite rule, its definition
+  std::map<rewriter::DslProofRule, Node> rewriteRules;
+
   // collect the proofs for lemmas and of preprocessing
   std::vector<std::shared_ptr<ProofNode>> lemmaProofs =
       getProof(modes::ProofComponent::THEORY_LEMMAS);
@@ -1692,8 +1703,70 @@ std::vector<Node> SolverEngine::getHints()
                         nm->mkAnd(assumptions),
                         SkolemManager::getOriginalForm(p->getResult()));
     Trace("hints") << "\t" << r << "\n";
-    Trace("hints2") << "\t\t" << *p.get() << "\n";
+    Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
     result.push_back(r);
+    // get applications of DSL_REWRITE, EVALUATE, ARITH_POLY_NORM.
+    std::vector<std::shared_ptr<ProofNode>> subproofs;
+    expr::getRuleApplications(p,
+                              {ProofRule::DSL_REWRITE,
+                               ProofRule::EVALUATE,
+                               ProofRule::ARITH_POLY_NORM},
+                              subproofs);
+    // Got the rule instantiations only if we are not in the quantifier case,
+    // since these instances will have free variables. For them we will get only
+    // the rules
+    Trace("hints-proofs") << "\tRewrites:\n";
+    for (const std::shared_ptr<ProofNode>& rp : subproofs)
+    {
+      Trace("hints-proofs") << "\t\t" << *rp.get() << "\n";
+      ProofRule rule = rp->getRule();
+      rewriter::DslProofRule rareRule;
+      const std::vector<Node>& args = rp->getArguments();
+      // just get the instance
+      if (rule == ProofRule::EVALUATE || rule == ProofRule::ARITH_POLY_NORM)
+      {
+        rareRule = rule == ProofRule::EVALUATE ? rewriter::DslProofRule::EVAL
+                                               : rewriter::DslProofRule::ARITH_POLY_NORM;
+        rewriteInsts[rareRule].push_back(args[0]);
+        Trace("hints-rewrites")
+            << "\t\tRare instance " << rareRule << ": " << args[0] << "\n";
+        continue;
+      }
+      if (!rewriter::getDslProofRule(args[0], rareRule))
+      {
+        Unreachable() << "Rare rule " << args[0] << " undefined\n";
+      }
+      // if the original result of the preprocessing not a forall, get instance
+      if (p->getResult().getKind() != Kind::FORALL)
+      {
+        Node res = SkolemManager::getOriginalForm(rp->getResult());
+        rewriteInsts[rareRule].push_back(res);
+        Trace("hints-rewrites")
+            << "\t\tRare instance " << rareRule << ": " << res << "\n";
+      }
+      // get the rule definition to build a node representation of it
+      Node ruleDef;
+      auto it = rewriteRules.find(rareRule);
+      if (it == rewriteRules.end())
+      {
+        const rewriter::RewriteProofRule& rpr =
+            d_pfManager->getRewriteDatabase()->getRule(rareRule);
+        const std::vector<Node>& conds = rpr.getConditions();
+        Node conc = rpr.getConclusion();
+        ruleDef = nm->mkNode(
+            Kind::FORALL,
+            nm->mkNode(Kind::BOUND_VAR_LIST, rpr.getVarList()),
+            conds.empty() ? conc
+                          : nm->mkNode(Kind::IMPLIES, nm->mkAnd(conds), conc));
+        rewriteRules[rareRule] = ruleDef;
+      }
+      else
+      {
+        ruleDef = it->second;
+      }
+      Trace("hints-rewrites")
+          << "\t\tRare rule " << rareRule << ": " << ruleDef << "\n";
+    }
   }
   Trace("hints") << "Lemmas:\n";
   for (auto p : lemmaProofs)
@@ -1711,7 +1784,7 @@ std::vector<Node> SolverEngine::getHints()
     }
     r = SkolemManager::getOriginalForm(r);
     Trace("hints") << "\t" << r << "\n";
-    Trace("hints2") << "\t\t" << *p.get() << "\n";
+    Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
     result.push_back(r);
   }
   Trace("hints") << "Instantiations:\n";
@@ -1725,7 +1798,7 @@ std::vector<Node> SolverEngine::getHints()
     {
       r = SkolemManager::getOriginalForm(r);
       Trace("hints") << "\t" << r << "\n";
-      Trace("hints2") << "\t\t" << *p.get() << "\n";
+      Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
       result.push_back(r);
     }
   }

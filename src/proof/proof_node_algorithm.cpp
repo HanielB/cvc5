@@ -136,6 +136,35 @@ void getFreeAssumptionsMap(
   } while (!visit.empty());
 }
 
+void getRuleApplications(std::shared_ptr<ProofNode> pn,
+                         const std::unordered_set<ProofRule>& rules,
+                         std::vector<std::shared_ptr<ProofNode>>& subproofs)
+{
+  // proof should not be cyclic, otherwise this will loop
+  // visited set false after preorder traversal, true after postorder traversal
+  std::unordered_set<ProofNode*> visited;
+  std::vector<std::shared_ptr<ProofNode>> visit;
+
+  std::shared_ptr<ProofNode> cur;
+  visit.push_back(pn);
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    if (!visited.count(cur.get()))
+    {
+      visited.insert(cur.get());
+      if (rules.count(cur->getRule()))
+      {
+        subproofs.push_back(cur);
+      }
+      // visit children
+      const std::vector<std::shared_ptr<ProofNode>>& cs = cur->getChildren();
+      std::copy(cs.begin(), cs.end(), std::back_inserter(visit));
+    }
+  } while (!visit.empty());
+}
+
 bool containsAssumption(const ProofNode* pn,
                         std::unordered_map<const ProofNode*, bool>& caMap,
                         const std::unordered_set<Node>& allowed)
