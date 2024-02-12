@@ -125,23 +125,27 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::SYMM: return "symm";
     case AletheRule::NOT_SYMM: return "not_symm";
     case AletheRule::REORDERING: return "reordering";
-    case AletheRule::BV_BITBLAST_STEP_VAR: return "bv_bitblast_step_var";
-    case AletheRule::BV_BITBLAST_STEP_BVAND: return "bv_bitblast_step_bvand";
-    case AletheRule::BV_BITBLAST_STEP_BVOR: return "bv_bitblast_step_bvor";
-    case AletheRule::BV_BITBLAST_STEP_BVXOR: return "bv_bitblast_step_bvxor";
-    case AletheRule::BV_BITBLAST_STEP_BVXNOR: return "bv_bitblast_step_bvxnor";
-    case AletheRule::BV_BITBLAST_STEP_BVNOT: return "bv_bitblast_step_bvnot";
-    case AletheRule::BV_BITBLAST_STEP_BVADD: return "bv_bitblast_step_bvadd";
-    case AletheRule::BV_BITBLAST_STEP_BVNEG: return "bv_bitblast_step_bvneg";
-    case AletheRule::BV_BITBLAST_STEP_BVMULT: return "bv_bitblast_step_bvmult";
-    case AletheRule::BV_BITBLAST_STEP_BVULE: return "bv_bitblast_step_bvule";
-    case AletheRule::BV_BITBLAST_STEP_BVULT: return "bv_bitblast_step_bvult";
+    case AletheRule::BV_BITBLAST_STEP_VAR: return "bitblast_var";
+    case AletheRule::BV_BITBLAST_STEP_BVAND: return "bitblast_bvand";
+    case AletheRule::BV_BITBLAST_STEP_BVOR: return "bitblast_bvor";
+    case AletheRule::BV_BITBLAST_STEP_BVXOR: return "bitblast_bvxor";
+    case AletheRule::BV_BITBLAST_STEP_BVXNOR: return "bitblast_bvxnor";
+    case AletheRule::BV_BITBLAST_STEP_BVNOT: return "bitblast_bvnot";
+    case AletheRule::BV_BITBLAST_STEP_BVADD: return "bitblast_bvadd";
+    case AletheRule::BV_BITBLAST_STEP_BVNEG: return "bitblast_bvneg";
+    case AletheRule::BV_BITBLAST_STEP_BVMULT: return "bitblast_bvmult";
+    case AletheRule::BV_BITBLAST_STEP_BVULE: return "bitblast_bvule";
+    case AletheRule::BV_BITBLAST_STEP_BVULT: return "bitblast_bvult";
+    case AletheRule::BV_BITBLAST_STEP_BVSLT: return "bitblast_bvslt";
+    case AletheRule::BV_BITBLAST_STEP_BVCOMP: return "bitblast_bvcomp";
     case AletheRule::BV_BITBLAST_STEP_EXTRACT:
-      return "bv_bitblast_step_extract";
+      return "bitblast_extract";
     case AletheRule::BV_BITBLAST_STEP_BVEQUAL:
-      return "bv_bitblast_step_bvequal";
-    case AletheRule::BV_BITBLAST_STEP_CONCAT: return "bv_bitblast_step_concat";
-    case AletheRule::BV_BITBLAST_STEP_CONST: return "bv_bitblast_step_const";
+      return "bitblast_equal";
+    case AletheRule::BV_BITBLAST_STEP_CONCAT: return "bitblast_concat";
+    case AletheRule::BV_BITBLAST_STEP_CONST: return "bitblast_const";
+    case AletheRule::BV_BITBLAST_STEP_SIGN_EXTEND: return "bitblast_sign_extend";
+
     //================================================= Hole
     case AletheRule::HOLE: return "hole";
     //================================================= Undefined rule
