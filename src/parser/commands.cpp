@@ -2131,8 +2131,24 @@ void GetHintsCommand::invoke(cvc5::Solver* solver, SymManager* sm)
 
 void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
 {
-  // use the assertions
-
+  // the hints are given with the shape, with an s-expression and arguments
+  // being the lemmas:
+  //   - preprocessing lemmas
+  //   - lemmas
+  //   - instantiation
+  //   - (rewrite rule + instances)*
+  for (size_t i = 0, size = d_result.size(); i < size; ++i)
+  {
+    out << (i == 0   ? "Preprocess:"
+            : i == 1 ? "Theory lemmas:"
+            : i == 2 ? "Instantiations:"
+                     : "rewrites:")
+        << "\n";
+    for (const auto& l : d_result[i])
+    {
+      out << "\t" << l << "\n";
+    }
+  }
 }
 
 std::string GetHintsCommand::getCommandName() const
