@@ -179,7 +179,6 @@ bool AletheProofPostprocessCallback::update(Node res,
     case ProofRule::ASSUME:
     {
       return false;
-      // return addAletheStep(AletheRule::ASSUME, res, res, children, {}, *cdp);
     }
     // See proof_rule.h for documentation on the SCOPE rule. This comment uses
     // variable names as introduced there. Since the SCOPE rule originally
@@ -2058,12 +2057,8 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   // step will be present in cdp connecting premiseChildConclusion to
   // premiseChildPf (since by default adding an ASSUME step will not rewrite an
   // existing proof for a node).
-  addAletheStep(AletheRule::ASSUME,
-                premiseChildConclusion,
-                premiseChildConclusion,
-                {},
-                {},
-                *cdp);
+  cdp->addStep(
+      premiseChildConclusion, ProofRule::ASSUME, {}, {premiseChildConclusion});
   // equate it to what we expect, use equiv elim and resolution to
   // obtain a proof the expected
   Node equiv = premiseChildConclusion.eqNode(premise);
