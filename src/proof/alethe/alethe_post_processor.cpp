@@ -178,7 +178,8 @@ bool AletheProofPostprocessCallback::update(Node res,
     //======================== Assume and Scope
     case ProofRule::ASSUME:
     {
-      return addAletheStep(AletheRule::ASSUME, res, res, children, {}, *cdp);
+      return false;
+      // return addAletheStep(AletheRule::ASSUME, res, res, children, {}, *cdp);
     }
     // See proof_rule.h for documentation on the SCOPE rule. This comment uses
     // variable names as introduced there. Since the SCOPE rule originally
@@ -2394,16 +2395,17 @@ bool AletheProofPostprocessCallback::finalStep(Node res,
     children[0] = newChild;
   }
 
-  // Sanitize original assumptions and create a placeholder proof step to hold
-  // them.
-  Assert(id == ProofRule::SCOPE);
-  std::vector<Node> sanitizedArgs{
-      nm->mkConstInt(static_cast<uint32_t>(AletheRule::UNDEFINED)), res, res};
-  for (const Node& arg : args)
-  {
-    sanitizedArgs.push_back(d_anc.convert(arg, false));
-  }
-  return cdp->addStep(res, ProofRule::ALETHE_RULE, children, sanitizedArgs);
+  // Sanitize original assumptions and create a double scope to hold them, where
+  // the first scope is empty. This is needed because of the expected form a
+  // proof node to be printed
+  std::vector<Node> sanitizedArgs;
+  std::transform(args.begin(),
+                 args.end(),
+                 std::back_inserter(sanitizedArgs),
+                 [this](Node a) { return d_anc.convert(a, false); });
+  Node placeHolder = nm->mkNode(Kind::SEXPR, res);
+  cdp->addStep(placeHolder, ProofRule::SCOPE, children, sanitizedArgs);
+  return cdp->addStep(res, ProofRule::SCOPE, {placeHolder}, {});
 }
 
 bool AletheProofPostprocessCallback::addAletheStep(
