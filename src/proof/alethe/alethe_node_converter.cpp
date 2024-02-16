@@ -107,8 +107,25 @@ Node AletheNodeConverter::postConvert(Node n)
           Trace("alethe-conv") << ".. witness: " << witness << "\n";
           return convert(witness);
         }
+        Unreachable() << "Could not convert Skolemization result from " << cacheVal << "\n";
       }
-      Unreachable() << "Fresh Skolem " << sfi << " is not allowed\n";
+      if (sfi == SkolemFunId::ARRAY_DEQ_DIFF)
+      {
+        Node v = nm->mkBoundVar(n.getType());
+        // the cache for this skolem must be an sexpr with the two arrays
+        Node def =
+            nm->mkNode(Kind::IMPLIES,
+                       cacheVal[0].eqNode(cacheVal[1]).notNode(),
+                       nm->mkNode(Kind::SELECT, cacheVal[0], v)
+                           .eqNode(nm->mkNode(Kind::SELECT, cacheVal[1], v))
+                           .notNode());
+        wi =
+            nm->mkNode(Kind::WITNESS, nm->mkNode(Kind::BOUND_VAR_LIST, v), def);
+        Trace("alethe-conv") << "Built " << wi << "\n";
+        return convert(wi);
+      }
+      Unreachable() << "Fresh Skolem [" << sfi << "] " << n
+                    << " is not supported in Alethe\n";
     }
     case Kind::FORALL:
     {
