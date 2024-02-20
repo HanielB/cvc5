@@ -108,7 +108,10 @@ Node AletheNodeConverter::postConvert(Node n)
           return convert(witness);
         }
       }
-      Unreachable() << "Fresh Skolem " << sfi << " is not allowed\n";
+      std::stringstream ss;
+      ss << "Skolem " << sfi << " " << n << " is not supported by Alethe.\n";
+      d_error = ss.str();
+      return Node::null();
     }
     case Kind::FORALL:
     {

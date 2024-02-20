@@ -55,8 +55,14 @@ std::unordered_map<Kind, AletheRule> s_bvKindToAletheRule = {
 };
 
 AletheProofPostprocessCallback::AletheProofPostprocessCallback(
-    Env& env, AletheNodeConverter& anc, bool resPivots)
-    : EnvObj(env), d_anc(anc), d_resPivots(resPivots)
+    Env& env,
+    AletheNodeConverter& anc,
+    bool resPivots,
+    std::string& reasonForConversionFailure)
+    : EnvObj(env),
+      d_anc(anc),
+      d_resPivots(resPivots),
+      d_reasonForConversionFailure(reasonForConversionFailure)
 {
   NodeManager* nm = NodeManager::currentNM();
   d_cl = nm->mkBoundVar("cl", nm->sExprType());
@@ -258,20 +264,14 @@ bool AletheProofPostprocessCallback::update(Node res,
 
       // Build vp1
       std::vector<Node> negNode{d_cl};
-      std::vector<Node> sanitized_args;
       for (const Node& arg : args)
       {
         negNode.push_back(arg.notNode());  // (not F1) ... (not Fn)
-        sanitized_args.push_back(d_anc.convert(arg));
       }
       negNode.push_back(children[0]);  // (cl (not F1) ... (not Fn) F)
       Node vp1 = nm->mkNode(Kind::SEXPR, negNode);
-      success &= addAletheStep(AletheRule::ANCHOR_SUBPROOF,
-                               vp1,
-                               vp1,
-                               children,
-                               sanitized_args,
-                               *cdp);
+      success &= addAletheStep(
+          AletheRule::ANCHOR_SUBPROOF, vp1, vp1, children, args, *cdp);
 
       Node andNode, vp3;
       if (args.size() == 1)
@@ -1456,8 +1456,14 @@ bool AletheProofPostprocessCallback::update(Node res,
         quantKind = Kind::FORALL;
       }
       // add rfl step for final replacement
+      Node conv = d_anc.convert(quant[1].eqNode(skolemized));
+      if (conv.isNull())
+      {
+        d_reasonForConversionFailure = d_anc.d_error;
+        return false;
+      }
       Node premise = nm->mkNode(
-          Kind::SEXPR, d_cl, d_anc.convert(quant[1].eqNode(skolemized)));
+          Kind::SEXPR, d_cl, conv);
       addAletheStep(AletheRule::REFL, premise, premise, {}, {}, *cdp);
       std::vector<Node> bVars{quant[0].begin(), quant[0].end()};
       std::vector<Node> skoSubstitutions;
@@ -2203,6 +2209,7 @@ bool AletheProofPostprocessCallback::updatePost(
           // the arguments will have been converted to witness form already, so
           // we also check whether after conversion the child is still not the
           // same (in the case where we'd need to have them different)
+          Assert(!d_anc.convert(children[i]).isNull());
           if (args[polIdx] == d_false
               && args[pivIdx] == d_anc.convert(children[i]))
           {
@@ -2445,7 +2452,7 @@ bool AletheProofPostprocessCallback::addAletheStepFromOr(
 AletheProofPostprocess::AletheProofPostprocess(Env& env,
                                                AletheNodeConverter& anc,
                                                bool resPivots)
-    : EnvObj(env), d_cb(env, anc, resPivots)
+    : EnvObj(env), d_cb(env, anc, resPivots, d_reasonForConversionFailure)
 {
 }
 
@@ -2489,6 +2496,11 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
     Trace("pf-process-debug") << "Update node..." << std::endl;
     d_env.getProofNodeManager()->updateNode(pf.get(), npn.get());
     Trace("pf-process-debug") << "...update node finished." << std::endl;
+  }
+  if (!d_reasonForConversionFailure.empty())
+  {
+    reasonForConversionFailure = d_reasonForConversionFailure;
+    return false;
   }
   return true;
 }

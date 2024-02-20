@@ -37,6 +37,8 @@ class AletheNodeConverter : public BaseAlfNodeConverter
   /** convert at post-order traversal */
   Node postConvert(Node n) override;
 
+  std::string d_error;
+
  private:
   /**
    * Make or get an internal symbol with custom name and type.
