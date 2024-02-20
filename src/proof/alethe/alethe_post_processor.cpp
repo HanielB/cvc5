@@ -400,8 +400,7 @@ bool AletheProofPostprocessCallback::update(Node res,
       if (rewriter::getDslProofRule(args[0], di))
       {
         std::stringstream ss;
-        //ss << "\"" << di << "\"";
-        ss << di;
+        ss << "\"" << di << "\"";
         rule = nm->mkRawSymbol(ss.str(), nm->sExprType());
       }
       else
@@ -442,8 +441,7 @@ bool AletheProofPostprocessCallback::update(Node res,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
-                           {nm->mkRawSymbol("arith-poly-norm", nm->sExprType())},
-                           //{nm->mkRawSymbol("\"arith-poly-norm\"", nm->sExprType())},
+                           {nm->mkRawSymbol("\"arith-poly-norm\"", nm->sExprType())},
                            *cdp);
     }
     case ProofRule::EVALUATE:
@@ -452,8 +450,7 @@ bool AletheProofPostprocessCallback::update(Node res,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
-                           {nm->mkRawSymbol("evaluate", nm->sExprType())},
-                           //{nm->mkRawSymbol("\"evaluate\"", nm->sExprType())},
+                           {nm->mkRawSymbol("\"evaluate\"", nm->sExprType())},
                            *cdp);
     }
     case ProofRule::TRUST_THEORY_REWRITE:

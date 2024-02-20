@@ -251,6 +251,83 @@ class LfscTester(Tester):
             print_ok("OK")
         return exit_code
 
+class AletheTester(Tester):
+    def __init__(self):
+        super().__init__("alethe")
+
+    def applies(self, benchmark_info):
+        logic = ""
+
+        for line in benchmark_info.benchmark_content.split("\n"):
+            if "(set-logic" in line:
+                logic = line.strip()
+
+        # (set-logic ...) not appear
+        if logic == "":
+            return False
+
+        logic = logic.split(" ")[1][0:-1]
+
+        return (
+            benchmark_info.benchmark_ext != ".sy"
+            and benchmark_info.expected_output.strip() == "unsat"
+            and re.match("^(AUFLIRA|AUFLIA|UFLIRA|UFIDL|UFLIA|UFLRA|UF|QF_AUFLIA|QF_ALIA|QF_UFLIRA|QF_UFLIA|QF_IDL|QF_LIA|QF_LRA|QF_RDL|QF_UF|QF_UFIDL|LIA|LRA|LIRA)$", logic) != None
+        )
+
+    def run_internal(self, benchmark_info):
+        exit_code = EXIT_OK
+
+        with tempfile.NamedTemporaryFile(suffix=".smt2.proof") as tmpf:
+            cvc5_args = benchmark_info.command_line_args + [
+                "--dump-proofs",
+                "--proof-format=alethe",
+                "--proof-granularity=theory-rewrite"
+            ]
+
+            # remove duplicates
+            cvc5_args = list(dict.fromkeys(cvc5_args))
+
+            output, error, exit_status = run_process(
+                [benchmark_info.cvc5_binary]
+                + cvc5_args
+                + [benchmark_info.benchmark_basename],
+                benchmark_info.benchmark_dir,
+                benchmark_info.timeout,
+            )
+
+            tmpf.write(output.strip("unsat\n".encode()))
+            tmpf.flush()
+            output, error = output.decode(), error.decode()
+            exit_code = self.check_exit_status(EXIT_OK, exit_status, output,
+                                               error, cvc5_args)
+
+            if exit_code != EXIT_OK:
+                return exit_code
+
+            original_file = benchmark_info.benchmark_dir + '/' + benchmark_info.benchmark_basename
+
+            carcara_args = ["--allow-int-real-subtyping", "--expand-let-bindings", "--ignore-unknown-rules"]
+
+            output, error, exit_status = run_process(
+                [benchmark_info.carcara_binary] + ["check"] +
+                carcara_args + [tmpf.name] + [original_file],
+                benchmark_info.benchmark_dir,
+                timeout=benchmark_info.timeout,
+            )
+            output, error = output.decode(), error.decode()
+            exit_code = self.check_exit_status(EXIT_OK, exit_status, output,
+                                               error, cvc5_args)
+
+            if "valid" not in output and "holey" not in output:
+                print_error("Invalid proof")
+                print()
+                print_outputs(output, error)
+                return EXIT_FAILURE
+        if exit_code == EXIT_OK:
+            print_ok("OK")
+
+        return exit_code
+
 class AlfTester(Tester):
 
     def __init__(self):
@@ -502,6 +579,7 @@ g_testers = {
     "dump": DumpTester(),
     "dsl-proof": DslProofTester(),
     "alf": AlfTester(),
+    "alethe": AletheTester(),
     "alethe-alf": AletheAlfTester()
 }
 
@@ -527,6 +605,7 @@ BenchmarkInfo = collections.namedtuple(
         "cvc5_binary",
         "lfsc_binary",
         "lfsc_sigs",
+        "carcara_binary",
         "alfc_binary",
         "benchmark_dir",
         "benchmark_basename",
@@ -699,7 +778,7 @@ def run_benchmark(benchmark_info):
     check_result =  check_scrubber(scrubber_error, benchmark_info.scrubber)
     if check_result != None:
       return check_result
-    
+
     scrubber_error = ""
     if benchmark_info.error_scrubber:
         error, scrubber_error, _ = run_process(
@@ -732,6 +811,7 @@ def run_regression(
     cvc5_binary,
     lfsc_binary,
     lfsc_sigs,
+    carcara_binary,
     alfc_binary,
     benchmark_path,
     timeout,
@@ -808,6 +888,8 @@ def run_regression(
                     testers.remove("lfsc")
                 if "dsl-proof" in testers:
                     testers.remove("dsl-proof")
+                if "alethe" in testers:
+                    testers.remove("alethe")
                 if "alf" in testers:
                     testers.remove("alf")
                 if "alethe-alf" in testers:
@@ -876,6 +958,7 @@ def run_regression(
             cvc5_binary=cvc5_binary,
             lfsc_binary=lfsc_binary,
             lfsc_sigs=lfsc_sigs,
+            carcara_binary=carcara_binary,
             alfc_binary=alfc_binary,
             benchmark_dir=benchmark_dir,
             benchmark_basename=benchmark_basename,
@@ -923,6 +1006,7 @@ def main():
     parser.add_argument("--tester", choices=tester_choices, action="append")
     parser.add_argument("--lfsc-binary", default="")
     parser.add_argument("--lfsc-sig-dir", default="")
+    parser.add_argument("--carcara-binary", default="")
     parser.add_argument("--alfc-binary", default="")
     parser.add_argument("--alf-sig-dir", default="")
     parser.add_argument("wrapper", nargs="*")
@@ -938,6 +1022,7 @@ def main():
 
     cvc5_binary = os.path.abspath(g_args.cvc5_binary)
     lfsc_binary = os.path.abspath(g_args.lfsc_binary)
+    carcara_binary = os.path.abspath(g_args.carcara_binary)
     alfc_binary = os.path.abspath(g_args.alfc_binary)
 
     wrapper = g_args.wrapper
@@ -970,6 +1055,7 @@ def main():
         cvc5_binary,
         lfsc_binary,
         lfsc_sigs,
+        carcara_binary,
         alfc_binary,
         g_args.benchmark,
         timeout,
