@@ -269,22 +269,36 @@ void PfManager::printProof(std::ostream& out,
   else if (mode == options::ProofFormatMode::ALETHE_ALF)
   {
     // convert using Alethe post-processor
+    std::string reasonForConversionFailure;
     proof::AletheNodeConverter anc;
     proof::AletheProofPostprocess vpfpp(
         d_env, anc, options().proof.proofAletheResPivots);
-    vpfpp.process(fp);
-    // print using ALF printer
-    proof::AlfPrinter alfp(d_env, anc);
-    alfp.print(out, fp);
+    if (vpfpp.process(fp, reasonForConversionFailure))
+    {
+      // print using ALF printer
+      proof::AlfPrinter alfp(d_env, anc);
+      alfp.print(out, fp);
+    }
+    else
+    {
+      out << "(error " << reasonForConversionFailure << ")";
+    }
   }
   else if (mode == options::ProofFormatMode::ALETHE)
   {
+    std::string reasonForConversionFailure;
     proof::AletheNodeConverter anc;
     proof::AletheProofPostprocess vpfpp(
         d_env, anc, options().proof.proofAletheResPivots);
-    vpfpp.process(fp);
-    proof::AletheProofPrinter vpp(d_env, anc);
-    vpp.print(out, fp, assertionNames);
+    if (vpfpp.process(fp, reasonForConversionFailure))
+    {
+      proof::AletheProofPrinter vpp(d_env, anc);
+      vpp.print(out, fp, assertionNames);
+    }
+    else
+    {
+      out << "(error " << reasonForConversionFailure << ")";
+    }
   }
   else if (mode == options::ProofFormatMode::LFSC)
   {

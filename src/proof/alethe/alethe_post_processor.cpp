@@ -2451,7 +2451,8 @@ AletheProofPostprocess::AletheProofPostprocess(Env& env,
 
 AletheProofPostprocess::~AletheProofPostprocess() {}
 
-void AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
+bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
+                                     std::string& reasonForConversionFailure)
 {
   // first two nodes are scopes for definitions and other assumptions. We
   // process only the internal proof node. And we merge these two scopes
@@ -2489,6 +2490,7 @@ void AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
     d_env.getProofNodeManager()->updateNode(pf.get(), npn.get());
     Trace("pf-process-debug") << "...update node finished." << std::endl;
   }
+  return true;
 }
 
 }  // namespace proof

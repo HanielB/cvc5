@@ -162,8 +162,18 @@ class AletheProofPostprocess : protected EnvObj
  public:
   AletheProofPostprocess(Env& env, AletheNodeConverter& anc, bool resPivots);
   ~AletheProofPostprocess();
-  /** post-process */
-  void process(std::shared_ptr<ProofNode> pf);
+  /** post-process
+   *
+   * Converts pf to the Alethe proof calculus, if possible, in which case it
+   * returns true. Otherwise, returns false. The conversion may fail if the
+   * proof contains unsupported elements in the Alethe proof calculus. Examples
+   * of such elements are datatypes, uncategorized Skolems etc.
+   *
+   * The argument reasonForConversionFailure stores the reason for failure, if
+   * any.
+   */
+  bool process(std::shared_ptr<ProofNode> pf,
+               std::string& reasonForConversionFailure);
 
  private:
   /** The post process callback */
