@@ -175,6 +175,7 @@ std::string AletheProofPrinter::printInternal(
   if (pfn->getRule() == ProofRule::ASSUME)
   {
     Node res = d_anc.convert(pfn->getResult());
+    Assert(!res.isNull());
     Trace("alethe-printer") << "... reached assumption " << res << std::endl;
     auto it = assumptions.find(res);
     Assert(it != assumptions.end()) << "Assumption has not been printed yet! "

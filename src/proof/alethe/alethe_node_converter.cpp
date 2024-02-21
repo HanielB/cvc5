@@ -22,6 +22,17 @@
 namespace cvc5::internal {
 namespace proof {
 
+Node AletheNodeConverter::maybeConvert(Node n)
+{
+  d_error = "";
+  Node res = convert(n);
+  if (!d_error.empty())
+  {
+    return Node::null();
+  }
+  return res;
+}
+
 Node AletheNodeConverter::postConvert(Node n)
 {
   NodeManager* nm = NodeManager::currentNM();
@@ -108,7 +119,11 @@ Node AletheNodeConverter::postConvert(Node n)
           return convert(witness);
         }
       }
-      Unreachable() << "Fresh Skolem " << sfi << " is not allowed\n";
+      std::stringstream ss;
+      ss << "Proof contains Skolem (kind " << sfi << ", term " << n
+         << ") is not supported by Alethe.";
+      d_error = ss.str();
+      return Node::null();
     }
     case Kind::FORALL:
     {
