@@ -35,7 +35,7 @@ class AletheProofPostprocessCallback : protected EnvObj,
   AletheProofPostprocessCallback(Env& env,
                                  AletheNodeConverter& anc,
                                  bool resPivots,
-                                 std::string& reasonForConversionFailure);
+                                 std::string* reasonForConversionFailure);
   ~AletheProofPostprocessCallback() {}
   /** Should proof pn be updated? Only if its top-level proof rule is not an
    *  Alethe proof rule.
@@ -153,7 +153,7 @@ class AletheProofPostprocessCallback : protected EnvObj,
   Node d_true;
   Node d_false;
 
-  std::string d_reasonForConversionFailure;
+  std::string* d_reasonForConversionFailure;
 };
 
 /**

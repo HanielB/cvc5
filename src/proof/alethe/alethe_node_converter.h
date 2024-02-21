@@ -37,6 +37,8 @@ class AletheNodeConverter : public BaseAlfNodeConverter
   /** convert at post-order traversal */
   Node postConvert(Node n) override;
 
+  Node maybeConvert(Node n);
+
   std::string d_error;
 
  private:

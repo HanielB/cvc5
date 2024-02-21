@@ -281,7 +281,7 @@ void PfManager::printProof(std::ostream& out,
     }
     else
     {
-      out << "(error " << reasonForConversionFailure << ")";
+      out << "(error \"" << reasonForConversionFailure << "\")";
     }
   }
   else if (mode == options::ProofFormatMode::ALETHE)
