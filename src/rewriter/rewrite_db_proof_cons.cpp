@@ -29,7 +29,7 @@ namespace cvc5::internal {
 namespace rewriter {
 
 // fixed point limit set to 1000
-size_t RewriteDbProofCons::d_fixedPointLimit = 1000;
+size_t RewriteDbProofCons::s_fixedPointLimit = 1000;
 
 RewriteDbProofCons::RewriteDbProofCons(Env& env, RewriteDb* db)
     : EnvObj(env),
@@ -72,6 +72,12 @@ bool RewriteDbProofCons::prove(CDProof* cdp,
   {
     Trace("rpc") << "...success (basic)" << std::endl;
     return true;
+  }
+  // if there are quantifiers, fail immediately
+  if (expr::hasBoundVar(a) || expr::hasBoundVar(b))
+  {
+    Trace("rpc") << "...fail (out of scope)" << std::endl;
+    return false;
   }
   ++d_statTotalInputs;
   Trace("rpc-debug") << "- convert to internal" << std::endl;
@@ -487,6 +493,7 @@ bool RewriteDbProofCons::proveWithRule(DslProofRule id,
     Node transEqStart = target[0].eqNode(transEq[0]);
     // proves both
     pi->d_id = DslProofRule::TRANS;
+    pi->d_vars.clear();
     pi->d_vars.push_back(transEqStart);
     pi->d_vars.push_back(transEq);
     Trace("rpc-debug2") << "...original equality was " << transEqStart
@@ -720,8 +727,7 @@ bool RewriteDbProofCons::ensureProofInternal(CDProof* cdp, const Node& eqi)
           if (isInternalDslProofRule(pcur.d_id))
           {
             // premises are the steps, stored in d_vars
-            ps.insert(
-                premises[cur].end(), pcur.d_vars.begin(), pcur.d_vars.end());
+            ps.insert(ps.end(), pcur.d_vars.begin(), pcur.d_vars.end());
             if (pcur.d_id == DslProofRule::CONG
                 || pcur.d_id == DslProofRule::CONG_EVAL)
             {
@@ -888,7 +894,7 @@ Node RewriteDbProofCons::getRuleConclusion(const RewriteProofRule& rpr,
       if (!d_currFixedPointConc.isNull())
       {
         // currently avoid accidental loops: arbitrarily bound to 1000
-        continueFixedPoint = steps.size() <= d_fixedPointLimit;
+        continueFixedPoint = steps.size() <= s_fixedPointLimit;
         Assert(d_currFixedPointConc.getKind() == Kind::EQUAL);
         steps.push_back(d_currFixedPointConc[1]);
         stepsSubs.emplace_back(d_currFixedPointSubs.begin(),
@@ -914,11 +920,10 @@ Node RewriteDbProofCons::getRuleConclusion(const RewriteProofRule& rpr,
       target = target.substitute(TNode(placeholder), TNode(step));
       cacheProofSubPlaceholder(currContext, placeholder, source, target);
 
-      ProvenInfo dpi;
+      ProvenInfo& dpi = d_pcache[source.eqNode(target)];
       dpi.d_id = pi.d_id;
       dpi.d_vars = vars;
       dpi.d_subs = stepSubs;
-      d_pcache[source.eqNode(target)] = dpi;
 
       currConc = expr::narySubstitute(currConc, vars, stepSubs);
       currContext = currConc;
