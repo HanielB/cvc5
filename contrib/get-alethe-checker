@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+# utility function to download a file
+function download {
+  if [ -x "$(command -v wget)" ]; then
+    wget -c -O "$2" "$1"
+  elif [ -x "$(command -v curl)" ]; then
+    curl -L "$1" >"$2"
+  else
+    echo "Can't figure out how to download from web.  Please install wget or curl." >&2
+    exit 1
+  fi
+}
+
+CVC_DIR=$(dirname $(dirname "$0"))
+mkdir -p $CVC_DIR/deps
+pushd $CVC_DIR/deps
+
+BASE_DIR=`pwd`
+mkdir -p $BASE_DIR/tmp/
+
+# download Carcara binaries
+version="carcara-1.1.0"
+file="carcara-linux"
+download "https://github.com/ufmg-smite/carcara/releases/download/$version/$file" $BASE_DIR/tmp/carcara-linux
+
+mkdir -p $BASE_DIR/bin
+mv $BASE_DIR/tmp/carcara-linux $BASE_DIR/bin/carcara
+chmod +x $BASE_DIR/bin/carcara
+
+cat << EOF > $BASE_DIR/bin/cvc5-alethe-check.sh
+#!/usr/bin/env bash
+
+echo "=== Generate proof: \$@"
+$BASE_DIR/bin/cvc5-alethe-proof.sh \$@
+
+echo "=== Check proof with Carcara"
+$BASE_DIR/bin/alethe-check.sh \$2.proof \$2 
+EOF
+chmod +x $BASE_DIR/bin/cvc5-alethe-check.sh
+
+cat << EOF > $BASE_DIR/bin/cvc5-alethe-proof.sh
+#!/usr/bin/env bash
+
+# call cvc5 and remove the first line of the output (should be "unsat")
+\$@ --dump-proofs --proof-format=alethe --proof-granularity=theory-rewrite | tail -n +2  > \$2.proof
+EOF
+chmod +x $BASE_DIR/bin/cvc5-alethe-proof.sh
+
+cat << EOF > $BASE_DIR/bin/alethe-check.sh
+#!/usr/bin/env bash
+
+$BASE_DIR/bin/carcara check --allow-int-real-subtyping --expand-let-bindings --ignore-unknown-rules \$@ > carcara.out
+
+cat carcara.out
+rm carcara.out
+EOF
+chmod +x $BASE_DIR/bin/alethe-check.sh
+
+echo ""
+echo "========== How to use Carcara =========="
+echo "Generate a Alethe proof with cvc5:"
+echo "  $CVC_DIR/deps/bin/cvc5-alethe-proof.sh cvc5 <input file>"
+echo "Check a generated proof:"
+echo "  $CVC_DIR/deps/bin/alethe-check.sh <proof file> <input file>"
+echo "Run cvc5 and check the generated proof:"
+echo "  $CVC_DIR/deps/bin/cvc5-alethe-check.sh cvc5 <input file>"
