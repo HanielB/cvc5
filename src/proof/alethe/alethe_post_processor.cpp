@@ -1535,7 +1535,15 @@ bool AletheProofPostprocessCallback::update(Node res,
     //  (cl (= t bitblast(t)))
     case ProofRule::BV_BITBLAST_STEP:
     {
-      // add rfl step for final replacement
+      Kind k = res[0].getKind();
+      if (k == Kind::BITVECTOR_UDIV || k == Kind::BITVECTOR_UREM
+          || k == Kind::BITVECTOR_SHL || k == Kind::BITVECTOR_LSHR
+          || k == Kind::BITVECTOR_ASHR)
+      {
+        std::stringstream ss;
+        ss << "Bit-blasting of " << k << " is not supported in Alethe.";
+        *d_reasonForConversionFailure = ss.str();
+      }
       Node conv = d_anc.maybeConvert(res);
       if (conv.isNull())
       {
@@ -1544,7 +1552,7 @@ bool AletheProofPostprocessCallback::update(Node res,
       }
       // if the term being bitblasted is a variable or a nonbv term, then this
       // is a "bitblast var" step
-      auto it = s_bvKindToAletheRule.find(res[0].getKind());
+      auto it = s_bvKindToAletheRule.find(k);
       return addAletheStep(it == s_bvKindToAletheRule.end()
                                ? AletheRule::BV_BITBLAST_STEP_VAR
                                : it->second,
