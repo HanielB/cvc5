@@ -39,6 +39,14 @@ Node AletheNodeConverter::postConvert(Node n)
   Kind k = n.getKind();
   switch (k)
   {
+    case Kind::BITVECTOR_EAGER_ATOM:
+    {
+      std::stringstream ss;
+      ss << "Proof uses eager bit-blasting, which does not have support for "
+            "Alethe proofs.";
+      d_error = ss.str();
+      return Node::null();
+    }
     case Kind::SKOLEM:
     {
       Trace("alethe-conv") << "AletheNodeConverter: handling skolem " << n
