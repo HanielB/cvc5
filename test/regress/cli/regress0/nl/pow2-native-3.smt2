@@ -1,4 +1,6 @@
 ; EXPECT: unsat
+;; operator pow2 now supported
+; DISABLE-TESTER: alethe
 (set-logic QF_NIA)
 (set-info :status unsat)
 (declare-fun x () Int)
