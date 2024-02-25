@@ -85,7 +85,7 @@ bool AletheProofPostprocessCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
 bool AletheProofPostprocessCallback::shouldUpdatePost(
     std::shared_ptr<ProofNode> pn, const std::vector<Node>& fa)
 {
-  if (d_reasonForConversionFailure->empty() || pn->getArguments().empty())
+  if (!d_reasonForConversionFailure->empty() || pn->getArguments().empty())
   {
     return false;
   }
