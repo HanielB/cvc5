@@ -2,7 +2,7 @@
 ; EXPECT: unsat
 ; causes exception with large exponents on some builds
 ; DISABLE-TESTER: unsat-core
-;; operator pow2 now supported
+;; operator pow2 not supported
 ; DISABLE-TESTER: alethe
 (set-logic ALL)
 (declare-fun x$ () (_ BitVec 32))
