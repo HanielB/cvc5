@@ -1,8 +1,6 @@
 ; COMMAND-LINE: --full-saturate-quant -i
 ; EXPECT: unsat
 ; DISABLE-TESTER: unsat-core
-;; Carcara does not yet support alpha-equivalence checking for forall_inst
-; DISABLE-TESTER: alethe
 (set-logic ALL)
 (set-option :pre-skolem-quant on)
 (declare-fun v7 () Bool)
