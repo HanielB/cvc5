@@ -17,6 +17,7 @@
 
 #include "options/base_options.h"
 #include "options/main_options.h"
+#include "options/proof_options.h"
 #include "options/smt_options.h"
 #include "proof/alethe/alethe_node_converter.h"
 #include "proof/alethe/alethe_post_processor.h"
@@ -286,6 +287,8 @@ void PfManager::printProof(std::ostream& out,
   }
   else if (mode == options::ProofFormatMode::ALETHE)
   {
+    options::ProofCheckMode oldMode =options().proof.proofCheck;
+    d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
     std::string reasonForConversionFailure;
     proof::AletheNodeConverter anc;
     proof::AletheProofPostprocess vpfpp(
@@ -299,6 +302,7 @@ void PfManager::printProof(std::ostream& out,
     {
       out << "(error " << reasonForConversionFailure << ")";
     }
+    d_pnm->getChecker()->setProofCheckMode(oldMode);
   }
   else if (mode == options::ProofFormatMode::LFSC)
   {

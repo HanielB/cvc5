@@ -2511,6 +2511,12 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.process(internalProof);
 
+  if (!d_reasonForConversionFailure.empty())
+  {
+    reasonForConversionFailure = d_reasonForConversionFailure;
+    return false;
+  }
+
   // In the Alethe proof format the final step has to be (cl). However, after
   // the translation it might be (cl false). In that case additional steps are
   // required.
@@ -2535,11 +2541,6 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
     Trace("pf-process-debug") << "Update node..." << std::endl;
     d_env.getProofNodeManager()->updateNode(pf.get(), npn.get());
     Trace("pf-process-debug") << "...update node finished." << std::endl;
-  }
-  if (!d_reasonForConversionFailure.empty())
-  {
-    reasonForConversionFailure = d_reasonForConversionFailure;
-    return false;
   }
   return true;
 }
