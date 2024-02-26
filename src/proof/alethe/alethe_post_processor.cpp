@@ -2427,15 +2427,23 @@ bool AletheProofPostprocessCallback::finalStep(Node res,
 
   // Sanitize original assumptions and create a double scope to hold them, where
   // the first scope is empty. This is needed because of the expected form a
-  // proof node to be printed
+  // proof node to be printed. Note that this
   std::vector<Node> sanitizedArgs;
-  std::transform(args.begin(),
-                 args.end(),
-                 std::back_inserter(sanitizedArgs),
-                 [this](Node a) {
-                   Assert(!d_anc.maybeConvert(a).isNull());
-                   return d_anc.maybeConvert(a);
-                 });
+  for (const Node& a : args)
+  {
+    Node conv = d_anc.maybeConvert(a);
+    if (conv.isNull())
+    {
+      *d_reasonForConversionFailure = d_anc.d_error;
+      success = false;
+      break;
+    }
+    // avoid repeated assumptions
+    if (std::find(sanitizedArgs.begin(), sanitizedArgs.end(), conv) == sanitizedArgs.end())
+    {
+      sanitizedArgs.push_back(conv);
+    }
+  }
   Node placeHolder = nm->mkNode(Kind::SEXPR, res);
   cdp->addStep(placeHolder, ProofRule::SCOPE, children, sanitizedArgs);
   return success && cdp->addStep(res, ProofRule::SCOPE, {placeHolder}, {});
