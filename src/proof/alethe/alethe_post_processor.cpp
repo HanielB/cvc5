@@ -2052,8 +2052,7 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
     return false;
   }
   // If this resolution child is used as a singleton OR but the rule
-  // justifying it concludes a clause, then we are necessarily in this
-  // scenario:
+  // justifying it concludes a clause, then we are often in this scenario:
   //
   // (or t1 ... tn)
   // -------------- OR
@@ -2067,56 +2066,107 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   // a literal as well, and its node clashed with the conclusion of the
   // FACTORING/REORDERING step.
   //
-  // The solution is to *not* use FACTORING/REORDERING (which in Alethe
-  // operate on clauses) but generate a proof to obtain (via rewriting) the
-  // expected node (or t1' ... tn') from the original node (or t1 ... tn).
+  // When this is happening at one level, as in the example above, a solution is
+  // to *not* use FACTORING/REORDERING (which in Alethe operate on clauses) but
+  // generate a proof to obtain (via rewriting) the expected node (or t1' ...
+  // tn') from the original node (or t1 ... tn).
+  //
+  // However, this may have happened in a complex proof in which we'd have no
+  // easy way to get access to (or t1 ... tn), in which case we delive (cl (or
+  // t1' ... tn')) by introducing n or_neg steps, similarly to the translation
+  // of EQ_RESOLVE.
   NodeManager* nm = NodeManager::currentNM();
   Trace("alethe-proof") << "\n";
   CVC5_UNUSED AletheRule premiseProofRule =
       getAletheRule(premisePf->getArguments()[0]);
   CVC5_UNUSED AletheRule premiseChildProofRule =
       getAletheRule(premisePf->getChildren()[0]->getArguments()[0]);
-  Assert((premiseProofRule == AletheRule::CONTRACTION
+  if ((premiseProofRule == AletheRule::CONTRACTION
           || premiseProofRule == AletheRule::REORDERING)
-         && premiseChildProofRule == AletheRule::OR);
-  // get great grand child
-  std::shared_ptr<ProofNode> premiseChildPf =
-      premisePf->getChildren()[0]->getChildren()[0];
-  Node premiseChildConclusion = premiseChildPf->getResult();
-  // Note that we need to add this proof node explicitly to cdp because it does
-  // not have a step for premiseChildConclusion. Rather it is only present in
-  // cdp as a descendant of premisePf (which is in cdp), so if premisePf is to
-  // be lost, then so will premiseChildPf. By adding premiseChildPf explicitly,
-  // it can be retrieved to justify premiseChildConclusion when requested.
-  cdp->addProof(premiseChildPf);
-  // equate it to what we expect, use equiv elim and resolution to
-  // obtain a proof the expected
-  Node equiv = premiseChildConclusion.eqNode(premise);
-  bool success = addAletheStep(AletheRule::ALL_SIMPLIFY,
-                               equiv,
-                               nm->mkNode(Kind::SEXPR, d_cl, equiv),
-                               {},
-                               {},
-                               *cdp);
-  Node equivElim = nm->mkNode(
-      Kind::SEXPR,
-      {d_cl, equiv.notNode(), premiseChildConclusion.notNode(), premise});
-  success &= addAletheStep(AletheRule::EQUIV_POS2, equivElim, equivElim, {}, {}, *cdp);
+         && premiseChildProofRule == AletheRule::OR)
+  {
+    // get great grand child
+    std::shared_ptr<ProofNode> premiseChildPf =
+        premisePf->getChildren()[0]->getChildren()[0];
+    Node premiseChildConclusion = premiseChildPf->getResult();
+    // Note that we need to add this proof node explicitly to cdp because it
+    // does not have a step for premiseChildConclusion. Rather it is only
+    // present in cdp as a descendant of premisePf (which is in cdp), so if
+    // premisePf is to be lost, then so will premiseChildPf. By adding
+    // premiseChildPf explicitly, it can be retrieved to justify
+    // premiseChildConclusion when requested.
+    cdp->addProof(premiseChildPf);
+    // equate it to what we expect, use equiv elim and resolution to
+    // obtain a proof the expected
+    Node equiv = premiseChildConclusion.eqNode(premise);
+    bool success = addAletheStep(AletheRule::ALL_SIMPLIFY,
+                                 equiv,
+                                 nm->mkNode(Kind::SEXPR, d_cl, equiv),
+                                 {},
+                                 {},
+                                 *cdp);
+    Node equivElim = nm->mkNode(
+        Kind::SEXPR,
+        {d_cl, equiv.notNode(), premiseChildConclusion.notNode(), premise});
+    success &= addAletheStep(
+        AletheRule::EQUIV_POS2, equivElim, equivElim, {}, {}, *cdp);
+    Node newPremise = nm->mkNode(Kind::SEXPR, d_cl, premise);
+    Trace("alethe-proof") << "Reverted handling as a clause for converting "
+                          << premiseChildConclusion << " into " << premise
+                          << std::endl;
+    return success
+           && addAletheStep(AletheRule::RESOLUTION,
+                            newPremise,
+                            newPremise,
+                            {equivElim, equiv, premiseChildConclusion},
+                            d_resPivots
+                                ? std::vector<Node>{equiv,
+                                                    d_false,
+                                                    premiseChildConclusion,
+                                                    d_false}
+                                : std::vector<Node>(),
+                            *cdp);
+  }
+  // Derive (cl (or t1' ... tn')) from (cl t1' ... tn') (i.e., the premise) with a subproof
+  //
+  //             -----------------------  ...  --------------------- OR_NEG
+  //   premise   (cl premise, (not t1'))  ...  (cl premise, (not tn'))
+  //  ---------------------------- RESOLUTION
+  //  (cl premise ... premise)
+  //  ---------------------------- CONTRACTION
+  //         (cl premise)
+  std::vector<Node> resPremises{premise};
+  std::vector<Node> resArgs;
+  std::vector<Node> contractionPremiseChildren{d_cl};
+  bool success = true;
+  for (const Node& n : premise)
+  {
+    Node nNeg = n.notNode();
+    resPremises.push_back(nm->mkNode(Kind::SEXPR, d_cl, premise, nNeg));
+    success &= addAletheStep(AletheRule::OR_NEG,
+                             resPremises.back(),
+                             resPremises.back(),
+                             {},
+                             {},
+                             *cdp);
+    resArgs.push_back(nNeg);
+    resArgs.push_back(d_true);
+    contractionPremiseChildren.push_back(premise);
+  }
+  Node contractionPremise = nm->mkNode(Kind::SEXPR, contractionPremiseChildren);
+  success &= addAletheStep(AletheRule::RESOLUTION,
+                           contractionPremise,
+                           contractionPremise,
+                           resPremises,
+                           d_resPivots ? resArgs : std::vector<Node>(),
+                           *cdp);
   Node newPremise = nm->mkNode(Kind::SEXPR, d_cl, premise);
-  Trace("alethe-proof") << "Reverted handling as a clause for converting "
-                        << premiseChildConclusion << " into " << premise
-                        << std::endl;
   return success
-         && addAletheStep(AletheRule::RESOLUTION,
+         && addAletheStep(AletheRule::CONTRACTION,
                           newPremise,
                           newPremise,
-                          {equivElim, equiv, premiseChildConclusion},
-                          d_resPivots
-                              ? std::vector<Node>{equiv,
-                                                  d_false,
-                                                  premiseChildConclusion,
-                                                  d_false}
-                              : std::vector<Node>(),
+                          {contractionPremise},
+                          {},
                           *cdp);
 }
 
