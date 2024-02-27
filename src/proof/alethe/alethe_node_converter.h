@@ -41,6 +41,8 @@ class AletheNodeConverter : public BaseAlfNodeConverter
 
   std::string d_error;
 
+  std::map<Node, Node> d_convToOriginalAssumption;
+
  private:
   /**
    * Make or get an internal symbol with custom name and type.

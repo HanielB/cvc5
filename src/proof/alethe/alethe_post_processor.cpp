@@ -2491,6 +2491,7 @@ bool AletheProofPostprocessCallback::finalStep(Node res,
     // avoid repeated assumptions
     if (std::find(sanitizedArgs.begin(), sanitizedArgs.end(), conv) == sanitizedArgs.end())
     {
+      d_anc.d_convToOriginalAssumption[conv] = a;
       sanitizedArgs.push_back(conv);
     }
   }
