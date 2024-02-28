@@ -2075,13 +2075,11 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   // of EQ_RESOLVE.
   NodeManager* nm = NodeManager::currentNM();
   Trace("alethe-proof") << "\n";
-  CVC5_UNUSED AletheRule premiseProofRule =
-      getAletheRule(premisePf->getArguments()[0]);
-  CVC5_UNUSED AletheRule premiseChildProofRule =
-      getAletheRule(premisePf->getChildren()[0]->getArguments()[0]);
+  AletheRule premiseProofRule = getAletheRule(premisePf->getArguments()[0]);
   if ((premiseProofRule == AletheRule::CONTRACTION
-          || premiseProofRule == AletheRule::REORDERING)
-         && premiseChildProofRule == AletheRule::OR)
+       || premiseProofRule == AletheRule::REORDERING)
+      && getAletheRule(premisePf->getChildren()[0]->getArguments()[0])
+             == AletheRule::OR)
   {
     // get great grand child
     std::shared_ptr<ProofNode> premiseChildPf =
