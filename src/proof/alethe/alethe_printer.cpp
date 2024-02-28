@@ -137,11 +137,15 @@ void AletheProofPrinter::print(
   const std::vector<Node>& args = pfn->getArguments();
   // Special handling for the first scope
   // Print assumptions and add them to the list but do not print anchor.
+  Assert(!args.empty());
+  Assert(!d_anc.d_convToOriginalAssumption.empty());
   for (size_t i = 0, size = args.size(); i < size; i++)
   {
-    // seach name with original assumption rather than its conversion
+    // search name with original assumption rather than its conversion
     Assert(d_anc.d_convToOriginalAssumption.find(args[i])
-           != d_anc.d_convToOriginalAssumption.end());
+           != d_anc.d_convToOriginalAssumption.end())
+        << "Converted assumption: " << args[i]
+        << "\nMap: " << d_anc.d_convToOriginalAssumption;
     Node original = d_anc.d_convToOriginalAssumption[args[i]];
     auto it = assertionNames.find(original);
     if (it != assertionNames.end())

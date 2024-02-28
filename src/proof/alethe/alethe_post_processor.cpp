@@ -2567,37 +2567,39 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
   // Translate proof node
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.process(internalProof);
+  if (d_reasonForConversionFailure.empty())
+  {
+    // In the Alethe proof format the final step has to be (cl). However, after
+    // the translation it might be (cl false). In that case additional steps are
+    // required.
+    // The function has the additional purpose of sanitizing the attributes of
+    // the outer SCOPEs
+    CDProof cpf(
+        d_env, nullptr, "AletheProofPostProcess::finalStep::CDProof", true);
+    std::vector<Node> ccn{internalProof->getResult()};
+    cpf.addProof(internalProof);
+    std::vector<Node> args{definitionsScope->getArguments().begin(),
+                           definitionsScope->getArguments().end()};
+    args.insert(args.end(),
+                assumptionsScope->getArguments().begin(),
+                assumptionsScope->getArguments().end());
+    if (d_cb.finalStep(
+            definitionsScope->getResult(), ProofRule::SCOPE, ccn, args, &cpf))
+    {
+      std::shared_ptr<ProofNode> npn =
+          cpf.getProofFor(definitionsScope->getResult());
 
+      // then, update the original proof node based on this one
+      Trace("pf-process-debug") << "Update node..." << std::endl;
+      d_env.getProofNodeManager()->updateNode(pf.get(), npn.get());
+      Trace("pf-process-debug") << "...update node finished." << std::endl;
+    }
+  }
+  // Since the final step may also lead to issues, need to test here again
   if (!d_reasonForConversionFailure.empty())
   {
     reasonForConversionFailure = d_reasonForConversionFailure;
     return false;
-  }
-
-  // In the Alethe proof format the final step has to be (cl). However, after
-  // the translation it might be (cl false). In that case additional steps are
-  // required.
-  // The function has the additional purpose of sanitizing the attributes of the
-  // outer SCOPEs
-  CDProof cpf(
-      d_env, nullptr, "AletheProofPostProcess::finalStep::CDProof", true);
-  std::vector<Node> ccn{internalProof->getResult()};
-  cpf.addProof(internalProof);
-  std::vector<Node> args{definitionsScope->getArguments().begin(),
-                         definitionsScope->getArguments().end()};
-  args.insert(args.end(),
-              assumptionsScope->getArguments().begin(),
-              assumptionsScope->getArguments().end());
-  if (d_cb.finalStep(
-          definitionsScope->getResult(), ProofRule::SCOPE, ccn, args, &cpf))
-  {
-    std::shared_ptr<ProofNode> npn =
-        cpf.getProofFor(definitionsScope->getResult());
-
-    // then, update the original proof node based on this one
-    Trace("pf-process-debug") << "Update node..." << std::endl;
-    d_env.getProofNodeManager()->updateNode(pf.get(), npn.get());
-    Trace("pf-process-debug") << "...update node finished." << std::endl;
   }
   return true;
 }
