@@ -1692,8 +1692,6 @@ bool AletheProofPostprocessCallback::update(Node res,
     case ProofRule::ARITH_MULT_POS:
     case ProofRule::ARITH_MULT_NEG:
     {
-      // We require the multiplicative factor to be a value
-      Assert(args[0].isConst());
       return addAletheStep(id == ProofRule::ARITH_MULT_POS
                                ? AletheRule::LA_MULT_POS
                                : AletheRule::LA_MULT_NEG,
