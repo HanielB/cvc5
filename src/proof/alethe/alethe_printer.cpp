@@ -223,8 +223,7 @@ void AletheProofPrinter::printInternal(
     Trace("alethe-printer") << push;
     Assert(pfChildren.size() == 1);
     out << "(anchor :step " << prefix << "t" << id;
-    std::string subproofPrefix =
-        prefix + (prefix == "" ? "" : ".") + "t" + std::to_string(id) + ".";
+    std::string subproofPrefix = prefix + "t" + std::to_string(id) + ".";
     std::unordered_map<Node, std::string> subproofAssumptionsMap{assumptionsMap.begin(), assumptionsMap.end()};
     std::unordered_map<std::shared_ptr<ProofNode>, std::string> subproofPfMap{pfMap.begin(), pfMap.end()};
     // since the subproof shape relies on having at least one step inside it, if
@@ -235,7 +234,6 @@ void AletheProofPrinter::printInternal(
     {
       subproofPfMap.erase(it);
     }
-
     // if subproof, print assumptions, other print arguments
     if (arule == AletheRule::ANCHOR_SUBPROOF)
     {
