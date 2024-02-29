@@ -70,6 +70,7 @@ AletheProofPostprocessCallback::AletheProofPostprocessCallback(
 {
   NodeManager* nm = NodeManager::currentNM();
   d_cl = nm->mkBoundVar("cl", nm->sExprType());
+  d_becomes = nm->mkRawSymbol(":=", nm->sExprType());
   d_true = nm->mkConst(true);
   d_false = nm->mkConst(false);
 }
@@ -1583,7 +1584,8 @@ bool AletheProofPostprocessCallback::update(Node res,
     {
       for (size_t i = 0, size = children[0][0].getNumChildren(); i < size; i++)
       {
-        new_args.push_back(children[0][0][i].eqNode(args[0][i]));
+        new_args.push_back(
+            nm->mkNode(Kind::SEXPR, d_becomes, children[0][0][i], args[0][i]));
       }
       Node vp1 = nm->mkNode(
           Kind::SEXPR, d_cl, nm->mkNode(Kind::OR, children[0].notNode(), res));
