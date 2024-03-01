@@ -1780,8 +1780,49 @@ bool AletheProofPostprocessCallback::update(Node res,
     {
       bool success = true;
       Node equal, lesser, greater;
-
       Kind k = res.getKind();
+      Assert(k == Kind::EQUAL || k == Kind::GT || k == Kind::LT) << "kind is " << k << "\n";
+      switch (k)
+      {
+        case Kind::EQUAL:
+        {
+          Node leq, geq;
+          if (children[0].getKind() == Kind::LEQ)
+          {
+            leq = children[0];
+            geq = children[1];
+          }
+          else
+          {
+            leq = children[1];
+            geq = children[0];
+          }
+          Node leqInverted = nm->mkNode(Kind::LEQ, geq[1], geq[0]);
+          Node laDiseqCl = nm->mkNode(Kind::SEXPR, d_cl, nm->mkNode(Kind::OR, res, leq, leqInverted));
+                    // addAletheStep(AletheRule::LA_DISEQUALITY, vp1, vp1, {}, {}, *cdp)
+          // && addAletheStep(AletheRule::OR, vp2, vp2, {vp1}, {}, *cdp);
+          Trace("test") << "res: " << res << "\nleq: " << leq << "\ngeq" << geq << "\n";
+          Trace("test") << "laDiseqCl: " << laDiseqCl << "\n";
+          Unreachable() << "case eq";
+          break;
+        }
+        case Kind::GT:
+        {
+          Unreachable() << "case gt";
+          break;
+        }
+        case Kind::LT:
+        {
+          Unreachable() << "case lt";
+          break;
+        }
+      default:
+        {
+          Unreachable() << "should not have gotten here";
+        }
+      }
+
+
       if (k == Kind::EQUAL)
       {
         equal = res;
@@ -1843,6 +1884,7 @@ bool AletheProofPostprocessCallback::update(Node res,
       if (res == equal || res == greater)
       {  // C = (= x c) or C = (> x c)
         // lesser = (>= x c)
+        Assert(lesser.getKind() == Kind::GEQ);
         Node vpc2 = nm->mkNode(
             Kind::SEXPR,
             d_cl,
