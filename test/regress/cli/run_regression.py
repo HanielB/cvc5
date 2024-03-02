@@ -271,7 +271,6 @@ class AletheTester(Tester):
         return (
             benchmark_info.benchmark_ext != ".sy"
             and benchmark_info.expected_output.strip() == "unsat"
-            # and re.match("^(AUFLIRA|AUFLIA|UFLIRA|UFIDL|UFLIA|UFLRA|UF|QF_AUFLIA|QF_ALIA|QF_UFLIRA|QF_UFLIA|QF_IDL|QF_LIA|QF_LRA|QF_RDL|QF_UF|QF_UFIDL|LIA|LRA|LIRA)$", logic) != None
         )
 
     def run_internal(self, benchmark_info):

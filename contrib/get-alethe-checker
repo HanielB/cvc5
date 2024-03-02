@@ -19,14 +19,21 @@ pushd $CVC_DIR/deps
 BASE_DIR=`pwd`
 mkdir -p $BASE_DIR/tmp/
 
-# download Carcara binaries
-version="carcara-1.1.0"
-file="carcara-linux"
-download "https://github.com/ufmg-smite/carcara/releases/download/$version/$file" $BASE_DIR/tmp/carcara-linux
+###### Carcara
+CARCARA_DIR="$BASE_DIR/carcara"
+mkdir -p $CARCARA_DIR
 
+# download and unpack Carcara
+CARCARA_VERSION="e62ba2244218277c1d05064b184531a8ab49a8e4"
+download "https://github.com/hanielb/carcara/archive/$CARCARA_VERSION.tar.gz" $BASE_DIR/tmp/carcara.tgz
+tar --strip 1 -xzf $BASE_DIR/tmp/carcara.tgz -C $CARCARA_DIR
+
+# build carcara
+pushd $CARCARA_DIR
+cargo build --release
 mkdir -p $BASE_DIR/bin
-mv $BASE_DIR/tmp/carcara-linux $BASE_DIR/bin/carcara
-chmod +x $BASE_DIR/bin/carcara
+cp ./target/release/carcara $BASE_DIR/bin/carcara
+popd
 
 cat << EOF > $BASE_DIR/bin/cvc5-alethe-check.sh
 #!/usr/bin/env bash
@@ -35,7 +42,7 @@ echo "=== Generate proof: \$@"
 $BASE_DIR/bin/cvc5-alethe-proof.sh \$@
 
 echo "=== Check proof with Carcara"
-$BASE_DIR/bin/alethe-check.sh \$2.proof \$2 
+$BASE_DIR/bin/alethe-check.sh \$2.proof \$2
 EOF
 chmod +x $BASE_DIR/bin/cvc5-alethe-check.sh
 
@@ -43,7 +50,7 @@ cat << EOF > $BASE_DIR/bin/cvc5-alethe-proof.sh
 #!/usr/bin/env bash
 
 # call cvc5 and remove the first line of the output (should be "unsat")
-\$@ --dump-proofs --proof-format=alethe --proof-granularity=theory-rewrite | tail -n +2  > \$2.proof
+\$@ --dump-proofs --proof-format=alethe | tail -n +2  > \$2.alethe
 EOF
 chmod +x $BASE_DIR/bin/cvc5-alethe-proof.sh
 
