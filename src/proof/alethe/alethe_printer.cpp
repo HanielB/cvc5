@@ -218,7 +218,8 @@ void AletheProofPrinter::printInternal(
   Trace("alethe-printer") << "... print step " << arule << " : " << args[2]
                           << "\n";
   // We special case printing anchor subproofs
-  if (arule >= AletheRule::ANCHOR_SUBPROOF && arule <= AletheRule::ANCHOR_SKO_EX)
+  if (arule >= AletheRule::ANCHOR_SUBPROOF
+      && arule <= AletheRule::ANCHOR_SKO_EX)
   {
     Trace("alethe-printer") << push;
     Assert(pfChildren.size() == 1);
