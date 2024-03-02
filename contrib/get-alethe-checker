@@ -39,10 +39,11 @@ cat << EOF > $BASE_DIR/bin/cvc5-alethe-check.sh
 #!/usr/bin/env bash
 
 echo "=== Generate proof: \$@"
-$BASE_DIR/bin/cvc5-alethe-proof.sh \$@
+echo "> \$2.alethe"
+$BASE_DIR/bin/cvc5-alethe-proof.sh \$@ > \$2.alethe
 
 echo "=== Check proof with Carcara"
-$BASE_DIR/bin/alethe-check.sh \$2.proof \$2
+$BASE_DIR/bin/alethe-check.sh \$2.alethe \$2
 EOF
 chmod +x $BASE_DIR/bin/cvc5-alethe-check.sh
 
@@ -50,7 +51,7 @@ cat << EOF > $BASE_DIR/bin/cvc5-alethe-proof.sh
 #!/usr/bin/env bash
 
 # call cvc5 and remove the first line of the output (should be "unsat")
-\$@ --dump-proofs --proof-format=alethe | tail -n +2  > \$2.alethe
+\$@ --dump-proofs --proof-format=alethe | tail -n +2
 EOF
 chmod +x $BASE_DIR/bin/cvc5-alethe-proof.sh
 
@@ -66,9 +67,9 @@ chmod +x $BASE_DIR/bin/alethe-check.sh
 
 echo ""
 echo "========== How to use Carcara =========="
-echo "Generate a Alethe proof with cvc5:"
-echo "  $CVC_DIR/deps/bin/cvc5-alethe-proof.sh cvc5 <input file>"
+echo "Generate a Alethe proof with cvc5 (for terms printed without sharing, use --dag-thresh=0):"
+echo "  $CVC_DIR/deps/bin/cvc5-alethe-proof.sh cvc5 <input file> <options>"
 echo "Check a generated proof:"
 echo "  $CVC_DIR/deps/bin/alethe-check.sh <proof file> <input file>"
 echo "Run cvc5 and check the generated proof:"
-echo "  $CVC_DIR/deps/bin/cvc5-alethe-check.sh cvc5 <input file>"
+echo "  $CVC_DIR/deps/bin/cvc5-alethe-check.sh cvc5 <input file> <options>"
