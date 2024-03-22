@@ -1790,6 +1790,30 @@ std::vector<Node> SolverEngine::getHints()
     r = SkolemManager::getOriginalForm(r);
     Trace("hints") << "\t" << r << "\n";
     Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
+    // r will be a disjunction. If there is a positive atom and all others
+    // negatives, turn it into an implication
+    if (r.getKind() == Kind::OR)
+    {
+      std::vector<Node> negLits;
+      std::copy_if(r.begin(), r.end(), std::back_inserter(negLits), [](Node n) {
+        return n.getKind() == Kind::NOT;
+      });
+      if (negLits.size() == r.getNumChildren() - 1)
+      {
+        Node conc;
+        for (const Node& rc : r)
+        {
+          if (std::find(negLits.begin(), negLits.end(), rc) == negLits.end())
+          {
+            conc = rc;
+            break;
+          }
+        }
+        Assert(!conc.isNull());
+        currResults.push_back(nm->mkNode(Kind::IMPLIES, nm->mkAnd(negLits), conc));
+        continue;
+      }
+    }
     currResults.push_back(r);
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));
@@ -1806,7 +1830,7 @@ std::vector<Node> SolverEngine::getHints()
       r = SkolemManager::getOriginalForm(r);
       Trace("hints") << "\t" << r << "\n";
       Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
-      currResults.push_back(r);
+      currResults.push_back(nm->mkNode(Kind::IMPLIES, r[0][0], r[1]));
     }
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));

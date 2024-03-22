@@ -2137,13 +2137,18 @@ void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
   //   - lemmas
   //   - instantiation
   //   - (rewrite rule + instances)*
+  bool first = true;
   for (size_t i = 0, size = d_result.size(); i < size; ++i)
   {
-    out << (i == 0   ? "Preprocess:"
-            : i == 1 ? "Theory lemmas:"
-            : i == 2 ? "Instantiations:"
-                     : "rewrites:")
+    out << (i == 0
+                ? "Preprocess:"
+                : i == 1 ? "\nTheory lemmas:"
+                         : i == 2 ? "\nInstantiations:"
+                                  : (first ? "\nRewrites (rules and their usages "
+                                             "in quantifier-free terms):"
+                                           : "Rewrites:"))
         << "\n";
+    first = i <= 2;
     for (const auto& l : d_result[i])
     {
       out << "\t" << l << "\n";
