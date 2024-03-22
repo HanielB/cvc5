@@ -1810,7 +1810,12 @@ std::vector<Node> SolverEngine::getHints()
           }
         }
         Assert(!conc.isNull());
-        currResults.push_back(nm->mkNode(Kind::IMPLIES, nm->mkAnd(negLits), conc));
+        std::vector<Node> lits;
+        for (const Node& n : negLits)
+        {
+          lits.push_back(n[0]);
+        }
+        currResults.push_back(nm->mkNode(Kind::IMPLIES, nm->mkAnd(lits), conc));
         continue;
       }
     }
