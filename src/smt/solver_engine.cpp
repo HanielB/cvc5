@@ -1815,8 +1815,11 @@ std::vector<Node> SolverEngine::getHints()
   {
     currResults.clear();
     currResults.push_back(p.second);
-    Assert(rewriteInsts.find(p.first) != rewriteInsts.end());
-    currResults.insert(currResults.end(), rewriteInsts[p.first].begin(), rewriteInsts[p.first].end());
+    auto it = rewriteInsts.find(p.first);
+    if (it != rewriteInsts.end())
+    {
+      currResults.insert(currResults.end(), it->second.begin(), it->second.end());
+    }
     result.push_back(nm->mkNode(Kind::SEXPR, currResults));
   }
   return result;
