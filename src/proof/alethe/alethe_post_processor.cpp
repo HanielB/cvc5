@@ -1704,6 +1704,7 @@ bool AletheProofPostprocessCallback::update(Node res,
         {
           case Kind::EQUAL:
           {
+            Trace("alethe-proof") << "..case EQUAL\n";
             Node leq, geq;
             if (children[0].getKind() == Kind::LEQ)
             {
@@ -1787,15 +1788,16 @@ bool AletheProofPostprocessCallback::update(Node res,
                 AletheRule::RESOLUTION,
                 res,
                 nm->mkNode(Kind::SEXPR, d_cl, res),
-                {laDiseqCl, leq, resPi1Conc},
+                {leq, laDiseqCl, resPi1Conc},
                 d_resPivots
-                    ? std::vector<Node>{leq, d_false, leqInverted, d_false}
+                    ? std::vector<Node>{leq, d_true, leqInverted, d_false}
                     : std::vector<Node>(),
                 *cdp);
             break;
           }
           case Kind::GT:
           {
+            Trace("alethe-proof") << "..case GT\n";
             Node geq, notEq;
             Kind kc0 = children[0].getKind();
             if (kc0 == Kind::GEQ
@@ -1965,7 +1967,7 @@ bool AletheProofPostprocessCallback::update(Node res,
                 addAletheStep(AletheRule::RESOLUTION,
                               res,
                               nm->mkNode(Kind::SEXPR, d_cl, res),
-                              {laDiseqCl, notEq, resPi1Conc, resPi2Conc},
+                              {notEq, laDiseqCl, resPi1Conc, resPi2Conc},
                               d_resPivots ? std::vector<Node>{notEq[0],
                                                               d_false,
                                                               leqInverted,
@@ -1978,6 +1980,7 @@ bool AletheProofPostprocessCallback::update(Node res,
           }
           case Kind::LT:
           {
+            Trace("alethe-proof") << "..case LT\n";
             Node leq, notEq;
             Kind kc0 = children[0].getKind();
             if (kc0 == Kind::LEQ
