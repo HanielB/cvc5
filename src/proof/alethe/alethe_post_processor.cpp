@@ -1445,14 +1445,12 @@ bool AletheProofPostprocessCallback::update(Node res,
       AletheRule skoRule;
       bool isExists;
       Node quant, skolemized;
-      Kind quantKind;
       if (children[0].getKind() == Kind::EXISTS)
       {
         isExists = true;
         skoRule = AletheRule::ANCHOR_SKO_EX;
         quant = children[0];
         skolemized = res;
-        quantKind = Kind::EXISTS;
       }
       else
       {
@@ -1460,7 +1458,6 @@ bool AletheProofPostprocessCallback::update(Node res,
         skoRule = AletheRule::ANCHOR_SKO_FORALL;
         quant = children[0][0];
         skolemized = res[0];
-        quantKind = Kind::FORALL;
       }
       // add rfl step for final replacement
       Node conv = d_anc.maybeConvert(quant[1].eqNode(skolemized));
