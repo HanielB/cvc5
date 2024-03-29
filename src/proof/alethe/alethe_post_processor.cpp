@@ -2220,7 +2220,7 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
                              {},
                              {},
                              *cdp);
-    resArgs.push_back(nNeg);
+    resArgs.push_back(nNeg[0]);
     resArgs.push_back(d_true);
     contractionPremiseChildren.push_back(premise);
   }
