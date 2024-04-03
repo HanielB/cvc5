@@ -552,7 +552,6 @@ bool AletheProofPostprocessCallback::update(Node res,
     case ProofRule::RESOLUTION:
     case ProofRule::CHAIN_RESOLUTION:
     {
-      std::vector<Node> newArgs;
       std::vector<Node> cargs;
       if (id == ProofRule::CHAIN_RESOLUTION)
       {
@@ -566,6 +565,27 @@ bool AletheProofPostprocessCallback::update(Node res,
       {
         cargs = args;
       }
+      // The arguments for the actual step will include the id of the rule,
+      // original conclusion and the one to print and so on.
+      std::vector<Node> newArgs{nm->mkConstInt(Rational(static_cast<uint32_t>(
+                                    AletheRule::RESOLUTION_OR))),
+                                res};
+      Node conclusion;
+      if (!isSingletonClause(res, children, cargs))
+      {
+        std::vector<Node> concChildren{d_cl};
+        concChildren.insert(concChildren.end(), res.begin(), res.end());
+        conclusion = nm->mkNode(Kind::SEXPR, concChildren);
+      }
+      else if (res == d_false)
+      {
+        conclusion = nm->mkNode(Kind::SEXPR, d_cl);
+      }
+      else
+      {
+        conclusion = nm->mkNode(Kind::SEXPR, d_cl, res);
+      }
+      newArgs.push_back(conclusion);
       // checker expects opposite order. We always keep the pivots because we
       // need them to compute in updatePost whether we will add OR steps. If
       // d_resPivots is off we will remove the pivots after that.
@@ -574,18 +594,10 @@ bool AletheProofPostprocessCallback::update(Node res,
         newArgs.push_back(cargs[i + 1]);
         newArgs.push_back(cargs[i]);
       }
-      if (!isSingletonClause(res, children, cargs))
-      {
-        return addAletheStepFromOr(
-            AletheRule::RESOLUTION_OR, res, children, newArgs, *cdp);
-      }
-      return addAletheStep(AletheRule::RESOLUTION_OR,
-                           res,
-                           res == d_false ? nm->mkNode(Kind::SEXPR, d_cl)
-                                          : nm->mkNode(Kind::SEXPR, d_cl, res),
-                           children,
-                           newArgs,
-                           *cdp);
+      Trace("alethe-proof")
+          << "... add alethe step " << res << " / " << d_anc.convert(conclusion)
+          << " " << id << " " << children << " / " << newArgs << std::endl;
+      return cdp->addStep(res, ProofRule::ALETHE_RULE, children, newArgs);
     }
     // ======== Factoring
     // See proof_rule.h for documentation on the FACTORING rule. This comment
@@ -2272,13 +2284,9 @@ bool AletheProofPostprocessCallback::updatePost(
     // necessary to convert (cl (or ...)) to (cl ...).
     case AletheRule::RESOLUTION_OR:
     {
-      // if we do not have pivots, we can't compute easily, so we do not try.
-      // This should only be the case if this proof node was previously updated
-      // and we are not printing pivots.
-      if (args.size() < 4)
-      {
-        return false;
-      }
+      // We need pivots to more easily to the computations here, so we require
+      // them.
+      Assert(args.size() >= 4);
       std::vector<Node> newChildren = children;
       bool hasUpdated = false;
 
@@ -2286,6 +2294,12 @@ bool AletheProofPostprocessCallback::updatePost(
       size_t polIdx, pivIdx;
       polIdx = 4;
       pivIdx = 3;
+      // we will test if any of the arguments has a skolem, in which case the
+      // conclusion of the original form of the clause may differ from the
+      // original one. If the difference is only a matter of order or of
+      // duplicates, we will try to add a reordering or contraction step.
+      // Otherwise we fail
+      bool hasSkolems = expr::hasSubtermKind(Kind::SKOLEM, args[pivIdx]);
       // The first child is used as a non-singleton clause if it is not equal
       // to its pivot L_1. Since it's the first clause in the resolution it can
       // only be equal to the pivot in the case the polarity is true.
@@ -2350,6 +2364,7 @@ bool AletheProofPostprocessCallback::updatePost(
       {
         polIdx = 2 * (i - 1) + 3 + 1;
         pivIdx = 2 * (i - 1) + 3;
+        hasSkolems |= expr::hasSubtermKind(Kind::SKOLEM, args[pivIdx]);
         if (children[i].getKind() == Kind::OR
             && (args[polIdx] != d_false || args[pivIdx] != d_anc.convert(children[i])))
         {
@@ -2408,21 +2423,105 @@ bool AletheProofPostprocessCallback::updatePost(
           }
         }
       }
-      if (hasUpdated || !d_resPivots)
+      if (hasSkolems)
+      {
+        // compute conclusion of a CHAIN_RESOLUTION from the converted pivots
+        // and the converted newChildren, and see if that is different from the
+        // converted res
+        ProofChecker* pc = d_env.getProofNodeManager()->getChecker();
+        std::vector<Node> convChildren;
+        std::transform(newChildren.begin(),
+                       newChildren.end(),
+                       std::back_inserter(convChildren),
+                       [this, nm](Node n) {
+                         Node conv = d_anc.convert(n);
+                         // note that the new child may have been introduced
+                         // above and is a cl node
+                         return conv.getKind() == Kind::SEXPR ? nm->mkNode(
+                                    Kind::OR,
+                                    std::vector<Node>{conv.begin() + 1,
+                                                      conv.end()})
+                                                              : conv;
+                       });
+        std::vector<Node> argsPol;
+        std::vector<Node> convPivots;
+        for (size_t i = 3, size = args.size(); i < size; i = i + 2)
+        {
+          convPivots.push_back(d_anc.convert(args[i]));
+          argsPol.push_back(args[i + 1]);
+        }
+        Node newChainConclusion =
+            pc->checkDebug(ProofRule::CHAIN_RESOLUTION,
+                           convChildren,
+                           {nm->mkNode(Kind::SEXPR, argsPol),
+                            nm->mkNode(Kind::SEXPR, convPivots)},
+                           Node::null(),
+                           "");
+        Node convRes = d_anc.convert(res);
+        if (convRes != newChainConclusion)
+        {
+          // we will try to conclude res via REORDERING
+          Node reorderedConc =
+            pc->checkDebug(ProofRule::REORDERING,
+                           {newChainConclusion},
+                           {convRes},
+                           Node::null(),
+                           "");
+          // we failed to derive the original conclusion. We give-up.
+          if (reorderedConc.isNull())
+          {
+            std::stringstream ss;
+            ss << "Proof uses resolution and Skolems in a currently "
+                  "unsupported way in Alethe proofs.";
+            *d_reasonForConversionFailure = ss.str();
+            return false;
+          }
+          // do the resolution as normal but have a reordering step to be the
+          // Alethe conclusion of the original result. Note that
+          // newChainConclusion cannot be a singleton, otherwise we'd not have a
+          // difference from convRes
+          std::vector<Node> newChainConclusionLits{d_cl};
+          newChainConclusionLits.insert(newChainConclusionLits.end(),
+                                        newChainConclusion.begin(),
+                                        newChainConclusion.end());
+          success &=
+              addAletheStep(
+                  AletheRule::RESOLUTION,
+                  newChainConclusion,
+                  nm->mkNode(Kind::SEXPR, newChainConclusionLits),
+                  newChildren,
+                  d_resPivots ? std::vector<Node>{args.begin() + 3, args.end()}
+                              : std::vector<Node>{},
+                  *cdp)
+              && addAletheStep(AletheRule::REORDERING,
+                               res,
+                               args[2],
+                               {newChainConclusion},
+                               {},
+                               *cdp);
+          return success;
+        }
+      }
+      if (hasUpdated)
       {
         Trace("alethe-proof")
             << "... update alethe step in finalizer " << res << " "
             << newChildren << " / " << args << std::endl;
-        cdp->addStep(res,
-                     ProofRule::ALETHE_RULE,
-                     newChildren,
-                     d_resPivots
-                         ? args
-                         : std::vector<Node>{args.begin(), args.begin() + 3});
-        return success;
       }
-      Trace("alethe-proof") << "... no update\n";
-      return false;
+      else
+      {
+        Trace("alethe-proof") << "... no update\n";
+      }
+      success &=
+        addAletheStep(
+                  AletheRule::RESOLUTION,
+                  res,
+                  args[2],
+                  newChildren,
+                  d_resPivots ? std::vector<Node>{args.begin() + 3, args.end()}
+                              : std::vector<Node>{},
+                  *cdp);
+      return success;
     }
     // A application of the FACTORING rule:
     //
@@ -2586,16 +2685,16 @@ bool AletheProofPostprocessCallback::addAletheStep(
   std::vector<Node> newArgs{NodeManager::currentNM()->mkConstInt(
       Rational(static_cast<uint32_t>(rule)))};
   newArgs.push_back(res);
-  Node conv = d_anc.maybeConvert(conclusion);
-  if (conv.isNull())
+  conclusion = d_anc.maybeConvert(conclusion);
+  if (conclusion.isNull())
   {
     *d_reasonForConversionFailure = d_anc.d_error;
     return false;
   }
-  newArgs.push_back(conv);
+  newArgs.push_back(conclusion);
   for (const Node& arg : args)
   {
-    conv = d_anc.maybeConvert(arg);
+    Node conv = d_anc.maybeConvert(arg);
     if (conv.isNull())
     {
       *d_reasonForConversionFailure = d_anc.d_error;
@@ -2603,8 +2702,8 @@ bool AletheProofPostprocessCallback::addAletheStep(
     }
     newArgs.push_back(conv);
   }
-  Trace("alethe-proof") << "... add alethe step " << res << " / " << conclusion
-                        << " " << rule << " " << children << " / " << newArgs
+  Trace("alethe-proof") << "... add alethe step " << res << " / " << conclusion << " "
+                        << rule << " " << children << " / " << newArgs
                         << std::endl;
   return cdp.addStep(res, ProofRule::ALETHE_RULE, children, newArgs);
 }
