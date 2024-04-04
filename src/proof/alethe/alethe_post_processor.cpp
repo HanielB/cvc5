@@ -2366,14 +2366,10 @@ bool AletheProofPostprocessCallback::updatePost(
         pivIdx = 2 * (i - 1) + 3;
         hasSkolems |= expr::hasSubtermKind(Kind::SKOLEM, args[pivIdx]);
         if (children[i].getKind() == Kind::OR
-            && (args[polIdx] != d_false || args[pivIdx] != d_anc.convert(children[i])))
+            && (args[polIdx] != d_false || d_anc.convert(args[pivIdx]) != d_anc.convert(children[i])))
         {
-          // the arguments will have been converted to witness form already, so
-          // we also check whether after conversion the child is still not the
-          // same (in the case where we'd need to have them different)
-          Assert(!d_anc.convert(children[i]).isNull());
           if (args[polIdx] == d_false
-              && args[pivIdx] == d_anc.convert(children[i]))
+              && d_anc.convert(args[pivIdx]) == d_anc.convert(children[i]))
           {
             continue;
           }
@@ -2415,7 +2411,7 @@ bool AletheProofPostprocessCallback::updatePost(
         // premise is a singleton but the rule concluding it yields a clause.
         else if (children[i].getKind() == Kind::OR)
         {
-          Assert(args[polIdx] == d_false && args[pivIdx] == d_anc.convert(children[i]));
+          Assert(args[polIdx] == d_false && d_anc.convert(args[pivIdx]) == d_anc.convert(children[i]));
           if (maybeReplacePremiseProof(children[i], cdp))
           {
             hasUpdated = true;
@@ -2476,6 +2472,8 @@ bool AletheProofPostprocessCallback::updatePost(
             *d_reasonForConversionFailure = ss.str();
             return false;
           }
+          Trace("alethe-proof")
+              << "... update alethe step in finalizer to reorder\n";
           // do the resolution as normal but have a reordering step to be the
           // Alethe conclusion of the original result. Note that
           // newChainConclusion cannot be a singleton, otherwise we'd not have a
