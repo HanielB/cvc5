@@ -112,7 +112,7 @@ bool ProofPostprocessCallback::update(Node res,
     std::shared_ptr<ProofNode> pfn;
     std::map<Node, std::shared_ptr<ProofNode>>::iterator it =
         d_assumpToProof.find(f);
-    if (it != d_assumpToProof.end())
+    if (d_pppg == nullptr || it != d_assumpToProof.end())
     {
       Trace("smt-proof-pp-debug") << "...already computed" << std::endl;
       pfn = it->second;

@@ -120,6 +120,11 @@ constexpr typename std::vector<T, Alloc>::size_type erase_if(
   return r;
 }
 
+void PfManager::process(std::shared_ptr<ProofNode> pf)
+{
+  d_pfpp->process(pf, nullptr);
+}
+
 std::shared_ptr<ProofNode> PfManager::connectProofToAssertions(
     std::shared_ptr<ProofNode> pfn, SmtSolver& smt, ProofScopeMode scopeMode)
 {
