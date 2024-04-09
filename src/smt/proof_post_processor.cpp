@@ -106,13 +106,17 @@ bool ProofPostprocessCallback::update(Node res,
 
   if (id == ProofRule::ASSUME)
   {
+    if (d_pppg == nullptr)
+    {
+      return false;
+    }
     // we cache based on the assumption node, not the proof node, since there
     // may be multiple occurrences of the same node.
     Node f = args[0];
     std::shared_ptr<ProofNode> pfn;
     std::map<Node, std::shared_ptr<ProofNode>>::iterator it =
         d_assumpToProof.find(f);
-    if (d_pppg == nullptr || it != d_assumpToProof.end())
+    if (it != d_assumpToProof.end())
     {
       Trace("smt-proof-pp-debug") << "...already computed" << std::endl;
       pfn = it->second;

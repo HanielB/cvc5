@@ -1669,8 +1669,8 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
 
 void getRewrites(
     const std::shared_ptr<ProofNode>& pf,
-    std::map<rewriter::DslProofRule, std::unordered_set<Node>>& rewriteInsts,
-    std::map<rewriter::DslProofRule, Node>& rewriteRules,
+    std::map<rewriter::DslProofRule, std::vector<Node>>& rewriteInsts,
+    std::unordered_set<rewriter::DslProofRule>& rewriteRules,
     NodeManager* nm,
     rewriter::RewriteDb* rdb)
 {
@@ -1693,47 +1693,62 @@ void getRewrites(
     // just get the instance
     if (rule == ProofRule::EVALUATE || rule == ProofRule::ARITH_POLY_NORM)
     {
-      rareRule = rule == ProofRule::EVALUATE
-                     ? rewriter::DslProofRule::EVAL
-                     : rewriter::DslProofRule::ARITH_POLY_NORM;
-      rewriteInsts[rareRule].insert(args[0]);
-      Trace("hints-rewrites")
-          << "\t\tRare instance " << rareRule << ": " << args[0] << "\n";
+      Node res;
+      if (rule == ProofRule::EVALUATE)
+      {
+        rareRule = rewriter::DslProofRule::EVAL;
+        res = rp->getResult();
+      }
+      else
+      {
+        rareRule = rewriter::DslProofRule::ARITH_POLY_NORM;
+        res = args[0];
+      }
+      if (std::find(rewriteInsts[rareRule].begin(),
+                    rewriteInsts[rareRule].end(),
+                    res)
+          == rewriteInsts[rareRule].end())
+      {
+        rewriteInsts[rareRule].push_back(res);
+        Trace("hints-rewrites")
+            << "\t\tRare instance " << rareRule << ": " << res << "\n";
+      }
       continue;
     }
     if (!rewriter::getDslProofRule(args[0], rareRule))
     {
       Unreachable() << "Rare rule " << args[0] << " undefined\n";
     }
-    // if the original result of the preprocessing not a forall, get instance
-    if (pf->getResult().getKind() != Kind::FORALL)
-    {
-      Node res = SkolemManager::getOriginalForm(rp->getResult());
-      rewriteInsts[rareRule].insert(res);
-      Trace("hints-rewrites")
-          << "\t\tRare instance " << rareRule << ": " << res << "\n";
-    }
     // get the rule definition to build a node representation of it
-    Node ruleDef;
     auto it = rewriteRules.find(rareRule);
     if (it == rewriteRules.end())
     {
       const rewriter::RewriteProofRule& rpr = rdb->getRule(rareRule);
       const std::vector<Node>& conds = rpr.getConditions();
       Node conc = rpr.getConclusion();
-      ruleDef = nm->mkNode(
+      Node ruleDef = nm->mkNode(
           Kind::FORALL,
           nm->mkNode(Kind::BOUND_VAR_LIST, rpr.getVarList()),
           conds.empty() ? conc
                         : nm->mkNode(Kind::IMPLIES, nm->mkAnd(conds), conc));
-      rewriteRules[rareRule] = ruleDef;
+      rewriteInsts[rareRule].push_back(ruleDef);
+      Trace("hints-rewrites")
+          << "\t\tRare rule def: " << rareRule << ": " << ruleDef << "\n";
+      rewriteRules.insert(rareRule);
     }
-    else
+    // if the original result of the preprocessing not a forall, get instance
+    if (pf->getResult().getKind() != Kind::FORALL)
     {
-      ruleDef = it->second;
+      Node res = SkolemManager::getOriginalForm(rp->getResult());
+      if (std::find(
+              rewriteInsts[rareRule].begin(), rewriteInsts[rareRule].end(), res)
+          == rewriteInsts[rareRule].end())
+      {
+        rewriteInsts[rareRule].push_back(res);
+        Trace("hints-rewrites")
+            << "\t\tRare instance " << rareRule << ": " << res << "\n";
+      }
     }
-    Trace("hints-rewrites")
-        << "\t\tRare rule " << rareRule << ": " << ruleDef << "\n";
   }
 }
 
@@ -1744,9 +1759,9 @@ std::vector<Node> SolverEngine::getHints()
 
   std::vector<Node> currResults;
   // All instances of given rewrite rule
-  std::map<rewriter::DslProofRule, std::unordered_set<Node>> rewriteInsts;
-  // For each rewrite rule, its definition
-  std::map<rewriter::DslProofRule, Node> rewriteRules;
+  std::map<rewriter::DslProofRule, std::vector<Node>> rewriteInsts;
+  // Collected rules
+  std::unordered_set<rewriter::DslProofRule> rewriteRules;
 
   // collect the proofs for lemmas and of preprocessing
   std::vector<std::shared_ptr<ProofNode>> lemmaProofs =
@@ -1854,15 +1869,11 @@ std::vector<Node> SolverEngine::getHints()
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));
   // add rewrites now
-  for (const auto& p: rewriteRules)
+  for (const auto& p: rewriteInsts)
   {
+    Trace("hints-rewrites") << "...adding to results: " << p.first << ": " << p.second << "\n";
     currResults.clear();
-    currResults.push_back(p.second);
-    auto it = rewriteInsts.find(p.first);
-    if (it != rewriteInsts.end())
-    {
-      currResults.insert(currResults.end(), it->second.begin(), it->second.end());
-    }
+    currResults.insert(currResults.end(), p.second.begin(), p.second.end());
     result.push_back(nm->mkNode(Kind::SEXPR, currResults));
   }
   return result;
