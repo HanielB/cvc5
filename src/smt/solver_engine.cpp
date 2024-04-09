@@ -1773,12 +1773,16 @@ std::vector<Node> SolverEngine::getHints()
   rewriter::RewriteDb* rdb = d_pfManager->getRewriteDatabase();
   for (auto p : preprocessProofs)
   {
-    // ignore assertions that did not change
+    // ignore assertions that did not change. There are also cases in which the
+    // assertion does not effectively change, expect by just rewriting kinds
+    // (like from MULT to NON_LINEAR_MULT), but there is no simple way to
+    // control for this, so we do not try to
     if (p->getRule() == ProofRule::ASSUME)
     {
       continue;
     }
     // get assumptions
+    Node res = p->getResult();
     std::vector<Node> assumptions;
     expr::getFreeAssumptions(p.get(), assumptions);
     // get original form of skolems in assumptions and conclusion, and build an
@@ -1787,11 +1791,11 @@ std::vector<Node> SolverEngine::getHints()
                    assumptions.end(),
                    assumptions.begin(),
                    [](Node n) { return SkolemManager::getOriginalForm(n); });
-    Node r = nm->mkNode(Kind::IMPLIES,
-                        nm->mkAnd(assumptions),
-                        SkolemManager::getOriginalForm(p->getResult()));
-    currResults.push_back(r);
-    Trace("hints") << "\t" << r << "\n";
+    res = nm->mkNode(Kind::IMPLIES,
+                     nm->mkAnd(assumptions),
+                     SkolemManager::getOriginalForm(res));
+    currResults.push_back(res);
+    Trace("hints") << "\t" << res << "\n";
     Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
 
     getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
@@ -1801,32 +1805,34 @@ std::vector<Node> SolverEngine::getHints()
   Trace("hints") << "Lemmas:\n";
   for (auto p : lemmaProofs)
   {
-    Assert(p->getRule() != ProofRule::ASSUME);
-    Node r = p->getResult();
-    // ignore "lemmas" that have no assumptions, which indicates these are
-    // just things generated during CNF conversion. Also ignore instantiations,
-    // i.e., (or (not (forall ...)))
-    if (!expr::containsAssumption(p.get())
-        || (r.getKind() == Kind::OR && r[0].getKind() == Kind::NOT
-            && r[0][0].getKind() == Kind::FORALL))
+    ProofRule rule = p->getRule();
+    Assert(rule != ProofRule::ASSUME);
+    Node res = p->getResult();
+    Kind k = res.getKind();
+    // ignore "lemmas" that are not trust steps and have no assumptions, which
+    // indicates these are just things generated during CNF conversion. Also
+    // ignore instantiations, i.e., (or (not (forall ...)))
+    if ((rule != ProofRule::TRUST && !expr::containsAssumption(p.get()))
+        || (k == Kind::OR && res[0].getKind() == Kind::NOT
+            && res[0][0].getKind() == Kind::FORALL))
     {
       continue;
     }
-    r = SkolemManager::getOriginalForm(r);
-    Trace("hints") << "\t" << r << "\n";
+    res = SkolemManager::getOriginalForm(res);
+    Trace("hints") << "\t" << res << "\n";
     Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
     // r will be a disjunction. If there is a positive atom and all others
     // negatives, turn it into an implication
-    if (r.getKind() == Kind::OR)
+    if (k == Kind::OR)
     {
       std::vector<Node> negLits;
-      std::copy_if(r.begin(), r.end(), std::back_inserter(negLits), [](Node n) {
+      std::copy_if(res.begin(), res.end(), std::back_inserter(negLits), [](Node n) {
         return n.getKind() == Kind::NOT;
       });
-      if (negLits.size() == r.getNumChildren() - 1)
+      if (negLits.size() == res.getNumChildren() - 1)
       {
         Node conc;
-        for (const Node& rc : r)
+        for (const Node& rc : res)
         {
           if (std::find(negLits.begin(), negLits.end(), rc) == negLits.end())
           {
@@ -1844,9 +1850,26 @@ std::vector<Node> SolverEngine::getHints()
         continue;
       }
     }
-    currResults.push_back(r);
+    currResults.push_back(res);
 
+    // there may be rewrites in the proofs
     getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+
+    // if integer reasoning, collect, if any, rules for that
+    std::vector<std::shared_ptr<ProofNode>> subproofs;
+    expr::getRuleApplications(
+        p, {ProofRule::INT_TIGHT_UB, ProofRule::INT_TIGHT_LB}, subproofs);
+    // the rules
+    Trace("hints-int") << "\tInteger rules:\n";
+    for (const std::shared_ptr<ProofNode>& intPf : subproofs)
+    {
+      Assert(intPf->getChildren().size() == 1);
+      currResults.push_back(nm->mkNode(
+          Kind::IMPLIES,
+          SkolemManager::getOriginalForm(intPf->getChildren()[0]->getResult()),
+          SkolemManager::getOriginalForm(intPf->getResult())));
+      Trace("hints-int") << "\t\t" << currResults.back() << "\n";
+    }
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));
   currResults.clear();
