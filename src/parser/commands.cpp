@@ -2141,10 +2141,6 @@ void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
   for (size_t i = 0, size = d_result.size(); i < size; ++i)
   {
     first = i <= 3;
-    if (d_result[i].getNumChildren() == 0)
-    {
-      continue;
-    }
     out << (i == 0   ? "Preprocess:"
             : i == 1 ? "\nTheory lemmas:"
             : i == 2
