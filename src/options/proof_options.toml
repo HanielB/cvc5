@@ -230,3 +230,11 @@ name   = "Proof"
   type       = "bool"
   default    = "false"
   help       = "Print reference to original file instead of redeclaring"
+
+[[option]]
+  name       = "hintsOnlyRwInsts"
+  category   = "expert"
+  long       = "hints-only-rw-insts"
+  type       = "bool"
+  default    = "false"
+  help       = "Only dump rewrites from quantifier instantiations as hints"

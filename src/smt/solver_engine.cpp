@@ -1798,7 +1798,10 @@ std::vector<Node> SolverEngine::getHints()
     Trace("hints") << "\t" << res << "\n";
     Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
 
-    getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+    if (!options().proof.hintsOnlyRwInsts)
+    {
+      getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+    }
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));
   currResults.clear();
@@ -1853,7 +1856,10 @@ std::vector<Node> SolverEngine::getHints()
     currResults.push_back(res);
 
     // there may be rewrites in the proofs
-    getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+    if (!options().proof.hintsOnlyRwInsts)
+    {
+      getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+    }
 
     // if integer reasoning, collect, if any, rules for that
     std::vector<std::shared_ptr<ProofNode>> subproofs;
