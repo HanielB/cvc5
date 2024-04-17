@@ -24,6 +24,9 @@ name   = "Proof"
 [[option.mode.ALETHE]]
   name       = "alethe"
   help       = "Output Alethe proof"
+[[option.mode.ALETHE_ALF]]
+  name       = "alethe-alf"
+  help       = "Output Alethe proof in the AletheLF formalism (proof-new only)"
 [[option.mode.ALF]]
   name       = "alf"
   help       = "Output AletheLF proof"
@@ -43,6 +46,14 @@ name   = "Proof"
   type       = "bool"
   default    = "true"
   help       = "Dagify terms in proofs using global definitions"
+
+[[option]]
+  name       = "proofElimSubtypes"
+  category   = "expert"
+  long       = "proof-elim-subtypes"
+  type       = "bool"
+  default    = "false"
+  help       = "Eliminate subtypes (mixed arithmetic) in proofs"
 
 [[option]]
   name       = "proofPedantic"
@@ -131,7 +142,7 @@ name   = "Proof"
   name       = "proofRewriteRconsRecLimit"
   category   = "regular"
   long       = "proof-rewrite-rcons-rec-limit=N"
-  type       = "int64_t"
+  type       = "uint64_t"
   default    = "15"
   help       = "the matching recursion limit for reconstructing proofs of theory rewrites"
 
@@ -139,7 +150,7 @@ name   = "Proof"
   name       = "proofRewriteRconsStepLimit"
   category   = "regular"
   long       = "proof-rewrite-rcons-step-limit=N"
-  type       = "int64_t"
+  type       = "uint64_t"
   default    = "200"
   help       = "the limit of steps considered for reconstructing proofs of theory rewrites"
 
@@ -166,6 +177,14 @@ name   = "Proof"
   type       = "bool"
   default    = "false"
   help       = "Prune unused input assumptions from final scope"
+
+[[option]]
+  name       = "proofDefineSkolems"
+  category   = "expert"
+  long       = "proof-define-skolems"
+  type       = "bool"
+  default    = "false"
+  help       = "In Alethe proofs, use define-funs in proof preamble for Skolemization terms"
 
 [[option]]
   name       = "proofAletheResPivots"
@@ -238,3 +257,11 @@ name   = "Proof"
   type       = "bool"
   default    = "false"
   help       = "Only dump rewrites from quantifier instantiations as hints"
+
+[[option]]
+  name       = "dratBinaryFormat"
+  category   = "expert"
+  long       = "drat-binary-format"
+  type       = "bool"
+  default    = "false"
+  help       = "Print the DRAT proof in binary format"

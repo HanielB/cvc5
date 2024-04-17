@@ -22,6 +22,7 @@
 
 #include "expr/node.h"
 #include "expr/node_converter.h"
+#include "expr/skolem_manager.h"
 #include "expr/type_node.h"
 
 namespace cvc5::internal {
@@ -35,11 +36,14 @@ class BaseAlfNodeConverter : public NodeConverter
 {
  public:
   /**
-   * Type as node, returns a node that prints in the form that ALF will
-   * interpret as the type tni. This method is required since types can be
-   * passed as arguments to terms and proof rules.
+   * Returns the operator of node n.
+   * @param n The term whose operator we wish to retrieve.
+   * @param reqCast Will the operator be printed in a context where it needs
+   * disambiguation (alf.as)? This makes a difference e.g. for symbols with
+   * overloading.
+   * @return the operator.
    */
-  virtual Node typeAsNode(TypeNode tni) = 0;
+  virtual Node getOperatorOfTerm(Node n, bool reqCast = false) { return n.getOperator(); }
 };
 
 /**
@@ -57,11 +61,14 @@ class AlfNodeConverter : public BaseAlfNodeConverter
   Node postConvert(Node n) override;
   /**
    * Return the properly named operator for n of the form (f t1 ... tn), where
-   * f could be interpreted or uninterpreted.  This method is used for cases
-   * where it is important to get the term corresponding to the operator for
-   * a term. An example is for the base REFL step of nested CONG.
+   * f could be interpreted or uninterpreted.
+   * @param n The term whose operator we wish to retrieve.
+   * @param reqCast Will the operator be printed in a context where it needs
+   * disambiguation (alf.as)? This makes a difference e.g. for symbols with
+   * overloading.
+   * @return the operator.
    */
-  Node getOperatorOfTerm(Node n);
+  Node getOperatorOfTerm(Node n, bool reqCast = false) override;
   /**
    * Get the null terminator for kind k and type tn. The type tn can be
    * omitted if applications of kind k do not have parametric type.
@@ -95,7 +102,7 @@ class AlfNodeConverter : public BaseAlfNodeConverter
    * interpret as the type tni. This method is required since types can be
    * passed as arguments to terms and proof rules.
    */
-  Node typeAsNode(TypeNode tni) override;
+  Node typeAsNode(TypeNode tni);
   /**
    * Number of children for closure that we should process. In particular,
    * we ignore patterns for FORALL, so this method returns 2, indicating we
@@ -122,6 +129,8 @@ class AlfNodeConverter : public BaseAlfNodeConverter
   Node maybeMkSkolemFun(Node k);
   /** Is k a kind that is printed as an indexed operator in ALF? */
   static bool isIndexedOperatorKind(Kind k);
+  /** Do we handle the given skolem id? */
+  static bool isHandledSkolemId(SkolemFunId id);
   /** Get indices for printing the operator of n in the ALF format */
   static std::vector<Node> getOperatorIndices(Kind k, Node n);
   /** The set of all internally generated symbols */

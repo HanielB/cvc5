@@ -18,9 +18,21 @@
 #include "expr/node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "proof/proof_rule_checker.h"
+#include "util/rational.h"
 
 namespace cvc5::internal {
 namespace proof {
+
+Node AletheNodeConverter::maybeConvert(Node n)
+{
+  d_error = "";
+  Node res = convert(n);
+  if (!d_error.empty())
+  {
+    return Node::null();
+  }
+  return res;
+}
 
 Node AletheNodeConverter::postConvert(Node n)
 {
@@ -28,6 +40,14 @@ Node AletheNodeConverter::postConvert(Node n)
   Kind k = n.getKind();
   switch (k)
   {
+    case Kind::BITVECTOR_EAGER_ATOM:
+    {
+      std::stringstream ss;
+      ss << "Proof uses eager bit-blasting, which does not have support for "
+            "Alethe proofs.";
+      d_error = ss.str();
+      return Node::null();
+    }
     case Kind::SKOLEM:
     {
       Trace("alethe-conv") << "AletheNodeConverter: handling skolem " << n
@@ -39,7 +59,9 @@ Node AletheNodeConverter::postConvert(Node n)
       {
         Trace("alethe-conv")
             << "...to convert original form " << wi << std::endl;
-        return convert(wi);
+        Node conv = convert(wi);
+        d_skolems[n] = conv;
+        return conv;
       }
       // might be a skolem function. For now we only handle the function for
       // skolemization of strong quantifiers.
@@ -63,16 +85,25 @@ Node AletheNodeConverter::postConvert(Node n)
         uint32_t index;
         if (ProofRuleChecker::getUInt32(cacheVal[1], index))
         {
+          // Since cvc5 *always* skolemize FORALLs, we generate the choice term
+          // assuming it is gonna be introduced via a sko_forall rule, in which
+          // case the body of the choice is negated, which means to have
+          // universal quantification of the remaining variables in the choice
+          // body, and the whole thing negated. Likewise, since during
+          // Skolemization cvc5 will have negated the body of the original
+          // quantifier, we need to revert that as well.
           Assert(index < quant[0].getNumChildren());
+          Assert(quant[1].getKind() == Kind::NOT);
           Node body =
               index == quant[0].getNumChildren() - 1
                   ? quant[1]
-                  : nm->mkNode(
-                      Kind::EXISTS,
-                      nm->mkNode(Kind::BOUND_VAR_LIST,
-                                 std::vector<Node>{quant[0].begin() + index + 1,
-                                                   quant[0].end()}),
-                      quant[1]);
+                  : nm->mkNode(Kind::FORALL,
+                               nm->mkNode(Kind::BOUND_VAR_LIST,
+                                          std::vector<Node>{
+                                              quant[0].begin() + index + 1,
+                                              quant[0].end()}),
+                               quant[1][0])
+                        .notNode();
           // we need to replace in the body all the free variables (i.e., from 0
           // to index) by their respective choice terms. To do this, we get
           // the skolems for each of these variables, retrieve their
@@ -82,9 +113,11 @@ Node AletheNodeConverter::postConvert(Node n)
             std::vector<Node> subs;
             for (size_t i = 0; i < index; ++i)
             {
-              Node sk = sm->getSkolemForBVar(quant[0][i]);
+              Node r = nm->mkConstInt(Rational(i));
+              std::vector<Node> cacheVals{quant, r};
+              Node sk = sm->mkSkolemFunction(SkolemFunId::QUANTIFIERS_SKOLEMIZE, cacheVals);
               Assert(!sk.isNull());
-              subs.push_back(convert(sk));
+              subs.push_back(d_defineSkolems? sk : convert(sk));
             }
             body = body.substitute(quant[0].begin(),
                                    quant[0].begin() + index,
@@ -96,10 +129,36 @@ Node AletheNodeConverter::postConvert(Node n)
                          nm->mkNode(Kind::BOUND_VAR_LIST, quant[0][index]),
                          body);
           Trace("alethe-conv") << ".. witness: " << witness << "\n";
-          return convert(witness);
+          witness = convert(witness);
+          if (d_defineSkolems)
+          {
+            d_skolemsAux[n] = witness;
+            if (index == quant[0].getNumChildren() - 1)
+            {
+              Trace("alethe-conv")
+                  << "....populate map from aux : " << d_skolemsAux << "\n";
+              for (size_t i = index + 1; i > 0; --i)
+              {
+                Node r = nm->mkConstInt(Rational(i - 1));
+                std::vector<Node> cacheVals{quant, r};
+                Node sk = sm->mkSkolemFunction(SkolemFunId::QUANTIFIERS_SKOLEMIZE, cacheVals);
+                Assert(!sk.isNull());
+                Assert(d_skolemsAux.find(sk) != d_skolemsAux.end()) << "Could not find sk " << sk;
+                d_skolems[sk] = d_skolemsAux[sk];
+              }
+              d_skolemsAux.clear();
+            }
+            return n;
+          }
+          d_skolems[n] = witness;
+          return witness;
         }
       }
-      Unreachable() << "Fresh Skolem " << sfi << " is not allowed\n";
+      std::stringstream ss;
+      ss << "Proof contains Skolem (kind " << sfi << ", term " << n
+         << ") is not supported by Alethe.";
+      d_error = ss.str();
+      return Node::null();
     }
     case Kind::FORALL:
     {

@@ -609,6 +609,7 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
   }
   else if (k == Kind::HO_APPLY && options::ioutils::getFlattenHOChains(out))
   {
+    out << "(";
     // collapse "@" chains, i.e.
     //
     // ((a b) c) --> (a b c)
@@ -929,6 +930,21 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
     case Kind::INST_PATTERN:
     case Kind::INST_NO_PATTERN:
     case Kind::INST_PATTERN_LIST: printed = false; break;
+    case Kind::STRING_CONCAT:
+    case Kind::STRING_LENGTH:
+    case Kind::STRING_SUBSTR:
+    case Kind::STRING_UPDATE:
+    case Kind::STRING_CHARAT:
+    case Kind::STRING_CONTAINS:
+    case Kind::STRING_INDEXOF:
+    case Kind::STRING_REPLACE:
+    case Kind::STRING_REPLACE_ALL:
+    case Kind::STRING_REV:
+    case Kind::STRING_PREFIX:
+    case Kind::STRING_SUFFIX:
+      // maybe print seq. instead of str.
+      out << smtKindStringOf(n);
+      break;
     default:
       // by default, print the kind using the smtKindString utility
       if (n.getMetaKind() != kind::metakind::PARAMETERIZED)
@@ -1215,13 +1231,10 @@ std::string Smt2Printer::smtKindString(Kind k)
     case Kind::BAG_SUBBAG: return "bag.subbag";
     case Kind::BAG_COUNT: return "bag.count";
     case Kind::BAG_MEMBER: return "bag.member";
-    case Kind::BAG_DUPLICATE_REMOVAL: return "bag.duplicate_removal";
+    case Kind::BAG_SETOF: return "bag.setof";
     case Kind::BAG_MAKE: return "bag";
     case Kind::BAG_CARD: return "bag.card";
     case Kind::BAG_CHOOSE: return "bag.choose";
-    case Kind::BAG_IS_SINGLETON: return "bag.is_singleton";
-    case Kind::BAG_FROM_SET: return "bag.from_set";
-    case Kind::BAG_TO_SET: return "bag.to_set";
     case Kind::BAG_MAP: return "bag.map";
     case Kind::BAG_FILTER: return "bag.filter";
     case Kind::BAG_FOLD: return "bag.fold";
@@ -1362,7 +1375,7 @@ std::string Smt2Printer::smtKindStringOf(const Node& n)
     // this method parallels cvc5::Term::getKind
     switch (k)
     {
-      case Kind::STRING_CONCAT: return "seq.concat";
+      case Kind::STRING_CONCAT: return "seq.++";
       case Kind::STRING_LENGTH: return "seq.len";
       case Kind::STRING_SUBSTR: return "seq.extract";
       case Kind::STRING_UPDATE: return "seq.update";

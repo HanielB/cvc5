@@ -42,6 +42,8 @@ const char* toString(ProofRule id)
     case ProofRule::TRUST_THEORY_REWRITE: return "TRUST_THEORY_REWRITE";
     case ProofRule::THEORY_REWRITE: return "THEORY_REWRITE";
     case ProofRule::SAT_REFUTATION: return "SAT_REFUTATION";
+    case ProofRule::DRAT_REFUTATION: return "DRAT_REFUTATION";
+    case ProofRule::SAT_EXTERNAL_PROVE: return "SAT_EXTERNAL_PROVE";
     //================================================= Boolean rules
     case ProofRule::RESOLUTION: return "RESOLUTION";
     case ProofRule::CHAIN_RESOLUTION: return "CHAIN_RESOLUTION";
@@ -100,6 +102,7 @@ const char* toString(ProofRule id)
     case ProofRule::SYMM: return "SYMM";
     case ProofRule::TRANS: return "TRANS";
     case ProofRule::CONG: return "CONG";
+    case ProofRule::NARY_CONG: return "NARY_CONG";
     case ProofRule::TRUE_INTRO: return "TRUE_INTRO";
     case ProofRule::TRUE_ELIM: return "TRUE_ELIM";
     case ProofRule::FALSE_INTRO: return "FALSE_INTRO";
@@ -134,6 +137,7 @@ const char* toString(ProofRule id)
     case ProofRule::CONCAT_EQ: return "CONCAT_EQ";
     case ProofRule::CONCAT_UNIFY: return "CONCAT_UNIFY";
     case ProofRule::CONCAT_CONFLICT: return "CONCAT_CONFLICT";
+    case ProofRule::CONCAT_CONFLICT_DEQ: return "CONCAT_CONFLICT_DEQ";
     case ProofRule::CONCAT_SPLIT: return "CONCAT_SPLIT";
     case ProofRule::CONCAT_CSPLIT: return "CONCAT_CSPLIT";
     case ProofRule::CONCAT_LPROP: return "CONCAT_LPROP";
@@ -197,7 +201,6 @@ const char* toString(ProofRule id)
     case ProofRule::LEAN_RULE: return "LEAN_RULE";
     case ProofRule::LFSC_RULE: return "LFSC_RULE";
     case ProofRule::ALETHE_RULE: return "ALETHE_RULE";
-    case ProofRule::ALF_RULE: return "ALF_RULE";
     //================================================= Unknown rule
     case ProofRule::UNKNOWN: return "UNKNOWN";
     default: return "?";

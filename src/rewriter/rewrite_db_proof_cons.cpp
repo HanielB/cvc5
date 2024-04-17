@@ -17,6 +17,7 @@
 
 #include "expr/node_algorithm.h"
 #include "options/proof_options.h"
+#include "proof/proof_node_algorithm.h"
 #include "rewriter/rewrite_db_term_process.h"
 #include "smt/env.h"
 #include "theory/arith/arith_poly_norm.h"
@@ -29,7 +30,7 @@ namespace cvc5::internal {
 namespace rewriter {
 
 // fixed point limit set to 1000
-size_t RewriteDbProofCons::d_fixedPointLimit = 1000;
+size_t RewriteDbProofCons::s_fixedPointLimit = 1000;
 
 RewriteDbProofCons::RewriteDbProofCons(Env& env, RewriteDb* db)
     : EnvObj(env),
@@ -72,6 +73,12 @@ bool RewriteDbProofCons::prove(CDProof* cdp,
   {
     Trace("rpc") << "...success (basic)" << std::endl;
     return true;
+  }
+  // if a is a quantified formula, fail immediately
+  if (a.isClosure())
+  {
+    Trace("rpc") << "...fail (out of scope)" << std::endl;
+    return false;
   }
   ++d_statTotalInputs;
   Trace("rpc-debug") << "- convert to internal" << std::endl;
@@ -487,6 +494,7 @@ bool RewriteDbProofCons::proveWithRule(DslProofRule id,
     Node transEqStart = target[0].eqNode(transEq[0]);
     // proves both
     pi->d_id = DslProofRule::TRANS;
+    pi->d_vars.clear();
     pi->d_vars.push_back(transEqStart);
     pi->d_vars.push_back(transEq);
     Trace("rpc-debug2") << "...original equality was " << transEqStart
@@ -720,8 +728,7 @@ bool RewriteDbProofCons::ensureProofInternal(CDProof* cdp, const Node& eqi)
           if (isInternalDslProofRule(pcur.d_id))
           {
             // premises are the steps, stored in d_vars
-            ps.insert(
-                premises[cur].end(), pcur.d_vars.begin(), pcur.d_vars.end());
+            ps.insert(ps.end(), pcur.d_vars.begin(), pcur.d_vars.end());
             if (pcur.d_id == DslProofRule::CONG
                 || pcur.d_id == DslProofRule::CONG_EVAL)
             {
@@ -780,7 +787,10 @@ bool RewriteDbProofCons::ensureProofInternal(CDProof* cdp, const Node& eqi)
       }
       else if (pcur.d_id == DslProofRule::CONG)
       {
-        cdp->addStep(cur, ProofRule::CONG, ps, pfArgs[cur]);
+        // get the appropriate CONG rule
+        std::vector<Node> cargs;
+        ProofRule cr = expr::getCongRule(cur[0], cargs);
+        cdp->addStep(cur, cr, ps, cargs);
       }
       else if (pcur.d_id == DslProofRule::CONG_EVAL)
       {
@@ -808,7 +818,10 @@ bool RewriteDbProofCons::ensureProofInternal(CDProof* cdp, const Node& eqi)
         Node eq1 = lhs.eqNode(lhsTgt);
         Node eq2 = lhsTgt.eqNode(rhs);
         std::vector<Node> transChildren = {eq1, eq2};
-        cdp->addStep(eq1, ProofRule::CONG, ps, pfArgs[cur]);
+        // get the appropriate CONG rule
+        std::vector<Node> cargs;
+        ProofRule cr = expr::getCongRule(eq1[0], cargs);
+        cdp->addStep(eq1, cr, ps, cargs);
         cdp->addStep(eq2, ProofRule::EVALUATE, {}, {lhsTgt});
         if (rhs != cur[1])
         {
@@ -888,7 +901,7 @@ Node RewriteDbProofCons::getRuleConclusion(const RewriteProofRule& rpr,
       if (!d_currFixedPointConc.isNull())
       {
         // currently avoid accidental loops: arbitrarily bound to 1000
-        continueFixedPoint = steps.size() <= d_fixedPointLimit;
+        continueFixedPoint = steps.size() <= s_fixedPointLimit;
         Assert(d_currFixedPointConc.getKind() == Kind::EQUAL);
         steps.push_back(d_currFixedPointConc[1]);
         stepsSubs.emplace_back(d_currFixedPointSubs.begin(),
@@ -914,11 +927,10 @@ Node RewriteDbProofCons::getRuleConclusion(const RewriteProofRule& rpr,
       target = target.substitute(TNode(placeholder), TNode(step));
       cacheProofSubPlaceholder(currContext, placeholder, source, target);
 
-      ProvenInfo dpi;
+      ProvenInfo& dpi = d_pcache[source.eqNode(target)];
       dpi.d_id = pi.d_id;
       dpi.d_vars = vars;
       dpi.d_subs = stepSubs;
-      d_pcache[source.eqNode(target)] = dpi;
 
       currConc = expr::narySubstitute(currConc, vars, stepSubs);
       currContext = currConc;
@@ -983,8 +995,8 @@ void RewriteDbProofCons::cacheProofSubPlaceholder(TNode context,
 
     for (TNode n : curr)
     {
-      auto [it, inserted] = parent.emplace(n, curr);
-      if (inserted)
+      // if we successfully inserted
+      if (parent.emplace(n, curr).second)
       {
         toVisit.emplace_back(n);
       }

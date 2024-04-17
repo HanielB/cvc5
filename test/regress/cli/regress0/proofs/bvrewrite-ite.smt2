@@ -1,5 +1,6 @@
-; COMMAND-LINE: --produce-proofs --proof-granularity=dsl-rewrite --dump-proofs --proof-format-mode=alethe --dag-thres=0
 ; EXPECT: unsat
+;; operator bvite not supported
+; DISABLE-TESTER: alethe
 (set-logic QF_BV)
 (set-info :status unsat)
 

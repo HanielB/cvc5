@@ -17,11 +17,11 @@
 
 #include "options/base_options.h"
 #include "options/main_options.h"
+#include "options/proof_options.h"
 #include "options/smt_options.h"
 #include "proof/alethe/alethe_node_converter.h"
 #include "proof/alethe/alethe_post_processor.h"
 #include "proof/alethe/alethe_printer.h"
-#include "proof/alf/alf_post_processor.h"
 #include "proof/alf/alf_printer.h"
 #include "proof/dot/dot_printer.h"
 #include "proof/lean/lean_post_processor.h"
@@ -44,16 +44,25 @@ namespace smt {
 
 PfManager::PfManager(Env& env)
     : EnvObj(env),
-      d_rewriteDb(new rewriter::RewriteDb),
-      d_pchecker(
-          new ProofChecker(statisticsRegistry(),
-                           options().proof.proofCheck,
-                           static_cast<uint32_t>(options().proof.proofPedantic),
-                           d_rewriteDb.get())),
-      d_pnm(new ProofNodeManager(
-          env.getOptions(), env.getRewriter(), d_pchecker.get())),
+      d_rewriteDb(nullptr),
+      d_pchecker(nullptr),
+      d_pnm(nullptr),
       d_pfpp(nullptr)
 {
+  // construct the rewrite db only if DSL rewrites are enabled
+  if (options().proof.proofGranularityMode
+      == options::ProofGranularityMode::DSL_REWRITE)
+  {
+    d_rewriteDb.reset(new rewriter::RewriteDb);
+  }
+  // enable the proof checker and the proof node manager
+  d_pchecker.reset(
+      new ProofChecker(statisticsRegistry(),
+                       options().proof.proofCheck,
+                       static_cast<uint32_t>(options().proof.proofPedantic),
+                       d_rewriteDb.get()));
+  d_pnm.reset(new ProofNodeManager(
+      env.getOptions(), env.getRewriter(), d_pchecker.get()));
   // Now, initialize the proof postprocessor with the environment.
   // By default the post-processor will update all assumptions, which
   // can lead to SCOPE subproofs of the form
@@ -236,13 +245,17 @@ std::shared_ptr<ProofNode> PfManager::connectProofToAssertions(
 
 void PfManager::printProof(std::ostream& out,
                            std::shared_ptr<ProofNode> fp,
-                           options::ProofFormatMode mode)
+                           options::ProofFormatMode mode,
+                           const std::map<Node, std::string>& assertionNames)
 {
   Trace("smt-proof") << "PfManager::printProof: start" << std::endl;
   // We don't want to invalidate the proof nodes in fp, since these may be
   // reused in further check-sat calls, or they may be used again if the
-  // user asks for the proof again (in non-incremental mode).
-  if (mode != options::ProofFormatMode::NONE)
+  // user asks for the proof again (in non-incremental mode). We don't need to
+  // clone if the printing below does not modify the proof, which is the case
+  // for proof formats ALF and NONE.
+  if (mode != options::ProofFormatMode::ALF
+      && mode != options::ProofFormatMode::NONE)
   {
     fp = fp->clone();
   }
@@ -265,19 +278,45 @@ void PfManager::printProof(std::ostream& out,
   {
     Assert(fp->getRule() == ProofRule::SCOPE);
     proof::AlfNodeConverter atp;
-    proof::AlfProofPostprocess alfpp(d_env, atp);
-    alfpp.process(fp);
     proof::AlfPrinter alfp(d_env, atp);
     alfp.print(out, fp);
   }
-  else if (mode == options::ProofFormatMode::ALETHE)
+  else if (mode == options::ProofFormatMode::ALETHE_ALF)
   {
+    // convert using Alethe post-processor
+    std::string reasonForConversionFailure;
     proof::AletheNodeConverter anc;
     proof::AletheProofPostprocess vpfpp(
         d_env, anc, options().proof.proofAletheResPivots);
-    vpfpp.process(fp);
-    proof::AletheProofPrinter vpp(d_env);
-    vpp.print(out, fp);
+    if (vpfpp.process(fp, reasonForConversionFailure))
+    {
+      // print using ALF printer
+      proof::AlfPrinter alfp(d_env, anc);
+      alfp.print(out, fp);
+    }
+    else
+    {
+      out << "(error \"" << reasonForConversionFailure << "\")";
+    }
+  }
+  else if (mode == options::ProofFormatMode::ALETHE)
+  {
+    options::ProofCheckMode oldMode = options().proof.proofCheck;
+    d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
+    std::string reasonForConversionFailure;
+    proof::AletheNodeConverter anc(options().proof.proofDefineSkolems);
+    proof::AletheProofPostprocess vpfpp(
+        d_env, anc, options().proof.proofAletheResPivots);
+    if (vpfpp.process(fp, reasonForConversionFailure))
+    {
+      proof::AletheProofPrinter vpp(d_env, anc);
+      vpp.print(out, fp, assertionNames);
+    }
+    else
+    {
+      out << "(error " << reasonForConversionFailure << ")";
+    }
+    d_pnm->getChecker()->setProofCheckMode(oldMode);
   }
   else if (mode == options::ProofFormatMode::LFSC)
   {
