@@ -2436,11 +2436,10 @@ bool AletheProofPostprocessCallback::updatePost(
                          Node conv = d_anc.convert(n);
                          // note that the new child may have been introduced
                          // above and is a cl node
-                         return conv.getKind() == Kind::SEXPR ? nm->mkNode(
-                                    Kind::OR,
-                                    std::vector<Node>{conv.begin() + 1,
-                                                      conv.end()})
-                                                              : conv;
+                         return conv.getKind() == Kind::SEXPR
+                                    ? nm->mkOr(std::vector<Node>{
+                                        conv.begin() + 1, conv.end()})
+                                    : conv;
                        });
         std::vector<Node> argsPol;
         std::vector<Node> convPivots;
