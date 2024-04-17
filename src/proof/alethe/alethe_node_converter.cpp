@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Haniel Barbosa
+ *   Haniel Barbosa, Aina Niemetz
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2024 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -22,6 +22,7 @@
 
 namespace cvc5::internal {
 namespace proof {
+
 
 Node AletheNodeConverter::maybeConvert(Node n)
 {
@@ -66,14 +67,14 @@ Node AletheNodeConverter::postConvert(Node n)
       // might be a skolem function. For now we only handle the function for
       // skolemization of strong quantifiers.
       SkolemManager* sm = nm->getSkolemManager();
-      SkolemFunId sfi = SkolemFunId::NONE;
+      SkolemId sfi = SkolemId::NONE;
       Node cacheVal;
       // create the witness term (witness ((x_i T_i)) (exists ((x_i+1 T_i+1)
       // ... (x_n T_n)) body), where the bound variables and the body come from
       // the quantifier term which must be the first element of cacheVal (which
       // should be a list), and i the second.
       if (sm->isSkolemFunction(n, sfi, cacheVal)
-          && sfi == SkolemFunId::QUANTIFIERS_SKOLEMIZE)
+          && sfi == SkolemId::QUANTIFIERS_SKOLEMIZE)
       {
         Trace("alethe-conv")
             << ".. to build witness with index/quant: " << cacheVal[1] << " / "
@@ -115,7 +116,7 @@ Node AletheNodeConverter::postConvert(Node n)
             {
               Node r = nm->mkConstInt(Rational(i));
               std::vector<Node> cacheVals{quant, r};
-              Node sk = sm->mkSkolemFunction(SkolemFunId::QUANTIFIERS_SKOLEMIZE, cacheVals);
+              Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE, cacheVals);
               Assert(!sk.isNull());
               subs.push_back(d_defineSkolems? sk : convert(sk));
             }
@@ -141,7 +142,7 @@ Node AletheNodeConverter::postConvert(Node n)
               {
                 Node r = nm->mkConstInt(Rational(i - 1));
                 std::vector<Node> cacheVals{quant, r};
-                Node sk = sm->mkSkolemFunction(SkolemFunId::QUANTIFIERS_SKOLEMIZE, cacheVals);
+                Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE, cacheVals);
                 Assert(!sk.isNull());
                 Assert(d_skolemsAux.find(sk) != d_skolemsAux.end()) << "Could not find sk " << sk;
                 d_skolems[sk] = d_skolemsAux[sk];
