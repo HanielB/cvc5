@@ -50,14 +50,28 @@ class AletheNodeConverter : public BaseAlfNodeConverter
 
   std::map<Node, Node> d_skolems;
 
+  Node getOperatorOfTerm(Node n, bool reqCast = false) override
+  {
+    return Node::null();
+  };
+  Node typeAsNode(TypeNode tni) override { return Node::null(); };
+
+  Node mkInternalSymbol(const std::string& name,
+                        TypeNode tn,
+                        bool useRawSym = true) override;
+
+  Node mkInternalApp(const std::string& name,
+                     const std::vector<Node>& args,
+                     TypeNode ret,
+                     bool useRawSym = true) override
+  {
+    return Node::null();
+  };
+
  private:
   bool d_defineSkolems;
   std::map<Node, Node> d_skolemsAux;
 
-  /**
-   * Make or get an internal symbol with custom name and type.
-   */
-  Node mkInternalSymbol(const std::string& name, TypeNode tn);
   /**
    * As above but uses the s-expression type.
    */

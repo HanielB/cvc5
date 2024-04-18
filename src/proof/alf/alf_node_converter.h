@@ -127,7 +127,7 @@ class AlfNodeConverter : public BaseAlfNodeConverter
    * interpret as the type tni. This method is required since types can be
    * passed as arguments to terms and proof rules.
    */
-  Node typeAsNode(TypeNode tni);
+  Node typeAsNode(TypeNode tni) override;
   /**
    * Number of children for closure that we should process. In particular,
    * we ignore patterns for FORALL, so this method returns 2, indicating we

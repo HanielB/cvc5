@@ -189,12 +189,9 @@ Node AletheNodeConverter::postConvert(Node n)
   return n;
 }
 
-Node AletheNodeConverter::mkInternalSymbol(const std::string& name)
-{
-  return mkInternalSymbol(name, NodeManager::currentNM()->sExprType());
-}
-
-Node AletheNodeConverter::mkInternalSymbol(const std::string& name, TypeNode tn)
+Node AletheNodeConverter::mkInternalSymbol(const std::string& name,
+                                        TypeNode tn,
+                                        bool useRawSym)
 {
   std::pair<TypeNode, std::string> key(tn, name);
   std::map<std::pair<TypeNode, std::string>, Node>::iterator it =
@@ -204,9 +201,14 @@ Node AletheNodeConverter::mkInternalSymbol(const std::string& name, TypeNode tn)
     return it->second;
   }
   NodeManager* nm = NodeManager::currentNM();
-  Node sym = nm->mkBoundVar(name, tn);
+  Node sym = useRawSym ? nm->mkRawSymbol(name, tn) : nm->mkBoundVar(name, tn);
   d_symbolsMap[key] = sym;
   return sym;
+}
+
+Node AletheNodeConverter::mkInternalSymbol(const std::string& name)
+{
+  return mkInternalSymbol(name, NodeManager::currentNM()->sExprType());
 }
 
 }  // namespace proof
