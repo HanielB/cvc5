@@ -20,6 +20,8 @@
 #include "options/quantifiers_options.h"
 #include "options/theory_options.h"
 #include "options/uf_options.h"
+#include "printer/printer.h"
+#include "smt/print_benchmark.h"
 #include "theory/quantifiers/ematching/trigger_term_info.h"
 #include "theory/quantifiers/first_order_model.h"
 #include "theory/quantifiers/instantiate.h"
@@ -182,7 +184,7 @@ void QuantInfo::getPropagateVars(std::vector<TNode>& vars,
         {
           rd.push_back(d_q);
         }
-      } 
+      }
     }else if( MatchGen::isHandledBoolConnective( n ) ){
       Assert(n.getKind() != Kind::IMPLIES);
       QuantPhaseReq::getEntailPolarity( n, 0, true, pol, rec, newPol );
@@ -1173,7 +1175,7 @@ void QuantInfo::debugPrintMatch(const char* c) const
 }
 
 MatchGen::MatchGen(Env& env, QuantConflictFind* p, QuantInfo* qi, Node n, bool isVar)
-    : EnvObj(env), 
+    : EnvObj(env),
       d_tgt(),
       d_tgt_orig(),
       d_wasSet(),
@@ -2324,6 +2326,29 @@ void QuantConflictFind::check(Theory::Effort level, QEffort quant_e)
   if (quant_e != QEFFORT_CONFLICT)
   {
     return;
+  }
+  if (TraceIsOn("test"))
+  {
+    std::stringstream ss;
+    smt::PrintBenchmark pb(Printer::getPrinter(ss));
+    Trace("test") << "------------\n";
+    FirstOrderModel* fm = d_treg.getModel();
+    size_t nquant = fm->getNumAssertedQuantifiers();
+    std::vector<Node> quants;
+    // for each quantified formula
+    for (size_t i = 0; i < nquant; i++)
+    {
+      Node q = fm->getAssertedQuantifier(i, true);
+      if (d_qreg.hasOwnership(q, this)
+          && d_irr_quant.find(q) == d_irr_quant.end()
+          && fm->isQuantifierActive(q))
+      {
+        // check this quantified formula
+        quants.push_back(q);
+      }
+    }
+    pb.printBenchmark(ss, logicInfo().getLogicString(), {}, quants);
+    Trace("test") << ss.str() << "------------\n";
   }
   Trace("qcf-check") << "QCF : check : " << level << std::endl;
   if (d_qstate.isConflictingInst())
