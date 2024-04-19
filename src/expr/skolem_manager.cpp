@@ -177,7 +177,7 @@ Node SkolemManager::mkSkolemFunctionTyped(SkolemId id,
     d_skolemFunMap[k] = key;
     Trace("sk-manager-skolem") << "mkSkolemFunction(" << id << ", " << cacheVal
                                << ") returns " << k << std::endl;
-    Assert(id != SkolemFunId::QUANTIFIERS_SKOLEMIZE
+    Assert(id != SkolemId::QUANTIFIERS_SKOLEMIZE
            || (cacheVal.getNumChildren() == 2
                && cacheVal[0].getKind() == Kind::EXISTS));
     return k;
