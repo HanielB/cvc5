@@ -18,6 +18,7 @@
 #include "expr/node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "proof/proof_rule_checker.h"
+#include "util/bitvector.h"
 #include "util/rational.h"
 
 namespace cvc5::internal {
@@ -41,6 +42,31 @@ Node AletheNodeConverter::postConvert(Node n)
   Kind k = n.getKind();
   switch (k)
   {
+    case Kind::BITVECTOR_BITOF:
+    {
+      std::stringstream ss;
+      ss << "(_ bitOf " << n.getOperator().getConst<BitVectorBitOf>().d_bitIndex
+         << ")";
+      TypeNode fType = nm->mkFunctionType(n[0].getType(), n.getType());
+      Node op = mkInternalSymbol(ss.str(), fType, true);
+      Node converted = nm->mkNode(Kind::APPLY_UF, op, n[0]);
+      return converted;
+    }
+    case Kind::BITVECTOR_BB_TERM:
+    {
+      std::vector<Node> children;
+      std::vector<TypeNode> childrenTypes;
+      for (const Node& c : n)
+      {
+        childrenTypes.push_back(c.getType());
+        children.push_back(c);
+      }
+      TypeNode fType = nm->mkFunctionType(childrenTypes, n.getType());
+      Node op = mkInternalSymbol("bbT", fType, true);
+      children.insert(children.begin(), op);
+      Node converted = nm->mkNode(Kind::APPLY_UF, children);
+      return converted;
+    }
     case Kind::BITVECTOR_EAGER_ATOM:
     {
       std::stringstream ss;
