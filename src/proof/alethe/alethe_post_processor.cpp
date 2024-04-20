@@ -1411,10 +1411,10 @@ bool AletheProofPostprocessCallback::update(Node res,
       {
         // mk the skolem corresponding for this variable and retrieve its
         // conversion from the node converter
-        Node r = nm->mkConstInt(Rational(i));
+        Node v = quant[0][i];
         Node q = nm->mkNode(
             Kind::EXISTS, quant[0], isExists ? quant[1] : quant[1].notNode());
-        std::vector<Node> cacheVals{q, r};
+        std::vector<Node> cacheVals{q, v};
         Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE, cacheVals);
         Assert(!sk.isNull());
         Assert(d_anc.d_skolems.find(sk) != d_anc.d_skolems.end())

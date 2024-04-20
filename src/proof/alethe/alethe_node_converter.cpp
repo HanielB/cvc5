@@ -109,77 +109,84 @@ Node AletheNodeConverter::postConvert(Node n)
                && cacheVal.getNumChildren() == 2);
         Node quant = cacheVal[0];
         Assert(quant.getKind() == Kind::EXISTS);
-        uint32_t index;
-        if (ProofRuleChecker::getUInt32(cacheVal[1], index))
+        Node var = cacheVal[1];
+        uint32_t index = -1;
+        for (size_t i = 0, size = quant[0].getNumChildren(); i < size; ++i)
         {
-          // Since cvc5 *always* skolemize FORALLs, we generate the choice term
-          // assuming it is gonna be introduced via a sko_forall rule, in which
-          // case the body of the choice is negated, which means to have
-          // universal quantification of the remaining variables in the choice
-          // body, and the whole thing negated. Likewise, since during
-          // Skolemization cvc5 will have negated the body of the original
-          // quantifier, we need to revert that as well.
-          Assert(index < quant[0].getNumChildren());
-          Assert(quant[1].getKind() == Kind::NOT);
-          Node body =
-              index == quant[0].getNumChildren() - 1
-                  ? quant[1]
-                  : nm->mkNode(Kind::FORALL,
-                               nm->mkNode(Kind::BOUND_VAR_LIST,
-                                          std::vector<Node>{
-                                              quant[0].begin() + index + 1,
-                                              quant[0].end()}),
-                               quant[1][0])
-                        .notNode();
-          // we need to replace in the body all the free variables (i.e., from 0
-          // to index) by their respective choice terms. To do this, we get
-          // the skolems for each of these variables, retrieve their
-          // conversions, and replace the variables by the conversions in body
-          if (index > 0)
+          if (var == quant[0][i])
           {
-            std::vector<Node> subs;
-            for (size_t i = 0; i < index; ++i)
-            {
-              Node r = nm->mkConstInt(Rational(i));
-              std::vector<Node> cacheVals{quant, r};
-              Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE, cacheVals);
-              Assert(!sk.isNull());
-              subs.push_back(d_defineSkolems? sk : convert(sk));
-            }
-            body = body.substitute(quant[0].begin(),
-                                   quant[0].begin() + index,
-                                   subs.begin(),
-                                   subs.end());
+            index = i;
+            break;
           }
-          Node witness =
-              nm->mkNode(Kind::WITNESS,
-                         nm->mkNode(Kind::BOUND_VAR_LIST, quant[0][index]),
-                         body);
-          Trace("alethe-conv") << ".. witness: " << witness << "\n";
-          witness = convert(witness);
-          if (d_defineSkolems)
-          {
-            d_skolemsAux[n] = witness;
-            if (index == quant[0].getNumChildren() - 1)
-            {
-              Trace("alethe-conv")
-                  << "....populate map from aux : " << d_skolemsAux << "\n";
-              for (size_t i = index + 1; i > 0; --i)
-              {
-                Node r = nm->mkConstInt(Rational(i - 1));
-                std::vector<Node> cacheVals{quant, r};
-                Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE, cacheVals);
-                Assert(!sk.isNull());
-                Assert(d_skolemsAux.find(sk) != d_skolemsAux.end()) << "Could not find sk " << sk;
-                d_skolems[sk] = d_skolemsAux[sk];
-              }
-              d_skolemsAux.clear();
-            }
-            return n;
-          }
-          d_skolems[n] = witness;
-          return witness;
         }
+        // Since cvc5 *always* skolemize FORALLs, we generate the choice term
+        // assuming it is gonna be introduced via a sko_forall rule, in which
+        // case the body of the choice is negated, which means to have
+        // universal quantification of the remaining variables in the choice
+        // body, and the whole thing negated. Likewise, since during
+        // Skolemization cvc5 will have negated the body of the original
+        // quantifier, we need to revert that as well.
+        Assert(index < quant[0].getNumChildren());
+        Assert(quant[1].getKind() == Kind::NOT);
+        Node body =
+            index == quant[0].getNumChildren() - 1
+                ? quant[1]
+                : nm->mkNode(Kind::FORALL,
+                             nm->mkNode(
+                                 Kind::BOUND_VAR_LIST,
+                                 std::vector<Node>{quant[0].begin() + index + 1,
+                                                   quant[0].end()}),
+                             quant[1][0])
+                      .notNode();
+        // we need to replace in the body all the free variables (i.e., from 0
+        // to index) by their respective choice terms. To do this, we get
+        // the skolems for each of these variables, retrieve their
+        // conversions, and replace the variables by the conversions in body
+        if (index > 0)
+        {
+          std::vector<Node> subs;
+          for (size_t i = 0; i < index; ++i)
+          {
+            Node v = quant[0][i];
+            std::vector<Node> cacheVals{quant, v};
+            Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE,
+                                           cacheVals);
+            Assert(!sk.isNull());
+            subs.push_back(d_defineSkolems ? sk : convert(sk));
+          }
+          body = body.substitute(quant[0].begin(),
+                                 quant[0].begin() + index,
+                                 subs.begin(),
+                                 subs.end());
+        }
+        Node witness = nm->mkNode(
+            Kind::WITNESS, nm->mkNode(Kind::BOUND_VAR_LIST, var), body);
+        Trace("alethe-conv") << ".. witness: " << witness << "\n";
+        witness = convert(witness);
+        if (d_defineSkolems)
+        {
+          d_skolemsAux[n] = witness;
+          if (index == quant[0].getNumChildren() - 1)
+          {
+            Trace("alethe-conv")
+                << "....populate map from aux : " << d_skolemsAux << "\n";
+            for (size_t i = index + 1; i > 0; --i)
+            {
+              Node v = quant[0][i];
+              std::vector<Node> cacheVals{quant, v};
+              Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE,
+                                             cacheVals);
+              Assert(!sk.isNull());
+              Assert(d_skolemsAux.find(sk) != d_skolemsAux.end())
+                  << "Could not find sk " << sk;
+              d_skolems[sk] = d_skolemsAux[sk];
+            }
+            d_skolemsAux.clear();
+          }
+          return n;
+        }
+        d_skolems[n] = witness;
+        return witness;
       }
       std::stringstream ss;
       ss << "Proof contains Skolem (kind " << sfi << ", term " << n
