@@ -172,7 +172,7 @@ Node AletheNodeConverter::postConvert(Node n)
                 << "....populate map from aux : " << d_skolemsAux << "\n";
             for (size_t i = index + 1; i > 0; --i)
             {
-              Node v = quant[0][i];
+              Node v = quant[0][i - 1];
               std::vector<Node> cacheVals{quant, v};
               Node sk = sm->mkSkolemFunction(SkolemId::QUANTIFIERS_SKOLEMIZE,
                                              cacheVals);
