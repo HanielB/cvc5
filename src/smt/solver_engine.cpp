@@ -1901,6 +1901,11 @@ std::vector<Node> SolverEngine::getHints()
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));
   // add rewrites now
+  if (rewriteInsts.empty())
+  {
+    result.push_back(nm->mkNode(Kind::SEXPR));
+    return result;
+  }
   for (const auto& p: rewriteInsts)
   {
     Trace("hints-rewrites") << "...adding to results: " << p.first << ": " << p.second << "\n";

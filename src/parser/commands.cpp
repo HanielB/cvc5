@@ -2169,7 +2169,7 @@ void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
   //   - preprocessing lemmas
   //   - lemmas
   //   - instantiation
-  //   - (rewrite rule + instances)*
+  //   - (rewrite rule + instances)+
   bool first = true;
   for (size_t i = 0, size = d_result.size(); i < size; ++i)
   {
