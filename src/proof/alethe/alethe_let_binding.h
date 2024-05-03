@@ -34,7 +34,7 @@ namespace proof {
 class AletheLetBinding : public LetBinding
 {
  public:
-  AletheLetBinding(uint32_t thresh);
+  AletheLetBinding(uint32_t thresh, bool nameTermsWithBoundVars);
 
   /**
    * Convert n based on the state of the let binding.
@@ -52,6 +52,8 @@ class AletheLetBinding : public LetBinding
   /** The set of terms that have already been "decleared", i.e., already had
    * their first occurrence replaced. */
   std::unordered_set<Node> d_declared;
+
+  bool d_nameTermsWithBoundVars;
 };
 
 }  // namespace proof

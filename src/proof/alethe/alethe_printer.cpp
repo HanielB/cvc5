@@ -78,8 +78,8 @@ bool LetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
 
 AletheProofPrinter::AletheProofPrinter(Env& env, AletheNodeConverter& anc)
     : EnvObj(env),
-      d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
-                                          : 0),
+      d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1 : 0,
+              options().proof.proofAletheNoNameBvar),
       d_anc(anc),
       d_cb(new LetUpdaterPfCallback(d_lbind))
 {

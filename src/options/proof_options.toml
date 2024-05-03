@@ -203,6 +203,14 @@ name   = "Proof"
   help       = "Add pivots to Alethe resolution steps"
 
 [[option]]
+  name       = "proofAletheNoNameBvar"
+  category   = "expert"
+  long       = "proof-alethe-no-name-bvar"
+  type       = "bool"
+  default    = "false"
+  help       = "Do not name terms with bound variables, even if they'd be in scope (under an anchor, for example)"
+
+[[option]]
   name       = "printDotAsDAG"
   category   = "expert"
   long       = "proof-dot-dag"

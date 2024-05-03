@@ -13,7 +13,9 @@
  * The implementation of the module for Alethe let binding.
  */
 
+#include "expr/node_algorithm.h"
 #include "proof/alethe/alethe_let_binding.h"
+
 
 #include <sstream>
 
@@ -21,7 +23,9 @@ namespace cvc5::internal {
 
 namespace proof {
 
-AletheLetBinding::AletheLetBinding(uint32_t thresh) : LetBinding("let", thresh)
+AletheLetBinding::AletheLetBinding(uint32_t thresh, bool nameTermsWithBoundVars)
+    : LetBinding("let", thresh),
+      d_nameTermsWithBoundVars(nameTermsWithBoundVars)
 {
 }
 
@@ -96,7 +100,7 @@ Node AletheLetBinding::convert(Node n, const std::string& prefix)
         // Mark that future occurrences are just the variable
         d_declared.insert(cur);
       }
-      if (cur.isClosure())
+      if (cur.isClosure() || (d_nameTermsWithBoundVars && expr::hasBoundVar(cur)))
       {
         // We do not convert beneath quantifiers, so we need to finish the
         // traversal here. However if id > 0, then we need to declare cur's
