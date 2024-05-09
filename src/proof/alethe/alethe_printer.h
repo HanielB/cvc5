@@ -37,7 +37,7 @@ namespace proof {
 class LetUpdaterPfCallback : public ProofNodeUpdaterCallback
 {
  public:
-  LetUpdaterPfCallback(AletheLetBinding& lbind);
+  LetUpdaterPfCallback(AletheLetBinding& lbind, AletheLetBinding& lbind2);
   ~LetUpdaterPfCallback();
   void initializeUpdate();
   /** Analyze the given proof node and populate d_lbind with its terms.
@@ -50,6 +50,7 @@ class LetUpdaterPfCallback : public ProofNodeUpdaterCallback
  protected:
   /** The let binder populated during the update. */
   AletheLetBinding& d_lbind;
+  AletheLetBinding& d_lbind2;
 };
 
 /**
@@ -120,6 +121,7 @@ class AletheProofPrinter : protected EnvObj
 
   /** The let binder for printing with sharing. */
   AletheLetBinding d_lbind;
+  AletheLetBinding d_lbind2;
 
   /** The Alethe node converter */
   AletheNodeConverter& d_anc;

@@ -28,8 +28,8 @@ namespace cvc5::internal {
 
 namespace proof {
 
-LetUpdaterPfCallback::LetUpdaterPfCallback(AletheLetBinding& lbind)
-    : d_lbind(lbind)
+LetUpdaterPfCallback::LetUpdaterPfCallback(AletheLetBinding& lbind, AletheLetBinding& lbind2)
+  : d_lbind(lbind), d_lbind2(lbind2)
 {
 }
 
@@ -54,6 +54,14 @@ bool LetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
     }
     return false;
   }
+  AletheRule arule = getAletheRule(args[0]);
+  // if (arule == AletheRule::SAT_EXTERNAL_PROVE_LEMMAS)
+  // {
+  //   for (size_t i = 3, size = args.size(); i < size; ++i)
+  //   {
+  //     d_lbind2.process(args[i]);
+  //   }
+  // }
   // Letification done on the converted terms (thus from the converted
   // conclusion) and potentially on arguments, which means to ignore the first
   // two arguments (which are the Alethe rule and the original conclusion).
@@ -80,8 +88,10 @@ AletheProofPrinter::AletheProofPrinter(Env& env, AletheNodeConverter& anc)
     : EnvObj(env),
       d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
                                           : 0),
+      d_lbind2(options().printer.dagThresh ? options().printer.dagThresh + 1
+                                           : 0),
       d_anc(anc),
-      d_cb(new LetUpdaterPfCallback(d_lbind))
+      d_cb(new LetUpdaterPfCallback(d_lbind, d_lbind2))
 {
 }
 
@@ -169,6 +179,8 @@ void AletheProofPrinter::print(
             << "Term " << n << " has id " << d_lbind.getId(n) << "\n";
       }
     }
+    std::vector<Node> letList2;
+    d_lbind2.letify(letList2);
   }
   Trace("alethe-printer") << "- Print assumptions.\n";
   std::unordered_map<Node, std::string> assumptionsMap;
@@ -332,9 +344,43 @@ void AletheProofPrinter::printInternal(
   if (args.size() > 3)
   {
     out << " :args (";
+    bool isSatExternalLemma = arule == AletheRule::SAT_EXTERNAL_PROVE_LEMMAS;
     for (size_t i = 3, size = args.size(); i < size; i++)
     {
-      printTerm(out, args[i]);
+      if (!isSatExternalLemma || i != 5)
+      {
+        printTerm(out, args[i]);
+      }
+      // the lemmas
+      else if (i == 5)
+      {
+        Node l = args[i];
+        if (l.getKind() == Kind::AND)
+        {
+          out << "(and ";
+          for (size_t j = 0, size1 = l.getNumChildren(); j < size1; ++j)
+          {
+            AletheLetBinding lbind(options().printer.dagThresh
+                                       ? options().printer.dagThresh + 1
+                                       : 0);
+            std::vector<Node> blah;
+            lbind.letify(l[j], blah);
+            std::stringstream ss;
+            options::ioutils::applyOutputLanguage(ss,
+                                                  Language::LANG_SMTLIB_V2_6);
+            // We print lambda applications in non-curried manner
+            options::ioutils::applyFlattenHOChains(ss, true);
+            options::ioutils::applyDagThresh(ss, 0);
+            std::stringstream ss1;
+            ss1 << "@p";
+            ss1 << j;
+            ss1 << "_";
+            ss << lbind.convert(l[j], ss1.str());
+            out << ss.str() << (j < size1 - 1 ? " " : "");
+          }
+          out << ")";
+        }
+      }
       out << (i < args.size() - 1 ? " " : "");
     }
     out << ")";
