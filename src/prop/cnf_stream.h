@@ -200,6 +200,10 @@ class CnfStream : protected EnvObj
   void dumpDimacs(std::ostream& out,
                   const std::vector<Node>& clauses,
                   const std::vector<Node>& auxUnits);
+  void dumpDimacs(std::ostream& out,
+                  const std::vector<Node>& clauses,
+                  const std::vector<Node>& lemmas,
+                  const std::vector<Node>& auxUnits);
 
  protected:
   /** Helper function */

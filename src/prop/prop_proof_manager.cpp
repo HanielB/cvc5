@@ -471,6 +471,8 @@ void PropPfManager::getProofInternal(CDProof* cdp)
     // if false exists, no proof is necessary
     return;
   }
+  options::PropProofMode pmode = options().proof.propProofMode;
+
   std::unordered_set<Node> cset(minAssumptions.begin(), minAssumptions.end());
   Trace("cnf-input") << "#assumptions (min)=" << cset.size() << std::endl;
   std::vector<Node> inputs = getInputClauses();
@@ -478,20 +480,26 @@ void PropPfManager::getProofInternal(CDProof* cdp)
   std::vector<Node> lemmas = getLemmaClauses();
   Trace("cnf-input") << "#lemmas=" << lemmas.size() << std::endl;
   cset.insert(inputs.begin(), inputs.end());
-  cset.insert(lemmas.begin(), lemmas.end());
-
+  if (pmode != options::PropProofMode::SAT_EXTERNAL_PROVE_LEMMAS)
+  {
+    cset.insert(lemmas.begin(), lemmas.end());
+  }
   // Otherwise, we will dump a DIMACS. The proof further depends on the
   // mode, which we handle below.
   std::stringstream dinputFile;
-  dinputFile << options().driver.filename << ".drat_input.cnf";
+  dinputFile << options().driver.filename
+             << (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE_LEMMAS
+                     ? ".dratt_input.cnf"
+                     : ".drat_input.cnf");
   // the stream which stores the DIMACS of the computed clauses
   std::fstream dout(dinputFile.str(), std::ios::out);
-  options::PropProofMode pmode = options().proof.propProofMode;
+
   // minimize only if SAT_EXTERNAL_PROVE and satProofMinDimacs is true.
   bool minimal = (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE
                   && options().proof.satProofMinDimacs);
   // go back and minimize assumptions if minimal is true
   bool computedClauses = false;
+  std::vector<Node> lemmasP;
   if (minimal)
   {
     // get the unsat core clauses
@@ -513,10 +521,18 @@ void PropPfManager::getProofInternal(CDProof* cdp)
   // if we did not minimize, just include all
   if (!computedClauses)
   {
+    Trace("cnf-input") << "Lemmas: " << lemmas << "\n";
     // if no minimization is necessary, just include all
     clauses.insert(clauses.end(), cset.begin(), cset.end());
     std::vector<Node> auxUnits = computeAuxiliaryUnits(clauses);
-    d_pfCnfStream.dumpDimacs(dout, clauses, auxUnits);
+    if (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE_LEMMAS)
+    {
+      d_pfCnfStream.dumpDimacs(dout, clauses, lemmas, auxUnits);
+    }
+    else
+    {
+      d_pfCnfStream.dumpDimacs(dout, clauses, auxUnits);
+    }
     // include the auxiliary units if any
     clauses.insert(clauses.end(), auxUnits.begin(), auxUnits.end());
   }
@@ -531,6 +547,15 @@ void PropPfManager::getProofInternal(CDProof* cdp)
     std::pair<ProofRule, std::vector<Node>> sk = d_satSolver->getProofSketch();
     r = sk.first;
     args.insert(args.end(), sk.second.begin(), sk.second.end());
+  }
+  else if (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE_LEMMAS)
+  {
+    if (!lemmas.empty())
+    {
+      args.push_back(lemmas.size() > 1 ? nm->mkNode(Kind::AND, lemmas)
+                                       : lemmas[0]);
+    }
+    r = ProofRule::SAT_EXTERNAL_PROVE_LEMMAS;
   }
   else if (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE)
   {

@@ -412,6 +412,7 @@ enum ENUM(ProofRule) : uint32_t
    * DIMACS file `D`. \endverbatim
    */
   EVALUE(SAT_EXTERNAL_PROVE),
+  EVALUE(SAT_EXTERNAL_PROVE_LEMMAS),
   /**
    * \verbatim embed:rst:leading-asterisk
    * **Boolean -- Resolution**

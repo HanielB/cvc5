@@ -966,5 +966,15 @@ void ProofCnfStream::dumpDimacs(std::ostream& out,
   d_cnfStream.dumpDimacs(out, clauses, auxUnits);
 }
 
+void ProofCnfStream::dumpDimacs(std::ostream& out,
+                                const std::vector<Node>& clauses,
+                                const std::vector<Node>& lemmas,
+                                const std::vector<Node>& auxUnits
+
+)
+{
+  d_cnfStream.dumpDimacs(out, clauses, lemmas, auxUnits);
+}
+
 }  // namespace prop
 }  // namespace cvc5::internal

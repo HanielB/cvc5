@@ -785,6 +785,70 @@ void CnfStream::dumpDimacs(std::ostream& out, const std::vector<Node>& clauses)
 
 void CnfStream::dumpDimacs(std::ostream& out,
                            const std::vector<Node>& clauses,
+                           const std::vector<Node>& lemmas,
+                           const std::vector<Node>& auxUnits)
+{
+  std::stringstream dclauses;
+  SatVariable maxVar = 0;
+  size_t lemmaId = 0;
+  for (size_t j = 0; j < 2; j++)
+  {
+    const std::vector<Node>& cls = j == 0 ? clauses : auxUnits;
+    for (const Node& i : cls)
+    {
+      std::vector<Node> lits;
+      if (j == 0 && i.getKind() == Kind::OR)
+      {
+        // print as clause if not an auxiliary unit
+        lits.insert(lits.end(), i.begin(), i.end());
+      }
+      else
+      {
+        lits.push_back(i);
+      }
+      Trace("dimacs-debug") << "Print " << i << std::endl;
+      for (const Node& l : lits)
+      {
+        bool negated = l.getKind() == Kind::NOT;
+        const Node& atom = negated ? l[0] : l;
+        SatLiteral lit = getLiteral(atom);
+        SatVariable v = lit.getSatVariable();
+        maxVar = v > maxVar ? v : maxVar;
+        dclauses << (negated ? "-" : "") << v << " ";
+      }
+      dclauses << "0" << std::endl;
+    }
+  }
+  for (const Node& n : lemmas)
+  {
+    std::vector<Node> lits;
+    if (n.getKind() == Kind::OR)
+    {
+      lits.insert(lits.end(), n.begin(), n.end());
+    }
+    else
+    {
+      lits.push_back(n);
+    }
+    Trace("dimacs-debug") << "Print " << n << std::endl;
+    dclauses << "@l" << lemmaId++ << " ";
+    for (const Node& l : lits)
+    {
+      SatLiteral lit = getLiteral(l);
+      SatVariable v = lit.getSatVariable();
+      maxVar = v > maxVar ? v : maxVar;
+      dclauses << (lit.isNegated() ? "-" : "") << v << " ";
+    }
+    dclauses << "0" << std::endl;
+  }
+
+  out << "p cnf " << maxVar << " "
+      << (clauses.size() + auxUnits.size() + lemmas.size()) << std::endl;
+  out << dclauses.str();
+}
+
+void CnfStream::dumpDimacs(std::ostream& out,
+                           const std::vector<Node>& clauses,
                            const std::vector<Node>& auxUnits)
 {
   std::stringstream dclauses;

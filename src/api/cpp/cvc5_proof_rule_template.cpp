@@ -45,6 +45,7 @@ const char* toString(ProofRule rule)
     case ProofRule::SAT_REFUTATION: return "SAT_REFUTATION";
     case ProofRule::DRAT_REFUTATION: return "DRAT_REFUTATION";
     case ProofRule::SAT_EXTERNAL_PROVE: return "SAT_EXTERNAL_PROVE";
+    case ProofRule::SAT_EXTERNAL_PROVE_LEMMAS: return "SAT_EXTERNAL_PROVE_LEMMAS";
     //================================================= Boolean rules
     case ProofRule::RESOLUTION: return "RESOLUTION";
     case ProofRule::CHAIN_RESOLUTION: return "CHAIN_RESOLUTION";
