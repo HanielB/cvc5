@@ -449,6 +449,8 @@ enum class AletheRule : uint32_t
   BV_BITBLAST_STEP_CONCAT,
   BV_BITBLAST_STEP_CONST,
   BV_BITBLAST_STEP_SIGN_EXTEND,
+
+  SAT_EXTERNAL_PROVE_LEMMAS,
   // ======== hole
   // Used for unjustified steps
   HOLE,
