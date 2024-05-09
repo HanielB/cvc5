@@ -550,6 +550,9 @@ void PropPfManager::getProofInternal(CDProof* cdp)
   }
   else if (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE_LEMMAS)
   {
+    std::stringstream inputFile;
+    inputFile << options().driver.filename;
+    args.push_back(nm->mkConst(String(inputFile.str())));
     if (!lemmas.empty())
     {
       args.push_back(lemmas.size() > 1 ? nm->mkNode(Kind::AND, lemmas)
