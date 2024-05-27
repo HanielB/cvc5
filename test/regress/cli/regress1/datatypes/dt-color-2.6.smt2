@@ -12,7 +12,12 @@
 (declare-fun d () Color)
 
 (assert (or (distinct a b c d)
- (< (match a ((red 5) (green 3) (blue 2))) 0)
+          (< (match a (
+                        (red 5)
+                        (green 3)
+                        (blue 2)
+                        )
+               ) 0)
  (< (match b ((red 2) (x 1))) 0)
  ))
 
