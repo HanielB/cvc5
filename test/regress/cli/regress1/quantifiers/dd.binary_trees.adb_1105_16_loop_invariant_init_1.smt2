@@ -1,7 +1,5 @@
 ; COMMAND-LINE: -q
 ; EXPECT: unsat
-;; Datatypes are not supported in Alethe
-; DISABLE-TESTER: alethe
 (set-logic ALL)
 (declare-sort e 0)
 (declare-sort p 0)
