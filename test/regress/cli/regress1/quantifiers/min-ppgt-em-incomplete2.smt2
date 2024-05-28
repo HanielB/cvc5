@@ -1,4 +1,5 @@
-(set-logic ALL)
+;; Non-standard Datatypes syntax not supported in Alethe
+; DISABLE-TESTER: alethe
 (set-info :status unsat)
 (declare-sort U 0)
 (declare-datatypes ((D 0) (T@t 0)) (((err)) ((t (|v#t| U) (|l#t| Int)))))
