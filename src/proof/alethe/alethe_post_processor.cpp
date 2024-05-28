@@ -271,46 +271,31 @@ bool AletheProofPostprocessCallback::update(Node res,
 
       // Build vp1
       std::vector<Node> negNode{d_cl};
-      std::unordered_set<Node> processed;
-      std::vector<Node> newArgs;
       for (const Node& arg : args)
       {
-        Node conv = d_anc.maybeConvert(arg);
-        if (conv.isNull())
-        {
-          *d_reasonForConversionFailure = d_anc.getError();
-          return false;
-        }
-        // ignore duplicates
-        if (processed.count(conv))
-        {
-          continue;
-        }
         negNode.push_back(arg.notNode());  // (not F1) ... (not Fn)
-        newArgs.push_back(arg);
-        processed.insert(conv);
       }
       negNode.push_back(children[0]);  // (cl (not F1) ... (not Fn) F)
       Node vp1 = nm->mkNode(Kind::SEXPR, negNode);
       success &= addAletheStep(
-          AletheRule::ANCHOR_SUBPROOF, vp1, vp1, children, newArgs, *cdp);
+          AletheRule::ANCHOR_SUBPROOF, vp1, vp1, children, args, *cdp);
 
       Node andNode, vp3;
-      if (newArgs.size() == 1)
+      if (args.size() == 1)
       {
         vp3 = vp1;
-        andNode = newArgs[0];  // F1
+        andNode = args[0];  // F1
       }
       else
       {
         // Build vp2i
-        andNode = nm->mkNode(Kind::AND, newArgs);  // (and F1 ... Fn)
+        andNode = nm->mkNode(Kind::AND, args);  // (and F1 ... Fn)
         std::vector<Node> premisesVP2 = {vp1};
         std::vector<Node> notAnd = {d_cl, children[0]};  // cl F
         Node vp2_i;
-        for (size_t i = 0, size = newArgs.size(); i < size; i++)
+        for (size_t i = 0, size = args.size(); i < size; i++)
         {
-          vp2_i = nm->mkNode(Kind::SEXPR, d_cl, andNode.notNode(), newArgs[i]);
+          vp2_i = nm->mkNode(Kind::SEXPR, d_cl, andNode.notNode(), args[i]);
           success &=
               addAletheStep(AletheRule::AND_POS, vp2_i, vp2_i, {}, {}, *cdp);
           premisesVP2.push_back(vp2_i);
@@ -320,14 +305,14 @@ bool AletheProofPostprocessCallback::update(Node res,
         Node vp2a = nm->mkNode(Kind::SEXPR, notAnd);
         if (d_resPivots)
         {
-          std::vector<Node> resArgs;
-          for (const Node& arg : newArgs)
+          std::vector<Node> newArgs;
+          for (const Node& arg : args)
           {
-            resArgs.push_back(arg);
-            resArgs.push_back(d_false);
+            newArgs.push_back(arg);
+            newArgs.push_back(d_false);
           }
           success &= addAletheStep(
-              AletheRule::RESOLUTION, vp2a, vp2a, premisesVP2, resArgs, *cdp);
+              AletheRule::RESOLUTION, vp2a, vp2a, premisesVP2, newArgs, *cdp);
         }
         else
         {
