@@ -487,10 +487,15 @@ void PropPfManager::getProofInternal(CDProof* cdp)
   // Otherwise, we will dump a DIMACS. The proof further depends on the
   // mode, which we handle below.
   std::stringstream dinputFile;
-  dinputFile << options().driver.filename
-             << (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE_LEMMAS
-                     ? ".dratt_input.cnf"
-                     : ".drat_input.cnf");
+  if (pmode == options::PropProofMode::SAT_EXTERNAL_PROVE_LEMMAS)
+  {
+    dinputFile << options().driver.filename << ".dratt_input" << getpid()
+               << ".cnf";
+  }
+  else
+  {
+    dinputFile << options().driver.filename << ".drat_input.cnf";
+  }
   // the stream which stores the DIMACS of the computed clauses
   std::fstream dout(dinputFile.str(), std::ios::out);
 
