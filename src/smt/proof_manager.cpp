@@ -297,8 +297,7 @@ void PfManager::printProof(std::ostream& out,
     std::string reasonForConversionFailure;
     proof::AletheNodeConverter anc(nodeManager());
 
-    proof::AletheProofPostprocess vpfpp(
-        d_env, anc, options().proof.proofAletheResPivots);
+    proof::AletheProofPostprocess vpfpp(d_env, anc);
     if (vpfpp.process(fp, reasonForConversionFailure))
     {
       // print using ALF printer
@@ -316,8 +315,7 @@ void PfManager::printProof(std::ostream& out,
     d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
     std::string reasonForConversionFailure;
     proof::AletheNodeConverter anc(nodeManager(), options().proof.proofDefineSkolems);
-    proof::AletheProofPostprocess vpfpp(
-        d_env, anc, options().proof.proofAletheResPivots);
+    proof::AletheProofPostprocess vpfpp(d_env, anc);
     if (vpfpp.process(fp, reasonForConversionFailure))
     {
       proof::AletheProofPrinter vpp(d_env, anc);

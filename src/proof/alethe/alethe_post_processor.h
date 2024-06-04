@@ -32,6 +32,14 @@ class AletheProofPostprocessCallback : protected EnvObj,
                                        public ProofNodeUpdaterCallback
 {
  public:
+  /** The callback for post-processing proof nodes into the Alethe format.
+   *
+   * @param env The environment
+   * @param anc The Alethe node converter
+   * @param resPivots Whether pivots should be used in resolution
+   * @param reasonForConversionFailure The reason to be set for conversion
+   * failure, if any
+   */
   AletheProofPostprocessCallback(Env& env,
                                  AletheNodeConverter& anc,
                                  bool resPivots,
@@ -156,6 +164,7 @@ class AletheProofPostprocessCallback : protected EnvObj,
   Node d_true;
   Node d_false;
 
+  /** The reason for conversion failure, if any. */
   std::string* d_reasonForConversionFailure;
 };
 
@@ -166,17 +175,16 @@ class AletheProofPostprocessCallback : protected EnvObj,
 class AletheProofPostprocess : protected EnvObj
 {
  public:
-  AletheProofPostprocess(Env& env, AletheNodeConverter& anc, bool resPivots);
+  AletheProofPostprocess(Env& env, AletheNodeConverter& anc);
   ~AletheProofPostprocess();
-  /** post-process
+  /** Convert the proof node into the Alethe proof format
    *
-   * Converts pf to the Alethe proof calculus, if possible, in which case it
-   * returns true. Otherwise, returns false. The conversion may fail if the
-   * proof contains unsupported elements in the Alethe proof calculus. Examples
-   * of such elements are datatypes, uncategorized Skolems etc.
+   * If the conversion is possible, true is returned. Otherwise, false. The
+   * conversion may fail if the proof contains unsupported elements in the
+   * Alethe proof calculus, such as uncategorized Skolems.
    *
-   * The argument reasonForConversionFailure stores the reason for failure, if
-   * any.
+   * The argument reasonForConversionFailure will be set with the reason for
+   * failure, if any.
    */
   bool process(std::shared_ptr<ProofNode> pf,
                std::string& reasonForConversionFailure);
@@ -185,6 +193,7 @@ class AletheProofPostprocess : protected EnvObj
   /** The post process callback */
   AletheProofPostprocessCallback d_cb;
 
+  /** The reason for conversion failure, if any. */
   std::string d_reasonForConversionFailure;
 };
 

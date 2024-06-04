@@ -61,11 +61,10 @@ std::unordered_map<Kind, AletheRule> s_bvKindToAletheRule = {
 AletheProofPostprocessCallback::AletheProofPostprocessCallback(
     Env& env,
     AletheNodeConverter& anc,
-    bool resPivots,
     std::string* reasonForConversionFailure)
     : EnvObj(env),
       d_anc(anc),
-      d_resPivots(resPivots),
+      d_resPivots(),
       d_reasonForConversionFailure(reasonForConversionFailure)
 {
   NodeManager* nm = nodeManager();
@@ -2729,9 +2728,12 @@ bool AletheProofPostprocessCallback::addAletheStepFromOr(
 }
 
 AletheProofPostprocess::AletheProofPostprocess(Env& env,
-                                               AletheNodeConverter& anc,
-                                               bool resPivots)
-    : EnvObj(env), d_cb(env, anc, resPivots, &d_reasonForConversionFailure)
+                                               AletheNodeConverter& anc)
+    : EnvObj(env),
+      d_cb(env,
+           anc,
+           options().proof.proofAletheResPivots,
+           &d_reasonForConversionFailure)
 {
 }
 
@@ -2753,10 +2755,9 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
   if (d_reasonForConversionFailure.empty())
   {
     // In the Alethe proof format the final step has to be (cl). However, after
-    // the translation it might be (cl false). In that case additional steps are
-    // required.
-    // The function has the additional purpose of sanitizing the attributes of
-    // the outer SCOPEs
+    // the translation, the final step might still be (cl false). In that case
+    // additional steps are required.  The function has the additional purpose
+    // of sanitizing the attributes of the outer SCOPEs
     CDProof cpf(
         d_env, nullptr, "AletheProofPostProcess::finalStep::CDProof", true);
     std::vector<Node> ccn{internalProof->getResult()};
