@@ -147,8 +147,10 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::BV_BITBLAST_STEP_SIGN_EXTEND:
       return "bv_bitblast_step_sign_extend";
 
+    case AletheRule::SAT_EXTERNAL_PROVE:
+      return "sat_cnf";
     case AletheRule::SAT_EXTERNAL_PROVE_LEMMAS:
-      return "sat_external_prove_lemmas";
+      return "sat_cnf_lemmas";
     //================================================= Hole
     case AletheRule::HOLE: return "hole";
     //================================================= Undefined rule

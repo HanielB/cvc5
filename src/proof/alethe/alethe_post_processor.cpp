@@ -2107,13 +2107,22 @@ bool AletheProofPostprocessCallback::update(Node res,
         return success;
       }
 
+      case ProofRule::SAT_EXTERNAL_PROVE:
+      {
+        return addAletheStep(AletheRule::SAT_EXTERNAL_PROVE,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl),
+                             children,
+                             args,
+                             *cdp);
+      }
       case ProofRule::SAT_EXTERNAL_PROVE_LEMMAS:
       {
         return addAletheStep(AletheRule::SAT_EXTERNAL_PROVE_LEMMAS,
                              res,
                              nm->mkNode(Kind::SEXPR, d_cl),
                              children,
-                             args,
+                             std::vector<Node>{args[0], args[2]},
                              *cdp);
       }
     default:
