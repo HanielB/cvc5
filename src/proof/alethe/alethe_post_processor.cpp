@@ -134,16 +134,13 @@ bool AletheProofPostprocessCallback::update(Node res,
     //
     // Here, (cl (or b c)) and (cl b c) cannot correspond to the same proof node
     // (or b c). Thus, we build a new proof node using the kind SEXPR
-    // that is then printed as (cl (or b c)). We denote this wrapping of a proof
-    // node by using an extra pair of parenthesis, i.e. ((or b c)) is the proof
-    // node printed as (cl (or b c)).
+    // that is then printed as (cl (or b c)).
     //
     // Adding an OR node to a premises will take place in the finalize function
     // where in the case that a step is printed as (cl (or F1 ... Fn)) but used
     // as (cl F1 ... Fn) an OR step is added to transform it to this very thing.
     // This is necessary for rules that work on clauses, i.e. RESOLUTION,
     // CHAIN_RESOLUTION, REORDERING and FACTORING.
-    //
     //
     // Some proof rules have a close correspondence in Alethe. There are two
     // very frequent patterns that, to avoid repetition, are described here and
