@@ -54,8 +54,6 @@ std::unordered_map<Kind, AletheRule> s_bvKindToAletheRule = {
     {Kind::BITVECTOR_EXTRACT, AletheRule::BV_BITBLAST_STEP_EXTRACT},
     {Kind::BITVECTOR_SIGN_EXTEND, AletheRule::BV_BITBLAST_STEP_SIGN_EXTEND},
     {Kind::EQUAL, AletheRule::BV_BITBLAST_STEP_BVEQUAL},
-    // TODO add support
-    {Kind::BITVECTOR_UDIV, AletheRule::HOLE},
 };
 
 AletheProofPostprocessCallback::AletheProofPostprocessCallback(
@@ -193,36 +191,34 @@ bool AletheProofPostprocessCallback::update(Node res,
     {
       return false;
     }
-    // See proof_rule.h for documentation on the SCOPE rule. This comment uses
-    // variable names as introduced there. Since the SCOPE rule originally
-    // concludes
-    // (=> (and F1 ... Fn) F) or (not (and F1 ... Fn)) but the ANCHOR rule
-    // concludes (cl (not F1) ... (not Fn) F), to keep the original shape of the
-    // proof node it is necessary to rederive the original conclusion. The
-    // transformation is described below, depending on the form of SCOPE's
-    // conclusion.
+    // The SCOPE rule is translated into Alethe using the "subproof" rule. The
+    // conclusion is either (=> (and F1 ... Fn) F) or (not (and F1 ... Fn)), so
+    // it must be converted into (cl (not F1) ... (not Fn) F), and extra steps
+    // must be added to derive the original conclusion, which is the one to be
+    // used in the steps depending on this one.
     //
-    // Note that after the original conclusion is rederived the new proof node
-    // will actually have to be printed, respectively, (cl (=> (and F1 ... Fn)
-    // F)) or (cl (not (and F1 ... Fn))).
-    //
-    // Let (not (and F1 ... Fn))^i denote the repetition of (not (and F1 ...
-    // Fn)) for i times.
+    // The following transformation is applied. Let (not (and F1 ... Fn))^i
+    // denote the repetition of (not (and F1 ...  Fn)) for i times.
     //
     // T1:
     //
-    //   P
-    // ----- ANCHOR    ------- ... ------- AND_POS
-    //  VP1             VP2_1  ...  VP2_n
-    // ------------------------------------ RESOLUTION
+    // -------------------------------- anchor
+    // ---- assume         ---- assume
+    //  F1            ...   Fn
+    //        ...
+    // -----
+    //   F
+    // ----- subproof    ------- ... ------- and_pos
+    //  VP1               VP2_1  ...  VP2_n
+    // ------------------------------------ resolution
     //               VP2a
-    // ------------------------------------ REORDERING
+    // ------------------------------------ reordering
     //  VP2b
-    // ------ CONTRACTION           ------- IMPLIES_NEG1
+    // ------ contraction           ------- implies_neg1
     //   VP3                          VP4
-    // ------------------------------------  RESOLUTION    ------- IMPLIES_NEG2
+    // ------------------------------------ resolution    ------- implies_neg2
     //    VP5                                                VP6
-    // ----------------------------------------------------------- RESOLUTION
+    // ----------------------------------------------------------- resolution
     //                               VP7
     //
     // VP1: (cl (not F1) ... (not Fn) F)
@@ -235,18 +231,18 @@ bool AletheProofPostprocessCallback::update(Node res,
     // VP6: (cl (=> (and F1 ... Fn) F) (not F))
     // VP7: (cl (=> (and F1 ... Fn) F) (=> (and F1 ... Fn) F))
     //
-    // Note that if n = 1, then the ANCHOR step yields (cl (not F1) F), which is
-    // the same as VP3. Since VP1 = VP3, the steps for that transformation are
-    // not generated.
+    // Note that if n = 1, then the "subprof" step yields (cl (not F1) F), which
+    // is the same as VP3. Since VP1 = VP3, the steps for that transformation
+    // are not generated.
     //
     //
     // If F = false:
     //
-    //                                    --------- IMPLIES_SIMPLIFY
+    //                                    --------- implies_simplify
     //    T1                                 VP9
-    // --------- CONTRACTION              --------- EQUIV_1
+    // --------- contraction              --------- equiv_1
     //    VP8                                VP10
-    // -------------------------------------------- RESOLUTION
+    // -------------------------------------------- resolution
     //          (cl (not (and F1 ... Fn)))*
     //
     // VP8: (cl (=> (and F1 ... Fn) false))
@@ -255,7 +251,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     //
     // Otherwise,
     //                T1
-    //  ------------------------------ CONTRACTION
+    //  ------------------------------ contraction
     //   (cl (=> (and F1 ... Fn) F))**
     //
     //
@@ -394,7 +390,10 @@ bool AletheProofPostprocessCallback::update(Node res,
 
       return success;
     }
-
+    // The conversion is into a "rare_rewrite" step where the first argument is
+    // a string literal with the name of the rewrite, followed by the arguments,
+    // where lists are built using the Alethe operator "rare-list", which takes
+    // 0 or more arguments.
     case ProofRule::DSL_REWRITE:
     {
       // get the name
@@ -439,6 +438,8 @@ bool AletheProofPostprocessCallback::update(Node res,
                            new_args,
                            *cdp);
     }
+    // Both ARITH_POLY_NORM and EVALUATE, which are used by the Rare
+    // elaboration, are captured by the "rare_rewrite" rule.
     case ProofRule::ARITH_POLY_NORM:
     {
       return addAletheStep(
@@ -458,15 +459,8 @@ bool AletheProofPostprocessCallback::update(Node res,
                            {nm->mkRawSymbol("\"evaluate\"", nm->sExprType())},
                            *cdp);
     }
-    case ProofRule::TRUST_THEORY_REWRITE:
-    {
-      return addAletheStep(AletheRule::ALL_SIMPLIFY,
-                           res,
-                           nm->mkNode(Kind::SEXPR, d_cl, res),
-                           children,
-                           {},
-                           *cdp);
-    }
+    // If the trusted rule is a theory lemma from arithmetic, we try to phrase
+    // it with "lia_generic".
     case ProofRule::TRUST:
     {
       TrustId tid;
@@ -504,46 +498,44 @@ bool AletheProofPostprocessCallback::update(Node res,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
-                           {},
+                           args,
                            *cdp);
     }
     // ======== Resolution and N-ary Resolution
-    // See proof_rule.h for documentation on the RESOLUTION and CHAIN_RESOLUTION
-    // rule. This comment uses variable names as introduced there.
-    //
     // Because the RESOLUTION rule is merely a special case of CHAIN_RESOLUTION,
     // the same translation can be used for both.
     //
     // The main complication for the translation of the rule is that in the case
-    // that the conclusion C is (or G1 ... Gn), the result is ambigous. E.g.,
+    // that the conclusion is (or G1 ... Gn), the result is ambigous. E.g.,
     //
     // (cl F1 (or F2 F3))    (cl (not F1))
-    // -------------------------------------- RESOLUTION
+    // -------------------------------------- resolution
     // (cl (or F2 F3))
     //
     // (cl F1 F2 F3)         (cl (not F1))
-    // -------------------------------------- RESOLUTION
+    // -------------------------------------- resolution
     // (cl F2 F3)
     //
-    // both (cl (or F2 F3)) and (cl F2 F3) correspond to the same proof node (or
-    // F2 F3). Thus, it has to be checked if C is a singleton clause or not.
+    // both (cl (or F2 F3)) and (cl F2 F3) could be represented by the same node
+    // (or F2 F3). Thus, it has to be checked if the conclusion C is a singleton
+    // clause or not.
     //
     // If C = (or F1 ... Fn) is a non-singleton clause, then:
     //
     //   VP1 ... VPn
-    // ------------------ RESOLUTION
+    // ------------------ resolution
     //  (cl F1 ... Fn)*
     //
     // Else if, C = false:
     //
     //   VP1 ... VPn
-    // ------------------ RESOLUTION
+    // ------------------ resolution
     //       (cl)*
     //
     // Otherwise:
     //
     //   VP1 ... VPn
-    // ------------------ RESOLUTION
+    // ------------------ resolution
     //      (cl C)*
     //
     //  * the corresponding proof node is C
@@ -605,7 +597,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     // Fn) Otherwise, VC2 = (cl C2).
     //
     //    P
-    // ------- CONTRACTION
+    // ------- contraction
     //   VC2*
     //
     // * the corresponding proof node is C2
@@ -640,9 +632,9 @@ bool AletheProofPostprocessCallback::update(Node res,
     // See proof_rule.h for documentation on the SPLIT rule. This comment
     // uses variable names as introduced there.
     //
-    // --------- NOT_NOT      --------- NOT_NOT
+    // --------- not_not      --------- not_not
     //    VP1                    VP2
-    // -------------------------------- RESOLUTION
+    // -------------------------------- resolution
     //          (cl F (not F))*
     //
     // VP1: (cl (not (not (not F))) F)
@@ -675,7 +667,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     //
     //  ------ EQUIV_POS2
     //   VP1                P2    P1
-    //  --------------------------------- RESOLUTION
+    //  --------------------------------- resolution
     //              (cl F2)*
     //
     // VP1: (cl (not (= F1 F2)) (not F1) F2)
@@ -705,9 +697,9 @@ bool AletheProofPostprocessCallback::update(Node res,
     // uses variable names as introduced there.
     //
     //     (P2:(=> F1 F2))
-    // ------------------------ IMPLIES
+    // ------------------------ implies
     //  (VP1:(cl (not F1) F2))             (P1:F1)
-    // -------------------------------------------- RESOLUTION
+    // -------------------------------------------- resolution
     //                   (cl F2)*
     //
     // * the corresponding proof node is F2
@@ -730,9 +722,9 @@ bool AletheProofPostprocessCallback::update(Node res,
     // See proof_rule.h for documentation on the NOT_NOT_ELIM rule. This comment
     // uses variable names as introduced there.
     //
-    // ---------------------------------- NOT_NOT
+    // ---------------------------------- not_not
     //  (VP1:(cl (not (not (not F))) F))           (P:(not (not F)))
-    // ------------------------------------------------------------- RESOLUTION
+    // ------------------------------------------------------------- resolution
     //                            (cl F)*
     //
     // * the corresponding proof node is F
@@ -755,7 +747,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     // comment uses variable names as introduced there.
     //
     //  P1   P2
-    // --------- RESOLUTION
+    // --------- resolution
     //   (cl)*
     //
     // * the corresponding proof node is false
@@ -785,9 +777,9 @@ bool AletheProofPostprocessCallback::update(Node res,
     // comment uses variable names as introduced there.
     //
     //
-    // ----- AND_NEG
+    // ----- and_neg
     //  VP1            P1 ... Pn
-    // -------------------------- RESOLUTION
+    // -------------------------- resolution
     //   (cl (and F1 ... Fn))*
     //
     // VP1:(cl (and F1 ... Fn) (not F1) ... (not Fn))
@@ -1007,13 +999,13 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     // ======== CNF ITE Pos version 3
     //
-    // ----- ITE_POS1            ----- ITE_POS2
+    // ----- ite_pos1            ----- ite_pos2
     //  VP1                       VP2
-    // ------------------------------- RESOLUTION
+    // ------------------------------- resolution
     //             VP3
-    // ------------------------------- REORDERING
+    // ------------------------------- reordering
     //             VP4
-    // ------------------------------- CONTRACTION
+    // ------------------------------- contraction
     //  (cl (not (ite C F1 F2)) F1 F2)
     //
     // VP1: (cl (not (ite C F1 F2)) C F2)
@@ -1048,13 +1040,13 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     // ======== CNF ITE Neg version 3
     //
-    // ----- ITE_NEG1            ----- ITE_NEG2
+    // ----- ite_neg1            ----- ite_neg2
     //  VP1                       VP2
-    // ------------------------------- RESOLUTION
+    // ------------------------------- resolution
     //             VP3
-    // ------------------------------- REORDERING
+    // ------------------------------- reordering
     //             VP4
-    // ------------------------------- CONTRACTION
+    // ------------------------------- contraction
     //  (cl (ite C F1 F2) C (not F2))
     //
     // VP1: (cl (ite C F1 F2) C (not F2))
@@ -2579,7 +2571,7 @@ bool AletheProofPostprocessCallback::updatePost(
   return false;
 }
 
-bool AletheProofPostprocessCallback::finalStep(Node res,
+bool AletheProofPostprocessCallback::ensureFinalStep(Node res,
                                                ProofRule id,
                                                std::vector<Node>& children,
                                                const std::vector<Node>& args,
@@ -2724,7 +2716,7 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
     // additional steps are required.  The function has the additional purpose
     // of sanitizing the attributes of the outer SCOPEs
     CDProof cpf(
-        d_env, nullptr, "AletheProofPostProcess::finalStep::CDProof", true);
+        d_env, nullptr, "AletheProofPostProcess::ensureFinalStep::CDProof", true);
     std::vector<Node> ccn{internalProof->getResult()};
     cpf.addProof(internalProof);
     std::vector<Node> args{definitionsScope->getArguments().begin(),
@@ -2732,7 +2724,7 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
     args.insert(args.end(),
                 assumptionsScope->getArguments().begin(),
                 assumptionsScope->getArguments().end());
-    if (d_cb.finalStep(
+    if (d_cb.ensureFinalStep(
             definitionsScope->getResult(), ProofRule::SCOPE, ccn, args, &cpf))
     {
       std::shared_ptr<ProofNode> npn =

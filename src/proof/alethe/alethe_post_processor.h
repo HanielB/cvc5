@@ -83,15 +83,15 @@ class AletheProofPostprocessCallback : protected EnvObj,
                   const std::vector<Node>& args,
                   CDProof* cdp) override;
 
-  /** Fix the last step of the Alethe proof if need be
+  /** Ensure the final step of the proof concludes "(cl)".
    *
    * Also sanitizes the arguments of the outer scopes of the proof node.
    */
-  bool finalStep(Node res,
-                 ProofRule id,
-                 std::vector<Node>& children,
-                 const std::vector<Node>& args,
-                 CDProof* cdp);
+  bool ensureFinalStep(Node res,
+                       ProofRule id,
+                       std::vector<Node>& children,
+                       const std::vector<Node>& args,
+                       CDProof* cdp);
 
  private:
   /** The Alethe node converter */
@@ -110,7 +110,7 @@ class AletheProofPostprocessCallback : protected EnvObj,
    * `res`), as the third.
    *
    * @param rule The id of the Alethe rule
-   * @param res The original conclusino
+   * @param res The original conclusion
    * @param conclusion The conclusion to be printed for the step
    * @param children The children of the application
    * @param args The arguments of the application
