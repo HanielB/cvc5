@@ -105,7 +105,8 @@ void AletheProofPrinter::printStepId(
     out << it->second;
     return;
   }
-  AlwaysAssert(pfMap.find(pfn) != pfMap.end()) << "Cannot find pf of " << pfn->getResult() << "\n";
+  Assert(pfMap.find(pfn) != pfMap.end())
+      << "Cannot find pf of " << pfn->getResult() << "\n";
   out << pfMap.find(pfn)->second;
 }
 
@@ -115,7 +116,11 @@ void AletheProofPrinter::printTerm(std::ostream& out, TNode n)
   options::ioutils::applyOutputLanguage(ss, Language::LANG_SMTLIB_V2_6);
   // We print lambda applications in non-curried manner
   options::ioutils::applyFlattenHOChains(ss, true);
+  // Make sure we do not introduce "let" for sharing, since names will not have
+  // been introduced under binders.
   options::ioutils::applyDagThresh(ss, 0);
+  // Guarantee we print reals as expected
+  options::ioutils::applyPrintArithLitToken(ss, true);
   ss << d_lbind.convert(n, "@p_");
   out << ss.str();
 }
@@ -125,11 +130,11 @@ void AletheProofPrinter::print(
     std::shared_ptr<ProofNode> pfn,
     const std::map<Node, std::string>& assertionNames)
 {
-  Trace("alethe-printer") << "- Print proof in Alethe format. " << std::endl;
+  Trace("alethe-printer") << "- Print proof in Alethe format.\n";
   // ignore outer scope
   pfn = pfn->getChildren()[0];
   std::shared_ptr<ProofNode> innerPf = pfn->getChildren()[0];
-  AlwaysAssert(innerPf);
+  Assert(innerPf);
 
   // print quantifier Skolems, if they are being defined
   if (options().proof.proofDefineSkolems)
@@ -138,23 +143,17 @@ void AletheProofPrinter::print(
     for (const auto& [skolem, choice] : skolemDefs)
     {
       out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
-      std::stringstream ss;
-      options::ioutils::applyOutputLanguage(ss, Language::LANG_SMTLIB_V2_6);
-      // We print lambda applications in non-curried manner
-      options::ioutils::applyFlattenHOChains(ss, true);
-      options::ioutils::applyDagThresh(ss, 0);
-      ss << choice;
-      out << ss.str() << ")\n";
+      printTerm(out, choice);
+      out << ")\n";
     }
   }
-
   if (options().printer.dagThresh)
   {
     // Traverse the proof node to letify the (converted) conclusions of proof
     // steps. Note that we traverse the original proof node because assumptions
     // may apper just in them (if they are not used in the rest of the proof).
-    // If that's the case then repeated terms *only* in assumptions would not be
-    // letified otherwise.
+    // Otherwise repeated terms *only* in assumptions would not be letified
+    // otherwise.
     ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
     Trace("alethe-printer") << "- letify.\n";
     updater.process(pfn);
@@ -173,8 +172,8 @@ void AletheProofPrinter::print(
   Trace("alethe-printer") << "- Print assumptions.\n";
   std::unordered_map<Node, std::string> assumptionsMap;
   const std::vector<Node>& args = pfn->getArguments();
-  // Special handling for the first scope
-  // Print assumptions and add them to the list but do not print anchor.
+  // Special handling for the first scope. Print assumptions and add them to the
+  // list but do not print anchor.
   Assert(!args.empty());
   for (size_t i = 0, size = args.size(); i < size; i++)
   {
@@ -191,7 +190,7 @@ void AletheProofPrinter::print(
       assumptionsMap[args[i]] = quotedName;
     }
     else
-    {  // assumptions are always being declared
+    {
       out << "(assume a" << i << " ";
       assumptionsMap[args[i]] = "a" + std::to_string(i);
     }
@@ -212,6 +211,9 @@ void AletheProofPrinter::printInternal(
     std::unordered_map<Node, std::string>& assumptionsMap,
     std::unordered_map<std::shared_ptr<ProofNode>, std::string>& pfMap)
 {
+  // assumptions are not printed when reached here because in Alethe they are
+  // always printed beforehand, i.e., from the scope introducing them, or being
+  // the initial assumptions.
   if (pfn->getRule() == ProofRule::ASSUME)
   {
     return;
@@ -231,7 +233,7 @@ void AletheProofPrinter::printInternal(
   AletheRule arule = getAletheRule(args[0]);
   Trace("alethe-printer") << "... print step " << arule << " : " << args[2]
                           << "\n";
-  // We special case printing anchor subproofs
+  // We special case printing anchors
   if (arule >= AletheRule::ANCHOR_SUBPROOF
       && arule <= AletheRule::ANCHOR_SKO_EX)
   {
@@ -239,8 +241,10 @@ void AletheProofPrinter::printInternal(
     Assert(pfChildren.size() == 1);
     out << "(anchor :step " << prefix << "t" << id;
     std::string subproofPrefix = prefix + "t" + std::to_string(id) + ".";
+    // create maps to be used when printing the subproof, which will be discarded once we finish
     std::unordered_map<Node, std::string> subproofAssumptionsMap{assumptionsMap.begin(), assumptionsMap.end()};
     std::unordered_map<std::shared_ptr<ProofNode>, std::string> subproofPfMap{pfMap.begin(), pfMap.end()};
+    std::vector<std::string> dischargeIds;
     // since the subproof shape relies on having at least one step inside it, if
     // the step relative to children[0] is already pfMap, we remove it from
     // subproofPfMap
@@ -249,7 +253,7 @@ void AletheProofPrinter::printInternal(
     {
       subproofPfMap.erase(it);
     }
-    // if subproof, print assumptions, other print arguments
+    // if subproof, print assumptions, otherwise print arguments
     if (arule == AletheRule::ANCHOR_SUBPROOF)
     {
       out << ")\n";
@@ -263,6 +267,7 @@ void AletheProofPrinter::printInternal(
         printTerm(out, args[i]);
         out << ")\n";
         subproofAssumptionsMap[args[i]] = assumptionId;
+        dischargeIds.push_back(assumptionId);
       }
     }
     else
@@ -273,7 +278,8 @@ void AletheProofPrinter::printInternal(
       {
         if (args[i].getKind() == Kind::EQUAL)
         {
-          out << "(:= " << args[i][0] << " ";
+          Assert(args[i][0].getKind() == Kind::BOUND_VARIABLE);
+          out << "(:= (" << args[i][0] << " " << args[i][0].getType() << ") ";
           printTerm(out, args[i][1]);
           out << ")" << (i != args.size() - 1 ? " " : "");
           continue;
@@ -291,14 +297,12 @@ void AletheProofPrinter::printInternal(
     printTerm(out, args[2]);
     out << " :rule " << arule;
     // Discharge assumptions in the case of subproof
-    // The assumptions of this level have been stored in current_assumptions
     if (arule == AletheRule::ANCHOR_SUBPROOF)
     {
       out << " :discharge (";
       for (size_t i = 3, size = args.size(); i < size; ++i)
       {
-        out << subproofAssumptionsMap[args[i]]
-            << (i < args.size() - 1 ? " " : "");
+        out << dischargeIds[i - 3] << (i < args.size() - 1 ? " " : "");
       }
       out << ")";
     }
@@ -306,12 +310,13 @@ void AletheProofPrinter::printInternal(
     pfMap[pfn] = stepId;
     return;
   }
-  // Print the steps for children
+  // Print the steps for children to guarantee we will have ids for them in the
+  // premises of this step
   for (const std::shared_ptr<ProofNode>& pfChild : pfChildren)
   {
     printInternal(out, prefix, id, pfChild, assumptionsMap, pfMap);
   }
-  // Now we know every premise of this step has been printed, so print it
+  // Print this step
   std::string stepId = prefix + "t" + std::to_string(id++);
   out << "(step " << stepId << " ";
   // print the conclusion and the rule
@@ -344,5 +349,4 @@ void AletheProofPrinter::printInternal(
 }
 
 }  // namespace proof
-
 }  // namespace cvc5::internal
