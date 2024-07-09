@@ -471,7 +471,23 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     case ProofRule::TRUST:
     {
-
+      // check for cause where the trust step is introducing an equality between
+      // a term and another whose Alethe conversion is itself, in which case we
+      // justify thisg as a REFL step
+      Node resConv = d_anc.maybeConvert(res);
+      // Trace("alethe-proof") << "..conversion of res: " << resConv << ", kind
+      // is equal? " << (resConv.getKind() == Kind::EQUAL) << "; n[0]: " <<
+      // resConv[0].getId() << resConv[0] << ", n[1]: " << resConv[1].getId() <<
+      // resConv[1] << "\n";
+      if (!resConv.isNull() && resConv.getKind() == Kind::EQUAL && resConv[0] == resConv[1])
+      {
+        return addAletheStep(AletheRule::REFL,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl, res),
+                             children,
+                             {},
+                             *cdp);
+      }
       TrustId tid;
       if (getTrustId(args[0], tid) && tid==TrustId::THEORY_LEMMA)
       {
@@ -1466,6 +1482,19 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     // ======== Bitvector
     //
+    // ------------------------ BV_BITBLAST_STEP_BV<KIND>
+    //  (cl (= t bitblast(t)))
+    case ProofRule::BV_EAGER_ATOM:
+    {
+      Assert(res.getKind() == Kind::EQUAL && res[0][0] == res[1]);
+      Node newRes = res[0][0].eqNode(res[1]);
+      return addAletheStep(AletheRule::REFL,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, newRes),
+                           children,
+                           {},
+                           *cdp);
+    }
     // ------------------------ BV_BITBLAST_STEP_BV<KIND>
     //  (cl (= t bitblast(t)))
     case ProofRule::BV_BITBLAST_STEP:

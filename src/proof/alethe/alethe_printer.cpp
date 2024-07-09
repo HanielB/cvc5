@@ -314,7 +314,9 @@ void AletheProofPrinter::printInternal(
   // premises of this step
   for (const std::shared_ptr<ProofNode>& pfChild : pfChildren)
   {
+    Trace("alethe-printer") << push;
     printInternal(out, prefix, id, pfChild, assumptionsMap, pfMap);
+    Trace("alethe-printer") << pop;
   }
   // Print this step
   std::string stepId = prefix + "t" + std::to_string(id++);
