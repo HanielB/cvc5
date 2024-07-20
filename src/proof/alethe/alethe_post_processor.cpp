@@ -297,7 +297,7 @@ bool AletheProofPostprocessCallback::update(Node res,
         {
           vp2_i = nm->mkNode(Kind::SEXPR, d_cl, andNode.notNode(), args[i]);
           success &=
-              addAletheStep(AletheRule::AND_POS, vp2_i, vp2_i, {}, {}, *cdp);
+            addAletheStep(AletheRule::AND_POS, vp2_i, vp2_i, {}, std::vector<Node>{nm->mkConstInt(i)}, *cdp);
           premisesVP2.push_back(vp2_i);
           notAnd.push_back(andNode.notNode());  // cl F (not (and F1 ... Fn))^i
         }
@@ -796,7 +796,7 @@ bool AletheProofPostprocessCallback::update(Node res,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
-                           {},
+                           args,
                            *cdp);
     }
     // ======== And introduction
@@ -848,7 +848,7 @@ bool AletheProofPostprocessCallback::update(Node res,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
-                           {},
+                           args,
                            *cdp);
     }
     // ======== Implication elimination
@@ -943,7 +943,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     // The following rules are all translated according to the clause pattern.
     case ProofRule::CNF_AND_POS:
     {
-      return addAletheStepFromOr(AletheRule::AND_POS, res, children, {}, *cdp);
+      return addAletheStepFromOr(AletheRule::AND_POS, res, children, std::vector<Node>{args.back()}, *cdp);
     }
     case ProofRule::CNF_AND_NEG:
     {
@@ -955,7 +955,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     case ProofRule::CNF_OR_NEG:
     {
-      return addAletheStepFromOr(AletheRule::OR_NEG, res, children, {}, *cdp);
+      return addAletheStepFromOr(AletheRule::OR_NEG, res, children, std::vector<Node>{args.back()}, *cdp);
     }
     case ProofRule::CNF_IMPLIES_POS:
     {
@@ -1535,7 +1535,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     // See proof_rule.h for documentation on the INSTANTIATE rule. This
     // comment uses variable names as introduced there.
     //
-    // ----- FORALL_INST, (= x1 t1) ... (= xn tn)
+    // ----- FORALL_INST, t1 ... tn
     //  VP1
     // ----- OR
     //  VP2              P
@@ -1548,16 +1548,15 @@ bool AletheProofPostprocessCallback::update(Node res,
     // ^ the corresponding proof node is F*sigma
     case ProofRule::INSTANTIATE:
     {
-      for (size_t i = 0, size = children[0][0].getNumChildren(); i < size; i++)
-      {
-        new_args.push_back(
-            nm->mkNode(Kind::SEXPR, d_becomes, children[0][0][i], args[0][i]));
-      }
       Node vp1 = nm->mkNode(
           Kind::SEXPR, d_cl, nm->mkNode(Kind::OR, children[0].notNode(), res));
       Node vp2 = nm->mkNode(Kind::SEXPR, d_cl, children[0].notNode(), res);
-      return addAletheStep(
-                 AletheRule::FORALL_INST, vp1, vp1, {}, new_args, *cdp)
+      return addAletheStep(AletheRule::FORALL_INST,
+                           vp1,
+                           vp1,
+                           {},
+                           std::vector<Node>{args[0].begin(), args[0].end()},
+                           *cdp)
              && addAletheStep(AletheRule::OR, vp2, vp2, {vp1}, {}, *cdp)
              && addAletheStep(AletheRule::RESOLUTION,
                               res,
@@ -2285,15 +2284,16 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   std::vector<Node> resArgs;
   std::vector<Node> contractionPremiseChildren{d_cl};
   bool success = true;
-  for (const Node& n : premise)
+
+  for (size_t i = 0, size = premise.getNumChildren(); i < size; ++i)
   {
-    Node nNeg = n.notNode();
+    Node nNeg = premise[i].notNode();
     resPremises.push_back(nm->mkNode(Kind::SEXPR, d_cl, premise, nNeg));
     success &= addAletheStep(AletheRule::OR_NEG,
                              resPremises.back(),
                              resPremises.back(),
                              {},
-                             {},
+                             std::vector<Node>{nm->mkConstInt(i)},
                              *cdp);
     resArgs.push_back(nNeg[0]);
     resArgs.push_back(d_true);
