@@ -568,6 +568,8 @@ bool AletheProofPostprocessCallback::update(Node res,
     //  * the corresponding proof node is C
     case ProofRule::RESOLUTION:
     case ProofRule::CHAIN_RESOLUTION:
+    case ProofRule::MACRO_RESOLUTION:
+    case ProofRule::MACRO_RESOLUTION_TRUST:
     {
       std::vector<Node> cargs;
       if (id == ProofRule::CHAIN_RESOLUTION)
@@ -576,6 +578,15 @@ bool AletheProofPostprocessCallback::update(Node res,
         {
           cargs.push_back(args[0][i]);
           cargs.push_back(args[1][i]);
+        }
+      }
+      else if (id == ProofRule::MACRO_RESOLUTION
+               || id == ProofRule::MACRO_RESOLUTION_TRUST)
+      {
+        for (size_t i = 1, nargs = args.size(); i < nargs; i = i + 2)
+        {
+          cargs.push_back(args[i]);
+          cargs.push_back(args[i + 1]);
         }
       }
       else
@@ -2480,7 +2491,7 @@ bool AletheProofPostprocessCallback::updatePost(
       }
       if (hasSkolems)
       {
-        // compute conclusion of a CHAIN_RESOLUTION from the converted pivots
+        // compute conclusion of MACRO_RESOLUTION from the converted pivots
         // and the converted newChildren, and see if that is different from the
         // converted res
         ProofChecker* pc = d_env.getProofNodeManager()->getChecker();
@@ -2497,65 +2508,37 @@ bool AletheProofPostprocessCallback::updatePost(
                                         conv.begin() + 1, conv.end()})
                                     : conv;
                        });
-        std::vector<Node> argsPol;
-        std::vector<Node> convPivots;
+        Node convRes = d_anc.convert(res);
+        std::vector<Node> macroResArgs{convRes};
         for (size_t i = 3, size = args.size(); i < size; i = i + 2)
         {
-          convPivots.push_back(d_anc.convert(args[i]));
-          argsPol.push_back(args[i + 1]);
+          macroResArgs.push_back(args[i + 1]);
+          macroResArgs.push_back(d_anc.convert(args[i]));
         }
         Node newChainConclusion =
-            pc->checkDebug(ProofRule::CHAIN_RESOLUTION,
+            pc->checkDebug(ProofRule::MACRO_RESOLUTION,
                            convChildren,
-                           {nm->mkNode(Kind::SEXPR, argsPol),
-                            nm->mkNode(Kind::SEXPR, convPivots)},
+                           macroResArgs,
                            Node::null(),
                            "");
-        Node convRes = d_anc.convert(res);
+
+        if (newChainConclusion.isNull())
+        {
+          // we failed to derive the original conclusion. We give-up.
+          Unreachable() << "Macro_res null result from:\nchildren: "
+                        << convChildren << "\nargs: " << macroResArgs
+                        << "\nexpected conclusion: " << convRes << "\n";
+        }
         if (convRes != newChainConclusion)
         {
-          // we will try to conclude res via REORDERING
-          Node reorderedConc =
-            pc->checkDebug(ProofRule::REORDERING,
-                           {newChainConclusion},
-                           {convRes},
-                           Node::null(),
-                           "");
           // we failed to derive the original conclusion. We give-up.
-          if (reorderedConc.isNull())
-          {
-            std::stringstream ss;
-            ss << "Proof uses resolution and Skolems in a currently "
-                  "unsupported way in Alethe proofs.";
-            *d_reasonForConversionFailure = ss.str();
-            return false;
-          }
-          Trace("alethe-proof")
-              << "... update alethe step in finalizer to reorder\n";
-          // do the resolution as normal but have a reordering step to be the
-          // Alethe conclusion of the original result. Note that
-          // newChainConclusion cannot be a singleton, otherwise we'd not have a
-          // difference from convRes
-          std::vector<Node> newChainConclusionLits{d_cl};
-          newChainConclusionLits.insert(newChainConclusionLits.end(),
-                                        newChainConclusion.begin(),
-                                        newChainConclusion.end());
-          success &=
-              addAletheStep(
-                  AletheRule::RESOLUTION,
-                  newChainConclusion,
-                  nm->mkNode(Kind::SEXPR, newChainConclusionLits),
-                  newChildren,
-                  d_resPivots ? std::vector<Node>{args.begin() + 3, args.end()}
-                              : std::vector<Node>{},
-                  *cdp)
-              && addAletheStep(AletheRule::REORDERING,
-                               res,
-                               args[2],
-                               {newChainConclusion},
-                               {},
-                               *cdp);
-          return success;
+          Unreachable() << "Macro_res result: " << newChainConclusion
+                        << "\nNeeded: " << convRes << "\n";
+          std::stringstream ss;
+          ss << "Proof uses resolution and Skolems in a currently "
+                "unsupported way in Alethe proofs.";
+          *d_reasonForConversionFailure = ss.str();
+          return false;
         }
       }
       if (hasUpdated)
