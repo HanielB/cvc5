@@ -1332,13 +1332,13 @@ bool AletheProofPostprocessCallback::update(Node res,
     // See proof_rule.h for documentation on the SKOLEMIZE rule. This
     // comment uses variable names as introduced there.
     //
-    // Either a positive existential or a negative forall is skolemized. First
+    // Either a positive existential or a negative forall is Skolemized. First
     // step is to build the Alethe skolemization step which introduces a valid
     // equality:
     //
-    //                      ---------------- REFL
+    //                      ---------------- refl
     //                       (= F F*sigma')
-    //  ----------------------------------------------- ANCHOR_SKO_EX, sigma_1,
+    //  ----------------------------------------------- anchor_sko_ex, sigma_1,
     //  sigma_2, ..., sigma_n
     //   (= (exists ((x1 T1) ... (xn Tn)) F) F*sigma')
     //
@@ -1349,19 +1349,19 @@ bool AletheProofPostprocessCallback::update(Node res,
     // Then, we apply the equivalence elimination reasoning to obtain F*sigma
     // from the premise:
     //
-    //  ---------------- EQUIV_POS2
+    //  ---------------- equiv_pos2
     //     VP1              (= (exists (...) F) F*sigma')       (exists (...) F)
-    //  ------------------------------------------------------------- RESOLUTION
+    //  ------------------------------------------------------------- resolution
     //                           F*sigma'
     //
     // VP1 :
     //  (cl (not (= (exists (...) F) F*sigma')) (not (exists (...) F)) F*sigma')
     //
-    // Note that F*sigma' is equivalent to F*sigma once its skolem terms are
+    // Note that F*sigma' is equivalent to F*sigma once its Skolem terms are
     // lifted to choice terms by the node converter.
     //
     // The case for negative forall is analagous except the rules are
-    // ANCHOR_SKO_FORALL and the one concluding the desired equivalence is
+    // anchor_sko_forall and the one concluding the desired equivalence is
     // followed by a congruence step to wrap the equality terms under a
     // negation, i.e., (not ...).
     case ProofRule::SKOLEMIZE:
@@ -1536,12 +1536,11 @@ bool AletheProofPostprocessCallback::update(Node res,
     // ... (zn An)) G*sigma)
     //
     //
-    //  ------------------ REFL
+    //  ------------------ refl
     //  (cl (= G G*sigma))
-    // -------------------- BIND, ((= y1 z1) ... (= yn zn))
+    // -------------------- bind, z1 ... zn (= y1 z1) ... (= yn zn)
     //  (= F F*sigma)
     //
-    // ^ the corresponding proof node is F*sigma
     case ProofRule::ALPHA_EQUIV:
     {
       std::vector<Node> varEqs;
@@ -1693,13 +1692,13 @@ bool AletheProofPostprocessCallback::update(Node res,
     // concluded from A, B, which are (=> x c), (<= x c), or (not (= x
     // c)).
     //
-    // The convertion into Alethe is based on LA_DISEQUALITY, which has much
+    // The convertion into Alethe is based on la_disequality, which has much
     // the same semantics as ARITH_TRICHOTOMY. The following subproof is
     // common to all the cases (we will refer to it as PI_0):
     //
-    // ------------------------------------------------------ LA_DISEQUALITY
+    // ------------------------------------------------------ la_disequality
     //  (cl (or (= x c) (not (<= x c)) (not (<= c x))))
-    // -------------------------------------------------------- OR
+    // -------------------------------------------------------- or
     //  (cl (= x c) (not (<= x c)) (not (<= c x)))
     //
     // The transformations also use the COMP_SIMPLIFY rule in Alethe, which
@@ -1738,9 +1737,9 @@ bool AletheProofPostprocessCallback::update(Node res,
           //   with @p1: (=> x c)
           //   with @p2: (<= c x)
           //
-          // ----- COMP_SIMP  -------------------EQUIV_POS2   --- geq
+          // ----- comp_simp  -------------------equiv_pos2   --- geq
           //  @p0             (cl (not @p0) (not @p1) @p2)    @p1
-          // ---------------------------------------------------- RES
+          // ---------------------------------------------------- resolution
           //                     @p2
           //
           // Then we combine with the proof PI_0 and use the other premise
@@ -1748,7 +1747,7 @@ bool AletheProofPostprocessCallback::update(Node res,
           //
           //        --------- leq
           // PI_0    (<= x c)      PI_1
-          // --------------------------- RES
+          // --------------------------- resolution
           //        (= x c)
           //
           // where (= x c) is the expected result
@@ -1833,32 +1832,26 @@ bool AletheProofPostprocessCallback::update(Node res,
             //
             // PI_a:
             //
-            // ----- COMP_SIMP  --------------------- EQUIV_POS1     ----
-            // notLT
+            // ----- comp_simp  --------------------- equiv_pos1     ---- notLT
             //  @pa             (cl (not @pa) @pb (not (not @pc)))   (not @pb)
-            // -------------------------------------------------------------
-            // RES
+            // ------------------------------------------------------ resolution
             //              (cl (not (not @pc)))
             //
             //
             // PI_b:
             //
-            //  ------------------------------ NOT_NOT --------------------
-            //  PI_a (cl (not (not (not @pc))) @pc)         (cl (not (not
-            //  @pc)))
-            // ------------------------------------------------------------
-            // RES
+            //  ------------------------------ NOT_NOT -------------------- PI_a
+            //  (cl (not (not (not @pc))) @pc)         (cl (not (not @pc)))
+            // ------------------------------------------------------ resolution
             //                             @pc
             //
             // PI_c:
             //
             //  @pd: (= (>= x c) (<= c x))
             //
-            // ----- COMP_SIMP  -------------------------- EQUIV_POS1  ---
-            // PI_b
+            // ----- comp_simp  -------------------------- equiv_pos1  --- PI_b
             //  @pd             (cl (not @pd) (>= x c) (not @pc))      @pc
-            // -------------------------------------------------------------
-            // RES
+            // ------------------------------------------------------ resolution
             //              (cl (>= x c))
             success &= addAletheStep(AletheRule::HOLE,
                                      geq,
@@ -1882,9 +1875,9 @@ bool AletheProofPostprocessCallback::update(Node res,
           //   with @p4: (> x c)
           //   with @p5: (<= x c)
           //
-          // ----- COMP_SIMP  ----------------------------------- EQUIV_POS1
+          // ----- comp_simp  ----------------------------------- equiv_pos1
           //  @p3             (cl (not @p3) @p4 (not (not @p5)))
-          // --------------------------------------------------- RES
+          // --------------------------------------------------- resolution
           //              (cl @p4 (not (not @p5)))
           //
           // Then we combine the proofs PI_0, the premise for "notEq", and
@@ -1892,7 +1885,7 @@ bool AletheProofPostprocessCallback::update(Node res,
           //
           //        --------- notEq
           // PI_0   (not (= x c))    PI_1    PI_2
-          // ------------------------------------- RES
+          // ------------------------------------- resolution
           //        (> x c)
           //
           // where (= x c) is the expected result
@@ -2002,9 +1995,9 @@ bool AletheProofPostprocessCallback::update(Node res,
           //   with @p7: (< x c)
           //   with @p8: (<= c x)
           //
-          // ----- COMP_SIMP  ----------------------------------- EQUIV_POS1
+          // ----- comp_simp  ----------------------------------- equiv_pos1
           //  @p6             (cl (not @p6) @p7 (not (not @p8)))
-          // --------------------------------------------------- RES
+          // --------------------------------------------------- resolution
           //              (cl @p7 (not (not @p8)))
           //
           // Then we combine the proofs PI_0, the premise for "notEq", the
@@ -2012,7 +2005,7 @@ bool AletheProofPostprocessCallback::update(Node res,
           //
           //        ------- notEq  -----leq  ---------------------------- PI_3
           // PI_0   (not (= x c))  (<= x c)  (cl (< x c) (not (not (<= c x))))
-          // ------------------------------------------------------------- RES
+          // -------------------------------------------------------- resolution
           //                      (< x c)
           //
           // where (< x c) is the expected result
@@ -2196,11 +2189,11 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   }
   // Derive (cl (or t1' ... tn')) from (cl t1' ... tn') (i.e., the premise) with
   //
-  //             -----------------------  ...  --------------------- OR_NEG
+  //             -----------------------  ...  --------------------- or_neg
   //   premise   (cl premise, (not t1'))  ...  (cl premise, (not tn'))
-  //  ---------------------------- RESOLUTION
+  //  ---------------------------- resolution
   //  (cl premise ... premise)
-  //  ---------------------------- CONTRACTION
+  //  ---------------------------- contraction
   //         (cl premise)
   std::vector<Node> resPremises{premise};
   std::vector<Node> resArgs;

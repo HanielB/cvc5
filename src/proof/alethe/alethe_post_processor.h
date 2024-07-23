@@ -186,7 +186,6 @@ class AletheProofPostprocess : protected EnvObj
 };
 
 }  // namespace proof
-
 }  // namespace cvc5::internal
 
 #endif
