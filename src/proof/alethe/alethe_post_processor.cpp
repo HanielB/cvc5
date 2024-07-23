@@ -287,8 +287,12 @@ bool AletheProofPostprocessCallback::update(Node res,
         for (size_t i = 0, size = args.size(); i < size; i++)
         {
           vp2_i = nm->mkNode(Kind::SEXPR, d_cl, andNode.notNode(), args[i]);
-          success &=
-            addAletheStep(AletheRule::AND_POS, vp2_i, vp2_i, {}, std::vector<Node>{nm->mkConstInt(i)}, *cdp);
+          success &= addAletheStep(AletheRule::AND_POS,
+                                   vp2_i,
+                                   vp2_i,
+                                   {},
+                                   std::vector<Node>{nm->mkConstInt(i)},
+                                   *cdp);
           premisesVP2.push_back(vp2_i);
           notAnd.push_back(andNode.notNode());  // cl F (not (and F1 ... Fn))^i
         }
@@ -915,7 +919,11 @@ bool AletheProofPostprocessCallback::update(Node res,
     // The following rules are all translated according to the clause pattern.
     case ProofRule::CNF_AND_POS:
     {
-      return addAletheStepFromOr(AletheRule::AND_POS, res, children, std::vector<Node>{args.back()}, *cdp);
+      return addAletheStepFromOr(AletheRule::AND_POS,
+                                 res,
+                                 children,
+                                 std::vector<Node>{args.back()},
+                                 *cdp);
     }
     case ProofRule::CNF_AND_NEG:
     {
@@ -927,7 +935,11 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     case ProofRule::CNF_OR_NEG:
     {
-      return addAletheStepFromOr(AletheRule::OR_NEG, res, children, std::vector<Node>{args.back()}, *cdp);
+      return addAletheStepFromOr(AletheRule::OR_NEG,
+                                 res,
+                                 children,
+                                 std::vector<Node>{args.back()},
+                                 *cdp);
     }
     case ProofRule::CNF_IMPLIES_POS:
     {
@@ -2153,7 +2165,8 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
     // premiseChildPf explicitly, it can be retrieved to justify
     // premiseChildConclusion when requested.
     cdp->addProof(premiseChildPf);
-    // equate it to what we expect. If the premise rule is CONTRACTION, we can justify it via OR_SIMPLIFY. Otherwise...
+    // equate it to what we expect. If the premise rule is CONTRACTION, we can
+    // justify it via OR_SIMPLIFY. Otherwise...
     Node equiv = premiseChildConclusion.eqNode(premise);
     bool success = true;
     if (premiseProofRule == AletheRule::CONTRACTION)
@@ -2245,12 +2258,12 @@ bool AletheProofPostprocessCallback::updatePost(
   bool success = true;
   switch (rule)
   {
-    // In the case of a resolution rule the rule might originally have been a
-    // cvc5 RESOLUTION or CHAIN_RESOLUTION rule, it is possible that one of the
-    // children was printed as (cl (or F1 ... Fn)) but used as (cl F1
-    // ... Fn). However, from the pivot of the resolution step for the child we
-    // can determine if an additional OR step is necessary to convert the clase
-    // (cl (or ...))  to (cl ...).
+    // In the case of a resolution rule, the rule might originally have been a
+    // cvc5 RESOLUTION or CHAIN_RESOLUTION rule, and it is possible that one of
+    // the children was printed as (cl (or F1 ... Fn)) but it was actually used
+    // as (cl F1 ... Fn). However, from the pivot of the resolution step for the
+    // child we can determine if an additional OR step is necessary to convert
+    // the clase (cl (or ...)) to (cl ...). This is done below.
     case AletheRule::RESOLUTION_OR:
     {
       // We need pivots to more easily do the computations here, so we require
@@ -2563,11 +2576,12 @@ bool AletheProofPostprocessCallback::updatePost(
   return false;
 }
 
-bool AletheProofPostprocessCallback::ensureFinalStep(Node res,
-                                               ProofRule id,
-                                               std::vector<Node>& children,
-                                               const std::vector<Node>& args,
-                                               CDProof* cdp)
+bool AletheProofPostprocessCallback::ensureFinalStep(
+    Node res,
+    ProofRule id,
+    std::vector<Node>& children,
+    const std::vector<Node>& args,
+    CDProof* cdp)
 {
   bool success = true;
   NodeManager* nm = nodeManager();
@@ -2577,9 +2591,9 @@ bool AletheProofPostprocessCallback::ensureFinalStep(Node res,
   // if it's a false assumption
   //
   //   ...
-  // -------------------    ---------------------- FALSE
+  // -------------------    ---------------------- false
   //  (cl false)             (cl (not false))
-  // -------------------------------------------------- RESOLUTION
+  // -------------------------------------------------- resolution
   //                       (cl)
   if ((childPf->getRule() == ProofRule::ALETHE_RULE
        && childPf->getArguments()[2].getNumChildren() == 2
@@ -2706,9 +2720,11 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf,
     // In the Alethe proof format the final step has to be (cl). However, after
     // the translation, the final step might still be (cl false). In that case
     // additional steps are required.  The function has the additional purpose
-    // of sanitizing the attributes of the outer SCOPEs
-    CDProof cpf(
-        d_env, nullptr, "AletheProofPostProcess::ensureFinalStep::CDProof", true);
+    // of sanitizing the arguments of the outer SCOPEs
+    CDProof cpf(d_env,
+                nullptr,
+                "AletheProofPostProcess::ensureFinalStep::CDProof",
+                true);
     std::vector<Node> ccn{internalProof->getResult()};
     cpf.addProof(internalProof);
     std::vector<Node> args{definitionsScope->getArguments().begin(),
