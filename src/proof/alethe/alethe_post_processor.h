@@ -100,8 +100,6 @@ class AletheProofPostprocessCallback : protected EnvObj,
   bool d_resPivots;
   /** The cl operator. */
   Node d_cl;
-  /** Util for substitutions. */
-  Node d_becomes;
   /** Adds an Alethe step to the CDProof argument
    *
    * The added step to `cdp` uses ProofRule::ALETHE_RULE with `rule` as the
