@@ -466,6 +466,20 @@ bool AletheProofPostprocessCallback::update(Node res,
     // it with "lia_generic".
     case ProofRule::TRUST:
     {
+      // check for case where the trust step is introducing an equality between
+      // a term and another whose Alethe conversion is itself, in which case we
+      // justify this as a REFL step. This happens with trusted purification
+      // steps, for example.
+      Node resConv = d_anc.maybeConvert(res);
+      if (!resConv.isNull() && resConv.getKind() == Kind::EQUAL && resConv[0] == resConv[1])
+      {
+        return addAletheStep(AletheRule::REFL,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl, res),
+                             children,
+                             {},
+                             *cdp);
+      }
       TrustId tid;
       if (getTrustId(args[0], tid) && tid == TrustId::THEORY_LEMMA)
       {
@@ -544,6 +558,8 @@ bool AletheProofPostprocessCallback::update(Node res,
     //  * the corresponding proof node is C
     case ProofRule::RESOLUTION:
     case ProofRule::CHAIN_RESOLUTION:
+    case ProofRule::MACRO_RESOLUTION:
+    case ProofRule::MACRO_RESOLUTION_TRUST:
     {
       std::vector<Node> cargs;
       if (id == ProofRule::CHAIN_RESOLUTION)
@@ -552,6 +568,15 @@ bool AletheProofPostprocessCallback::update(Node res,
         {
           cargs.push_back(args[0][i]);
           cargs.push_back(args[1][i]);
+        }
+      }
+      else if (id == ProofRule::MACRO_RESOLUTION
+               || id == ProofRule::MACRO_RESOLUTION_TRUST)
+      {
+        for (size_t i = 1, nargs = args.size(); i < nargs; i = i + 2)
+        {
+          cargs.push_back(args[i]);
+          cargs.push_back(args[i + 1]);
         }
       }
       else
@@ -1470,6 +1495,19 @@ bool AletheProofPostprocessCallback::update(Node res,
     //
     // ------------------------ BV_BITBLAST_STEP_BV<KIND>
     //  (cl (= t bitblast(t)))
+    case ProofRule::BV_EAGER_ATOM:
+    {
+      Assert(res.getKind() == Kind::EQUAL && res[0][0] == res[1]);
+      Node newRes = res[0][0].eqNode(res[1]);
+      return addAletheStep(AletheRule::REFL,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, newRes),
+                           children,
+                           {},
+                           *cdp);
+    }
+    // ------------------------ BV_BITBLAST_STEP_BV<KIND>
+    //  (cl (= t bitblast(t)))
     case ProofRule::BV_BITBLAST_STEP:
     {
       Kind k = res[0].getKind();
@@ -2277,11 +2315,6 @@ bool AletheProofPostprocessCallback::updatePost(
       // their starting positions in the arguments
       polIdx = 4;
       pivIdx = 3;
-      // we will test if any of the arguments has a skolem, in which case the
-      // conclusion of the original form of the clause may differ from the
-      // original one. If the difference is only a matter of order, we add a
-      // reordering step. Otherwise we fail.
-      bool hasSkolems = expr::hasSubtermKind(Kind::SKOLEM, args[pivIdx]);
       // The first child is used as a non-singleton clause if it is not equal
       // to its pivot L_1. Since it's the first clause in the resolution it can
       // only be equal to the pivot in the case the polarity is true.
@@ -2347,7 +2380,6 @@ bool AletheProofPostprocessCallback::updatePost(
       {
         polIdx = 2 * (i - 1) + 3 + 1;
         pivIdx = 2 * (i - 1) + 3;
-        hasSkolems |= expr::hasSubtermKind(Kind::SKOLEM, args[pivIdx]);
         if (children[i].getKind() == Kind::OR
             && (args[polIdx] != d_false
                 || d_anc.convert(args[pivIdx]) != d_anc.convert(children[i])))
@@ -2403,85 +2435,6 @@ bool AletheProofPostprocessCallback::updatePost(
             hasUpdated = true;
             newChildren[i] = nm->mkNode(Kind::SEXPR, d_cl, children[i]);
           }
-        }
-      }
-      if (hasSkolems)
-      {
-        // compute conclusion of a CHAIN_RESOLUTION from the converted pivots
-        // and the converted newChildren, and see if that is different from the
-        // converted res
-        ProofChecker* pc = d_env.getProofNodeManager()->getChecker();
-        std::vector<Node> convChildren;
-        std::transform(newChildren.begin(),
-                       newChildren.end(),
-                       std::back_inserter(convChildren),
-                       [this, nm](Node n) {
-                         Node conv = d_anc.convert(n);
-                         // note that the new child may have been introduced
-                         // above and is a cl node
-                         return conv.getKind() == Kind::SEXPR
-                                    ? nm->mkOr(std::vector<Node>{
-                                        conv.begin() + 1, conv.end()})
-                                    : conv;
-                       });
-        std::vector<Node> argsPol;
-        std::vector<Node> convPivots;
-        for (size_t i = 3, size = args.size(); i < size; i = i + 2)
-        {
-          convPivots.push_back(d_anc.convert(args[i]));
-          argsPol.push_back(args[i + 1]);
-        }
-        Node newChainConclusion =
-            pc->checkDebug(ProofRule::CHAIN_RESOLUTION,
-                           convChildren,
-                           {nm->mkNode(Kind::SEXPR, argsPol),
-                            nm->mkNode(Kind::SEXPR, convPivots)},
-                           Node::null(),
-                           "");
-        Node convRes = d_anc.convert(res);
-        if (convRes != newChainConclusion)
-        {
-          // we will try to conclude res via REORDERING
-          Node reorderedConc = pc->checkDebug(ProofRule::REORDERING,
-                                              {newChainConclusion},
-                                              {convRes},
-                                              Node::null(),
-                                              "");
-          // we failed to derive the original conclusion. We give-up.
-          if (reorderedConc.isNull())
-          {
-            std::stringstream ss;
-            ss << "Proof uses resolution and Skolems in a currently "
-                  "unsupported way in Alethe proofs.";
-            *d_reasonForConversionFailure = ss.str();
-            return false;
-          }
-          Trace("alethe-proof")
-              << "... update alethe step in finalizer to reorder\n";
-          // do the resolution as normal but have a reordering step to be the
-          // Alethe conclusion of the original result. Note that
-          // newChainConclusion cannot be a singleton, otherwise we'd not have a
-          // difference from convRes
-          std::vector<Node> newChainConclusionLits{d_cl};
-          newChainConclusionLits.insert(newChainConclusionLits.end(),
-                                        newChainConclusion.begin(),
-                                        newChainConclusion.end());
-          success &=
-              addAletheStep(
-                  AletheRule::RESOLUTION,
-                  newChainConclusion,
-                  nm->mkNode(Kind::SEXPR, newChainConclusionLits),
-                  newChildren,
-                  d_resPivots ? std::vector<Node>{args.begin() + 3, args.end()}
-                              : std::vector<Node>{},
-                  *cdp)
-              && addAletheStep(AletheRule::REORDERING,
-                               res,
-                               args[2],
-                               {newChainConclusion},
-                               {},
-                               *cdp);
-          return success;
         }
       }
       if (hasUpdated)
