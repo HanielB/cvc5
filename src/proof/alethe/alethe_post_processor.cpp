@@ -1552,7 +1552,7 @@ bool AletheProofPostprocessCallback::update(Node res,
       for (size_t i = 0, size = res[0][0].getNumChildren(); i < size; ++i)
       {
         Node v0 = res[0][0][i], v1 = res[1][0][i];
-        allSame = allSame && v0.getName() == v1.getName();
+        allSame = allSame && v0 == v1;
         varEqs.push_back(v0.eqNode(v1));
       }
       if (allSame)
