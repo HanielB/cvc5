@@ -1672,6 +1672,8 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
 
 void getRewrites(
     const std::shared_ptr<ProofNode>& pf,
+    std::vector<Node>& evalInsts,
+    std::vector<Node>& polyNormInsts,
     std::map<rewriter::DslProofRule, std::vector<Node>>& rewriteInsts,
     std::unordered_set<rewriter::DslProofRule>& rewriteRules,
     NodeManager* nm,
@@ -1694,27 +1696,24 @@ void getRewrites(
     rewriter::DslProofRule rareRule;
     const std::vector<Node>& args = rp->getArguments();
     // just get the instance
-    if (rule == ProofRule::EVALUATE || rule == ProofRule::ARITH_POLY_NORM)
+    if (rule == ProofRule::EVALUATE)
     {
-      Node res;
-      if (rule == ProofRule::EVALUATE)
+      Node res = rp->getResult();
+      if (std::find(evalInsts.begin(), evalInsts.end(), res) == evalInsts.end())
       {
-        rareRule = rewriter::DslProofRule::EVAL;
-        res = rp->getResult();
+        evalInsts.push_back(res);
+        Trace("hints-rewrites") << "\t\tEVALUATE instance: " << res << "\n";
       }
-      else
+      continue;
+    }
+    if (rule == ProofRule::ARITH_POLY_NORM)
+    {
+      Node res = args[0];
+      if (std::find(polyNormInsts.begin(), polyNormInsts.end(), res)
+          == polyNormInsts.end())
       {
-        rareRule = rewriter::DslProofRule::ARITH_POLY_NORM;
-        res = args[0];
-      }
-      if (std::find(rewriteInsts[rareRule].begin(),
-                    rewriteInsts[rareRule].end(),
-                    res)
-          == rewriteInsts[rareRule].end())
-      {
-        rewriteInsts[rareRule].push_back(res);
-        Trace("hints-rewrites")
-            << "\t\tRare instance " << rareRule << ": " << res << "\n";
+        polyNormInsts.push_back(res);
+        Trace("hints-rewrites") << "\t\tPolyNorm instance:: " << res << "\n";
       }
       continue;
     }
@@ -1762,6 +1761,8 @@ std::vector<Node> SolverEngine::getHints()
 
   std::vector<Node> currResults;
   // All instances of given rewrite rule
+  std::vector<Node> evalInsts;
+  std::vector<Node> polyNormInsts;
   std::map<rewriter::DslProofRule, std::vector<Node>> rewriteInsts;
   // Collected rules
   std::unordered_set<rewriter::DslProofRule> rewriteRules;
@@ -1803,7 +1804,8 @@ std::vector<Node> SolverEngine::getHints()
 
     if (!options().proof.hintsOnlyRwInsts)
     {
-      getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+      getRewrites(
+          p, evalInsts, polyNormInsts, rewriteInsts, rewriteRules, nm, rdb);
     }
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));
@@ -1861,7 +1863,8 @@ std::vector<Node> SolverEngine::getHints()
     // there may be rewrites in the proofs
     if (!options().proof.hintsOnlyRwInsts)
     {
-      getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+      getRewrites(
+          p, evalInsts, polyNormInsts, rewriteInsts, rewriteRules, nm, rdb);
     }
 
     // if integer reasoning, collect, if any, rules for that
@@ -1896,11 +1899,14 @@ std::vector<Node> SolverEngine::getHints()
       Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
       currResults.push_back(nm->mkNode(Kind::IMPLIES, r[0][0], r[1]));
 
-      getRewrites(p, rewriteInsts, rewriteRules, nm, rdb);
+      getRewrites(
+          p, evalInsts, polyNormInsts, rewriteInsts, rewriteRules, nm, rdb);
     }
   }
   result.push_back(nm->mkNode(Kind::SEXPR, currResults));
   // add rewrites now
+  result.push_back(nm->mkNode(Kind::SEXPR, evalInsts));
+  result.push_back(nm->mkNode(Kind::SEXPR, polyNormInsts));
   if (rewriteInsts.empty())
   {
     result.push_back(nm->mkNode(Kind::SEXPR));
