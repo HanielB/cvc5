@@ -406,6 +406,15 @@ Node AletheNodeConverter::postConvert(Node n)
     case Kind::BOUND_VARIABLE:
     case Kind::VARIABLE:
     {
+      if (n.getName() == "choice")
+      {
+        Trace("alethe-conv") << "AletheNodeConverter: ...using reserved name\n";
+        std::stringstream ss;
+        ss << "\"Proof unsupported by Alethe: contains variable with reserved "
+              "name \'choice\'\"";
+        d_error = ss.str();
+        return Node::null();
+      }
       // see if variable has a supported type. We need this check because in
       // some problems involving unsupported theories there are no operators,
       // just variables of unsupported type
