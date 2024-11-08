@@ -1,0 +1,14 @@
+unsat
+(assume a0 (= a (lambda ((b!b Int) (b!b Int)) false)))
+(assume a1 (a 0 0))
+(step t0 (cl (not (= (a 0 0) false)) (not (a 0 0)) false) :rule equiv_pos2)
+(step t1 (cl (= 0 0)) :rule refl)
+(step t2 (cl (= (a 0 0) ((lambda ((b!b Int) (b!b Int)) false) 0 0))) :rule ho_cong :premises (a0 t1 t1))
+(step t3 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) ((lambda ((BOUND_VARIABLE_411 Int) (BOUND_VARIABLE_413 Int)) false) 0 0))) :rule hole :args ("TRUST_THEORY_REWRITE" (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) ((lambda ((BOUND_VARIABLE_411 Int) (BOUND_VARIABLE_413 Int)) false) 0 0)) 2 7))
+(step t4 (cl (= ((lambda ((BOUND_VARIABLE_411 Int) (BOUND_VARIABLE_413 Int)) false) 0 0) false)) :rule hole :args ("TRUST_THEORY_REWRITE" (= ((lambda ((BOUND_VARIABLE_411 Int) (BOUND_VARIABLE_413 Int)) false) 0 0) false) 2 7))
+(step t5 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) false)) :rule trans :premises (t3 t4))
+(step t6 (cl (= (a 0 0) false)) :rule trans :premises (t2 t5))
+(step t7 (cl false) :rule resolution :premises (t0 t6 a1))
+(step t8 (cl (not false)) :rule false)
+(step t9 (cl) :rule resolution :premises (t7 t8))
+

@@ -1,0 +1,46 @@
+unsat
+(assume a0 (= a (lambda ((b!b Int) (b!b Int)) false)))
+(assume a1 (a 0 0))
+(step t0 (cl (not (= (a 0 0) false)) (not (a 0 0)) false) :rule equiv_pos2)
+(step t1 (cl (= 0 0)) :rule refl)
+(step t2 (cl (= (a 0 0) ((lambda ((b!b Int) (b!b Int)) false) 0 0))) :rule ho_cong :premises (a0 t1 t1))
+(step t3 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) ((lambda ((b!b Int) (b!b Int)) false) 0 0))) :rule refl)
+(step t4 (cl (= (lambda ((b!b Int) (b!b Int)) false) (lambda ((b!b Int) (w Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t5 (cl (= (lambda ((b!b Int) (w Int)) false) (lambda ((x Int) (y Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t6 (cl (= (lambda ((b!b Int) (b!b Int)) false) (lambda ((x Int) (y Int)) false))) :rule trans :premises (t4 t5))
+(step t7 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0) ((lambda ((x Int) (y Int)) false) 0))) :rule ho_cong :premises (t6 t1))
+(step t8 (cl (= ((lambda ((x Int) (y Int)) false) 0) (lambda ((y Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t9 (cl (= (lambda ((y Int)) false) (lambda ((z Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t10 (cl (= ((lambda ((x Int) (y Int)) false) 0) (lambda ((z Int)) false))) :rule trans :premises (t8 t9))
+(step t11 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0) (lambda ((z Int)) false))) :rule trans :premises (t7 t10))
+(step t12 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) ((lambda ((z Int)) false) 0))) :rule ho_cong :premises (t11 t1))
+(step t13 (cl (= ((lambda ((z Int)) false) 0) false)) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t14 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) false)) :rule trans :premises (t12 t13))
+(step t15 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) false)) :rule trans :premises (t3 t14))
+(step t16 (cl (= (a 0 0) false)) :rule trans :premises (t2 t15))
+(step t17 (cl false) :rule resolution :premises (t0 t16 a1))
+(step t18 (cl (not false)) :rule false)
+(step t19 (cl) :rule resolution :premises (t17 t18))
+
+--- from t3 to t15 becomes
+
+(step t4 (cl (= (lambda ((b!b Int) (b!b Int)) false) (lambda ((b!b Int) (w Int)) false))) :rule hole :args ("rename var"))
+(step t5 (cl (= (lambda ((b!b Int) (w Int)) false) (lambda ((x Int) (y Int)) false))) :rule hole :args ("rename var"))
+(step t6 (cl (= (lambda ((b!b Int) (b!b Int)) false) (lambda ((x Int) (y Int)) false))) :rule trans :premises (t4 t5))
+
+(step t8 (cl (= ((lambda ((x Int) (y Int)) false) 0) (lambda ((y Int)) false))) :rule hole :args ("beta reduction (one step)"))
+(step t9 (cl (= (lambda ((y Int)) false) (lambda ((z Int)) false))) :rule hole :args ("rename var"))
+(step t10 (cl (= ((lambda ((x Int) (y Int)) false) 0) (lambda ((z Int)) false))) :rule trans :premises (t8 t9))
+
+(step t11 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0) (lambda ((z Int)) false))) :rule trans :premises (t7 t10))
+
+(step t12 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) ((lambda ((z Int)) false) 0))) :rule ho_cong :premises (t11 t1))
+
+(step t13 (cl (= ((lambda ((z Int)) false) 0) false)) :rule hole :args ("beta reduction (one step)"))
+
+(step t14 (cl (= ((lambda ((b!b Int) (b!b Int)) false) 0 0) false)) :rule trans :premises (t12 t13))
+
+(step t16 (cl (= (a 0 0) false)) :rule trans :premises (t2 t15))
+(step t17 (cl false) :rule resolution :premises (t0 t16 a1))
+(step t18 (cl (not false)) :rule false)
+(step t19 (cl) :rule resolution :premises (t17 t18))
