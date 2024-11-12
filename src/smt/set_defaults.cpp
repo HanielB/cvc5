@@ -1823,8 +1823,12 @@ void SetDefaults::notifyModifyOption(const std::string& x,
 
 void SetDefaults::disableChecking(Options& opts)
 {
+  opts.write_smt().produceUnsatCores = false;
+  opts.write_smt().unsatCoresMode = options::UnsatCoresMode::OFF;
+  opts.write_smt().minimalUnsatCores = false;
   opts.write_smt().checkUnsatCores = false;
   opts.write_smt().produceProofs = false;
+  opts.write_smt().proofMode = options::ProofMode::OFF;
   opts.write_smt().checkProofs = false;
   opts.write_smt().debugCheckModels = false;
   opts.write_smt().checkModels = false;

@@ -240,6 +240,7 @@ std::vector<Node> UnsatCoreManager::reduceUnsatCore(
     // disable all proof options
     SetDefaults::disableChecking(coreChecker->getOptions());
     // add to removed set?
+    Trace("unsat-core") << "Consider removing " << skip << "\nTest with " << core << " + " << adefs << " - " << removed << "\n";
     removed.insert(skip);
     // assert everything to the subsolver
     theory::assertToSubsolver(*coreChecker.get(), core, adefs, removed);
@@ -255,6 +256,7 @@ std::vector<Node> UnsatCoreManager::reduceUnsatCore(
 
     if (r.getStatus() != Result::UNSAT)
     {
+      Trace("unsat-core") << "\tcannot remove\n";
       removed.erase(skip);
       if (r.isUnknown())
       {

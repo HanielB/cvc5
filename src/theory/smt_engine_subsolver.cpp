@@ -183,6 +183,7 @@ void assertToSubsolver(SolverEngine& subsolver,
         continue;
       }
     }
+    Trace("test") << "\t\tassert " << f << "\n";
     subsolver.assertFormula(f);
   }
 }
