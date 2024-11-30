@@ -1184,6 +1184,19 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     case ProofRule::HO_CONG:
     {
+      // if this equality is such that both the operators are lambdas and they
+      // differ, then potentially this will involve partial applications. In
+      // this case we rewrite the proof to avoid this. This process is similar
+      // to the one applied in "theory/uf/eq_proof.h".
+      Trace("test") << children[0] << ", " << children[0][0].getKind() << ", "
+                    << children[0][1].getKind() << "\n";
+      if (children[0][0].getKind() == Kind::LAMBDA
+          && children[0][1].getKind() == Kind::LAMBDA
+          && children[0][0] != children[0][1])
+      {
+        Unreachable();
+      }
+
       return addAletheStep(AletheRule::HO_CONG,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),

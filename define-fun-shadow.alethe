@@ -1,0 +1,82 @@
+unsat
+(assume a0 (= s (lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0))))
+(assume a1 (= p (lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false (s 0 0 b c) (forall ((z Int)) false))))))
+(assume a2 (p 0 0 0))
+(step t0 (cl (not (= (p 0 0 0) false)) (not (p 0 0 0)) false) :rule equiv_pos2)
+(anchor :step t1 :args ((a Int) (b Int) (c Int) (:= (a Int) a) (:= (b Int) b) (:= (c Int) c)))
+(anchor :step t1.t0 :args ((x Int) (y Int) (:= (x Int) x) (:= (y Int) y)))
+(step t1.t0.t0 (cl (= false false)) :rule refl)
+(step t1.t0.t1 (cl (= 0 0)) :rule refl)
+(step t1.t0.t2 (cl (= b b)) :rule refl)
+(step t1.t0.t3 (cl (= c c)) :rule refl)
+(step t1.t0.t4 (cl (= (s 0 0 b c) ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c))) :rule ho_cong :premises (a0 t1.t0.t1 t1.t0.t1 t1.t0.t2 t1.t0.t3))
+(step t1.t0.t5 (cl (= (forall ((z Int)) false) (forall ((z Int)) false))) :rule refl)
+(step t1.t0.t6 (cl (= (and false (s 0 0 b c) (forall ((z Int)) false)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) :rule cong :premises (t1.t0.t0 t1.t0.t4 t1.t0.t5))
+(step t1.t0 (cl (= (exists ((x Int) (y Int)) (and false (s 0 0 b c) (forall ((z Int)) false))) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false))))) :rule bind)
+(step t1 (cl (= (lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false (s 0 0 b c) (forall ((z Int)) false)))) (lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))))) :rule bind)
+(step t2 (cl (= p (lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))))) :rule trans :premises (a1 t1))
+(step t3 (cl (= 0 0)) :rule refl)
+(step t4 (cl (= (p 0 0 0) ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0 0))) :rule ho_cong :premises (t2 t3 t3 t3))
+
+; this is the step that is equating the regular application to the ho_apply one
+(step t5 (cl (= ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0 0) ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0 0))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+
+; rewriting the lambda operator
+(anchor :step t6 :args ((a Int) (b Int) (c Int) (:= (a Int) a) (:= (b Int) b) (:= (c Int) c)))
+(anchor :step t6.t0 :args ((x Int) (y Int) (:= (x Int) x) (:= (y Int) y)))
+(step t6.t0.t0 (cl (= (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)) false)) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t6.t0 (cl (= (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false))) (exists ((x Int) (y Int)) false))) :rule bind)
+(step t6.t1 (cl (= (exists ((x Int) (y Int)) false) (not (forall ((x Int) (y Int)) (not false))))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(anchor :step t6.t2 :args ((x Int) (y Int) (:= (x Int) x) (:= (y Int) y)))
+(step t6.t2.t0 (cl (= (not false) true)) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t6.t2 (cl (= (forall ((x Int) (y Int)) (not false)) (forall ((x Int) (y Int)) true))) :rule bind)
+(step t6.t3 (cl (= (forall ((x Int) (y Int)) true) true)) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t6.t4 (cl (= (forall ((x Int) (y Int)) (not false)) true)) :rule trans :premises (t6.t2 t6.t3))
+(step t6.t5 (cl (= (not (forall ((x Int) (y Int)) (not false))) (not true))) :rule cong :premises (t6.t4))
+(step t6.t6 (cl (= (not true) false)) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t6.t7 (cl (= (not (forall ((x Int) (y Int)) (not false))) false)) :rule trans :premises (t6.t5 t6.t6))
+(step t6.t8 (cl (= (exists ((x Int) (y Int)) false) false)) :rule trans :premises (t6.t1 t6.t7))
+(step t6.t9 (cl (= (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false))) false)) :rule trans :premises (t6.t0 t6.t8))
+(step t6 (cl (=
+               (lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false))))
+               (lambda ((a Int) (b Int) (c Int)) false))) :rule bind)
+(step t7 (cl (= (lambda ((a Int) (b Int) (c Int)) false) (lambda ((BOUND_VARIABLE_446 Int) (BOUND_VARIABLE_448 Int) (BOUND_VARIABLE_450 Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t8 (cl (=
+               (lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false))))
+               (lambda ((BOUND_VARIABLE_446 Int) (BOUND_VARIABLE_448 Int) (BOUND_VARIABLE_450 Int)) false))) :rule trans :premises (t6 t7))
+
+; rebuilding the application, but only partially
+(step t9 (cl (=
+               ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0)
+               ((lambda ((BOUND_VARIABLE_446 Int) (BOUND_VARIABLE_448 Int) (BOUND_VARIABLE_450 Int)) false) 0))) :rule ho_cong :premises (t8 t3))
+; beta-reduce one of the vars
+(step t10 (cl (= ((lambda ((BOUND_VARIABLE_446 Int) (BOUND_VARIABLE_448 Int) (BOUND_VARIABLE_450 Int)) false) 0) (lambda ((BOUND_VARIABLE_448 Int) (BOUND_VARIABLE_450 Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+
+; rewrite the operator again...
+(step t11 (cl (= (lambda ((BOUND_VARIABLE_448 Int) (BOUND_VARIABLE_450 Int)) false) (lambda ((BOUND_VARIABLE_460 Int) (BOUND_VARIABLE_462 Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t12 (cl (= ((lambda ((BOUND_VARIABLE_446 Int) (BOUND_VARIABLE_448 Int) (BOUND_VARIABLE_450 Int)) false) 0) (lambda ((BOUND_VARIABLE_460 Int) (BOUND_VARIABLE_462 Int)) false))) :rule trans :premises (t10 t11))
+
+; connect with the built partial application
+(step t13 (cl (= ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0) (lambda ((BOUND_VARIABLE_460 Int) (BOUND_VARIABLE_462 Int)) false))) :rule trans :premises (t9 t12))
+
+; build partial app again
+(step t14 (cl (= ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0) ((lambda ((BOUND_VARIABLE_460 Int) (BOUND_VARIABLE_462 Int)) false) 0))) :rule ho_cong :premises (t13 t3))
+; beta-reduce one of the vars
+(step t15 (cl (= ((lambda ((BOUND_VARIABLE_460 Int) (BOUND_VARIABLE_462 Int)) false) 0) (lambda ((BOUND_VARIABLE_462 Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+; rewrite the op again
+(step t16 (cl (= (lambda ((BOUND_VARIABLE_462 Int)) false) (lambda ((BOUND_VARIABLE_470 Int)) false))) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t17 (cl (= ((lambda ((BOUND_VARIABLE_460 Int) (BOUND_VARIABLE_462 Int)) false) 0) (lambda ((BOUND_VARIABLE_470 Int)) false))) :rule trans :premises (t15 t16))
+; connect with the built part app
+(step t18 (cl (= ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0) (lambda ((BOUND_VARIABLE_470 Int)) false))) :rule trans :premises (t14 t17))
+
+; build partial app again (this is the full app finally)
+(step t19 (cl (= ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0 0) ((lambda ((BOUND_VARIABLE_470 Int)) false) 0))) :rule ho_cong :premises (t18 t3))
+(step t20 (cl (= ((lambda ((BOUND_VARIABLE_470 Int)) false) 0) false)) :rule hole :args ("TRUST_THEORY_REWRITE"))
+(step t21 (cl (= ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0 0) false)) :rule trans :premises (t19 t20))
+
+(step t22 (cl (= ((lambda ((a Int) (b Int) (c Int)) (exists ((x Int) (y Int)) (and false ((lambda ((a Int) (b Int) (z Int) (z Int)) (= 0 0)) 0 0 b c) (forall ((z Int)) false)))) 0 0 0) false)) :rule trans :premises (t5 t21))
+
+(step t23 (cl (= (p 0 0 0) false)) :rule trans :premises (t4 t22))
+(step t24 (cl false) :rule resolution :premises (t0 t23 a2))
+(step t25 (cl (not false)) :rule false)
+(step t26 (cl) :rule resolution :premises (t24 t25))
