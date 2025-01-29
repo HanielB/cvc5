@@ -17,6 +17,7 @@
 
 #include "proof/proof.h"
 #include "proof/proof_node_manager.h"
+#include "smt/env.h"
 #include "smt/proof_manager.h"
 
 namespace cvc5::internal {
@@ -34,14 +35,13 @@ AletheProofLogger::AletheProofLogger(Env& env,
       d_ppp(ppp),
       d_anc(nodeManager(), options().proof.proofAletheDefineSkolems),
       d_appproc(env, d_anc),
-      d_apprinter(end, d_anc)
-
+      d_apprinter(env, d_anc)
 {
   Trace("alethe-pf-log-debug") << "Make Alethe proof logger" << std::endl;
-  if (logicInfo().isHigherOrder())
+  if (env.getLogicInfo().isHigherOrder())
   {
     out << "(error \"Proof unsupported by Alethe: contains higher-order elements\")";
-    d_error = true;
+    d_hadError = true;
   }
 }
 
@@ -54,18 +54,18 @@ void AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode> pfn)
   std::map<Node, std::string> assertionNames;
   if (d_appproc.process(pfn))
   {
-    d_apprinter.print(out, pfn, assertionNames);
+    d_apprinter.print(d_out, pfn, assertionNames);
   }
   else
   {
-    out << "(error " << d_apprinter.getError() << ")";
+    d_out << "(error " << d_appproc.getError() << ")";
   }
   d_pnm->getChecker()->setProofCheckMode(oldMode);
 }
 
 void AletheProofLogger::logCnfPreprocessInputs(const std::vector<Node>& inputs)
 {
-  if (!d_error)
+  if (!d_hadError)
   {
     return;
   }
@@ -85,6 +85,10 @@ void AletheProofLogger::logCnfPreprocessInputs(const std::vector<Node>& inputs)
 void AletheProofLogger::logCnfPreprocessInputProofs(
     std::vector<std::shared_ptr<ProofNode>>& pfns)
 {
+  if (!d_hadError)
+  {
+    return;
+  }
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof start" << std::endl;
   // if the assertions are empty, we do nothing. We will answer sat.
   std::shared_ptr<ProofNode> pfn;
@@ -107,6 +111,10 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
 
 void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
 {
+  if (!d_hadError)
+  {
+    return;
+  }
   Trace("alethe-pf-log") << "; log theory lemma proof start " << pfn->getResult()
                   << std::endl;
   d_lemmaPfs.emplace_back(pfn);
@@ -116,6 +124,10 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
 
 void AletheProofLogger::logTheoryLemma(const Node& n)
 {
+  if (!d_hadError)
+  {
+    return;
+  }
   Trace("alethe-pf-log") << "; log theory lemma start " << n << std::endl;
   std::shared_ptr<ProofNode> ptl =
       d_pnm->mkTrustedNode(TrustId::THEORY_LEMMA, {}, {}, n);
@@ -126,6 +138,10 @@ void AletheProofLogger::logTheoryLemma(const Node& n)
 
 void AletheProofLogger::logSatRefutation()
 {
+  if (!d_hadError)
+  {
+    return;
+  }
   Trace("alethe-pf-log") << "; log SAT refutation start" << std::endl;
   std::vector<std::shared_ptr<ProofNode>> premises;
   // TODO I think this should break with Alethe
@@ -138,17 +154,21 @@ void AletheProofLogger::logSatRefutation()
   Node f = nodeManager()->mkConst(false);
   std::shared_ptr<ProofNode> psr =
       d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);
-  printPfNodeALethe(psr);
+  printPfNodeAlethe(psr);
   Trace("alethe-pf-log") << "; log SAT refutation end" << std::endl;
 }
 
 void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
 {
+  if (!d_hadError)
+  {
+    return;
+  }
   Trace("alethe-pf-log") << "; log SAT refutation proof start" << std::endl;
   // connect to preprocessed
   std::shared_ptr<ProofNode> spf =
       d_pm->connectProofToAssertions(pfn, d_as, ProofScopeMode::NONE);
-  printPfNodeALethe(spf);
+  printPfNodeAlethe(spf);
   Trace("alethe-pf-log") << "; log SAT refutation proof end" << std::endl;
 }
 

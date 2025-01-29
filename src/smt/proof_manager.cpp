@@ -21,6 +21,7 @@
 #include "proof/alethe/alethe_node_converter.h"
 #include "proof/alethe/alethe_post_processor.h"
 #include "proof/alethe/alethe_printer.h"
+#include "proof/alethe/alethe_proof_logger.h"
 #include "proof/alf/alf_printer.h"
 #include "proof/dot/dot_printer.h"
 #include "proof/lfsc/lfsc_post_processor.h"
@@ -166,6 +167,11 @@ constexpr typename std::vector<T, Alloc>::size_type erase_if(
 
 void PfManager::startProofLogging(std::ostream& out, Assertions& as)
 {
+  if (options().proof.proofFormatMode == options::ProofFormatMode::ALETHE)
+  {
+      d_plog.reset(new AletheProofLogger(d_env, out, this, as, d_pfpp.get()));
+      return;
+  }
   // by default, CPC proof logger
   d_plog.reset(new ProofLoggerCpc(d_env, out, this, as, d_pfpp.get()));
 }

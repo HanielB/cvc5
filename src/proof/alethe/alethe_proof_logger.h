@@ -70,7 +70,7 @@ class AletheProofLogger : public ProofLogger
   /** The node converter, used for printing */
   proof::AletheNodeConverter d_anc;
   /** The Alethe proof post processor */
-  proof::AletheProofPostprocess* d_appproc;
+  proof::AletheProofPostprocess d_appproc;
   /** The proof printer */
   proof::AletheProofPrinter d_apprinter;
   /** The preprocessing proof we were notified of, which we may have created */
