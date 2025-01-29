@@ -246,6 +246,8 @@ libcvc5_add_sources(
   proof/alethe/alethe_post_processor.h
   proof/alethe/alethe_printer.h
   proof/alethe/alethe_printer.cpp
+  proof/alethe/alethe_proof_logger.cpp
+  proof/alethe/alethe_proof_logger.h
   proof/alethe/alethe_proof_rule.cpp
   proof/alethe/alethe_proof_rule.h
   prop/cadical.cpp
@@ -1559,7 +1561,7 @@ endif()
 add_dependencies(cvc5-obj SymFPU)
 target_include_directories(cvc5-obj SYSTEM PRIVATE ${SymFPU_INCLUDE_DIR})
 
-# GMP has to be included at the end because of linker ordering issues when 
+# GMP has to be included at the end because of linker ordering issues when
 # generating a static library.
 add_dependencies(cvc5-obj GMP)
 target_include_directories(cvc5-obj PRIVATE ${GMP_INCLUDE_DIR})
