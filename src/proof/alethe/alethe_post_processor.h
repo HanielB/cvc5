@@ -80,15 +80,14 @@ class AletheProofPostprocessCallback : protected EnvObj,
                   const std::vector<Node>& args,
                   CDProof* cdp) override;
 
-  /** Ensure the final step of the proof concludes "(cl)".
-   *
-   * Also sanitizes the arguments of the outer scopes of the proof node.
-   */
-  bool ensureFinalStep(Node res,
-                       ProofRule id,
-                       std::vector<Node>& children,
-                       const std::vector<Node>& args,
-                       CDProof* cdp);
+  /** Ensure the final step of the proof concludes "(cl)". */
+  bool ensureFinalStep(std::shared_ptr<ProofNode>& pf);
+
+  /** Sanitizes the arguments of the outer scope of the proof node. */
+  bool sanitizeOuterScope(Node res,
+                          const std::vector<Node>& children,
+                          const std::vector<Node>& args,
+                          CDProof* cdp);
 
   /** Retrieve the saved error message, if any. */
   const std::string& getError();
