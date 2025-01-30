@@ -48,18 +48,32 @@ AletheProofLogger::AletheProofLogger(Env& env,
 
 AletheProofLogger::~AletheProofLogger() {}
 
-void AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode> pfn)
+void AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode> pfn, bool inner)
 {
   options::ProofCheckMode oldMode = options().proof.proofCheck;
   d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
   std::map<Node, std::string> assertionNames;
-  if (d_appproc.process(pfn))
+  if (inner)
   {
-    d_apprinter.print(d_out, pfn, assertionNames);
+    if (d_appproc.processInnerProof(pfn))
+    {
+      d_apprinter.printProofNode(d_out, pfn);
+    }
+    else
+    {
+      d_out << "(error " << d_appproc.getError() << ")";
+    }
   }
   else
   {
-    d_out << "(error " << d_appproc.getError() << ")";
+    if (d_appproc.process(pfn))
+    {
+      d_apprinter.print(d_out, pfn, assertionNames);
+    }
+    else
+    {
+      d_out << "(error " << d_appproc.getError() << ")";
+    }
   }
   d_pnm->getChecker()->setProofCheckMode(oldMode);
 }
@@ -119,7 +133,7 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
   Trace("alethe-pf-log") << "; log theory lemma proof start " << pfn->getResult()
                   << std::endl;
   d_lemmaPfs.emplace_back(pfn);
-  printPfNodeAlethe(pfn);
+  printPfNodeAlethe(pfn, true);
   Trace("alethe-pf-log") << "; log theory lemma proof end" << std::endl;
 }
 
@@ -133,7 +147,7 @@ void AletheProofLogger::logTheoryLemma(const Node& n)
   std::shared_ptr<ProofNode> ptl =
       d_pnm->mkTrustedNode(TrustId::THEORY_LEMMA, {}, {}, n);
   d_lemmaPfs.emplace_back(ptl);
-  printPfNodeAlethe(ptl);
+  printPfNodeAlethe(ptl, true);
   Trace("alethe-pf-log") << "; log theory lemma end" << std::endl;
 }
 
@@ -155,7 +169,7 @@ void AletheProofLogger::logSatRefutation()
   Node f = nodeManager()->mkConst(false);
   std::shared_ptr<ProofNode> psr =
       d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);
-  printPfNodeAlethe(psr);
+  printPfNodeAlethe(psr, true);
   Trace("alethe-pf-log") << "; log SAT refutation end" << std::endl;
 }
 
@@ -169,7 +183,7 @@ void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
   // connect to preprocessed
   std::shared_ptr<ProofNode> spf =
       d_pm->connectProofToAssertions(pfn, d_as, ProofScopeMode::NONE);
-  printPfNodeAlethe(spf);
+  printPfNodeAlethe(spf, true);
   Trace("alethe-pf-log") << "; log SAT refutation proof end" << std::endl;
 }
 
