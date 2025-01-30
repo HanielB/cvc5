@@ -830,16 +830,13 @@ bool AletheProofPostprocessCallback::update(Node res,
       std::vector<Node> new_children = {vp1};
       new_children.insert(new_children.end(), children.begin(), children.end());
       std::vector<Node> newArgs;
-      if (d_resPivots)
+      for (const Node& child : children)
       {
-        for (const Node& child : children)
-        {
-          newArgs.push_back(child);
-          newArgs.push_back(d_false);
-        }
+        newArgs.push_back(child);
+        newArgs.push_back(d_false);
       }
       return addAletheStep(AletheRule::AND_NEG, vp1, vp1, {}, {}, *cdp)
-             && addAletheStep(AletheRule::RESOLUTION,
+             && addAletheStep(AletheRule::RESOLUTION_OR,
                               res,
                               nm->mkNode(Kind::SEXPR, d_cl, res),
                               new_children,
