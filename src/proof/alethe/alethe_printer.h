@@ -67,7 +67,7 @@ class AletheProofPrinter : protected EnvObj
   AletheProofPrinter(Env& env, AletheNodeConverter& anc);
   ~AletheProofPrinter() {}
   /**
-   * Prints a proof node in the Alethe proof format
+   * Prints a full proof in the Alethe proof format
    *
    * @param out The stream to write to
    * @param pfn The proof node to be printed
@@ -77,6 +77,20 @@ class AletheProofPrinter : protected EnvObj
   void print(std::ostream& out,
              std::shared_ptr<ProofNode> pfn,
              const std::map<Node, std::string>& assertionNames);
+
+  /** Prints an Alethe proof node
+   *
+   * The printing is parameterized by a prefix to be used in the step ids, as
+   * well as by the current id (which will be incremented after this proof node,
+   * if it is fresh, is printed). The prefix is used to facilitate identifying
+   * that steps are under a given anchor.
+   *
+   * @param out The stream to write to
+   * @param prefix The prefix to be used in step ids.
+   * @param id The current id being used for printing step ids
+   * @param pfn The proof node to be printed
+   */
+  void printProofNode(std::ostream& out, std::shared_ptr<ProofNode> pf);
 
  private:
   /** The printing context */
@@ -145,6 +159,12 @@ class AletheProofPrinter : protected EnvObj
 
   /** The callback used for computing the let binding. */
   std::unique_ptr<LetUpdaterPfCallback> d_cb;
+
+  /** Track which Skolem definitions have already been printed, if any. */
+  std::unordered_set<Node> d_printedSkolemDefinitions;
+
+  /** The id used for outermost proof steps. */
+  size_t d_id;
 };
 
 }  // namespace proof

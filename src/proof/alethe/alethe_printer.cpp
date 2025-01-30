@@ -86,6 +86,7 @@ AletheProofPrinter::AletheProofPrinter(Env& env, AletheNodeConverter& anc)
       d_anc(anc),
       d_cb(new LetUpdaterPfCallback(d_lbind))
 {
+  d_id = 0;
 }
 
 void AletheProofPrinter::printStep(
@@ -158,80 +159,6 @@ void AletheProofPrinter::printTerm(std::ostream& out, TNode n)
   out << ss.str();
 }
 
-void AletheProofPrinter::print(
-    std::ostream& out,
-    std::shared_ptr<ProofNode> pfn,
-    const std::map<Node, std::string>& assertionNames)
-{
-  Trace("alethe-printer") << "- Print proof in Alethe format." << std::endl;
-  // ignore outer scope
-  pfn = pfn->getChildren()[0];
-  std::shared_ptr<ProofNode> innerPf = pfn->getChildren()[0];
-  Assert(innerPf);
-
-  // print quantifier Skolems, if they are being defined
-  if (options().proof.proofAletheDefineSkolems)
-  {
-    const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
-    for (const auto& [skolem, choice] : skolemDefs)
-    {
-      out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
-      printTerm(out, choice);
-      out << ")" << std::endl;
-    }
-  }
-  if (options().printer.dagThresh)
-  {
-    // Traverse the proof node to letify the (converted) conclusions of proof
-    // steps. Note that we traverse the original proof node because assumptions
-    // may apper just in them (if they are not used in the rest of the proof).
-    // Otherwise repeated terms *only* in assumptions would not be letified.
-    ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
-    Trace("alethe-printer") << "- letify." << std::endl;
-    updater.process(pfn);
-
-    std::vector<Node> letList;
-    d_lbind.letify(letList);
-    if (TraceIsOn("alethe-printer"))
-    {
-      for (TNode n : letList)
-      {
-        Trace("alethe-printer")
-            << "Term " << n << " has id " << d_lbind.getId(n) << std::endl;
-      }
-    }
-  }
-  Trace("alethe-printer") << "- Print assumptions." << std::endl;
-  const std::vector<Node>& args = pfn->getArguments();
-  // Special handling for the first scope. Print assumptions and add them to the
-  // list but do not print anchor.
-  Assert(!args.empty());
-  for (size_t i = 0, size = args.size(); i < size; i++)
-  {
-    // search name with original assumption rather than its conversion
-    Assert(!d_anc.getOriginalAssumption(args[i]).isNull());
-    Node original = d_anc.getOriginalAssumption(args[i]);
-    auto it = assertionNames.find(original);
-    if (it != assertionNames.end())
-    {
-      // Since names can be strings that were originally quoted, we must see if
-      // the quotes need to be added back.
-      std::string quotedName = quoteSymbol(it->second);
-      out << "(assume " << quotedName << " ";
-      d_assumptionsMap[args[i]] = quotedName;
-    }
-    else
-    {
-      out << "(assume a" << i << " ";
-      d_assumptionsMap[args[i]] = "a" + std::to_string(i);
-    }
-    printTerm(out, args[i]);
-    out << ")" << std::endl;
-  }
-  // Then, print the rest of the proof node
-  size_t id = 0;
-  printInternal(out, "", id, pfn->getChildren()[0]);
-}
 
 void AletheProofPrinter::printInternal(std::ostream& out,
                                        const std::string& prefix,
@@ -359,6 +286,124 @@ void AletheProofPrinter::printInternal(std::ostream& out,
   std::string stepId = prefix + "t" + std::to_string(id++);
   printStep(out, stepId, arule, args, pfChildren);
   d_pfMap[pfn.get()] = stepId;
+}
+
+void AletheProofPrinter::printProofNode(std::ostream& out,
+                                        std::shared_ptr<ProofNode> pf)
+{
+  Trace("alethe-printer") << "- Print proof node in Alethe format."
+                          << std::endl;
+  // print quantifier Skolems, if they are being defined
+  if (options().proof.proofAletheDefineSkolems)
+  {
+    const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
+    for (const auto& [skolem, choice] : skolemDefs)
+    {
+      if (d_printedSkolemDefinitions.count(skolem))
+      {
+        continue;
+      }
+      d_printedSkolemDefinitions.insert(skolem);
+      out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
+      printTerm(out, choice);
+      out << ")" << std::endl;
+    }
+  }
+  if (options().printer.dagThresh)
+  {
+    // Traverse the proof node to letify the (converted) conclusions of proof
+    // steps.
+    ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
+    Trace("alethe-printer") << "- letify." << std::endl;
+    updater.process(pf);
+
+    std::vector<Node> letList;
+    d_lbind.letify(letList);
+    if (TraceIsOn("alethe-printer"))
+    {
+      for (TNode n : letList)
+      {
+        Trace("alethe-printer")
+            << "Term " << n << " has id " << d_lbind.getId(n) << std::endl;
+      }
+    }
+  }
+  // Print the proof node
+  printInternal(out, "", d_id, pf);
+}
+
+void AletheProofPrinter::print(
+    std::ostream& out,
+    std::shared_ptr<ProofNode> pfn,
+    const std::map<Node, std::string>& assertionNames)
+{
+  Trace("alethe-printer") << "- Print proof in Alethe format." << std::endl;
+  // ignore outer scope
+  pfn = pfn->getChildren()[0];
+  std::shared_ptr<ProofNode> innerPf = pfn->getChildren()[0];
+  Assert(innerPf);
+
+  // print quantifier Skolems, if they are being defined
+  if (options().proof.proofAletheDefineSkolems)
+  {
+    const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
+    for (const auto& [skolem, choice] : skolemDefs)
+    {
+      out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
+      printTerm(out, choice);
+      out << ")" << std::endl;
+    }
+  }
+  if (options().printer.dagThresh)
+  {
+    // Traverse the proof node to letify the (converted) conclusions of proof
+    // steps. Note that we traverse the original proof node because assumptions
+    // may apper just in them (if they are not used in the rest of the proof).
+    // Otherwise repeated terms *only* in assumptions would not be letified.
+    ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
+    Trace("alethe-printer") << "- letify." << std::endl;
+    updater.process(pfn);
+
+    std::vector<Node> letList;
+    d_lbind.letify(letList);
+    if (TraceIsOn("alethe-printer"))
+    {
+      for (TNode n : letList)
+      {
+        Trace("alethe-printer")
+            << "Term " << n << " has id " << d_lbind.getId(n) << std::endl;
+      }
+    }
+  }
+  Trace("alethe-printer") << "- Print assumptions." << std::endl;
+  const std::vector<Node>& args = pfn->getArguments();
+  // Special handling for the first scope. Print assumptions and add them to the
+  // list but do not print anchor.
+  Assert(!args.empty());
+  for (size_t i = 0, size = args.size(); i < size; i++)
+  {
+    // search name with original assumption rather than its conversion
+    Assert(!d_anc.getOriginalAssumption(args[i]).isNull());
+    Node original = d_anc.getOriginalAssumption(args[i]);
+    auto it = assertionNames.find(original);
+    if (it != assertionNames.end())
+    {
+      // Since names can be strings that were originally quoted, we must see if
+      // the quotes need to be added back.
+      std::string quotedName = quoteSymbol(it->second);
+      out << "(assume " << quotedName << " ";
+      d_assumptionsMap[args[i]] = quotedName;
+    }
+    else
+    {
+      out << "(assume a" << i << " ";
+      d_assumptionsMap[args[i]] = "a" + std::to_string(i);
+    }
+    printTerm(out, args[i]);
+    out << ")" << std::endl;
+  }
+  // Then, print the rest of the proof node
+  printInternal(out, "", d_id, pfn->getChildren()[0]);
 }
 
 }  // namespace proof

@@ -2684,6 +2684,13 @@ const std::string& AletheProofPostprocess::getError()
   return d_reasonForConversionFailure;
 }
 
+bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode> pf)
+{
+  ProofNodeUpdater updater(d_env, d_cb, false, false);
+  updater.process(pf);
+  return d_reasonForConversionFailure.empty();
+}
+
 bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
 {
   if (logicInfo().isHigherOrder())
