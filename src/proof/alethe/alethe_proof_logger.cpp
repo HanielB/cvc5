@@ -40,6 +40,7 @@ AletheProofLogger::AletheProofLogger(Env& env,
   Trace("alethe-pf-log-debug") << "Make Alethe proof logger" << std::endl;
   if (env.getLogicInfo().isHigherOrder())
   {
+    Trace("alethe-pf-log-debug") << "..HOL; ignore everything" << std::endl;
     out << "(error \"Proof unsupported by Alethe: contains higher-order elements\")";
     d_hadError = true;
   }
@@ -65,7 +66,7 @@ void AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode> pfn)
 
 void AletheProofLogger::logCnfPreprocessInputs(const std::vector<Node>& inputs)
 {
-  if (!d_hadError)
+  if (d_hadError)
   {
     return;
   }
@@ -85,7 +86,7 @@ void AletheProofLogger::logCnfPreprocessInputs(const std::vector<Node>& inputs)
 void AletheProofLogger::logCnfPreprocessInputProofs(
     std::vector<std::shared_ptr<ProofNode>>& pfns)
 {
-  if (!d_hadError)
+  if (d_hadError)
   {
     return;
   }
@@ -111,7 +112,7 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
 
 void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
 {
-  if (!d_hadError)
+  if (d_hadError)
   {
     return;
   }
@@ -124,7 +125,7 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
 
 void AletheProofLogger::logTheoryLemma(const Node& n)
 {
-  if (!d_hadError)
+  if (d_hadError)
   {
     return;
   }
@@ -138,7 +139,7 @@ void AletheProofLogger::logTheoryLemma(const Node& n)
 
 void AletheProofLogger::logSatRefutation()
 {
-  if (!d_hadError)
+  if (d_hadError)
   {
     return;
   }
@@ -160,7 +161,7 @@ void AletheProofLogger::logSatRefutation()
 
 void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
 {
-  if (!d_hadError)
+  if (d_hadError)
   {
     return;
   }
