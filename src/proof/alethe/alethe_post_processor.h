@@ -169,10 +169,14 @@ class AletheProofPostprocess : protected EnvObj
    * If the conversion is possible, true is returned. Otherwise, false. The
    * conversion may fail if the proof contains unsupported elements in the
    * Alethe proof calculus, such as uncategorized Skolems.
+   *
+   * If `ensureFinalStep` is true, this method will make sure the conclusion of
+   * the final step in the empty clause.
    */
   bool process(std::shared_ptr<ProofNode> pf);
 
-  bool processInnerProof(std::shared_ptr<ProofNode> pf);
+  bool processInnerProof(std::shared_ptr<ProofNode>& pf,
+                         bool ensureFinalStep = false);
 
   /** Retrieve the saved error message, if any. */
   const std::string& getError();

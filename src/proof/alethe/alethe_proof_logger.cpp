@@ -48,14 +48,16 @@ AletheProofLogger::AletheProofLogger(Env& env,
 
 AletheProofLogger::~AletheProofLogger() {}
 
-void AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode> pfn, bool inner)
+void AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode> pfn,
+                                          bool inner,
+                                          bool finalStep)
 {
   options::ProofCheckMode oldMode = options().proof.proofCheck;
   d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
   std::map<Node, std::string> assertionNames;
   if (inner)
   {
-    if (d_appproc.processInnerProof(pfn))
+    if (d_appproc.processInnerProof(pfn, finalStep))
     {
       d_apprinter.printProofNode(d_out, pfn);
     }
@@ -119,7 +121,17 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
     }
     ProofScopeMode m = ProofScopeMode::DEFINITIONS_AND_ASSERTIONS;
     d_ppProof = d_pm->connectProofToAssertions(pfn, d_as, m);
+    if (TraceIsOn("alethe-pf-log-debug"))
+    {
+      d_ppProof->printDebug(d_out, true);
+      d_out << "\n";
+    }
     printPfNodeAlethe(d_ppProof);
+    if (TraceIsOn("alethe-pf-log-debug"))
+    {
+      d_ppProof->printDebug(d_out, true);
+      d_out << "\n";
+    }
   }
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof end" << std::endl;
 }
@@ -169,7 +181,7 @@ void AletheProofLogger::logSatRefutation()
   Node f = nodeManager()->mkConst(false);
   std::shared_ptr<ProofNode> psr =
       d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);
-  printPfNodeAlethe(psr, true);
+  printPfNodeAlethe(psr, true, true);
   Trace("alethe-pf-log") << "; log SAT refutation end" << std::endl;
 }
 
@@ -183,7 +195,7 @@ void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
   // connect to preprocessed
   std::shared_ptr<ProofNode> spf =
       d_pm->connectProofToAssertions(pfn, d_as, ProofScopeMode::NONE);
-  printPfNodeAlethe(spf, true);
+  printPfNodeAlethe(spf, true, true);
   Trace("alethe-pf-log") << "; log SAT refutation proof end" << std::endl;
 }
 

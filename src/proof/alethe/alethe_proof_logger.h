@@ -54,7 +54,9 @@ class AletheProofLogger : public ProofLogger
   void logSatRefutationProof(std::shared_ptr<ProofNode>& pfn) override;
 
   /** Translate the proof node to Alethe and print it. */
-  void printPfNodeAlethe(std::shared_ptr<ProofNode> pfn, bool inner = false);
+  void printPfNodeAlethe(std::shared_ptr<ProofNode> pfn,
+                         bool inner = false,
+                         bool finalStep = false);
 
  private:
   /** The output stream */

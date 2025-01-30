@@ -2546,7 +2546,7 @@ bool AletheProofPostprocessCallback::ensureFinalStep(
   NodeManager* nm = nodeManager();
   Node res = pf->getResult();
   // Convert if conclusion is (cl false) or
-  // if it's a false assumption
+  // if it's a false assumption.
   //
   //   ...
   // -------------------    ---------------------- false
@@ -2681,10 +2681,17 @@ const std::string& AletheProofPostprocess::getError()
   return d_reasonForConversionFailure;
 }
 
-bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode> pf)
+bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode>& pf,
+                                               bool ensureFinalStep)
 {
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.process(pf);
+  if (ensureFinalStep && !d_cb.ensureFinalStep(pf))
+  {
+    std::stringstream ss;
+    ss << "\"Proof unsupported by Alethe: could not process final step\"";
+    d_reasonForConversionFailure = ss.str();
+  }
   return d_reasonForConversionFailure.empty();
 }
 
