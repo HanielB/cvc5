@@ -159,7 +159,6 @@ void AletheProofPrinter::printTerm(std::ostream& out, TNode n)
   out << ss.str();
 }
 
-
 void AletheProofPrinter::printInternal(std::ostream& out,
                                        const std::string& prefix,
                                        size_t& id,

@@ -41,7 +41,8 @@ AletheProofLogger::AletheProofLogger(Env& env,
   if (env.getLogicInfo().isHigherOrder())
   {
     Trace("alethe-pf-log-debug") << "..HOL; ignore everything" << std::endl;
-    out << "(error \"Proof unsupported by Alethe: contains higher-order elements\")";
+    out << "(error \"Proof unsupported by Alethe: contains higher-order "
+           "elements\")";
     d_hadError = true;
   }
 }
@@ -106,7 +107,8 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
   {
     return;
   }
-  Trace("alethe-pf-log") << "; log: cnf preprocess input proof start" << std::endl;
+  Trace("alethe-pf-log") << "; log: cnf preprocess input proof start"
+                         << std::endl;
   // if the assertions are empty, we do nothing. We will answer sat.
   std::shared_ptr<ProofNode> pfn;
   if (!pfns.empty())
@@ -133,7 +135,8 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
       d_out << "\n";
     }
   }
-  Trace("alethe-pf-log") << "; log: cnf preprocess input proof end" << std::endl;
+  Trace("alethe-pf-log") << "; log: cnf preprocess input proof end"
+                         << std::endl;
 }
 
 void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
@@ -142,8 +145,8 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
   {
     return;
   }
-  Trace("alethe-pf-log") << "; log theory lemma proof start " << pfn->getResult()
-                  << std::endl;
+  Trace("alethe-pf-log") << "; log theory lemma proof start "
+                         << pfn->getResult() << std::endl;
   d_lemmaPfs.emplace_back(pfn);
   printPfNodeAlethe(pfn, true);
   Trace("alethe-pf-log") << "; log theory lemma proof end" << std::endl;

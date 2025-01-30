@@ -2730,8 +2730,10 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
     return false;
   }
   // Sanitize scope arguments
-  CDProof cdp(
-      d_env, nullptr, "AletheProofPostProcess::sanitizeOuterScope::CDProof", true);
+  CDProof cdp(d_env,
+              nullptr,
+              "AletheProofPostProcess::sanitizeOuterScope::CDProof",
+              true);
   cdp.addProof(internalProof);
   std::vector<Node> ccn{internalProof->getResult()};
   std::vector<Node> args{definitionsScope->getArguments().begin(),
