@@ -17,6 +17,7 @@
 
 #include "proof/alethe/alethe_proof_rule.h"
 #include "proof/proof.h"
+#include "proof/proof_node_algorithm.h"
 #include "proof/proof_node_manager.h"
 #include "smt/env.h"
 #include "smt/proof_manager.h"
@@ -178,15 +179,13 @@ void AletheProofLogger::logSatRefutation()
       d_ppProof->getChildren()[0]->getChildren()[0];
   // we ignore the translated AND_INTRO step and rather directly get the proofs
   // for the clauses
-  CDProof cdp(
-      d_env, nullptr, "AletheProofPLogger::logSatRefutation::CDProof", false);
-  cdp.addProof(ppBody);
   for (const Node& n : d_ppClauses)
   {
+    std::shared_ptr<ProofNode> pf = expr::getSubproofFor(n, ppBody);
     // TODO for this to work I have to traverse the proof node until I find the
     // clause. Should be straightforward though
-    Assert(cdp.hasStep(n));
-    premises.emplace_back(cdp.getProofFor(n));
+    Assert(pf);
+    premises.emplace_back(pf);
   }
   premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
   Node f = nodeManager()->mkConst(false);

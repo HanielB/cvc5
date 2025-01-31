@@ -77,6 +77,15 @@ void getSubproofRules(std::shared_ptr<ProofNode> pn,
                       std::unordered_set<ProofRule> rs,
                       std::vector<std::shared_ptr<ProofNode>>& pfs);
 
+
+/**
+ * Get a subproof, if any, of pf that justifies n.
+ * @param n The node to be justified.
+ * @param pf The proof node.
+ * @return The subproof justifying n, if there is one. Nullptr otherwise.
+ */
+std::shared_ptr<ProofNode> getSubproofFor(Node n, std::shared_ptr<ProofNode> pf);
+
 /**
  * Return true if pn contains a subproof whose rule is ASSUME. Notice that we
  * do *not* distinguish between free vs. non-free assumptions in this call.
