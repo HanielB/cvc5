@@ -25,6 +25,7 @@
 #include "smt/proof_logger.h"
 
 namespace cvc5::internal {
+namespace proof {
 
 /**
  * The implementation of a proof logger for Alethe proofs
@@ -83,10 +84,14 @@ class AletheProofLogger : public ProofLogger
    */
   std::vector<std::shared_ptr<ProofNode>> d_lemmaPfs;
 
+  /** The preprocessed clauses we were notified of */
+  std::vector<Node> d_ppClauses;
+
   /** Whether there was an error for some logged proof. */
   bool d_hadError;
 };
 
+}  // namespace proof
 }  // namespace cvc5::internal
 
 #endif /* CVC5__PROOF__PROOF_LOGGER_H */

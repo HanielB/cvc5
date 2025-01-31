@@ -169,8 +169,9 @@ void PfManager::startProofLogging(std::ostream& out, Assertions& as)
 {
   if (options().proof.proofFormatMode == options::ProofFormatMode::ALETHE)
   {
-      d_plog.reset(new AletheProofLogger(d_env, out, this, as, d_pfpp.get()));
-      return;
+    d_plog.reset(
+        new proof::AletheProofLogger(d_env, out, this, as, d_pfpp.get()));
+    return;
   }
   // by default, CPC proof logger
   d_plog.reset(new ProofLoggerCpc(d_env, out, this, as, d_pfpp.get()));

@@ -148,6 +148,7 @@ const char* aletheRuleToString(AletheRule id)
       return "bv_bitblast_step_sign_extend";
     //================================================= Hole
     case AletheRule::HOLE: return "hole";
+    case AletheRule::SAT_REFUTATION: return "sat_refutation";
     //================================================= Undefined rule
     case AletheRule::UNDEFINED: return "undefined";
     default: return "?";

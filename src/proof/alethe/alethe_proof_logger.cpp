@@ -15,12 +15,14 @@
 
 #include "proof/alethe/alethe_proof_logger.h"
 
+#include "proof/alethe/alethe_proof_rule.h"
 #include "proof/proof.h"
 #include "proof/proof_node_manager.h"
 #include "smt/env.h"
 #include "smt/proof_manager.h"
 
 namespace cvc5::internal {
+namespace proof {
 
 AletheProofLogger::AletheProofLogger(Env& env,
                                      std::ostream& out,
@@ -116,24 +118,19 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
     if (pfns.size() == 1)
     {
       pfn = pfns[0];
+      d_ppClauses.push_back(pfn->getResult());
     }
     else
     {
       pfn = d_pnm->mkNode(ProofRule::AND_INTRO, pfns, {});
+      for (const std::shared_ptr<ProofNode>& pf : pfns)
+      {
+        d_ppClauses.push_back(pf->getResult());
+      }
     }
     ProofScopeMode m = ProofScopeMode::DEFINITIONS_AND_ASSERTIONS;
     d_ppProof = d_pm->connectProofToAssertions(pfn, d_as, m);
-    if (TraceIsOn("alethe-pf-log-debug"))
-    {
-      d_ppProof->printDebug(d_out, true);
-      d_out << "\n";
-    }
     printPfNodeAlethe(d_ppProof);
-    if (TraceIsOn("alethe-pf-log-debug"))
-    {
-      d_ppProof->printDebug(d_out, true);
-      d_out << "\n";
-    }
   }
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof end"
                          << std::endl;
@@ -179,7 +176,18 @@ void AletheProofLogger::logSatRefutation()
   Assert(d_ppProof->getChildren()[0]->getRule() == ProofRule::SCOPE);
   std::shared_ptr<ProofNode> ppBody =
       d_ppProof->getChildren()[0]->getChildren()[0];
-  premises.emplace_back(ppBody);
+  // we ignore the translated AND_INTRO step and rather directly get the proofs
+  // for the clauses
+  CDProof cdp(
+      d_env, nullptr, "AletheProofPLogger::logSatRefutation::CDProof", false);
+  cdp.addProof(ppBody);
+  for (const Node& n : d_ppClauses)
+  {
+    // TODO for this to work I have to traverse the proof node until I find the
+    // clause. Should be straightforward though
+    Assert(cdp.hasStep(n));
+    premises.emplace_back(cdp.getProofFor(n));
+  }
   premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
   Node f = nodeManager()->mkConst(false);
   std::shared_ptr<ProofNode> psr =
@@ -202,4 +210,5 @@ void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
   Trace("alethe-pf-log") << "; log SAT refutation proof end" << std::endl;
 }
 
+}  // namespace proof
 }  // namespace cvc5::internal

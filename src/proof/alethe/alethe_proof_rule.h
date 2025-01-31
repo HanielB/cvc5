@@ -452,6 +452,8 @@ enum class AletheRule : uint32_t
   // ======== hole
   // Used for unjustified steps
   HOLE,
+  // Used for unjustified SAT refutation
+  SAT_REFUTATION,
   // ======== undefined
   // Used in case that a step in the proof rule could not be translated.
   UNDEFINED
