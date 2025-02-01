@@ -535,6 +535,15 @@ bool AletheProofPostprocessCallback::update(Node res,
                            newArgs,
                            *cdp);
     }
+    case ProofRule::SAT_REFUTATION:
+    {
+      return addAletheStep(AletheRule::SAT_REFUTATION,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           children,
+                           args,
+                           *cdp);
+    }
     // ======== Resolution and N-ary Resolution
     // Because the RESOLUTION rule is merely a special case of CHAIN_RESOLUTION,
     // the same translation can be used for both.
