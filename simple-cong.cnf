@@ -1,0 +1,24 @@
+p cnf 10 10
+1 0
+2 0
+3 0
+c 4 0
+-9 6 0
+c 5 0
+-8 -10 0
+6 -7 -8 0
+-6 8 0
+-6 7 0
+9 0
+10 -1 -2 0
+
+c 1 (= a b)
+c 2 (= c d)
+c 3 (and p1 true)
+c 4 (or (not p1) (and p2 p3))
+c 5 (or (not p3) (not (= (f a c) (f b d))))
+c 6 (and p2 p3)
+c 7 (not p2)
+c 8 (not p3)
+c 9 p1
+c 10 (= (f a c) (f b d))
