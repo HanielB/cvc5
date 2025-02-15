@@ -387,6 +387,33 @@ void PropPfManager::logPreprocessing()
   }
 }
 
+std::vector<Node> computeAuxiliaryUnits(const std::vector<Node>& clauses)
+{
+  std::vector<Node> auxUnits;
+  for (const Node& c : clauses)
+  {
+    if (c.getKind() != Kind::OR)
+    {
+      continue;
+    }
+    // Determine if any OR child occurs as a top level clause. If so, it may
+    // be relevant to include this as a unit clause.
+    for (const Node& l : c)
+    {
+      const Node& atom = l.getKind() == Kind::NOT ? l[0] : l;
+      if (atom.getKind() == Kind::OR
+          && std::find(clauses.begin(), clauses.end(), atom) != clauses.end()
+          && std::find(auxUnits.begin(), auxUnits.end(), atom)
+                 == auxUnits.end())
+      {
+        auxUnits.push_back(atom);
+      }
+    }
+  }
+  return auxUnits;
+}
+
+
 void PropPfManager::postsolve(SatValue result)
 {
   if (d_plog != nullptr)
@@ -401,6 +428,21 @@ void PropPfManager::postsolve(SatValue result)
       }
       else
       {
+        if (TraceIsOn("test"))
+        {
+          std::vector<Node> inputs = getInputClauses();
+          Trace("test") << "#input=" << inputs.size() << std::endl;
+          std::vector<Node> lemmas = getLemmaClauses();
+          Trace("test") << "#lemmas=" << lemmas.size() << std::endl;
+          std::vector<Node> clauses{inputs.begin(), inputs.end()};
+          clauses.insert(clauses.end(), lemmas.begin(), lemmas.end());
+          std::stringstream dinputFile;
+          dinputFile << options().driver.filename << "test.cnf";
+          // the stream which stores the DIMACS of the computed clauses
+          std::fstream dout(dinputFile.str(), std::ios::out);
+          std::vector<Node> auxUnits = computeAuxiliaryUnits(clauses);
+          d_pfCnfStream.dumpDimacs(dout, clauses, auxUnits);
+        }
         // otherwise just mark the refutation
         d_plog->logSatRefutation();
       }
