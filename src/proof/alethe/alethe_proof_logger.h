@@ -54,8 +54,14 @@ class AletheProofLogger : public ProofLogger
   /** Log SAT refutation proof */
   void logSatRefutationProof(std::shared_ptr<ProofNode>& pfn) override;
 
-  /** Translate the proof node to Alethe and print it. */
-  void printPfNodeAlethe(std::shared_ptr<ProofNode> pfn,
+  /** Translate the proof node to Alethe, if possible. */
+  bool processPfNodeAlethe(std::shared_ptr<ProofNode>& pfn,
+                           bool inner,
+                           bool finalStep,
+                           std::string& error);
+
+  /** Translate the proof node to Alethe and print it, if successful translation. */
+  bool printPfNodeAlethe(std::shared_ptr<ProofNode> pfn,
                          bool inner = false,
                          bool finalStep = false);
 
@@ -78,14 +84,10 @@ class AletheProofLogger : public ProofLogger
   proof::AletheProofPrinter d_apprinter;
   /** The preprocessing proof we were notified of, which we may have created */
   std::shared_ptr<ProofNode> d_ppProof;
-  /**
-   * The list of theory lemma proofs we were notified of, which we may have
-   * created.
-   */
+  /** The list of translated preprocessing proofs we were notified of */
+  std::vector<std::shared_ptr<ProofNode>> d_ppPfs;
+  /** The list of translated theory lemma proofs we were notified of */
   std::vector<std::shared_ptr<ProofNode>> d_lemmaPfs;
-
-  /** The preprocessed clauses we were notified of */
-  std::vector<Node> d_ppClauses;
 
   /** Whether there was an error for some logged proof. */
   bool d_hadError;
