@@ -535,6 +535,15 @@ bool AletheProofPostprocessCallback::update(Node res,
                            newArgs,
                            *cdp);
     }
+    case ProofRule::TRUST_THEORY_REWRITE:
+    {
+      return addAletheStep(AletheRule::ALL_SIMPLIFY,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           children,
+                           {},
+                           *cdp);
+    }
     case ProofRule::SAT_REFUTATION:
     {
       return addAletheStep(AletheRule::SAT_REFUTATION,
