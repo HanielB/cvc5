@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Andrew Reynolds, Aina Niemetz
+ *   Andrew Reynolds, Aina Niemetz, Daniel Larraz
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2024 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -83,7 +83,14 @@ Node AlfNodeConverter::postConvert(Node n)
     // dummy node, return it
     return n;
   }
-  if (k == Kind::SKOLEM || k == Kind::DUMMY_SKOLEM || k == Kind::INST_CONSTANT)
+  // case for skolems, unhandled variables, and other unhandled terms
+  // These should print as @const, or otherwise be printed as a skolem,
+  // which may need further processing below. In the case of unhandled
+  // terms (e.g. DT_SYGUS_EVAL), we prefer printing them as @const instead
+  // of using their smt2 printer, which would lead to undeclared identifiers in
+  // the proof.
+  if (k == Kind::SKOLEM || k == Kind::DUMMY_SKOLEM || k == Kind::INST_CONSTANT
+      || k == Kind::DT_SYGUS_EVAL)
   {
     TypeNode tn = n.getType();
     // constructors/selectors are represented by skolems, which are defined
@@ -110,7 +117,7 @@ Node AlfNodeConverter::postConvert(Node n)
     // is used as (var N T) throughout.
     Node index = d_nm->mkConstInt(Rational(getOrAssignIndexForConst(n)));
     Node tc = typeAsNode(tn);
-    return mkInternalApp("const", {index, tc}, tn);
+    return mkInternalApp("@const", {index, tc}, tn);
   }
   else if (k == Kind::BOUND_VARIABLE)
   {
@@ -127,7 +134,8 @@ Node AlfNodeConverter::postConvert(Node n)
       ss << n;
       sname = ss.str();
     }
-    // A variable x of type T can unambiguously referred to as (eo::var "x" T).
+    // A variable x of type T can unambiguously referred to as (@var "x" T),
+    // which is a macro for (eo::var "x" T) in the cpc signature.
     // We convert to this representation here, which will often be letified.
     TypeNode tn = n.getType();
     std::vector<Node> args;
@@ -135,7 +143,7 @@ Node AlfNodeConverter::postConvert(Node n)
     args.push_back(nn);
     Node tnn = typeAsNode(tn);
     args.push_back(tnn);
-    return mkInternalApp("eo::var", args, tn);
+    return mkInternalApp("@var", args, tn);
   }
   else if (k == Kind::VARIABLE)
   {
@@ -223,10 +231,22 @@ Node AlfNodeConverter::postConvert(Node n)
     Assert(!lam.isNull());
     return convert(lam);
   }
+  else if (k == Kind::APPLY_CONSTRUCTOR)
+  {
+    Node opc = getOperatorOfTerm(n);
+    if (n.getNumChildren() == 0)
+    {
+      return opc;
+    }
+    std::vector<Node> newArgs;
+    newArgs.push_back(opc);
+    newArgs.insert(newArgs.end(), n.begin(), n.end());
+    Node ret = d_nm->mkNode(Kind::APPLY_UF, newArgs);
+    return convert(ret);
+  }
   else if (k == Kind::APPLY_TESTER || k == Kind::APPLY_UPDATER || k == Kind::NEG
            || k == Kind::DIVISION_TOTAL || k == Kind::INTS_DIVISION_TOTAL
-           || k == Kind::INTS_MODULUS_TOTAL || k == Kind::APPLY_CONSTRUCTOR
-           || k == Kind::APPLY_SELECTOR
+           || k == Kind::INTS_MODULUS_TOTAL || k == Kind::APPLY_SELECTOR
            || k == Kind::FLOATINGPOINT_TO_FP_FROM_IEEE_BV)
   {
     // kinds where the operator may be different
@@ -545,6 +565,18 @@ Node AlfNodeConverter::getOperatorOfTerm(Node n)
           opName << "tuple";
         }
       }
+      else if ((dt.isNullable() && index == 0)
+               || (dt.isParametric()
+                   && isAmbiguousDtConstructor(dt[index].getConstructor())))
+      {
+        // ambiguous if nullable.null or a user provided ambiguous datatype
+        // constructor
+        opName << "as";
+        indices.push_back(dt[index].getConstructor());
+        // tn is the return type
+        TypeNode tn = n.getType();
+        indices.push_back(typeAsNode(tn));
+      }
       else
       {
         opName << dt[index].getConstructor();
@@ -593,7 +625,8 @@ Node AlfNodeConverter::getOperatorOfTerm(Node n)
   Node ret;
   if (!indices.empty())
   {
-    ret = mkInternalApp(opName.str(), indices, app.getOperator().getType());
+    Node op = args.empty() ? app : app.getOperator();
+    ret = mkInternalApp(opName.str(), indices, op.getType());
   }
   else if (n.isClosure())
   {
@@ -615,7 +648,6 @@ Node AlfNodeConverter::getOperatorOfTerm(Node n)
 
 size_t AlfNodeConverter::getOrAssignIndexForConst(Node v)
 {
-  Assert(v.isVar());
   std::map<Node, size_t>::iterator it = d_constIndex.find(v);
   if (it != d_constIndex.end())
   {
@@ -624,6 +656,41 @@ size_t AlfNodeConverter::getOrAssignIndexForConst(Node v)
   size_t id = d_constIndex.size();
   d_constIndex[v] = id;
   return id;
+}
+
+bool AlfNodeConverter::isAmbiguousDtConstructor(const Node& op)
+{
+  std::map<Node, bool>::iterator it = d_ambDt.find(op);
+  if (it != d_ambDt.end())
+  {
+    return it->second;
+  }
+  bool ret = false;
+  TypeNode tn = op.getType();
+  Trace("alf-amb-dt") << "Ambiguous datatype constructor? " << op << " " << tn
+                      << std::endl;
+  size_t nchild = tn.getNumChildren();
+  Assert(nchild > 0);
+  std::unordered_set<TypeNode> atypes;
+  for (size_t i = 0; i < nchild - 1; i++)
+  {
+    expr::getComponentTypes(tn[i], atypes);
+  }
+  const DType& dt = DType::datatypeOf(op);
+  std::vector<TypeNode> params = dt.getParameters();
+  for (const TypeNode& p : params)
+  {
+    if (atypes.find(p) == atypes.end())
+    {
+      Trace("alf-amb-dt") << "...yes since " << p << " not contained"
+                          << std::endl;
+      ret = true;
+      break;
+    }
+  }
+  Trace("alf-amb-dt") << "...returns " << ret << std::endl;
+  d_ambDt[op] = ret;
+  return ret;
 }
 
 bool AlfNodeConverter::isHandledSkolemId(SkolemId id)

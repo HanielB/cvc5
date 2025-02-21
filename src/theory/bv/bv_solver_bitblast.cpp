@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2024 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -241,7 +241,17 @@ void BVSolverBitblast::postCheck(Theory::Effort level)
       std::vector<Node> assertions(d_assertions.begin(), d_assertions.end());
       conflict = nm->mkAnd(assertions);
     }
-    d_im.conflict(conflict, InferenceId::BV_BITBLAST_CONFLICT);
+    TrustNode tconflict;
+    if (d_epg != nullptr)
+    {
+      tconflict = d_epg->mkTrustNodeTrusted(
+          conflict, TrustId::BV_BITBLAST_CONFLICT, {}, {}, true);
+    }
+    else
+    {
+      tconflict = TrustNode::mkTrustConflict(conflict, nullptr);
+    }
+    d_im.trustedConflict(tconflict, InferenceId::BV_BITBLAST_CONFLICT);
   }
 }
 

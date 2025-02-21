@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2024 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -961,7 +961,8 @@ Node ProofPostprocessCallback::expandMacros(ProofRule id,
   }
   else if (id == ProofRule::MACRO_ARITH_SCALE_SUM_UB)
   {
-    Node sumBounds = theory::arith::expandMacroSumUb(children, args, cdp);
+    Node sumBounds =
+        theory::arith::expandMacroSumUb(nodeManager(), children, args, cdp);
     Assert(!sumBounds.isNull());
     Assert(res.isNull() || sumBounds == res);
     return sumBounds;

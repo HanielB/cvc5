@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Andrew Reynolds, Haniel Barbosa, Morgan Deters
+ *   Andrew Reynolds, Morgan Deters, Andres Noetzli
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2024 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -163,18 +163,16 @@ class QuantifiersRewriter : public TheoryRewriter
    * This method eliminates variables from the body of quantified formula
    * "body" using (global) reasoning about inequalities. In particular, if there
    * exists a variable x that only occurs in body or annotation qa in literals
-   * of the form x>=t with a fixed polarity P, then we may replace all such
-   * literals with P. For example, note that:
+   * of the form x>=t with a fixed polarity P, then we may drop all such
+   * literals. For example, note that:
    *   forall xy. x>y OR P(y) is equivalent to forall y. P(y).
    *
    * In the case that a variable x from args can be eliminated in this way,
-   * we remove x from args, add x >= t1, ..., x >= tn to bounds, add false, ...,
-   * false to subs, and return true.
+   * we remove x from args and return the result of removing all literals
+   * involving x from body.
    */
-  bool getVarElimIneq(Node body,
+  Node getVarElimIneq(Node body,
                       std::vector<Node>& args,
-                      std::vector<Node>& bounds,
-                      std::vector<Node>& subs,
                       QAttributes& qa) const;
   //-------------------------------------end variable elimination utilities
   /**
