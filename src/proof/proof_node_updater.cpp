@@ -94,6 +94,123 @@ void ProofNodeUpdater::process(std::shared_ptr<ProofNode> pf)
   processInternal(pf, d_freeAssumps);
 }
 
+void ProofNodeUpdater::process(std::vector<std::shared_ptr<ProofNode>>& pfs)
+{
+  processInternal(pfs, d_freeAssumps);
+}
+
+void ProofNodeUpdater::processInternal(
+    std::vector<std::shared_ptr<ProofNode>>& pfs, std::vector<Node>& fa)
+{
+  // Note that processInternal uses a single scope; fa is updated based on
+  // the current free assumptions of the proof nodes on the stack.
+
+  // The list of proof nodes we are currently traversing beneath. This is used
+  // for checking for cycles in the overall proof.
+  std::vector<std::shared_ptr<ProofNode>> traversing;
+  // Map from formulas to (closed) proof nodes that prove that fact
+  std::map<Node, std::shared_ptr<ProofNode>> resCache;
+  // Map from formulas to non-closed proof nodes that prove that fact. These
+  // are replaced by proofs in the above map when applicable.
+  std::map<Node, std::vector<std::shared_ptr<ProofNode>>> resCacheNcWaiting;
+  // Map from proof nodes to whether they contain assumptions
+  std::unordered_map<const ProofNode*, bool> cfaMap;
+  std::unordered_set<Node> cfaAllowed;
+  cfaAllowed.insert(fa.begin(), fa.end());
+  Trace("pf-process") << "ProofNodeUpdater::process" << std::endl;
+  std::unordered_map<std::shared_ptr<ProofNode>, bool> visited;
+  std::unordered_map<std::shared_ptr<ProofNode>, bool>::iterator it;
+  std::vector<std::shared_ptr<ProofNode>> visit{pfs.begin(), pfs.end()};
+  std::shared_ptr<ProofNode> cur;
+  std::map<Node, std::shared_ptr<ProofNode>>::iterator itc;
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    it = visited.find(cur);
+    if (it == visited.end())
+    {
+      // Check if there is a proof in resCache with the same result.
+      // Note that if this returns true, we update the contents of the current
+      // proof. Moreover, parents will replace the reference to this proof.
+      // Thus, replacing the contents of this proof is not (typically)
+      // necessary, but is done anyways in case there are any other references
+      // to this proof that are not handled by this loop, that is, proof
+      // nodes having this as a child that are not subproofs of pf.
+      if (checkMergeProof(cur, resCache, cfaMap))
+      {
+        visited[cur] = true;
+        continue;
+      }
+      // run update to a fixed point
+      bool continueUpdate = true;
+      while (runUpdate(cur, fa, continueUpdate) && continueUpdate)
+      {
+        Trace("pf-process-debug") << "...updated proof." << std::endl;
+      }
+      visited[cur] = !continueUpdate;
+      if (!continueUpdate)
+      {
+        // no further changes should be made to cur according to the callback
+        Trace("pf-process-debug")
+            << "...marked to not continue update." << std::endl;
+        runFinalize(cur, fa, resCache, resCacheNcWaiting, cfaMap, cfaAllowed);
+        continue;
+      }
+      traversing.push_back(cur);
+      visit.push_back(cur);
+      // If we are not the top-level proof, we were a scope, or became a scope
+      // after updating, we do a separate recursive call to this method. This
+      // allows us to properly track the assumptions in scope, which is
+      // important for example to merge or to determine updates based on free
+      // assumptions.
+      if (cur->getRule() == ProofRule::SCOPE)
+      {
+        const std::vector<Node>& args = cur->getArguments();
+        fa.insert(fa.end(), args.begin(), args.end());
+      }
+      const std::vector<std::shared_ptr<ProofNode>>& ccp = cur->getChildren();
+      // now, process children
+      for (const std::shared_ptr<ProofNode>& cp : ccp)
+      {
+        if (std::find(traversing.begin(), traversing.end(), cp)
+            != traversing.end())
+        {
+          Unhandled()
+              << "ProofNodeUpdater::processInternal: cyclic proof! (use "
+                 "--proof-check=eager)"
+              << std::endl;
+        }
+        visit.push_back(cp);
+      }
+    }
+    else if (!it->second)
+    {
+      Assert(!traversing.empty());
+      traversing.pop_back();
+      visited[cur] = true;
+      // finalize the node
+      if (cur->getRule() == ProofRule::SCOPE)
+      {
+        const std::vector<Node>& args = cur->getArguments();
+        Assert(fa.size() >= args.size());
+        fa.resize(fa.size() - args.size());
+      }
+      // maybe found a proof in the meantime, i.e. a subproof of the current
+      // proof with the same result. Same as above, updating the contents here
+      // is typically not necessary since references to this proof will be
+      // replaced.
+      if (checkMergeProof(cur, resCache, cfaMap))
+      {
+        visited[cur] = true;
+        continue;
+      }
+      runFinalize(cur, fa, resCache, resCacheNcWaiting, cfaMap, cfaAllowed);
+    }
+  } while (!visit.empty());
+  Trace("pf-process") << "ProofNodeUpdater::process: finished" << std::endl;
+}
+
 void ProofNodeUpdater::processInternal(std::shared_ptr<ProofNode> pf,
                                        std::vector<Node>& fa)
 {

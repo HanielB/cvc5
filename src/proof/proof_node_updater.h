@@ -138,6 +138,8 @@ class ProofNodeUpdater : protected EnvObj
    */
   void setFreeAssumptions(const std::vector<Node>& freeAssumps, bool doDebug);
 
+  void process(std::vector<std::shared_ptr<ProofNode>>& pfs);
+
  private:
   /** The callback */
   ProofNodeUpdaterCallback& d_cb;
@@ -151,6 +153,8 @@ class ProofNodeUpdater : protected EnvObj
    * may call this method on P with fa = { A, B }.
    */
   void processInternal(std::shared_ptr<ProofNode> pf, std::vector<Node>& fa);
+
+  void processInternal(std::vector<std::shared_ptr<ProofNode>>& pfs, std::vector<Node>& fa);
   /**
    * Update proof node cur based on the callback and on whether we are updating
    * at pre visit or post visit time. This modifies curr using

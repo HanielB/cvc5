@@ -177,6 +177,7 @@ class AletheProofPostprocess : protected EnvObj
 
   bool processInnerProof(std::shared_ptr<ProofNode>& pf,
                          bool ensureFinalStep = false);
+  bool processInnerProofs(std::vector<std::shared_ptr<ProofNode>>& pfs, const std::vector<Node>& assumptions);
 
   /** Retrieve the saved error message, if any. */
   const std::string& getError();

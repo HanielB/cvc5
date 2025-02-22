@@ -90,7 +90,15 @@ class AletheProofPrinter : protected EnvObj
    * @param id The current id being used for printing step ids
    * @param pfn The proof node to be printed
    */
-  void printProofNode(std::ostream& out, std::shared_ptr<ProofNode> pf);
+  void printProofNode(std::ostream& out, std::shared_ptr<ProofNode> pf, bool raw = false);
+
+  void printInitialAssumptions(
+      std::ostream& out,
+      const std::vector<Node>& assumptions,
+      const std::map<Node, std::string>& assertionNames,
+      bool raw = false);
+
+  context::CDHashMap<ProofNode*, std::string>* getPfMap() { return &d_pfMap; }
 
  private:
   /** The printing context */
@@ -115,7 +123,7 @@ class AletheProofPrinter : protected EnvObj
   void printInternal(std::ostream& out,
                      const std::string& prefix,
                      size_t& id,
-                     std::shared_ptr<ProofNode> pfn);
+                     std::shared_ptr<ProofNode> pfn, bool raw = false);
 
   /** Print term into stream
    *
@@ -125,7 +133,7 @@ class AletheProofPrinter : protected EnvObj
    * @param out The stream to write to
    * @param n The node to be printed
    */
-  void printTerm(std::ostream& out, TNode n);
+  void printTerm(std::ostream& out, TNode n, bool raw = false);
 
   /** Print the id for the previously printed step/assumption of the given proof
    * node.
@@ -149,7 +157,8 @@ class AletheProofPrinter : protected EnvObj
                  const std::string& stepId,
                  AletheRule arule,
                  const std::vector<Node>& pfArgs,
-                 const std::vector<std::shared_ptr<ProofNode>>& pfChildren);
+                 const std::vector<std::shared_ptr<ProofNode>>& pfChildren,
+                 bool raw = false);
 
   /** The let binder for printing with sharing. */
   AletheLetBinding d_lbind;

@@ -94,11 +94,11 @@ void AletheProofPrinter::printStep(
     const std::string& stepId,
     AletheRule arule,
     const std::vector<Node>& pfArgs,
-    const std::vector<std::shared_ptr<ProofNode>>& pfChildren)
+    const std::vector<std::shared_ptr<ProofNode>>& pfChildren, bool raw)
 {
   out << "(step " << stepId << " ";
   // print the conclusion and the rule
-  printTerm(out, pfArgs[2]);
+  printTerm(out, pfArgs[2], raw);
   out << " :rule " << arule;
   if (!pfChildren.empty())
   {
@@ -144,8 +144,14 @@ void AletheProofPrinter::printStepId(std::ostream& out,
   out << d_pfMap.find(pfn.get())->second;
 }
 
-void AletheProofPrinter::printTerm(std::ostream& out, TNode n)
+void AletheProofPrinter::printTerm(std::ostream& out, TNode n, bool raw)
 {
+  if (raw) {
+    options::ioutils::applyOutputLanguage(out, Language::LANG_SMTLIB_V2_6);
+    options::ioutils::applyPrintArithLitToken(out, true);
+    out << "(cl " << n << ")";
+    return;
+  }
   std::stringstream ss;
   options::ioutils::applyOutputLanguage(ss, Language::LANG_SMTLIB_V2_6);
   // We print lambda applications in non-curried manner
@@ -162,7 +168,7 @@ void AletheProofPrinter::printTerm(std::ostream& out, TNode n)
 void AletheProofPrinter::printInternal(std::ostream& out,
                                        const std::string& prefix,
                                        size_t& id,
-                                       std::shared_ptr<ProofNode> pfn)
+                                       std::shared_ptr<ProofNode> pfn, bool raw)
 {
   // assumptions are not printed when reached here because in Alethe they are
   // always printed beforehand, i.e., from the scope introducing them, or being
@@ -283,52 +289,96 @@ void AletheProofPrinter::printInternal(std::ostream& out,
   }
   // Print this step
   std::string stepId = prefix + "t" + std::to_string(id++);
-  printStep(out, stepId, arule, args, pfChildren);
+  printStep(out, stepId, arule, args, pfChildren, raw);
   d_pfMap[pfn.get()] = stepId;
 }
 
 void AletheProofPrinter::printProofNode(std::ostream& out,
-                                        std::shared_ptr<ProofNode> pf)
+                                        std::shared_ptr<ProofNode> pf, bool raw)
 {
   Trace("alethe-printer") << "- Print proof node in Alethe format."
                           << std::endl;
-  // print quantifier Skolems, if they are being defined
-  if (options().proof.proofAletheDefineSkolems)
-  {
-    const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
-    for (const auto& [skolem, choice] : skolemDefs)
+  if (!raw)
+  {  // print quantifier Skolems, if they are being defined
+    if (options().proof.proofAletheDefineSkolems)
     {
-      if (d_printedSkolemDefinitions.count(skolem))
+      const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
+      for (const auto& [skolem, choice] : skolemDefs)
       {
-        continue;
+        if (d_printedSkolemDefinitions.count(skolem))
+        {
+          continue;
+        }
+        d_printedSkolemDefinitions.insert(skolem);
+        out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
+        printTerm(out, choice);
+        out << ")" << std::endl;
       }
-      d_printedSkolemDefinitions.insert(skolem);
-      out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
-      printTerm(out, choice);
-      out << ")" << std::endl;
     }
-  }
-  if (options().printer.dagThresh)
-  {
-    // Traverse the proof node to letify the (converted) conclusions of proof
-    // steps.
-    ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
-    Trace("alethe-printer") << "- letify." << std::endl;
-    updater.process(pf);
-
-    std::vector<Node> letList;
-    d_lbind.letify(letList);
-    if (TraceIsOn("alethe-printer"))
+    if (options().printer.dagThresh)
     {
-      for (TNode n : letList)
+      // Traverse the proof node to letify the (converted) conclusions of proof
+      // steps.
+      ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
+      Trace("alethe-printer") << "- letify." << std::endl;
+      updater.process(pf);
+
+      std::vector<Node> letList;
+      d_lbind.letify(letList);
+      if (TraceIsOn("alethe-printer"))
       {
-        Trace("alethe-printer")
-            << "Term " << n << " has id " << d_lbind.getId(n) << std::endl;
+        for (TNode n : letList)
+        {
+          Trace("alethe-printer")
+              << "Term " << n << " has id " << d_lbind.getId(n) << std::endl;
+        }
       }
     }
   }
   // Print the proof node
-  printInternal(out, "", d_id, pf);
+  printInternal(out, "", d_id, pf, raw);
+}
+
+void AletheProofPrinter::printInitialAssumptions(
+    std::ostream& out,
+    const std::vector<Node>& assumptions,
+    const std::map<Node, std::string>& assertionNames,
+    bool raw)
+{
+  // Special handling for the first scope. Print assumptions and add them to the
+  // list but do not print anchor.
+  Assert(!assumptions.empty());
+  for (size_t i = 0, size = assumptions.size(); i < size; i++)
+  {
+    // search name with original assumption rather than its conversion
+    Assert(!d_anc.getOriginalAssumption(assumptions[i]).isNull());
+    Node original = d_anc.getOriginalAssumption(assumptions[i]);
+    auto it = assertionNames.find(original);
+    if (it != assertionNames.end())
+    {
+      // Since names can be strings that were originally quoted, we must see if
+      // the quotes need to be added back.
+      std::string quotedName = quoteSymbol(it->second);
+      out << "(assume " << quotedName << " ";
+      d_assumptionsMap[assumptions[i]] = quotedName;
+    }
+    else
+    {
+      out << "(assume a" << i << " ";
+      d_assumptionsMap[assumptions[i]] = "a" + std::to_string(i);
+    }
+    if (raw)
+    {
+      options::ioutils::applyOutputLanguage(out, Language::LANG_SMTLIB_V2_6);
+      options::ioutils::applyPrintArithLitToken(out, true);
+      out << assumptions[i];
+    }
+    else
+    {
+      printTerm(out, assumptions[i]);
+    }
+    out << ")" << std::endl;
+  }
 }
 
 void AletheProofPrinter::print(
@@ -376,31 +426,7 @@ void AletheProofPrinter::print(
   }
   Trace("alethe-printer") << "- Print assumptions." << std::endl;
   const std::vector<Node>& args = pfn->getArguments();
-  // Special handling for the first scope. Print assumptions and add them to the
-  // list but do not print anchor.
-  Assert(!args.empty());
-  for (size_t i = 0, size = args.size(); i < size; i++)
-  {
-    // search name with original assumption rather than its conversion
-    Assert(!d_anc.getOriginalAssumption(args[i]).isNull());
-    Node original = d_anc.getOriginalAssumption(args[i]);
-    auto it = assertionNames.find(original);
-    if (it != assertionNames.end())
-    {
-      // Since names can be strings that were originally quoted, we must see if
-      // the quotes need to be added back.
-      std::string quotedName = quoteSymbol(it->second);
-      out << "(assume " << quotedName << " ";
-      d_assumptionsMap[args[i]] = quotedName;
-    }
-    else
-    {
-      out << "(assume a" << i << " ";
-      d_assumptionsMap[args[i]] = "a" + std::to_string(i);
-    }
-    printTerm(out, args[i]);
-    out << ")" << std::endl;
-  }
+  printInitialAssumptions(out, args, assertionNames);
   // Then, print the rest of the proof node
   printInternal(out, "", d_id, pfn->getChildren()[0]);
 }

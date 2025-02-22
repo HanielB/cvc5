@@ -60,10 +60,13 @@ class AletheProofLogger : public ProofLogger
                            bool finalStep,
                            std::string& error);
 
-  /** Translate the proof node to Alethe and print it, if successful translation. */
-  bool printPfNodeAlethe(std::shared_ptr<ProofNode> pfn,
+  /** Translate the proof node to Alethe and print it, if successful
+   * translation. */
+  bool printPfNodeAlethe(std::shared_ptr<ProofNode>& pfn,
                          bool inner = false,
                          bool finalStep = false);
+
+  bool printPfNodesAlethe(std::vector<std::shared_ptr<ProofNode>>& pfns, const std::vector<Node>& assumptions);
 
  private:
   /** The output stream */
@@ -88,6 +91,8 @@ class AletheProofLogger : public ProofLogger
   std::vector<std::shared_ptr<ProofNode>> d_ppPfs;
   /** The list of translated theory lemma proofs we were notified of */
   std::vector<std::shared_ptr<ProofNode>> d_lemmaPfs;
+
+  bool d_multPPClauses;
 
   /** Whether there was an error for some logged proof. */
   bool d_hadError;

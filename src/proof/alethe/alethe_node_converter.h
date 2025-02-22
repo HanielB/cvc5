@@ -39,7 +39,9 @@ class AletheNodeConverter : public BaseAlfNodeConverter
    * separately.
    */
   AletheNodeConverter(NodeManager* nm, bool defineSkolems = false)
-      : BaseAlfNodeConverter(nm), d_defineSkolems(defineSkolems)
+      : BaseAlfNodeConverter(nm),
+        d_cl(nm->mkBoundVar("cl", nm->sExprType())),
+        d_defineSkolems(defineSkolems)
   {
   }
   ~AletheNodeConverter() {}
@@ -85,7 +87,11 @@ class AletheNodeConverter : public BaseAlfNodeConverter
     return Node::null();
   };
 
+  Node getCl() { return d_cl; }
+
  private:
+  /* Clause operator */
+  Node d_cl;
   /** Error message saved during failed conversion. */
   std::string d_error;
   /** Whether Skolem definitions will be saved to be printed separately. */

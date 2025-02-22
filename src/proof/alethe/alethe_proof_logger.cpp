@@ -21,6 +21,7 @@
 #include "proof/proof_node_manager.h"
 #include "smt/env.h"
 #include "smt/proof_manager.h"
+#include "util/string.h"
 
 namespace cvc5::internal {
 namespace proof {
@@ -40,6 +41,8 @@ AletheProofLogger::AletheProofLogger(Env& env,
       d_appproc(env, d_anc),
       d_apprinter(env, d_anc)
 {
+  d_hadError = false;
+  d_multPPClauses = false;
   Trace("alethe-pf-log-debug") << "Make Alethe proof logger" << std::endl;
   if (env.getLogicInfo().isHigherOrder())
   {
@@ -74,7 +77,28 @@ bool AletheProofLogger::processPfNodeAlethe(std::shared_ptr<ProofNode>& pfn,
   return false;
 }
 
-bool AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode> pfn,
+bool AletheProofLogger::printPfNodesAlethe(
+                                           std::vector<std::shared_ptr<ProofNode>>& pfns, const std::vector<Node>& assumptions)
+{
+  options::ProofCheckMode oldMode = options().proof.proofCheck;
+  d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
+  bool success = d_appproc.processInnerProofs(pfns, assumptions);
+  if (success)
+  {
+    for (const std::shared_ptr<ProofNode>& pfn : pfns)
+    {
+      d_apprinter.printProofNode(d_out, pfn);
+    }
+  }
+  else
+  {
+    d_out << "(error " << d_appproc.getError() << ")";
+  }
+  d_pnm->getChecker()->setProofCheckMode(oldMode);
+  return success;
+}
+
+bool AletheProofLogger::printPfNodeAlethe(std::shared_ptr<ProofNode>& pfn,
                                           bool inner,
                                           bool finalStep)
 {
@@ -141,20 +165,69 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
   std::shared_ptr<ProofNode> pfn;
   if (!pfns.empty())
   {
-    pfn = pfns.size() == 1 ? pfns[0] : d_pnm->mkNode(ProofRule::AND_INTRO, pfns, {});
+    d_multPPClauses = pfns.size() > 1;
+    pfn = pfns.size() == 1 ? pfns[0]
+                           : d_pnm->mkNode(ProofRule::AND_INTRO, pfns, {});
     ProofScopeMode m = ProofScopeMode::DEFINITIONS_AND_ASSERTIONS;
     d_ppProof = d_pm->connectProofToAssertions(pfn, d_as, m);
-    d_hadError = !printPfNodeAlethe(d_ppProof);
+    Assert(d_ppProof->getRule() == ProofRule::SCOPE
+           && d_ppProof->getChildren()[0]->getRule() == ProofRule::SCOPE);
+    std::shared_ptr<ProofNode> definitionsScope = d_ppProof;
+    std::shared_ptr<ProofNode> assumptionsScope = d_ppProof->getChildren()[0];
+    std::vector<Node> assumptions{definitionsScope->getArguments().begin(),
+                                  definitionsScope->getArguments().end()};
+    assumptions.insert(assumptions.end(),
+                       assumptionsScope->getArguments().begin(),
+                       assumptionsScope->getArguments().end());
+    // Sanitize original assumptions
+    std::vector<Node> sanitizedAssumptions;
+    for (const Node& a : assumptions)
+    {
+      Node conv = d_anc.maybeConvert(a, true);
+      if (conv.isNull())
+      {
+        d_hadError = true;
+        d_out << "(error " << d_anc.getError() << ")";
+        break;
+      }
+      // avoid repeated assumptions
+      if (std::find(
+              sanitizedAssumptions.begin(), sanitizedAssumptions.end(), conv)
+          == sanitizedAssumptions.end())
+      {
+        sanitizedAssumptions.push_back(conv);
+      }
+    }
     if (!d_hadError)
     {
-      // save the translated proofs of the given preprocessing clauses
-      for (std::shared_ptr<ProofNode>& pf : pfns)
+      std::map<Node, std::string> assertionNames;
+      d_apprinter.printInitialAssumptions(
+          d_out, sanitizedAssumptions, assertionNames, true);
+      // not process and print each preprocessing proof. They should connect to
+      // the assumptions
+      Trace("alethe-pf-log")
+          << "; log: reprocess again the inputs to save them for later printing"
+          << std::endl;
+      std::shared_ptr<ProofNode> ppBody =
+      d_ppProof->getChildren()[0]->getChildren()[0];
+      if (!printPfNodeAlethe(ppBody, true, false))
       {
-        std::string error;
-        bool success = processPfNodeAlethe(pf, true, false, error);
-        Assert(success);
-        d_ppPfs.push_back(pf);
+        d_hadError = true;
       }
+
+      // d_hadError = !printPfNodesAlethe(pfns, assumptions);
+      // d_ppPfs.insert(d_ppPfs.end(), pfns.begin(), pfns.end());
+
+      // for (const std::shared_ptr<ProofNode>& pf : pfns)
+      // {
+      //   context::CDHashMap<ProofNode*, std::string>::const_iterator pfIt =
+      //       d_apprinter.getPfMap()->find(pf.get());
+      //   if (pfIt != d_apprinter.getPfMap()->end())
+      //   {
+      //     Trace("alethe-pf-log") << "\thas in map step for preprocessing of "
+      //                            << pf->getResult() << "\n";
+      //   }
+      // }
     }
   }
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof end"
@@ -181,10 +254,25 @@ void AletheProofLogger::logTheoryLemma(const Node& n)
     return;
   }
   Trace("alethe-pf-log") << "; log theory lemma start " << n << std::endl;
+  // create Alethe step directly. No need to go via the post-processor.
+  std::vector<Node> args{nodeManager()->mkConstInt(
+      Rational(static_cast<uint32_t>(AletheRule::HOLE)))};
+  args.push_back(n);
+  Node conclusion = d_anc.maybeConvert(n);
+  if (conclusion.isNull())
+  {
+    d_hadError = true;
+    d_out << "(error " << d_anc.getError() << ")";
+    return;
+  }
+  args.push_back(conclusion);
+  args.push_back(nodeManager()->mkConst(String("THEORY_LEMMA")));
   std::shared_ptr<ProofNode> ptl =
-      d_pnm->mkTrustedNode(TrustId::THEORY_LEMMA, {}, {}, n);
+      d_pnm->mkNode(ProofRule::ALETHE_RULE, {}, args, n);
   d_lemmaPfs.emplace_back(ptl);
-  d_hadError = !printPfNodeAlethe(ptl, true);
+
+  d_apprinter.printProofNode(d_out, ptl, true);
+  // d_out << conclusion << "\n";
   Trace("alethe-pf-log") << "; log theory lemma end" << std::endl;
 }
 
@@ -195,7 +283,8 @@ void AletheProofLogger::logSatRefutation()
     return;
   }
   Trace("alethe-pf-log") << "; log SAT refutation start" << std::endl;
-  std::vector<std::shared_ptr<ProofNode>> premises{d_ppPfs.begin(), d_ppPfs.end()};
+  std::vector<std::shared_ptr<ProofNode>> premises{d_ppPfs.begin(),
+                                                   d_ppPfs.end()};
   if (Configuration::isAssertionBuild())
   {
     // make sure that each of these premises is present in the preprocessing
@@ -210,7 +299,8 @@ void AletheProofLogger::logSatRefutation()
     {
       Node n = ppPf->getResult();
       // Traverse the proof node to find a subproof concluding n.
-      Assert(expr::getSubproofFor(n, ppBody)) << "Could not find " << n << std::endl;
+      Assert(expr::getSubproofFor(n, ppBody))
+          << "Could not find " << n << std::endl;
     }
   }
   premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
@@ -227,14 +317,31 @@ void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
   {
     return;
   }
-  Trace("alethe-pf-log") << "; log SAT refutation start" << std::endl;
-  std::vector<std::shared_ptr<ProofNode>> premises{d_ppPfs.begin(), d_ppPfs.end()};
+  Trace("alethe-pf-log") << "; log SAT refutation proof start" << std::endl;
+  Assert(d_ppProof->getRule() == ProofRule::SCOPE);
+  Assert(d_ppProof->getChildren()[0]->getRule() == ProofRule::SCOPE);
+  std::shared_ptr<ProofNode> ppBody =
+      d_ppProof->getChildren()[0]->getChildren()[0];
+  std::vector<std::shared_ptr<ProofNode>> premises;
+  if (d_multPPClauses) {
+    // get the premises of the and_intro rule
+    Assert(getAletheRule(ppBody->getArguments()[0]) == AletheRule::AND_INTRO);
+    const std::vector<std::shared_ptr<ProofNode>>& pfChildren =
+        ppBody->getChildren();
+    premises.insert(premises.end(), pfChildren.begin(), pfChildren.end());
+  }
+  else {
+    premises.push_back(ppBody);
+  }
+
+
+  // std::vector<std::shared_ptr<ProofNode>> premises{ppBody};
   premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
   Node f = nodeManager()->mkConst(false);
   std::shared_ptr<ProofNode> psr =
       d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);
   printPfNodeAlethe(psr, true, true);
-  Trace("alethe-pf-log") << "; log SAT refutation end" << std::endl;
+  Trace("alethe-pf-log") << "; log SAT refutation proof end" << std::endl;
 }
 
 }  // namespace proof

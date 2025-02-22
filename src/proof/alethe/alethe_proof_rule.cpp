@@ -149,6 +149,7 @@ const char* aletheRuleToString(AletheRule id)
     //================================================= Hole
     case AletheRule::HOLE: return "hole";
     case AletheRule::SAT_REFUTATION: return "sat_refutation";
+    case AletheRule::AND_INTRO: return "and_intro";
     //================================================= Undefined rule
     case AletheRule::UNDEFINED: return "undefined";
     default: return "?";

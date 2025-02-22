@@ -61,7 +61,7 @@ AletheProofPostprocessCallback::AletheProofPostprocessCallback(
     : EnvObj(env), d_anc(anc), d_resPivots(resPivots)
 {
   NodeManager* nm = nodeManager();
-  d_cl = NodeManager::mkBoundVar("cl", nm->sExprType());
+  d_cl = d_anc.getCl();
   d_true = nm->mkConst(true);
   d_false = nm->mkConst(false);
 }
@@ -486,36 +486,6 @@ bool AletheProofPostprocessCallback::update(Node res,
       }
       TrustId tid;
       bool hasTrustId = getTrustId(args[0], tid);
-      if (hasTrustId && tid == TrustId::THEORY_LEMMA)
-      {
-        // if we are in the arithmetic case, we rather add a LIA_GENERIC step
-        if (res.getKind() == Kind::NOT && res[0].getKind() == Kind::AND)
-        {
-          Trace("alethe-proof") << "... test each arg if ineq\n";
-          bool allIneqs = true;
-          for (const Node& arg : res[0])
-          {
-            Node toTest = arg.getKind() == Kind::NOT ? arg[0] : arg;
-            Kind k = toTest.getKind();
-            if (k != Kind::LT && k != Kind::LEQ && k != Kind::GT
-                && k != Kind::GEQ && k != Kind::EQUAL)
-            {
-              Trace("alethe-proof") << "... arg " << arg << " not ineq\n";
-              allIneqs = false;
-              break;
-            }
-          }
-          if (allIneqs)
-          {
-            return addAletheStep(AletheRule::LIA_GENERIC,
-                                 res,
-                                 nm->mkNode(Kind::SEXPR, d_cl, res),
-                                 children,
-                                 {},
-                                 *cdp);
-          }
-        }
-      }
       std::stringstream ss;
       if (hasTrustId)
       {
@@ -838,28 +808,34 @@ bool AletheProofPostprocessCallback::update(Node res,
     // * the corresponding proof node is (and F1 ... Fn)
     case ProofRule::AND_INTRO:
     {
-      std::vector<Node> neg_Nodes = {d_cl, res};
-      for (size_t i = 0, size = children.size(); i < size; i++)
-      {
-        neg_Nodes.push_back(children[i].notNode());
-      }
-      Node vp1 = nm->mkNode(Kind::SEXPR, neg_Nodes);
+      // std::vector<Node> neg_Nodes = {d_cl, res};
+      // for (size_t i = 0, size = children.size(); i < size; i++)
+      // {
+      //   neg_Nodes.push_back(children[i].notNode());
+      // }
+      // Node vp1 = nm->mkNode(Kind::SEXPR, neg_Nodes);
 
-      std::vector<Node> new_children = {vp1};
-      new_children.insert(new_children.end(), children.begin(), children.end());
-      std::vector<Node> newArgs;
-      for (const Node& child : children)
-      {
-        newArgs.push_back(child);
-        newArgs.push_back(d_false);
-      }
-      return addAletheStep(AletheRule::AND_NEG, vp1, vp1, {}, {}, *cdp)
-             && addAletheStep(AletheRule::RESOLUTION_OR,
-                              res,
-                              nm->mkNode(Kind::SEXPR, d_cl, res),
-                              new_children,
-                              newArgs,
-                              *cdp);
+      // std::vector<Node> new_children = {vp1};
+      // new_children.insert(new_children.end(), children.begin(), children.end());
+      // std::vector<Node> newArgs;
+      // for (const Node& child : children)
+      // {
+      //   newArgs.push_back(child);
+      //   newArgs.push_back(d_false);
+      // }
+      // return addAletheStep(AletheRule::AND_NEG, vp1, vp1, {}, {}, *cdp)
+      //        && addAletheStep(AletheRule::RESOLUTION_OR,
+      //                         res,
+      //                         nm->mkNode(Kind::SEXPR, d_cl, res),
+      //                         new_children,
+      //                         newArgs,
+      //                         *cdp);
+      return addAletheStep(AletheRule::AND_INTRO,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           children,
+                           args,
+                           *cdp);
     }
     // ======== Not Or elimination
     // This rule is translated according to the singleton pattern.
@@ -2697,6 +2673,14 @@ AletheProofPostprocess::~AletheProofPostprocess() {}
 const std::string& AletheProofPostprocess::getError()
 {
   return d_reasonForConversionFailure;
+}
+
+bool AletheProofPostprocess::processInnerProofs(std::vector<std::shared_ptr<ProofNode>>& pfs, const std::vector<Node>& assumptions)
+{
+  ProofNodeUpdater updater(d_env, d_cb, false, false);
+  updater.setFreeAssumptions(assumptions, false);
+  updater.process(pfs);
+  return d_reasonForConversionFailure.empty();
 }
 
 bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode>& pf,
