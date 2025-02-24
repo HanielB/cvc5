@@ -78,7 +78,8 @@ bool AletheProofLogger::processPfNodeAlethe(std::shared_ptr<ProofNode>& pfn,
 }
 
 bool AletheProofLogger::printPfNodesAlethe(
-                                           std::vector<std::shared_ptr<ProofNode>>& pfns, const std::vector<Node>& assumptions)
+    std::vector<std::shared_ptr<ProofNode>>& pfns,
+    const std::vector<Node>& assumptions)
 {
   options::ProofCheckMode oldMode = options().proof.proofCheck;
   d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
@@ -152,22 +153,13 @@ void AletheProofLogger::logCnfPreprocessInputs(const std::vector<Node>& inputs)
                          << std::endl;
 }
 
-void AletheProofLogger::logCnfPreprocessInputProofs(
+void AletheProofLogger::printPreprocessingProof(
     std::vector<std::shared_ptr<ProofNode>>& pfns)
 {
-  if (d_hadError)
-  {
-    return;
-  }
-  Trace("alethe-pf-log") << "; log: cnf preprocess input proof start"
-                         << std::endl;
-  // if the assertions are empty, we do nothing. We will answer sat.
-  std::shared_ptr<ProofNode> pfn;
-  if (!pfns.empty())
-  {
     d_multPPClauses = pfns.size() > 1;
-    pfn = pfns.size() == 1 ? pfns[0]
-                           : d_pnm->mkNode(ProofRule::AND_INTRO, pfns, {});
+    std::shared_ptr<ProofNode> pfn =
+        pfns.size() == 1 ? pfns[0]
+                         : d_pnm->mkNode(ProofRule::AND_INTRO, pfns, {});
     ProofScopeMode m = ProofScopeMode::DEFINITIONS_AND_ASSERTIONS;
     d_ppProof = d_pm->connectProofToAssertions(pfn, d_as, m);
     Assert(d_ppProof->getRule() == ProofRule::SCOPE
@@ -209,7 +201,7 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
           << "; log: reprocess again the inputs to save them for later printing"
           << std::endl;
       std::shared_ptr<ProofNode> ppBody =
-      d_ppProof->getChildren()[0]->getChildren()[0];
+          d_ppProof->getChildren()[0]->getChildren()[0];
       if (!printPfNodeAlethe(ppBody, true, false))
       {
         d_hadError = true;
@@ -229,6 +221,21 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
       //   }
       // }
     }
+}
+
+void AletheProofLogger::logCnfPreprocessInputProofs(
+    std::vector<std::shared_ptr<ProofNode>>& pfns)
+{
+  if (d_hadError)
+  {
+    return;
+  }
+  Trace("alethe-pf-log") << "; log: cnf preprocess input proof start"
+                         << std::endl;
+  // if the assertions are empty, we do nothing. We will answer sat.
+  if (!pfns.empty() && !options().proof.proofLogLazyPreProcessing)
+  {
+    printPreprocessingProof(pfns);
   }
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof end"
                          << std::endl;

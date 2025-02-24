@@ -66,7 +66,10 @@ class AletheProofLogger : public ProofLogger
                          bool inner = false,
                          bool finalStep = false);
 
-  bool printPfNodesAlethe(std::vector<std::shared_ptr<ProofNode>>& pfns, const std::vector<Node>& assumptions);
+  bool printPfNodesAlethe(std::vector<std::shared_ptr<ProofNode>>& pfns,
+                          const std::vector<Node>& assumptions);
+
+  void printPreprocessingProof(std::vector<std::shared_ptr<ProofNode>>& pfns);
 
  private:
   /** The output stream */

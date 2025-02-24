@@ -253,3 +253,11 @@ name   = "Proof"
   type       = "bool"
   default    = "false"
   help       = "Proof logging mode"
+
+[[option]]
+  name       = "proofLogLazyPreProcessing"
+  category   = "expert"
+  long       = "proof-log-lazy-pp"
+  type       = "bool"
+  default    = "false"
+  help       = "Lazily log proofs of preprocessing, based on unsat core input clauses"
