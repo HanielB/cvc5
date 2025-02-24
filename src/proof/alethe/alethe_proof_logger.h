@@ -92,6 +92,9 @@ class AletheProofLogger : public ProofLogger
   /** The list of translated theory lemma proofs we were notified of */
   std::vector<std::shared_ptr<ProofNode>> d_lemmaPfs;
 
+  /** Logged lemmas. Used to avoid logging repeated lemmas. */
+  std::unordered_set<Node> d_lemmas;
+
   bool d_multPPClauses;
 
   /** Whether there was an error for some logged proof. */

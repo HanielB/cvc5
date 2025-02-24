@@ -253,6 +253,13 @@ void AletheProofLogger::logTheoryLemma(const Node& n)
   {
     return;
   }
+  if (d_lemmas.count(n))
+  {
+    Trace("alethe-pf-log") << "; log theory lemma no-op (repeated lemma) " << n
+                           << std::endl;
+    return;
+  }
+  d_lemmas.insert(n);
   Trace("alethe-pf-log") << "; log theory lemma start " << n << std::endl;
   // create Alethe step directly. No need to go via the post-processor.
   std::vector<Node> args{nodeManager()->mkConstInt(
@@ -323,17 +330,18 @@ void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
   std::shared_ptr<ProofNode> ppBody =
       d_ppProof->getChildren()[0]->getChildren()[0];
   std::vector<std::shared_ptr<ProofNode>> premises;
-  if (d_multPPClauses) {
+  if (d_multPPClauses)
+  {
     // get the premises of the and_intro rule
     Assert(getAletheRule(ppBody->getArguments()[0]) == AletheRule::AND_INTRO);
     const std::vector<std::shared_ptr<ProofNode>>& pfChildren =
         ppBody->getChildren();
     premises.insert(premises.end(), pfChildren.begin(), pfChildren.end());
   }
-  else {
+  else
+  {
     premises.push_back(ppBody);
   }
-
 
   // std::vector<std::shared_ptr<ProofNode>> premises{ppBody};
   premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
