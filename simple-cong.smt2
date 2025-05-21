@@ -11,14 +11,11 @@
 (declare-const b U)
 (declare-const c U)
 (declare-const d U)
-(declare-const e1 U)
-(declare-const e2 U)
 (declare-fun f (U U) U)
 
 (assert (= a b))
 (assert (= c d))
-(assert (or (= a e1) (= c e2)))
-(assert (or (and (not (= b e1)) (not (= d e2))) p1))
+(assert (and p1 true))
 (assert (or (not p1) (and p2 p3)))
 (assert (or (not p3) (not (= (f a c) (f b d)))))
 

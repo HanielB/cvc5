@@ -19,6 +19,7 @@
 #define CVC5__PROOF__TRUST_NODE_H
 
 #include "expr/node.h"
+#include "theory/theory_id.h"
 
 namespace cvc5::internal {
 
@@ -80,7 +81,7 @@ std::ostream& operator<<(std::ostream& out, TrustNodeKind tnk);
 class TrustNode
 {
  public:
-  TrustNode() : d_tnk(TrustNodeKind::INVALID), d_gen(nullptr) {}
+  TrustNode() : d_thId(theory::THEORY_NONE), d_tnk(TrustNodeKind::INVALID), d_gen(nullptr) {}
   /** Make a proven node for conflict */
   static TrustNode mkTrustConflict(Node conf, ProofGenerator* g = nullptr);
   /** Make a proven node for lemma */
@@ -162,6 +163,9 @@ class TrustNode
                         const char* ctx,
                         bool reqNullGen = true);
 
+  /** Theory id, if any. This is only set for lemmas and propagations coming
+   * from the theory engine. */
+  theory::TheoryId d_thId;
  private:
   TrustNode(TrustNodeKind tnk, Node p, ProofGenerator* g = nullptr);
   /** The kind */

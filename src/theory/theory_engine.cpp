@@ -1300,11 +1300,11 @@ TrustNode TheoryEngine::getExplanation(TNode node)
   TrustNode texplanation;
   if (!logicInfo().isSharingEnabled())
   {
+    theory::Theory* theory = theoryOf(atom);
     Trace("theory::explain")
         << "TheoryEngine::getExplanation: sharing is NOT enabled. "
-        << " Responsible theory is: " << theoryOf(atom)->getId() << std::endl;
-
-    texplanation = theoryOf(atom)->explain(node);
+        << " Responsible theory is: " << theory->getId() << std::endl;
+    texplanation = theory->explain(node);
     Node explanation = texplanation.getNode();
     Trace("theory::explain") << "TheoryEngine::getExplanation(" << node
                              << ") => " << explanation << endl;
@@ -1322,6 +1322,7 @@ TrustNode TheoryEngine::getExplanation(TNode node)
         d_lazyProof->addTrustedStep(proven, TrustId::THEORY_LEMMA, {}, {tidn});
         texplanation =
             TrustNode::mkTrustPropExp(node, explanation, d_lazyProof.get());
+        texplanation.d_thId = theory->getId();
       }
     }
   }
@@ -1641,8 +1642,8 @@ void TheoryEngine::conflict(TrustNode tconflict,
       {
         if (!CDProof::isSame(fullConflict, conflict))
         {
-          // ------------------------- explained  
-          // fullConflict => conflict             
+          // ------------------------- explained
+          // fullConflict => conflict
           // ------------------------- IMPLIES_ELIM  ---------- from theory
           // ~fullConflict V conflict                ~conflict
           // -------------------------------------------------- RESOLUTION
