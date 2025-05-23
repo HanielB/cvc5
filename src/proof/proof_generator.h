@@ -108,7 +108,7 @@ class ProofGenerator
   virtual std::string identify() const = 0;
 
   virtual size_t getSizeAndDependenciesFor(
-      Node f, std::map<Node, std::map<Node, ProofGenerator*>>& dependencies)
+      Node f, std::map<Node, ProofGenerator*>& dependencies)
   {
     return 0;
   };

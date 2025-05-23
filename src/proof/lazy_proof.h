@@ -117,8 +117,7 @@ class LazyCDProof : public CDProof
    * size of the proof node for `f` depends on the proof nodes from each
    * dependency. */
   size_t getSizeAndDependenciesFor(
-      Node f,
-      std::map<Node, std::map<Node, ProofGenerator*>>& dependencies) override;
+      Node f, std::map<Node, ProofGenerator*>& dependencies) override;
 
  protected:
   typedef context::CDHashMap<Node, ProofGenerator*> NodeProofGeneratorMap;

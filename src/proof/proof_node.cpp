@@ -78,7 +78,7 @@ size_t ProofNode::getSize()
   {
     cur = visit.back();
     visit.pop_back();
-    if (visited.count(cur))
+    if (!visited.count(cur))
     {
       ++d_size;
       visited.insert(cur);

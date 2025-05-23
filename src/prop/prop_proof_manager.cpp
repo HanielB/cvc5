@@ -233,6 +233,25 @@ std::vector<std::shared_ptr<ProofNode>> PropPfManager::getProofLeaves(
   return usedPfs;
 }
 
+void printPfSize(Node n, ProofGenerator* pg){
+  Trace("test") << push;
+  std::map<Node, ProofGenerator*> dependencies;
+  size_t size = pg->getSizeAndDependenciesFor(n, dependencies);
+  if (size == 0)
+  {
+    Trace("test") << "No luck for " << n << ", " << pg->identify() << "\n";
+    Trace("test") << pop;
+    return;
+  }
+  Trace("test") << pg->identify() << ": (" << size << ") " << n << "\n";
+  for (const auto& d : dependencies)
+  {
+    Assert(d.second);
+    printPfSize(d.first, d.second);
+  }
+  Trace("test") << pop;
+}
+
 std::shared_ptr<ProofNode> PropPfManager::getProof(bool connectCnf)
 {
   auto it = d_propProofs.find(connectCnf);
@@ -298,6 +317,15 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(bool connectCnf)
         << "PropPfManager::getProof: proof is " << *conflictProof.get() << "\n";
   }
   d_propProofs[connectCnf] = conflictProof;
+  if (TraceIsOn("test"))
+  {
+    Trace("test") << "Sizes for lemma proofs, stratified:\n";
+    for (const Node& l : d_lemmaClauses)
+    {
+      Trace("test") << "..hasProofFor "  << l << "? " << d_proof.hasStep(l) << "\n";
+      printPfSize(l, &d_proof);
+    }
+  }
   return conflictProof;
 }
 

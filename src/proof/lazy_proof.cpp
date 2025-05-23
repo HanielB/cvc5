@@ -165,7 +165,11 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
       }
     }
   } while (!visit.empty());
-  d_dependencies.insert(fact, dependencies);
+  // Trace("test") << "For fact " << fact << " saving dependencies " << dependencies << "\n";
+  if (!dependencies.empty())
+  {
+    d_dependencies.insert(fact, dependencies);
+  }
   // we have now updated the ASSUME leafs of opf, return it
   Trace("lazy-cdproof") << "...finished" << std::endl;
   Assert(opf->getResult() == fact);
@@ -174,14 +178,18 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
 
 size_t LazyCDProof::getSizeAndDependenciesFor(
     Node f,
-    std::map<Node, std::map<Node, ProofGenerator*>>& dependencies)
+    std::map<Node, ProofGenerator*>& dependencies)
 {
-  std::map<Node, std::map<Node, ProofGenerator*>> placeHolder;
-  size_t size = CDProof::getSizeAndDependenciesFor(f, placeHolder);
+  size_t size = CDProof::getSizeAndDependenciesFor(f, dependencies);
   Assert(dependencies.empty());
-  for (const auto& p : d_dependencies)
+  auto it = d_dependencies.find(f);
+  if (it != d_dependencies.end() && !it->second.empty())
   {
-    dependencies[p.first] = p.second;
+    dependencies = it->second;
+  }
+  else
+  {
+    Trace("test") << "No dependencies for " << f << "\n";
   }
   return size;
 }
