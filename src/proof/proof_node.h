@@ -120,6 +120,10 @@ class ProofNode
    */
   std::shared_ptr<ProofNode> clone() const;
 
+  // TODO make this so that computing the size of a proof node sets the size of
+  // all of its children
+  size_t getSize();
+
  private:
   /**
    * Set value, called to overwrite the contents of this ProofNode with the
@@ -138,6 +142,8 @@ class ProofNode
   Node d_proven;
   /** Was d_proven actually checked, or is it trusted? */
   bool d_provenChecked;
+
+  size_t d_size;
 };
 }  // namespace cvc5::internal
 

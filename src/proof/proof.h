@@ -269,6 +269,10 @@ class CDProof : protected EnvObj, public ProofGenerator
   /** identify */
   std::string identify() const override;
 
+  size_t getSizeAndDependenciesFor(
+      Node f,
+      std::map<Node, std::map<Node, ProofGenerator*>>& dependencies) override;
+
  protected:
   typedef context::CDHashMap<Node, std::shared_ptr<ProofNode>> NodeProofNodeMap;
   /** A dummy context used by this class if none is provided */

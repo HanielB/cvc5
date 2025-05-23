@@ -33,7 +33,8 @@ LazyCDProof::LazyCDProof(Env& env,
       d_gens(c ? c : &d_context),
       d_defaultGen(dpg),
       d_doCache(doCache),
-      d_allVisited(c ? c : &d_context)
+      d_allVisited(c ? c : &d_context),
+      d_dependencies(c ? c : &d_context)
 {
 }
 
@@ -56,6 +57,9 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
   // have generators
   std::unordered_set<ProofNode*> visited;
   std::vector<ProofNode*> visit;
+  // store the dependencies, i.e., the assumptions that are explained by
+  // generators, and which they are
+  std::map<Node, ProofGenerator*> dependencies;
   ProofNode* cur;
   visit.push_back(opf.get());
   bool alreadyVisited;
@@ -119,9 +123,9 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
           // method.
           if (pgc != nullptr)
           {
+            dependencies[cfactGen] = pg;
             Trace("lazy-cdproof-gen")
                 << "LazyCDProof: stored proof: " << *pgc.get() << std::endl;
-
             if (isSym)
             {
               if (pgc->getRule() == ProofRule::SYMM)
@@ -161,10 +165,25 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
       }
     }
   } while (!visit.empty());
+  d_dependencies.insert(fact, dependencies);
   // we have now updated the ASSUME leafs of opf, return it
   Trace("lazy-cdproof") << "...finished" << std::endl;
   Assert(opf->getResult() == fact);
   return opf;
+}
+
+size_t LazyCDProof::getSizeAndDependenciesFor(
+    Node f,
+    std::map<Node, std::map<Node, ProofGenerator*>>& dependencies)
+{
+  std::map<Node, std::map<Node, ProofGenerator*>> placeHolder;
+  size_t size = CDProof::getSizeAndDependenciesFor(f, placeHolder);
+  Assert(dependencies.empty());
+  for (const auto& p : d_dependencies)
+  {
+    dependencies[p.first] = p.second;
+  }
+  return size;
 }
 
 void LazyCDProof::addLazyStep(Node expected,

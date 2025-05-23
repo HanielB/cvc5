@@ -124,6 +124,14 @@ std::shared_ptr<ProofNode> CDProof::getProofSymm(Node fact)
   return pf;
 }
 
+size_t CDProof::getSizeAndDependenciesFor(
+    Node f,
+    std::map<Node, std::map<Node, ProofGenerator*>>& dependencies)
+{
+  return getProofFor(f)->getSize();
+}
+
+
 bool CDProof::addStep(Node expected,
                       ProofRule id,
                       const std::vector<Node>& children,

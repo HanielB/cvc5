@@ -23,7 +23,7 @@ namespace cvc5::internal {
 ProofNode::ProofNode(ProofRule id,
                      const std::vector<std::shared_ptr<ProofNode>>& children,
                      const std::vector<Node>& args)
-    : d_provenChecked(false)
+  : d_provenChecked(false), d_size(0)
 {
   setValue(id, children, args);
 }
@@ -62,6 +62,36 @@ void ProofNode::printDebug(std::ostream& os, bool printConclusion) const
   ProofNodeToSExpr pnts(d_proven.getNodeManager());
   Node ps = pnts.convertToSExpr(this, printConclusion);
   os << ps;
+}
+
+size_t ProofNode::getSize()
+{
+  if (d_size > 0)
+  {
+    return d_size;
+  }
+  std::unordered_set<const ProofNode*> visited;
+  std::vector<const ProofNode*> visit;
+  visit.push_back(this);
+  const ProofNode* cur;
+  while (!visit.empty())
+  {
+    cur = visit.back();
+    visit.pop_back();
+    if (visited.count(cur))
+    {
+      ++d_size;
+      visited.insert(cur);
+      const std::vector<std::shared_ptr<ProofNode>>& children =
+          cur->getChildren();
+      for (const std::shared_ptr<ProofNode>& cp : children)
+      {
+        visit.push_back(cp.get());
+      }
+      continue;
+    }
+  }
+  return d_size;
 }
 
 std::shared_ptr<ProofNode> ProofNode::clone() const

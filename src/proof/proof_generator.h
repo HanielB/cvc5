@@ -106,6 +106,12 @@ class ProofGenerator
   virtual bool hasProofFor(Node f) { return true; }
   /** Identify this generator (for debugging, etc..) */
   virtual std::string identify() const = 0;
+
+  virtual size_t getSizeAndDependenciesFor(
+      Node f, std::map<Node, std::map<Node, ProofGenerator*>>& dependencies)
+  {
+    return 0;
+  };
 };
 
 }  // namespace cvc5::internal

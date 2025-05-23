@@ -21,6 +21,7 @@
 #include "context/cdhashset.h"
 #include "proof/proof.h"
 #include "proof/trust_id.h"
+#include "proof/trust_node.h"
 
 namespace cvc5::internal {
 
@@ -112,6 +113,13 @@ class LazyCDProof : public CDProof
     Trace("bruno") << "blocking " << blockedAssumptions << "\n";
   }
 
+  /** The size is just relative to underlying CDProof's proof node. The total
+   * size of the proof node for `f` depends on the proof nodes from each
+   * dependency. */
+  size_t getSizeAndDependenciesFor(
+      Node f,
+      std::map<Node, std::map<Node, ProofGenerator*>>& dependencies) override;
+
  protected:
   typedef context::CDHashMap<Node, ProofGenerator*> NodeProofGeneratorMap;
   typedef context::CDHashSet<ProofNode*> ProofNodeSet;
@@ -130,7 +138,11 @@ class LazyCDProof : public CDProof
   /** The set of proof nodes we have processed in getProofFor */
   ProofNodeSet d_allVisited;
 
+  context::CDHashMap<Node, std::map<Node, ProofGenerator*>> d_dependencies;
+
   std::vector<Node> d_blockedAssumptions;
+
+
 };
 
 }  // namespace cvc5::internal
