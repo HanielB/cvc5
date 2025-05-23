@@ -97,10 +97,6 @@ void PropPfManager::convertAndAssert(theory::InferenceId id,
                                      bool input,
                                      ProofGenerator* pg)
 {
-  if (pg)
-  {
-    Trace("test") << "Pg: " << pg->identify() << "\n";
-  }
   d_currLemmaId = id;
   d_pfCnfStream.convertAndAssert(node, negated, removable, input, pg);
   d_currLemmaId = theory::InferenceId::NONE;
@@ -239,7 +235,7 @@ void printPfSize(Node n, ProofGenerator* pg){
   size_t size = pg->getSizeAndDependenciesFor(n, dependencies);
   if (size == 0)
   {
-    Trace("test") << "No luck for " << n << ", " << pg->identify() << "\n";
+    Trace("test") << "No luck " << pg->identify() << ": " << n << "\n";
     Trace("test") << pop;
     return;
   }
@@ -322,7 +318,6 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(bool connectCnf)
     Trace("test") << "Sizes for lemma proofs, stratified:\n";
     for (const Node& l : d_lemmaClauses)
     {
-      Trace("test") << "..hasProofFor "  << l << "? " << d_proof.hasStep(l) << "\n";
       printPfSize(l, &d_proof);
     }
   }
@@ -494,7 +489,7 @@ void PropPfManager::notifyExplainedPropagation(TrustNode trn)
       << proven << ", proofLogging=" << proofLogging << "\n";
   if (proofLogging)
   {
-    Trace("test") << "Pg: " << trn.getGenerator()->identify() << "\n";
+    // Trace("test") << "Pg: " << trn.getGenerator()->identify() << "\n";
     Assert(trn.getGenerator()->getProofFor(proven)->isClosed());
     Trace("cnf-steps") << proven << " by explainPropagation "
                        << trn.identifyGenerator() << std::endl;

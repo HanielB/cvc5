@@ -622,8 +622,7 @@ void ProofEqEngine::explainWithProof(Node lit,
   //   assumps.clear();
   //   assumps.insert(assumps.end(), newAssumps.begin(), newAssumps.end());
   // }
-  Trace("pfee-proof") << "pfee::explainWithProof: finished" << std::endl;
-  Trace("test") << "pfee::explainWithProof: finished [lit " << lit
+  Trace("pfee-proof") << "pfee::explainWithProof: finished [lit " << lit
                 << ", pf size " << curr->getNumProofNodes() << "]"
                 << std::endl;
 }
