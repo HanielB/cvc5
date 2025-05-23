@@ -97,6 +97,10 @@ void PropPfManager::convertAndAssert(theory::InferenceId id,
                                      bool input,
                                      ProofGenerator* pg)
 {
+  if (pg)
+  {
+    Trace("pgs") << "PropPfManager::convertAndAssert: pg: " << pg->identify() << ": " << node << "\n";
+  }
   d_currLemmaId = id;
   d_pfCnfStream.convertAndAssert(node, negated, removable, input, pg);
   d_currLemmaId = theory::InferenceId::NONE;
@@ -489,7 +493,8 @@ void PropPfManager::notifyExplainedPropagation(TrustNode trn)
       << proven << ", proofLogging=" << proofLogging << "\n";
   if (proofLogging)
   {
-    // Trace("test") << "Pg: " << trn.getGenerator()->identify() << "\n";
+    Trace("pgs") << "PropPfManager::notifyExplainedPropagation: pg: "
+                 << trn.getGenerator()->identify() << ": " << proven << "\n";
     Assert(trn.getGenerator()->getProofFor(proven)->isClosed());
     Trace("cnf-steps") << proven << " by explainPropagation "
                        << trn.identifyGenerator() << std::endl;
