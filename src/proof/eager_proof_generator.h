@@ -220,6 +220,9 @@ class EagerProofGenerator : protected EnvObj, public ProofGenerator
   /** identify */
   std::string identify() const override;
 
+  size_t getSizeAndDependenciesFor(
+      Node f, std::map<Node, ProofGenerator*>& dependencies) override;
+
  protected:
   /** Set that pf is the proof for conflict conf */
   void setProofForConflict(Node conf, std::shared_ptr<ProofNode> pf);

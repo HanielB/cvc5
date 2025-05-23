@@ -74,6 +74,12 @@ std::shared_ptr<ProofNode> EagerProofGenerator::getProofFor(Node f)
   return (*it).second;
 }
 
+size_t EagerProofGenerator::getSizeAndDependenciesFor(
+    Node f, std::map<Node, ProofGenerator*>& dependencies)
+{
+  return getProofFor(f)->getSize();
+}
+
 bool EagerProofGenerator::hasProofFor(Node f)
 {
   return d_proofs.find(f) != d_proofs.end();
