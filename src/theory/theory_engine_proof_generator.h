@@ -67,6 +67,12 @@ class TheoryEngineProofGenerator : protected EnvObj, public ProofGenerator
   /** Identify this generator (for debugging, etc..) */
   std::string identify() const override;
 
+  /** Relays the info from the lazy CD proof in `d_proofs` for the respective
+   * `f`, plus an extra step corresponding to the SCOPE one added.
+   */
+  size_t getSizeAndDependenciesFor(
+      Node f, std::map<Node, ProofGenerator*>& dependencies) override;
+
  private:
   /** Map from formulas to lazy CD proofs */
   NodeLazyCDProofMap d_proofs;

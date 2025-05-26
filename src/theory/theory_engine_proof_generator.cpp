@@ -126,6 +126,21 @@ std::shared_ptr<ProofNode> TheoryEngineProofGenerator::getProofFor(Node f)
   return pf;
 }
 
+size_t TheoryEngineProofGenerator::getSizeAndDependenciesFor(
+    Node f,
+    std::map<Node, ProofGenerator*>& dependencies)
+{
+  NodeLazyCDProofMap::iterator it = d_proofs.find(f);
+  if (it == d_proofs.end())
+  {
+    return 0;
+  }
+  // Trace("test") << ".." << it->second->identify() << "\n";
+  size_t size = it->second->getSizeAndDependenciesFor(f, dependencies);
+  Assert(size > 0);
+  return size + 1;
+}
+
 std::string TheoryEngineProofGenerator::identify() const
 {
   return "TheoryEngineProofGenerator";
