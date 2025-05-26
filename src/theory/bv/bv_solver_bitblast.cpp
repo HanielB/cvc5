@@ -119,7 +119,7 @@ BVSolverBitblast::BVSolverBitblast(Env& env,
       d_assumptions(context()),
       d_assertions(context()),
       d_epg(env.isTheoryProofProducing()
-                ? new EagerProofGenerator(env, userContext(), "")
+                ? new EagerProofGenerator(env, userContext(), "BvSolverBitblast::epg")
                 : nullptr),
       d_bvProofChecker(nodeManager()),
       d_factLiteralCache(context()),
@@ -275,7 +275,7 @@ bool BVSolverBitblast::preNotifyFact(
   {
     d_bbFacts.push_back(fact);
   }
-  
+
   // Return false to enable equality engine reasoning in Theory, which is
   // available if we are using the equality engine.
   return !logicInfo().isSharingEnabled() && !options().bv.bvEqEngine;

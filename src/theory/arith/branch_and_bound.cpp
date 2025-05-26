@@ -37,7 +37,7 @@ BranchAndBound::BranchAndBound(Env& env,
       d_astate(s),
       d_im(im),
       d_ppre(ppre),
-      d_pfGen(new EagerProofGenerator(env, userContext()))
+      d_pfGen(new EagerProofGenerator(env, userContext(), "BranchAndBound"))
 {
 }
 

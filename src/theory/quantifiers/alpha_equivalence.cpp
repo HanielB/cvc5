@@ -168,7 +168,7 @@ AlphaEquivalence::AlphaEquivalence(Env& env)
     : EnvObj(env),
       d_termCanon(),
       d_aedb(userContext(), &d_termCanon, true),
-      d_pfAlpha(env.isTheoryProofProducing() ? new EagerProofGenerator(env)
+      d_pfAlpha(env.isTheoryProofProducing() ? new EagerProofGenerator(env, nullptr, "AlphaEquiv")
                                              : nullptr)
 {
 }
