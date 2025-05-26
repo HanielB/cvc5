@@ -187,10 +187,10 @@ size_t LazyCDProof::getSizeAndDependenciesFor(
   {
     dependencies = it->second;
   }
-  else
-  {
-    Trace("test") << "No dependencies for " << f << "\n";
-  }
+  // else
+  // {
+  //   Trace("test") << "No dependencies for " << f << "\n";
+  // }
   return size;
 }
 
