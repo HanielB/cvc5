@@ -239,6 +239,10 @@ std::shared_ptr<ProofNode> TConvProofGenerator::getProofFor(Node f)
     }
   }
   std::shared_ptr<ProofNode> pfn = lpf.getProofFor(f);
+  // TODO I have the situation that the dependencies for f will be in the lazy
+  // steps of d_proof... but I could just get the size and dependencies now from
+  // lpf and save them here, so that I'd pass them along when requesting the
+  // size and dependencies for this class.
   Trace("tconv-pf-gen") << "... success" << std::endl;
   Assert(pfn != nullptr);
   Trace("tconv-pf-gen-debug-pf") << "... proof is " << *pfn << std::endl;
