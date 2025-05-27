@@ -67,7 +67,8 @@ TConvProofGenerator::TConvProofGenerator(Env& env,
       d_cpolicy(cpol),
       d_name(name),
       d_tcontext(tccb),
-      d_rewriteOps(rewriteOps)
+      d_rewriteOps(rewriteOps),
+      d_dependencies(c ? c : &d_context)
 {
 }
 
@@ -239,14 +240,34 @@ std::shared_ptr<ProofNode> TConvProofGenerator::getProofFor(Node f)
     }
   }
   std::shared_ptr<ProofNode> pfn = lpf.getProofFor(f);
-  // TODO I have the situation that the dependencies for f will be in the lazy
-  // steps of d_proof... but I could just get the size and dependencies now from
-  // lpf and save them here, so that I'd pass them along when requesting the
-  // size and dependencies for this class.
+  // Save the dependencies as set up in lpf, which will have both the proof
+  // steps corresponding to the rewriting performed by getProofForRewriting and
+  // the (potentially lazy) steps justifying the rewrite steps.
+  std::map<Node, ProofGenerator*> dependencies;
+  size_t size = lpf.getSizeAndDependenciesFor(f, dependencies);
+  d_dependencies[f] =
+      std::pair<size_t, std::map<Node, ProofGenerator*>>(
+          size, dependencies);
   Trace("tconv-pf-gen") << "... success" << std::endl;
   Assert(pfn != nullptr);
   Trace("tconv-pf-gen-debug-pf") << "... proof is " << *pfn << std::endl;
   return pfn;
+}
+
+size_t TConvProofGenerator::getSizeAndDependenciesFor(
+    Node f, std::map<Node, ProofGenerator*>& dependencies)
+{
+  auto it = d_dependencies.find(f);
+  if (it == d_dependencies.end())
+  {
+    return 0;
+  }
+  // check if any dependencies
+  if (!it->second.second.empty())
+  {
+    dependencies = it->second.second;
+  }
+  return it->second.first;
 }
 
 std::shared_ptr<ProofNode> TConvProofGenerator::getProofForRewriting(Node n)

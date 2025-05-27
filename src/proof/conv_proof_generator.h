@@ -205,6 +205,12 @@ class TConvProofGenerator : protected EnvObj, public ProofGenerator
    */
   std::shared_ptr<ProofNode> getProofForRewriting(Node n);
 
+  /** The size is just relative to underlying CDProof's proof node. The total
+   * size of the proof node for `f` depends on the proof nodes from each
+   * dependency. */
+  size_t getSizeAndDependenciesFor(
+      Node f, std::map<Node, ProofGenerator*>& dependencies) override;
+
  protected:
   typedef context::CDHashMap<Node, Node> NodeNodeMap;
   /** A dummy context used by this class if none is provided */
@@ -238,6 +244,10 @@ class TConvProofGenerator : protected EnvObj, public ProofGenerator
    * APPLY_UF and uses HO_CONG to justify rewriting of subterms when necessary.
    */
   bool d_rewriteOps;
+
+  context::CDHashMap<Node, std::pair<size_t, std::map<Node, ProofGenerator*>>>
+      d_dependencies;
+
   /** Get rewrite step for (hash value of) term. */
   Node getRewriteStepInternal(Node thash, bool isPre) const;
   /**
