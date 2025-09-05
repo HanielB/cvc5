@@ -101,6 +101,7 @@ void PropPfManager::convertAndAssert(theory::InferenceId id,
   {
     Trace("pgs") << "PropPfManager::convertAndAssert: pg: " << pg->identify() << ": " << node << "\n";
   }
+  // Assert(id != theory::InferenceId::NONE);
   d_currLemmaId = id;
   d_pfCnfStream.convertAndAssert(node, negated, removable, input, pg);
   d_currLemmaId = theory::InferenceId::NONE;
@@ -296,8 +297,18 @@ std::shared_ptr<ProofNode> PropPfManager::getProof(bool connectCnf)
   {
     conflictProof = conflictProof->clone();
   }
+  std::vector<Node> lemmas = getUnsatCoreLemmas();
+    uint64_t timestamp;
+  for (const Node& n : lemmas)
+  {
+    Trace("test") << "\tid: " << getInferenceIdFor(n, timestamp) << "; lemma "
+                  << n << "\n";
+  }
   // connect it with CNF proof
+  d_proof.d_computeSize = true;
   d_pfpp->process(conflictProof);
+  d_proof.d_computeSize = false;
+
   if (TraceIsOn("sat-proof"))
   {
     std::vector<Node> fassumps;
@@ -361,6 +372,7 @@ Node PropPfManager::normalizeAndRegister(TNode clauseNode,
     d_lemmaClauses.insert(normClauseNode);
     if (d_trackLemmaClauseIds)
     {
+      // Assert(d_currLemmaId != theory::InferenceId::NONE);
       d_lemmaClauseIds[normClauseNode] = d_currLemmaId;
       uint64_t currTimestamp = d_env.getResourceManager()->getResource(
           Resource::TheoryFullCheckStep);
@@ -544,7 +556,10 @@ void PropPfManager::notifyExplainedPropagation(TrustNode trn)
   {
     clauseExp = nm->mkNode(Kind::OR, proven[0].notNode(), proven[1]);
   }
+  Assert(d_currLemmaId == theory::InferenceId::NONE);
+  d_currLemmaId = theory::InferenceId::EXPLAINED_PROPAGATION;
   d_currPropagationProcessed = normalizeAndRegister(clauseExp, false);
+  d_currLemmaId = theory::InferenceId::NONE;
   // If we are not logging the clausification, we need to add the clause, as *it
   // will be saved in the SAT solver* (i.e., as clauseExp), as closed step in
   // the d_proof, so that there are no non-input assumptions.

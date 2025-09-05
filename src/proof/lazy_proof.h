@@ -113,6 +113,8 @@ class LazyCDProof : public CDProof
     Trace("bruno") << "blocking " << blockedAssumptions << "\n";
   }
 
+  bool d_computeSize;
+
   /** The size is just relative to underlying CDProof's proof node. The total
    * size of the proof node for `f` depends on the proof nodes from each
    * dependency. */
@@ -140,8 +142,6 @@ class LazyCDProof : public CDProof
   context::CDHashMap<Node, std::map<Node, ProofGenerator*>> d_dependencies;
 
   std::vector<Node> d_blockedAssumptions;
-
-
 };
 
 }  // namespace cvc5::internal

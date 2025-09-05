@@ -30,6 +30,7 @@ LazyCDProof::LazyCDProof(Env& env,
                          bool autoSym,
                          bool doCache)
     : CDProof(env, c, name, autoSym),
+      d_computeSize(false),
       d_gens(c ? c : &d_context),
       d_defaultGen(dpg),
       d_doCache(doCache),
@@ -42,10 +43,13 @@ LazyCDProof::~LazyCDProof() {}
 
 std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
 {
+  size_t pfSize = 0;
+  std::map<Node, std::pair<std::string, size_t>> assumptionPfSizes;
   Trace("lazy-cdproof") << "LazyCDProof::mkLazyProof " << fact << std::endl;
   // make the proof, which should always be non-null, since we construct an
   // assumption in the worst case.
   std::shared_ptr<ProofNode> opf = CDProof::getProofFor(fact);
+  if (d_computeSize) pfSize = opf->getSize();
   Assert(opf != nullptr);
   if (!hasGenerators())
   {
@@ -115,6 +119,14 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
           // interface, since this ensures that we don't take ownership for
           // the current proof. Instead, it is only linked, and ignored on
           // future calls to getProofFor due to the check above.
+          // if (d_computeSize)
+          // {
+          //   if (LazyCDProof* d = dynamic_cast<LazyCDProof*>(pg))
+          //   {
+          //     // b actually points to a Derived
+          //     Trace("test") << "this gen is lazy\n";
+          //   }
+          // }
           std::shared_ptr<ProofNode> pgc = pg->getProofFor(cfactGen);
           // If the proof was null, then the update is not performed. This is
           // not considered an error, since this behavior is equivalent to
@@ -126,14 +138,18 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
             dependencies[cfactGen] = pg;
             Trace("lazy-cdproof-gen")
                 << "LazyCDProof: stored proof: " << *pgc.get() << std::endl;
+            size_t assumptionPfSize = 0;
+            if (d_computeSize) assumptionPfSize = pgc->getSize();
             if (isSym)
             {
               if (pgc->getRule() == ProofRule::SYMM)
               {
+                --assumptionPfSize;
                 getManager()->updateNode(cur, pgc->getChildren()[0].get());
               }
               else
               {
+                ++assumptionPfSize;
                 getManager()->updateNode(cur, ProofRule::SYMM, {pgc}, {});
               }
             }
@@ -143,6 +159,12 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
             }
             Trace("lazy-cdproof") << "LazyCDProof: Successfully added fact for "
                                   << cfactGen << std::endl;
+            if (d_computeSize)
+            {
+              Assert(assumptionPfSizes.find(cfact) == assumptionPfSizes.end());
+              assumptionPfSizes[cfact] = std::pair<std::string, size_t>(
+                  pg->identify(), assumptionPfSize);
+            }
           }
         }
         else
@@ -170,6 +192,13 @@ std::shared_ptr<ProofNode> LazyCDProof::getProofFor(Node fact)
   {
     d_dependencies.insert(fact, dependencies);
   }
+     if (d_computeSize) {
+       Trace("test") << identify() << ": (" << pfSize << ") " << fact << "\nAssumptions:\n";
+       for (const auto& p : assumptionPfSizes)
+       {
+         Trace("test") << "\t" << p.second.first << ": (" << p.second.second << ") " << p.first << "\n";
+       }
+     }
   // we have now updated the ASSUME leafs of opf, return it
   Trace("lazy-cdproof") << "...finished" << std::endl;
   Assert(opf->getResult() == fact);

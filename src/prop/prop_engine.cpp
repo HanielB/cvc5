@@ -838,7 +838,7 @@ modes::LearnedLitType PropEngine::getLiteralType(const Node& lit) const
 }
 
 PropEngine::Statistics::Statistics(StatisticsRegistry& sr)
-    : d_numInputAtoms(sr.registerInt("prop::PropEngine::numInputAtoms"))
+  : d_numInputAtoms(sr.registerInt("prop::PropEngine::numInputAtoms"))
 {
 }
 

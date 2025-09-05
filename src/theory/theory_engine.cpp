@@ -1322,7 +1322,6 @@ TrustNode TheoryEngine::getExplanation(TNode node)
         d_lazyProof->addTrustedStep(proven, TrustId::THEORY_LEMMA, {}, {tidn});
         texplanation =
             TrustNode::mkTrustPropExp(node, explanation, d_lazyProof.get());
-        texplanation.d_thId = theory->getId();
       }
     }
   }
@@ -1345,7 +1344,9 @@ TrustNode TheoryEngine::getExplanation(TNode node)
     // Create the workplace for explanations
     std::vector<NodeTheoryPair> vec{d_propagationMap[toExplain]};
     // Process the explanation
+    Trace("theory::explain") << push;
     texplanation = getExplanation(vec);
+    Trace("theory::explain") << pop;
     Trace("theory::explain") << "TheoryEngine::getExplanation(" << node
                              << ") => " << texplanation.getNode() << endl;
   }

@@ -100,7 +100,8 @@ TheoryArithPrivate::TheoryArithPrivate(Env& env,
       d_valuation(ts.getValuation()),
       d_pnm(d_env.isTheoryProofProducing() ? d_env.getProofNodeManager()
                                            : nullptr),
-      d_pfGen(new EagerProofGenerator(env, userContext(), "TheoryArithPrivate")),
+      d_pfGen(new EagerProofGenerator(
+          env, userContext(), "arith::linear::Private")),
       d_constraintDatabase(d_env,
                            d_partialModel,
                            d_congruenceManager,
