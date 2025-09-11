@@ -54,7 +54,9 @@ BaseAlfNodeConverter::BaseAlfNodeConverter(NodeManager* nm) : NodeConverter(nm)
 
 AlfNodeConverter::AlfNodeConverter(NodeManager* nm) : BaseAlfNodeConverter(nm)
 {
-  d_sortType = nm->mkSort("sortType");
+  // use builtin operator type as the type of sorts, which makes a difference
+  // e.g. for converting terms of kind SORT_TO_TERM.
+  d_sortType = nm->builtinOperatorType();
 }
 
 AlfNodeConverter::~AlfNodeConverter() {}
@@ -155,7 +157,7 @@ Node AlfNodeConverter::postConvert(Node n)
     // must ensure we print higher-order function applications with "_"
     if (!n.getOperator().isVar())
     {
-    TypeNode tn = n.getType();
+      TypeNode tn = n.getType();
       std::vector<Node> args;
       args.push_back(n.getOperator());
       args.insert(args.end(), n.begin(), n.end());
@@ -182,21 +184,6 @@ Node AlfNodeConverter::postConvert(Node n)
     return mkInternalApp(
         printer::smt2::Smt2Printer::smtKindString(k), args, tn);
   }
-  else if (k == Kind::STORE_ALL)
-  {
-    TypeNode tn = n.getType();
-    Node t = typeAsNode(tn);
-    ArrayStoreAll storeAll = n.getConst<ArrayStoreAll>();
-    Node val = convert(storeAll.getValue());
-    return mkInternalApp("store_all", {t, val}, tn);
-  }
-  else if (k == Kind::SET_EMPTY || k == Kind::SET_UNIVERSE
-           || k == Kind::BAG_EMPTY || k == Kind::SEP_NIL)
-  {
-    TypeNode tn = n.getType();
-    Node t = typeAsNode(tn);
-    return mkInternalApp(printer::smt2::Smt2Printer::smtKindString(k), {t}, tn);
-  }
   else if (k == Kind::SET_INSERT)
   {
     TypeNode tn = n.getType();
@@ -206,15 +193,12 @@ Node AlfNodeConverter::postConvert(Node n)
   }
   else if (k == Kind::CONST_SEQUENCE)
   {
-    if (n.getConst<Sequence>().empty())
+    if (!n.getConst<Sequence>().empty())
     {
-      TypeNode tn = n.getType();
-      Node t = typeAsNode(tn);
-      return mkInternalApp("seq.empty", {t}, tn);
+      // if non-empty, must convert to term representation and convert
+      Node cc = theory::strings::utils::mkConcatForConstSequence(n);
+      return convert(cc);
     }
-    // otherwise must convert to term representation and convert
-    Node cc = theory::strings::utils::mkConcatForConstSequence(n);
-    return convert(cc);
   }
   else if (k == Kind::CONST_FINITE_FIELD)
   {
@@ -321,6 +305,10 @@ Node AlfNodeConverter::postConvert(Node n)
     // https://github.com/cvc5/cvc5-wishues/issues/156: if the smt2 printer
     // is refactored to silently ignore this kind, this case can be deleted.
     return n[0];
+  }
+  else if (k == Kind::SORT_TO_TERM)
+  {
+    return typeAsNode(n.getConst<SortToTerm>().getType());
   }
   else if (GenericOp::isIndexedOperatorKind(k))
   {
@@ -524,17 +512,14 @@ Node AlfNodeConverter::getOperatorOfTerm(Node n)
         size_t index = DType::indexOf(op);
         const DType& dt = DType::datatypeOf(op);
         size_t cindex = DType::cindexOf(op);
-        opName << "update";
         if (dt.isTuple())
         {
-          std::vector<Node> args;
-          args.push_back(d_nm->mkConstInt(cindex));
-          Node ssym = mkInternalApp(
-              "tuple.select", args, dt[cindex][index].getSelector().getType());
-          indices.push_back(ssym);
+          opName << "tuple.update";
+          indices.push_back(d_nm->mkConstInt(index));
         }
         else
         {
+          opName << "update";
           indices.push_back(dt[cindex][index].getSelector());
         }
       }
@@ -714,15 +699,11 @@ bool AlfNodeConverter::isHandledSkolemId(SkolemId id)
     case SkolemId::STRINGS_NUM_OCCUR_RE:
     case SkolemId::STRINGS_OCCUR_INDEX:
     case SkolemId::STRINGS_OCCUR_INDEX_RE:
-    case SkolemId::STRINGS_OCCUR_LEN_RE:
     case SkolemId::STRINGS_DEQ_DIFF:
     case SkolemId::STRINGS_REPLACE_ALL_RESULT:
     case SkolemId::STRINGS_ITOS_RESULT:
     case SkolemId::STRINGS_STOI_RESULT:
     case SkolemId::STRINGS_STOI_NON_DIGIT:
-    case SkolemId::RE_FIRST_MATCH_PRE:
-    case SkolemId::RE_FIRST_MATCH:
-    case SkolemId::RE_FIRST_MATCH_POST:
     case SkolemId::RE_UNFOLD_POS_COMPONENT:
     case SkolemId::BAGS_DEQ_DIFF:
     case SkolemId::BAGS_DISTINCT_ELEMENTS:
@@ -730,7 +711,8 @@ bool AlfNodeConverter::isHandledSkolemId(SkolemId id)
     case SkolemId::BAGS_DISTINCT_ELEMENTS_SIZE:
     case SkolemId::BAGS_MAP_SUM:
     case SkolemId::TABLES_GROUP_PART:
-    case SkolemId::TABLES_GROUP_PART_ELEMENT: return true;
+    case SkolemId::TABLES_GROUP_PART_ELEMENT:
+    case SkolemId::WITNESS_STRING_LENGTH: return true;
     default: break;
   }
   return false;

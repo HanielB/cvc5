@@ -481,6 +481,8 @@ Sort ParserState::flattenFunctionType(std::vector<Sort>& sorts, Sort range)
 }
 Sort ParserState::mkFlatFunctionType(std::vector<Sort>& sorts, Sort range)
 {
+  // Note we require this flattening since the API explicitly checks that
+  // the range of functions is not a function.
   Sort newRange = flattenFunctionType(sorts, range);
   if (!sorts.empty())
   {
@@ -745,8 +747,8 @@ Term ParserState::mkCharConstant(const std::string& s)
   Assert(s.find_first_not_of("0123456789abcdefABCDEF", 0) == std::string::npos
          && s.size() <= 5 && s.size() > 0)
       << "Unexpected string for hexadecimal character " << s;
-  wchar_t val = static_cast<wchar_t>(std::stoul(s, 0, 16));
-  return d_tm.mkString(std::wstring(1, val));
+  char32_t val = static_cast<char32_t>(std::stoul(s, 0, 16));
+  return d_tm.mkString(std::u32string(1, val));
 }
 
 uint32_t stringToUnsigned(const std::string& str)

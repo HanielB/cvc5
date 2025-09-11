@@ -62,11 +62,11 @@ class PropPfManager : protected EnvObj
                 CnfStream& cnfProof,
                 const context::CDList<Node>& assumptions);
 
-  /** Presolve, which initializes proof logging */
+  /** Presolve, which initializes proof logging. */
   void presolve();
-  /** Logs the preprocessing proof, if  */
+  /** Logs the preprocessing proof, if the proof logger is set. */
   void logPreprocessing();
-  /** Postsolve, which finalizes proof logging */
+  /** Postsolve, which finalizes proof logging. */
   void postsolve(SatValue result);
   /**
    * Ensure that the given node will have a designated SAT literal that is

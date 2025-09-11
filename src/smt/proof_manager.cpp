@@ -58,7 +58,7 @@ PfManager::PfManager(Env& env)
       || options().proof.proofGranularityMode
              == options::ProofGranularityMode::DSL_REWRITE_STRICT)
   {
-    d_rewriteDb.reset(new RewriteDb);
+    d_rewriteDb.reset(new RewriteDb(nodeManager()));
     // maybe output rare rules?
     bool isNormalOut = isOutputOn(OutputTag::RARE_DB);
     bool isExpertOut = isOutputOn(OutputTag::RARE_DB_EXPERT);
@@ -99,8 +99,10 @@ PfManager::PfManager(Env& env)
                        options().proof.proofCheck,
                        static_cast<uint32_t>(options().proof.proofPedantic),
                        d_rewriteDb.get()));
-  d_pnm.reset(new ProofNodeManager(
-      env.getOptions(), env.getRewriter(), d_pchecker.get()));
+  d_pnm.reset(new ProofNodeManager(env.getNodeManager(),
+                                   env.getOptions(),
+                                   env.getRewriter(),
+                                   d_pchecker.get()));
   // Now, initialize the proof postprocessor with the environment.
   // By default the post-processor will update all assumptions, which
   // can lead to SCOPE subproofs of the form
@@ -441,7 +443,7 @@ void PfManager::translateDifficultyMap(std::map<Node, Node>& dmap,
     dpnu.process(c);
   }
   // get the accumulated difficulty map from the callback
-  dpc.getDifficultyMap(dmap);
+  dpc.getDifficultyMap(nodeManager(), dmap);
   Trace("difficulty-proc") << "Translate difficulty end" << std::endl;
 }
 

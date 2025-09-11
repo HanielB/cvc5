@@ -1,6 +1,6 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Mathias Preiner, Aina Niemetz, Andrew Reynolds
+ *   Mathias Preiner, Andrew Reynolds, Aina Niemetz
  *
  * This file is part of the cvc5 project.
  *
@@ -202,26 +202,10 @@ TrustNode TheoryBV::ppRewrite(TNode t, std::vector<SkolemLemma>& lems)
 {
   Trace("theory-bv-pp-rewrite") << "ppRewrite " << t << "\n";
   Node res = t;
-  if (options().bv.bitwiseEq && RewriteRule<BitwiseEq>::applies(t))
-  {
-    res = rewrite(RewriteRule<BitwiseEq>::run<false>(t));
-  }
   // useful on QF_BV/space/ndist
-  else if (RewriteRule<UltAddOne>::applies(t))
+  if (RewriteRule<UltAddOne>::applies(t))
   {
-    res = rewrite(RewriteRule<UltAddOne>::run<false>(t));
-  }
-  // Useful for BV/2017-Preiner-scholl-smt08, but not for QF_BV
-  else if (options().bv.rwExtendEq)
-  {
-    if (RewriteRule<SignExtendEqConst>::applies(t))
-    {
-      res = RewriteRule<SignExtendEqConst>::run<false>(t);
-    }
-    else if (RewriteRule<ZeroExtendEqConst>::applies(t))
-    {
-      res = RewriteRule<ZeroExtendEqConst>::run<false>(t);
-    }
+    res = RewriteRule<UltAddOne>::run<false>(t);
   }
   // When int-blasting, it is better to handle most overflow operators
   // natively, rather than to eliminate them eagerly.
@@ -249,7 +233,31 @@ TrustNode TheoryBV::ppStaticRewrite(TNode atom)
       Node res = RewriteRule<SolveEq>::run<false>(atom);
       if (res != atom)
       {
-        res = d_env.getRewriter()->rewrite(res);
+        return TrustNode::mkTrustRewrite(atom, res);
+      }
+    }
+    if (options().bv.bitwiseEq && RewriteRule<BitwiseEq>::applies(atom))
+    {
+      Node res = RewriteRule<BitwiseEq>::run<false>(atom);
+      if (res != atom)
+      {
+        return TrustNode::mkTrustRewrite(atom, res);
+      }
+    }
+    // Useful for BV/2017-Preiner-scholl-smt08, but not for QF_BV
+    if (options().bv.rwExtendEq)
+    {
+      Node res;
+      if (RewriteRule<SignExtendEqConst>::applies(atom))
+      {
+        res = RewriteRule<SignExtendEqConst>::run<false>(atom);
+      }
+      else if (RewriteRule<ZeroExtendEqConst>::applies(atom))
+      {
+        res = RewriteRule<ZeroExtendEqConst>::run<false>(atom);
+      }
+      if (res != atom)
+      {
         return TrustNode::mkTrustRewrite(atom, res);
       }
     }
@@ -317,7 +325,7 @@ void TheoryBV::ppStaticLearn(TNode in, std::vector<TrustNode>& learned)
         if (utils::isOne(s[0]) && utils::isOne(p[0][0])
             && utils::isOne(p[1][0]))
         {
-          Node zero = utils::mkZero(utils::getSize(s));
+          Node zero = utils::mkZero(nodeManager(), utils::getSize(s));
           TNode b = p[0];
           TNode c = p[1];
           // (s : 1 << S) = (b : 1 << B) + (c : 1 << C)

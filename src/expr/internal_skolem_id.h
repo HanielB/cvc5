@@ -10,7 +10,7 @@
  * directory for licensing information.
  * ****************************************************************************
  *
- * Skolem manager utility.
+ * Internal skolem identifiers
  */
 
 #include "cvc5_private.h"
@@ -19,8 +19,6 @@
 #define CVC5__EXPR__INTERNAL_SKOLEM_ID_H
 
 #include <string>
-
-#include "expr/internal_skolem_id.h"
 
 namespace cvc5::internal {
 
@@ -57,7 +55,9 @@ enum class InternalSkolemId
   /** Input variables for quantifier elimination of closed formulas */
   QE_CLOSED_INPUT,
   /** Skolem used for marking a quantified attribute */
-  QUANTIFIERS_ATTRIBUTE_INTERNAL
+  QUANTIFIERS_ATTRIBUTE_INTERNAL,
+  /** Skolem used for subsolver in get-value */
+  GET_VALUE_PURIFY,
 };
 /** Converts an internal skolem function name to a string. */
 const char* toString(InternalSkolemId id);

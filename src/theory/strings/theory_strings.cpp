@@ -41,24 +41,16 @@ namespace cvc5::internal {
 namespace theory {
 namespace strings {
 
-/**
- * Attribute used for making unique (bound variables) which correspond to
- * unique element values used in sequence models. See use in collectModelValues
- * below.
- */
-struct SeqModelVarAttributeId
-{
-};
-using SeqModelVarAttribute = expr::Attribute<SeqModelVarAttributeId, Node>;
-
 TheoryStrings::TheoryStrings(Env& env, OutputChannel& out, Valuation valuation)
     : Theory(THEORY_STRINGS, env, out, valuation),
       d_notify(*this),
       d_statistics(statisticsRegistry()),
       d_state(env, d_valuation),
       d_termReg(env, *this, d_state, d_statistics),
-      d_arithEntail(d_env.getRewriter(),
-                    options().strings.stringRecArithApprox),
+      d_arithEntail(
+          env.getNodeManager(),
+          options().strings.stringRecArithApprox ? env.getRewriter() : nullptr,
+          options().strings.stringRecArithApprox),
       d_strEntail(d_env.getRewriter(), d_arithEntail),
       d_rewriter(env.getNodeManager(),
                  d_arithEntail,
@@ -327,7 +319,7 @@ bool TheoryStrings::collectModelInfoType(
   std::vector<std::vector<Node>> col;
   std::vector<Node> lts;
   const std::vector<Node> repVec(repSet.at(tn).begin(), repSet.at(tn).end());
-  mc->separateByLength(repVec, col, lts);
+  mc->separateByLength(m, repVec, col, lts);
   Assert(col.size() == lts.size());
   // indices in col that have lengths that are too big to represent
   std::unordered_set<size_t> oobIndices;
@@ -814,7 +806,7 @@ Node TheoryStrings::mkSkeletonFor(Node c)
   for (const Node& snv : snvec)
   {
     Assert(snv.getType() == etn);
-    Node v = bvm->mkBoundVar<SeqModelVarAttribute>(snv, etn);
+    Node v = bvm->mkBoundVar(BoundVarId::STRINGS_SEQ_MODEL, snv, etn);
     // use a skolem, not a bound variable
     Node kv = sm->mkPurifySkolem(v);
     skChildren.push_back(utils::mkUnit(tn, kv));
@@ -1131,6 +1123,14 @@ void TheoryStrings::notifySharedTerm(TNode n)
   {
     d_termReg.registerSubterms(n);
   }
+  TypeNode tn = n.getType();
+  if (!d_env.isFirstClassType(tn))
+  {
+    Assert(tn.isRegExp());
+    std::stringstream ss;
+    ss << "Regular expression terms are not supported in theory combination";
+    throw LogicException(ss.str());
+  }
 }
 
 TrustNode TheoryStrings::ppRewrite(TNode atom, std::vector<SkolemLemma>& lems)
@@ -1236,9 +1236,9 @@ TrustNode TheoryStrings::ppStaticRewrite(TNode atom)
   {
     if (atom[0].getType().isRegExp())
     {
-      std::stringstream ss;
-      ss << "Equality between regular expressions is not supported";
-      throw LogicException(ss.str());
+      Node res = d_rewriter.rewriteViaRule(ProofRewriteRule::RE_EQ_ELIM, atom);
+      Assert(!res.isNull());
+      return TrustNode::mkTrustRewrite(atom, res, d_psrewPg.get());
     }
     // always apply aggressive equality rewrites here
     Node ret = d_rewriter.rewriteEqualityExt(atom);

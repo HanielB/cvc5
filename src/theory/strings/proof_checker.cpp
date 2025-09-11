@@ -43,8 +43,6 @@ void StringProofRuleChecker::registerTo(ProofChecker* pc)
 {
   pc->registerChecker(ProofRule::CONCAT_EQ, this);
   pc->registerChecker(ProofRule::CONCAT_UNIFY, this);
-  pc->registerChecker(ProofRule::CONCAT_CONFLICT, this);
-  pc->registerChecker(ProofRule::CONCAT_CONFLICT_DEQ, this);
   pc->registerChecker(ProofRule::CONCAT_SPLIT, this);
   pc->registerChecker(ProofRule::CONCAT_CSPLIT, this);
   pc->registerChecker(ProofRule::CONCAT_LPROP, this);
@@ -73,10 +71,8 @@ Node StringProofRuleChecker::checkInternal(ProofRule id,
   NodeManager* nm = nodeManager();
   // core rules for word equations
   if (id == ProofRule::CONCAT_EQ || id == ProofRule::CONCAT_UNIFY
-      || id == ProofRule::CONCAT_CONFLICT
-      || id == ProofRule::CONCAT_CONFLICT_DEQ || id == ProofRule::CONCAT_SPLIT
-      || id == ProofRule::CONCAT_CSPLIT || id == ProofRule::CONCAT_LPROP
-      || id == ProofRule::CONCAT_CPROP)
+      || id == ProofRule::CONCAT_SPLIT || id == ProofRule::CONCAT_CSPLIT
+      || id == ProofRule::CONCAT_LPROP || id == ProofRule::CONCAT_CPROP)
   {
     Trace("strings-pfcheck") << "Checking id " << id << std::endl;
     Assert(children.size() >= 1);
@@ -156,37 +152,6 @@ Node StringProofRuleChecker::checkInternal(ProofRule id,
         return Node::null();
       }
       return children[1][0][0].eqNode(children[1][1][0]);
-    }
-    else if (id == ProofRule::CONCAT_CONFLICT
-             || id == ProofRule::CONCAT_CONFLICT_DEQ)
-    {
-      Assert(children.size() >= 1 && children.size() <= 2);
-      if (!t0.isConst() || !s0.isConst() || t0 == s0)
-      {
-        // not constants
-        return Node::null();
-      }
-      if (Word::getLength(t0) != Word::getLength(s0))
-      {
-        // Not a conflict due to constants if not the same length
-        return Node::null();
-      }
-      // if a disequality was provided, ensure that it is correct
-      if (id == ProofRule::CONCAT_CONFLICT_DEQ)
-      {
-        if (children.size() != 2 || children[1].getKind() != Kind::NOT
-            || children[1][0].getKind() != Kind::EQUAL
-            || children[1][0][0] != t0 || children[1][0][1] != s0)
-        {
-          return Node::null();
-        }
-      }
-      else if (t0.getType().isSequence())
-      {
-        // we require the CONCAT_CONFLICT_DEQ for sequences
-        return Node::null();
-      }
-      return nm->mkConst(false);
     }
     else if (id == ProofRule::CONCAT_SPLIT)
     {
@@ -280,15 +245,22 @@ Node StringProofRuleChecker::checkInternal(ProofRule id,
   }
   else if (id == ProofRule::STRING_DECOMPOSE)
   {
-    Assert(children.size() == 1);
+    Assert(children.size() == 2);
     Assert(args.size() == 1);
     bool isRev;
     if (!getBool(args[0], isRev))
     {
       return Node::null();
     }
-    Node atom = children[0];
-    if (atom.getKind() != Kind::GEQ || atom[0].getKind() != Kind::STRING_LENGTH)
+    Node geq = children[0];
+    Node atom = children[1];
+    Node zero = nm->mkConstInt(Rational(0));
+    if (geq.getKind() != Kind::GEQ || geq[1] != zero)
+    {
+      return Node::null();
+    }
+    if (atom.getKind() != Kind::GEQ || atom[0].getKind() != Kind::STRING_LENGTH
+        || geq[0] != atom[1])
     {
       return Node::null();
     }

@@ -135,31 +135,60 @@ void SetDefaults::setDefaults(LogicInfo& logic, Options& opts)
 void SetDefaults::setDefaultsPre(Options& opts)
 {
   // safe options
-  if (options().base.safeOptions)
+  if (options().base.safeMode != options::SafeMode::UNRESTRICTED)
   {
     // all "experimental" theories that are enabled by default should be
     // disabled here
-    SET_AND_NOTIFY_IF_NOT_USER(sep, sep, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(bags, bags, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(ff, ff, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(fp, fp, false, "safe options");
+    SET_AND_NOTIFY(sep, sep, false, "safe options");
+    SET_AND_NOTIFY(bags, bags, false, "safe options");
+    SET_AND_NOTIFY(ff, ff, false, "safe options");
+    SET_AND_NOTIFY(fp, fp, false, "safe options");
     // expert extensions to theories
-    SET_AND_NOTIFY_IF_NOT_USER(uf, ufHoExp, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(uf, ufCardExp, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(datatypes, datatypesExp, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(arith, arithExp, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(sets, relsExp, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(sets, setsCardExp, false, "safe options");
+    SET_AND_NOTIFY(uf, ufHoExp, false, "safe options");
+    SET_AND_NOTIFY(uf, ufCardExp, false, "safe options");
+    SET_AND_NOTIFY(datatypes, datatypesExp, false, "safe options");
+    SET_AND_NOTIFY(arith, arithExp, false, "safe options");
+    SET_AND_NOTIFY(sets, relsExp, false, "safe options");
+    SET_AND_NOTIFY(sets, setsCardExp, false, "safe options");
     // these are disabled by default but are listed here in case they are
     // enabled by default later
-    SET_AND_NOTIFY_IF_NOT_USER(fp, fpExp, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(arrays, arraysExp, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(sets, setsExp, false, "safe options");
-    // specific options that are disabled
-    OPTION_EXCEPTION_IF_NOT(arith, nlCov, false, "safe options");
-    SET_AND_NOTIFY_IF_NOT_USER(arith, nlCov, false, "safe options");
+    SET_AND_NOTIFY(fp, fpExp, false, "safe options");
+    SET_AND_NOTIFY(arrays, arraysExp, false, "safe options");
+    SET_AND_NOTIFY(sets, setsExp, false, "safe options");
+    // disable features that have no proof support but are considered regular.
+    if (options().base.safeMode == options::SafeMode::SAFE)
+    {
+      // specific options that are disabled
+      OPTION_EXCEPTION_IF_NOT(arith, nlCov, false, "safe options");
+      SET_AND_NOTIFY(arith, nlCov, false, "safe options");
+      // never use symmetry breaker, which does not have proofs
+      SET_AND_NOTIFY(uf, ufSymmetryBreaker, false, "safe options");
+      // always use cegqi midpoint, which avoids virtual term substitution
+      SET_AND_NOTIFY(quantifiers, cegqiMidpoint, true, "safe options");
+      // proofs not yet supported on main
+      SET_AND_NOTIFY(quantifiers, cegqiBv, false, "safe options");
+      // if we check proofs, we require that they are checked for completeness,
+      // unless the granularity is intentionally set to lower.
+      if (opts.smt.checkProofs
+          && !opts.proof.checkProofsCompleteWasSetByUser
+          && (!opts.proof.proofGranularityModeWasSetByUser
+              || opts.proof.proofGranularityMode
+                    >= options::ProofGranularityMode::DSL_REWRITE))
+      {
+        SET_AND_NOTIFY(
+            proof, checkProofsComplete, true, "safe options with check-proofs")
+      }
+      // bv-solver must be bitblast-internal for proofs, note this is set
+      // even if proofs are not enabled so that we are consistent.
+      SET_AND_NOTIFY(
+          bv, bvSolver, options::BVSolver::BITBLAST_INTERNAL, "safe options");
+    }
   }
   // implied options
+  if (opts.proof.checkProofsComplete)
+  {
+    SET_AND_NOTIFY(smt, checkProofs, true, "checkProofsComplete");
+  }
   if (opts.smt.debugCheckModels)
   {
     SET_AND_NOTIFY(smt, checkModels, true, "debugCheckModels");
@@ -187,13 +216,6 @@ void SetDefaults::setDefaultsPre(Options& opts)
   }
   if (opts.smt.produceUnsatCores)
   {
-    if (opts.prop.satSolver == options::SatSolverMode::CADICAL)
-    {
-      SET_AND_NOTIFY(prop,
-                     satSolver,
-                     options::SatSolverMode::MINISAT,
-                     "proofs and unsat cores not supported with CaDiCaL");
-    }
     if (opts.smt.unsatCoresMode == options::UnsatCoresMode::OFF)
     {
       SET_AND_NOTIFY(smt,
@@ -237,28 +259,21 @@ void SetDefaults::setDefaultsPre(Options& opts)
   // this check assumes the user has requested *full* proofs
   if (opts.smt.produceProofs)
   {
-    if (opts.prop.satSolver == options::SatSolverMode::CADICAL)
-    {
-      SET_AND_NOTIFY(prop,
-                     satSolver,
-                     options::SatSolverMode::MINISAT,
-                     "proofs and unsat cores not supported with CaDiCaL");
-    }
     // if the user requested proofs, proof mode is (at least) full
     if (opts.smt.proofMode < options::ProofMode::FULL)
     {
       SET_AND_NOTIFY_IF_NOT_USER(
           smt, proofMode, options::ProofMode::FULL, "enabling proofs");
     }
-    // Default granularity is theory rewrite if we are intentionally using
+    // Default granularity is DSL rewrite if we are intentionally using
     // proofs, otherwise it is MACRO (e.g. if produce unsat cores is true)
     if (!opts.proof.proofGranularityModeWasSetByUser
         && opts.proof.proofGranularityMode
-               < options::ProofGranularityMode::THEORY_REWRITE)
+               < options::ProofGranularityMode::DSL_REWRITE)
     {
       SET_AND_NOTIFY(proof,
                      proofGranularityMode,
-                     options::ProofGranularityMode::THEORY_REWRITE,
+                     options::ProofGranularityMode::DSL_REWRITE,
                      "enabling proofs");
     }
     // unsat cores are available due to proofs being enabled, as long as
@@ -267,23 +282,11 @@ void SetDefaults::setDefaultsPre(Options& opts)
         && opts.smt.proofMode != options::ProofMode::PP_ONLY)
     {
       SET_AND_NOTIFY(smt, produceUnsatCores, true, "enabling proofs");
-      if (options().prop.satSolver == options::SatSolverMode::MINISAT)
-      {
-        // if full proofs are available in minisat, use them for unsat cores
-        SET_AND_NOTIFY(smt,
-                       unsatCoresMode,
-                       options::UnsatCoresMode::SAT_PROOF,
-                       "enabling proofs, minisat");
-      }
-      else if (options().prop.satSolver == options::SatSolverMode::CADICAL)
-      {
-        // unsat cores available by assumptions by default if proofs are enabled
-        // with CaDiCaL.
-        SET_AND_NOTIFY(smt,
-                       unsatCoresMode,
-                       options::UnsatCoresMode::ASSUMPTIONS,
-                       "enabling proofs, non-minisat");
-      }
+      // if full proofs are available, use them for unsat cores
+      SET_AND_NOTIFY(smt,
+                     unsatCoresMode,
+                     options::UnsatCoresMode::SAT_PROOF,
+                     "enabling proofs");
     }
     // note that this test assumes that granularity modes are ordered and
     // THEORY_REWRITE is gonna be, in the enum, after the lower granularity
@@ -291,7 +294,8 @@ void SetDefaults::setDefaultsPre(Options& opts)
     if (opts.proof.proofFormatMode == options::ProofFormatMode::ALETHE)
     {
       if (opts.proof.proofGranularityMode
-          < options::ProofGranularityMode::THEORY_REWRITE)
+              < options::ProofGranularityMode::THEORY_REWRITE
+          || !opts.proof.proofGranularityModeWasSetByUser)
       {
         SET_AND_NOTIFY_VAL_SYM(
             proof,
@@ -364,7 +368,7 @@ void SetDefaults::setDefaultsPre(Options& opts)
       }
     }
     // upgrade to full strict if safe options
-    if (options().base.safeOptions
+    if (options().base.safeMode == options::SafeMode::SAFE
         && opts.smt.proofMode == options::ProofMode::FULL)
     {
       SET_AND_NOTIFY_IF_NOT_USER(
@@ -886,12 +890,13 @@ void SetDefaults::setDefaultsPost(const LogicInfo& logic, Options& opts) const
   // set all defaults in the quantifiers theory, which includes sygus
   setDefaultsQuantifiers(logic, opts);
 
-  // shared selectors are generally not good to combine with standard
-  // quantifier techniques e.g. E-matching
-  if (logic.isQuantified() && !usesSygus(opts))
+  // Shared selectors are generally not good to combine with standard
+  // quantifier techniques e.g. E-matching.
+  // We only enable them if SyGuS is enabled.
+  if (isSygus(opts))
   {
     SET_AND_NOTIFY_IF_NOT_USER(
-        datatypes, dtSharedSelectors, false, "quantified logic without SyGuS");
+        datatypes, dtSharedSelectors, true, "SyGuS");
   }
 
   if (opts.prop.minisatSimpMode == options::MinisatSimpMode::ALL)
@@ -1081,13 +1086,6 @@ bool SetDefaults::usesInputConversion(const Options& opts,
 bool SetDefaults::incompatibleWithProofs(Options& opts,
                                          std::ostream& reason) const
 {
-  if (opts.prop.satSolver == options::SatSolverMode::CADICAL)
-  {
-    SET_AND_NOTIFY(prop,
-                   satSolver,
-                   options::SatSolverMode::MINISAT,
-                   "proofs and unsat cores not supported with CaDiCaL");
-  }
   if (opts.parser.freshBinders)
   {
     // When fresh-binders is true, we do not support proof output.
@@ -1119,16 +1117,22 @@ bool SetDefaults::incompatibleWithProofs(Options& opts,
   // options that are automatically set to support proofs
   if (opts.bv.bvAssertInput)
   {
+    // this is an expert option, ok to silently change
     SET_AND_NOTIFY_VAL_SYM(bv, bvAssertInput, false, "proofs");
   }
   // If proofs are required and the user did not specify a specific BV solver,
   // we make sure to use the proof producing BITBLAST_INTERNAL solver.
   if (isFullPf)
   {
+    // this is always set by safe options, ok to silently change
     SET_AND_NOTIFY_IF_NOT_USER_VAL_SYM(
         bv, bvSolver, options::BVSolver::BITBLAST_INTERNAL, "proofs");
   }
-  SET_AND_NOTIFY_IF_NOT_USER(arith, nlCovVarElim, false, "proofs");
+  if (options().arith.nlCov)
+  {
+    // this is an expert option, ok to silently change
+    SET_AND_NOTIFY_IF_NOT_USER(arith, nlCovVarElim, false, "proofs");
+  }
   if (opts.smt.deepRestartMode != options::DeepRestartMode::NONE)
   {
     reason << "deep restarts";
@@ -1162,12 +1166,14 @@ bool SetDefaults::incompatibleWithProofs(Options& opts,
   }
   if (opts.smt.proofMode == options::ProofMode::FULL_STRICT)
   {
+    // these are always disabled by safe options, ok to silently change
     // symmetry breaking does not have proof support
     SET_AND_NOTIFY(uf, ufSymmetryBreaker, false, "full strict proofs");
     // CEGQI with deltas and infinities is not supported
     SET_AND_NOTIFY(quantifiers, cegqiMidpoint, true, "full strict proofs");
     SET_AND_NOTIFY(quantifiers, cegqiUseInfInt, false, "full strict proofs");
     SET_AND_NOTIFY(quantifiers, cegqiUseInfReal, false, "full strict proofs");
+    // this is an expert option, ok to silently change
     // shared selectors are not supported
     SET_AND_NOTIFY(datatypes, dtSharedSelectors, false, "full strict proofs");
   }
@@ -1293,13 +1299,6 @@ bool SetDefaults::incompatibleWithIncremental(const LogicInfo& logic,
 bool SetDefaults::incompatibleWithUnsatCores(Options& opts,
                                              std::ostream& reason) const
 {
-  if (opts.prop.satSolver == options::SatSolverMode::CADICAL)
-  {
-    SET_AND_NOTIFY(prop,
-                   satSolver,
-                   options::SatSolverMode::MINISAT,
-                   "proofs and unsat cores not supported with CaDiCaL");
-  }
   // All techniques that are incompatible with unsat cores are listed here.
   // A preprocessing pass is incompatible with unsat cores if
   // (A) its reasoning is not local, i.e. it may replace an assertion A by A'

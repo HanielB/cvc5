@@ -99,11 +99,6 @@ class CVC5_EXPORT TypeNode
                       Iterator2 replacementsEnd,
                       std::unordered_map<TypeNode, TypeNode>& cache) const;
 
-  /**
-   * Returns the associated node manager
-   */
-  NodeManager* getNodeManager() const { return d_nv->getNodeManager(); }
-
  public:
   /** Default constructor, makes a null expression. */
   TypeNode() : d_nv(&expr::NodeValue::null()) { }
@@ -134,6 +129,11 @@ class CVC5_EXPORT TypeNode
   static TypeNode null() {
     return s_null;
   }
+
+  /**
+   * Returns the associated node manager
+   */
+  NodeManager* getNodeManager() const { return d_nv->getNodeManager(); }
 
   /**
    * Substitution of TypeNodes.
@@ -931,27 +931,6 @@ setAttribute(const AttrKind&, const typename AttrKind::value_type& value) {
 
 inline void TypeNode::printAst(std::ostream& out, int indent) const {
   d_nv->printAst(out, indent);
-}
-
-inline bool TypeNode::isBoolean() const {
-  return (getKind() == Kind::TYPE_CONSTANT
-          && getConst<TypeConstant>() == BOOLEAN_TYPE);
-}
-
-inline bool TypeNode::isString() const {
-  return getKind() == Kind::TYPE_CONSTANT
-         && getConst<TypeConstant>() == STRING_TYPE;
-}
-
-/** Is this a regexp type */
-inline bool TypeNode::isRegExp() const {
-  return getKind() == Kind::TYPE_CONSTANT
-         && getConst<TypeConstant>() == REGEXP_TYPE;
- }
-
-inline bool TypeNode::isRoundingMode() const {
-  return getKind() == Kind::TYPE_CONSTANT
-         && getConst<TypeConstant>() == ROUNDINGMODE_TYPE;
 }
 
 inline bool TypeNode::isArray() const { return getKind() == Kind::ARRAY_TYPE; }

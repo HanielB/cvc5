@@ -332,7 +332,7 @@ void TheoryDatatypes::preRegisterTerm(TNode n)
         std::stringstream ss;
         ss << "Codatatypes not available in this configuration, try "
               "--datatypes-exp.";
-        throw LogicException(ss.str());
+        throw SafeLogicException(ss.str());
       }
     }
   }
@@ -342,6 +342,15 @@ void TheoryDatatypes::preRegisterTerm(TNode n)
       // add predicate trigger for testers and equalities
       // Get triggered for both equal and dis-equal
       d_state.addEqualityEngineTriggerPredicate(n);
+      break;
+    case Kind::MATCH:
+    {
+      Assert (!options().datatypes.datatypesExp);
+      std::stringstream ss;
+      ss << "Match terms not available in this configuration, try "
+            "--datatypes-exp.";
+      throw SafeLogicException(ss.str());
+    }
       break;
     default:
       // do initial lemmas (e.g. for dt.size)
@@ -1198,7 +1207,9 @@ Node TheoryDatatypes::getInstantiateCons(Node n, const DType& dt, int index)
   Node k = getTermSkolemFor( n );
   Node n_ic =
       utils::getInstCons(k, dt, index, options().datatypes.dtSharedSelectors);
-  Assert (n_ic == rewrite(n_ic));
+  // generally n_ic is in rewritten form but this is not the case if
+  // n is not in rewritten form, e.g. if another theory added an unrewritten
+  // term to the equality engine.
   Trace("dt-enum") << "Made instantiate cons " << n_ic << std::endl;
   return n_ic;
 }
@@ -1265,6 +1276,9 @@ void TheoryDatatypes::checkCycles() {
   Trace("datatypes-cycle-check") << "Check acyclicity" << std::endl;
   std::vector< Node > cdt_eqc;
   eq::EqClassesIterator eqcs_i = eq::EqClassesIterator(d_equalityEngine);
+  std::map< TNode, bool > visited;
+  std::map< TNode, bool > proc;
+  std::vector<Node> expl;
   while( !eqcs_i.isFinished() ){
     Node eqc = (*eqcs_i);
     TypeNode tn = eqc.getType();
@@ -1273,9 +1287,6 @@ void TheoryDatatypes::checkCycles() {
         if (options().datatypes.dtCyclic)
         {
           //do cycle checks
-          std::map< TNode, bool > visited;
-          std::map< TNode, bool > proc;
-          std::vector<Node> expl;
           Trace("datatypes-cycle-check") << "...search for cycle starting at " << eqc << std::endl;
           Node cn = searchForCycle( eqc, eqc, visited, proc, expl );
           Trace("datatypes-cycle-check") << "...finish." << std::endl;
@@ -1832,13 +1843,18 @@ void TheoryDatatypes::computeRelevantTerms(std::set<Node>& termSet)
     }
     // scan the equivalence class
     bool foundCons = false;
+    bool hasRlv = false;
     eq::EqClassIterator eqc_i = eq::EqClassIterator(r, d_equalityEngine);
     while (!eqc_i.isFinished())
     {
       TNode n = *eqc_i;
       ++eqc_i;
-      if (n.getKind() == Kind::APPLY_CONSTRUCTOR
-          && termSet.find(n) != termSet.end())
+      if (termSet.find(n) == termSet.end())
+      {
+        continue;
+      }
+      hasRlv = true;
+      if (n.getKind() == Kind::APPLY_CONSTRUCTOR)
       {
         // change the recorded constructor to be a relevant one
         ei->d_constructor = n;
@@ -1846,11 +1862,22 @@ void TheoryDatatypes::computeRelevantTerms(std::set<Node>& termSet)
         break;
       }
     }
+    // if no relevant terms whatsoever, we skip
+    if (!hasRlv)
+    {
+      continue;
+    }
     // If there are no constructors that are relevant, we consider the
     // recorded constructor to be relevant.
     if (!foundCons)
     {
-      termSet.insert(ei->d_constructor.get());
+      Node cons = ei->d_constructor.get();
+      termSet.insert(cons);
+      // its arguments are also relevant
+      for (const Node& nc : cons)
+      {
+        termSet.insert(nc);
+      }
     }
   }
 }
