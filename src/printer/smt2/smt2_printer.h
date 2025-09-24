@@ -34,7 +34,10 @@ enum class Variant
 {
   no_variant,
   // A variant used for printing commands in the preamble of ALF proofs. This is used by the ALF printer.
-  alf_variant
+  alf_variant,
+  // A variant used for printing certain operators differently in Alethe
+  // proofs. This is used by the Alethe printer.
+  alethe_variant
 };
 
 class Smt2Printer : public cvc5::internal::Printer
@@ -304,7 +307,7 @@ class Smt2Printer : public cvc5::internal::Printer
    * Get the string for a kind k, which returns how the kind k is printed in
    * the SMT-LIB format.
    */
-  static std::string smtKindString(Kind k);
+  static std::string smtKindString(Kind k, Variant variant = Variant::no_variant);
   /**
    * Same as above, but also takes into account the type of the node, which
    * makes a difference for printing sequences.

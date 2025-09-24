@@ -203,7 +203,7 @@ void Smt2Printer::toStream(std::ostream& out, TNode n) const
 
 void Smt2Printer::toStream(std::ostream& out, Kind k) const
 {
-  out << smtKindString(k);
+  out << smtKindString(k, d_variant);
 }
 
 bool Smt2Printer::toStreamBase(std::ostream& out,
@@ -253,7 +253,7 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
         break;
     }
     case Kind::APPLY_INDEXED_SYMBOLIC_OP:
-      out << smtKindString(n.getConst<GenericOp>().getKind());
+      out << smtKindString(n.getConst<GenericOp>().getKind(), d_variant);
       break;
     case Kind::BITVECTOR_TYPE:
       out << "(_ BitVec " << n.getConst<BitVectorSize>().d_size << ")";
@@ -316,7 +316,7 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
       // for our purposes
       out << (n.getConst<bool>() ? "true" : "false");
       break;
-    case Kind::BUILTIN: out << smtKindString(n.getConst<Kind>()); break;
+    case Kind::BUILTIN: out << smtKindString(n.getConst<Kind>(), d_variant); break;
     case Kind::CONST_RATIONAL:
     {
       const Rational& r = n.getConst<Rational>();
@@ -537,11 +537,11 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
       Kind k = NodeManager::operatorToKind(n);
       if (indices.empty())
       {
-        out << smtKindString(k);
+        out << smtKindString(k, d_variant);
       }
       else
       {
-        out << "(_ " << smtKindString(k);
+        out << "(_ " << smtKindString(k, d_variant);
         for (uint32_t i : indices)
         {
           out << " " << i;
@@ -725,7 +725,7 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
   }
   else if (k == Kind::MATCH)
   {
-    out << '(' << smtKindString(k) << " ";
+    out << '(' << smtKindString(k, d_variant) << " ";
     toStream(out, n[0], lbind, toDepth);
     out << " (";
     for (size_t i = 1, nchild = n.getNumChildren(); i < nchild; i++)
@@ -807,7 +807,7 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
   else if (k == Kind::FORALL || k == Kind::EXISTS || k == Kind::LAMBDA
            || k == Kind::WITNESS)
   {
-    out << '(' << smtKindString(k) << " ";
+    out << '(' << smtKindString(k, d_variant) << " ";
     // do not letify the bound variable list
     toStream(out, n[0], nullptr, toDepth);
     out << " ";
@@ -1048,7 +1048,7 @@ bool Smt2Printer::toStreamBase(std::ostream& out,
       // by default, print the kind using the smtKindString utility
       if (n.getMetaKind() != kind::metakind::PARAMETERIZED)
       {
-        out << smtKindString(k);
+        out << smtKindString(k, d_variant);
       }
       break;
   }
@@ -1151,7 +1151,7 @@ void Smt2Printer::toStream(std::ostream& out,
   } while (!visit.empty());
 }
 
-std::string Smt2Printer::smtKindString(Kind k)
+std::string Smt2Printer::smtKindString(Kind k, Variant variant)
 {
   switch(k) {
     // builtin theory
@@ -1175,7 +1175,10 @@ std::string Smt2Printer::smtKindString(Kind k)
 
     case Kind::LAMBDA: return "lambda";
     case Kind::MATCH: return "match";
-    case Kind::WITNESS: return "witness";
+    case Kind::WITNESS:
+    {
+      return variant == Variant::alethe_variant ? "choice" : "witness";
+    }
 
     // arith theory
     case Kind::ADD: return "+";

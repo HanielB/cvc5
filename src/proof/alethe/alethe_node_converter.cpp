@@ -251,21 +251,6 @@ Node AletheNodeConverter::postConvert(Node n)
       return n.getNumChildren() == 3 ? d_nm->mkNode(Kind::FORALL, n[0], n[1])
                                      : n;
     }
-    // we must make it to be printed with "choice", so we create an operator
-    // with that name and the correct type and do a function application
-    case Kind::WITNESS:
-    {
-      std::vector<TypeNode> childrenTypes;
-      for (const Node& c : n)
-      {
-        childrenTypes.push_back(c.getType());
-      }
-      TypeNode fType = d_nm->mkFunctionType(childrenTypes, n.getType());
-      Node choiceOp = mkInternalSymbol("choice", fType);
-      Node converted = d_nm->mkNode(Kind::APPLY_UF, choiceOp, n[0], n[1]);
-      Trace("alethe-conv") << ".. converted to choice: " << converted << "\n";
-      return converted;
-    }
     // other handled kinds but no-op in conversion. Everything else is
     // unsupported
     /* from builtin */
@@ -437,6 +422,7 @@ Node AletheNodeConverter::postConvert(Node n)
     case Kind::REGEXP_RV:
     /* from quantifiers */
     case Kind::EXISTS:
+    case Kind::WITNESS:
     case Kind::BOUND_VAR_LIST:
     case Kind::INST_PATTERN:
     case Kind::INST_NO_PATTERN:

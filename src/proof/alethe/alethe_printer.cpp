@@ -84,7 +84,9 @@ AletheProofPrinter::AletheProofPrinter(Env& env, AletheNodeConverter& anc)
       d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
                                           : 0),
       d_anc(anc),
-      d_cb(new LetUpdaterPfCallback(d_lbind))
+      d_cb(new LetUpdaterPfCallback(d_lbind)),
+      d_termPrinter(printer::smt2::Variant::alethe_variant)
+
 {
   d_id = 0;
 }
@@ -146,10 +148,14 @@ void AletheProofPrinter::printStepId(std::ostream& out,
 
 void AletheProofPrinter::printTerm(std::ostream& out, TNode n, bool raw)
 {
-  if (raw) {
+  // TODO create an instance of the SMT2 printer, probably somewhere globally in this class, so that it has the alethe variant, and then do things parameterizedly
+  if (raw)
+  {
     options::ioutils::applyOutputLanguage(out, Language::LANG_SMTLIB_V2_6);
     options::ioutils::applyPrintArithLitToken(out, true);
-    out << "(cl " << n << ")";
+    out << "(cl ";
+    d_termPrinter.toStream(out, n);
+    out << ")";
     return;
   }
   std::stringstream ss;
@@ -161,7 +167,7 @@ void AletheProofPrinter::printTerm(std::ostream& out, TNode n, bool raw)
   options::ioutils::applyDagThresh(ss, 0);
   // Guarantee we print reals as expected
   options::ioutils::applyPrintArithLitToken(ss, true);
-  ss << d_lbind.convert(nodeManager(), n, "@p_");
+  d_termPrinter.toStream(ss, d_lbind.convert(nodeManager(), n, "@p_"));
   out << ss.str();
 }
 
@@ -371,7 +377,7 @@ void AletheProofPrinter::printInitialAssumptions(
     {
       options::ioutils::applyOutputLanguage(out, Language::LANG_SMTLIB_V2_6);
       options::ioutils::applyPrintArithLitToken(out, true);
-      out << assumptions[i];
+      d_termPrinter.toStream(out, assumptions[i]);
     }
     else
     {
