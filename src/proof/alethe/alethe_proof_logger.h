@@ -46,7 +46,9 @@ class AletheProofLogger : public ProofLogger
   void logCnfPreprocessInputProofs(
       std::vector<std::shared_ptr<ProofNode>>& pfns) override;
   /** Log theory lemma */
-  void logTheoryLemma(const Node& n) override;
+  void logTheoryLemma(
+      const Node& n,
+      theory::InferenceId id = theory::InferenceId::NONE) override;
   /** Log theory lemma proof */
   void logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn) override;
   /** Log SAT refutation */

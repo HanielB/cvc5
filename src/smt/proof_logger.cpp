@@ -92,7 +92,7 @@ void ProofLoggerCpc::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
   Trace("pf-log") << "; log theory lemma proof end" << std::endl;
 }
 
-void ProofLoggerCpc::logTheoryLemma(const Node& n)
+void ProofLoggerCpc::logTheoryLemma(const Node& n, theory::InferenceId id)
 {
   Trace("pf-log") << "; log theory lemma start " << n << std::endl;
   std::shared_ptr<ProofNode> ptl =

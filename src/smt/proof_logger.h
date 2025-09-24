@@ -39,11 +39,11 @@ class ProofPostprocess;
  * (1) When preprocessing has completed, determining the set of input clauses.
  * (2) When theory lemmas are learned
  * (3) When a SAT refutation is derived.
- * 
+ *
  * Dependending on the proof mode, the notifications for the above three things
  * may be in the form of ProofNode (if proofs are enabled for that component),
  * or Node (if proofs are disabled for that component).
- * 
+ *
  * As with dumped proofs, the granularity of the proofs is subject to the
  * option `proof-granularity`.
  */
@@ -73,7 +73,7 @@ class ProofLogger : protected EnvObj
    * (the CNF conversion of) a theory lemma.
    * @param n The theory lemma.
    */
-  virtual void logTheoryLemma(const Node& n) {}
+  virtual void logTheoryLemma(const Node& n, theory::InferenceId id = theory::InferenceId::NONE) {}
   /**
    * Called when clause `pfn` is added to the SAT solver, where `pfn`
    * is a closed proof of (the CNF conversion of) a theory lemma.
@@ -116,7 +116,9 @@ class ProofLoggerCpc : public ProofLogger
   void logCnfPreprocessInputProofs(
       std::vector<std::shared_ptr<ProofNode>>& pfns) override;
   /** Log theory lemma */
-  void logTheoryLemma(const Node& n) override;
+  void logTheoryLemma(
+      const Node& n,
+      theory::InferenceId id = theory::InferenceId::NONE) override;
   /** Log theory lemma proof */
   void logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn) override;
   /** Log SAT refutation */
