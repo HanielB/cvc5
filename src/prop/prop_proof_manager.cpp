@@ -71,7 +71,6 @@ PropPfManager::PropPfManager(Env& env,
       d_trackLemmaClauseIds(false),
       d_lemmaClauseIds(userContext()),
       d_lemmaClauseTimestamp(userContext()),
-      d_currLemmaId(theory::InferenceId::NONE),
       d_satPm(nullptr),
       d_uclIds(statisticsRegistry().registerHistogram<theory::InferenceId>(
           "ppm::unsatCoreLemmaIds")),
@@ -97,9 +96,9 @@ void PropPfManager::convertAndAssert(theory::InferenceId id,
                                      bool input,
                                      ProofGenerator* pg)
 {
-  d_currLemmaId = id;
+  d_currLemmaId.push_back(id);
   d_pfCnfStream.convertAndAssert(node, negated, removable, input, pg);
-  d_currLemmaId = theory::InferenceId::NONE;
+  d_currLemmaId.pop_back();
   // if input, register the assertion in the proof manager
   if (input)
   {
@@ -330,7 +329,7 @@ Node PropPfManager::normalizeAndRegister(TNode clauseNode,
     d_lemmaClauses.insert(normClauseNode);
     if (d_trackLemmaClauseIds)
     {
-      d_lemmaClauseIds[normClauseNode] = d_currLemmaId;
+      d_lemmaClauseIds[normClauseNode] = d_currLemmaId.back();
       uint64_t currTimestamp = d_env.getResourceManager()->getResource(
           Resource::TheoryFullCheckStep);
       d_lemmaClauseTimestamp[normClauseNode] = currTimestamp;
@@ -353,8 +352,12 @@ Node PropPfManager::normalizeAndRegister(TNode clauseNode,
       }
       else
       {
+        if (d_currLemmaId.back() == theory::InferenceId::NONE)
+        {
+          Unreachable();
+        }
         // otherwise we just notify the clause
-        d_plog->logTheoryLemma(normClauseNode, d_currLemmaId);
+        d_plog->logTheoryLemma(normClauseNode, d_currLemmaId.back());
       }
     }
   }

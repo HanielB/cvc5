@@ -247,7 +247,7 @@ class PropPfManager : protected EnvObj
    */
   context::CDHashMap<Node, uint64_t> d_lemmaClauseTimestamp;
   /** The current identifier */
-  theory::InferenceId d_currLemmaId;
+  std::vector<theory::InferenceId> d_currLemmaId;
   /** The current propagation being processed via this class. */
   Node d_currPropagationProcessed;
   /** Temporary, pointer to SAT proof manager */
