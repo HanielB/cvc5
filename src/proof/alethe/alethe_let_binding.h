@@ -18,6 +18,7 @@
 #define CVC5__PROOF__ALETHE_LET_BINDING_H
 
 #include "printer/let_binding.h"
+#include "printer/smt2/smt2_printer.h"
 
 namespace cvc5::internal {
 
@@ -34,7 +35,7 @@ namespace proof {
 class AletheLetBinding : public LetBinding
 {
  public:
-  AletheLetBinding(uint32_t thresh);
+  AletheLetBinding(uint32_t thresh, printer::smt2::Smt2Printer *termPrinter);
 
   /**
    * Convert n based on the state of the let binding.
@@ -52,6 +53,8 @@ class AletheLetBinding : public LetBinding
   /** The set of terms that have already been "decleared", i.e., already had
    * their first occurrence replaced. */
   std::unordered_set<Node> d_declared;
+
+  printer::smt2::Smt2Printer *d_termPrinter;
 };
 
 }  // namespace proof

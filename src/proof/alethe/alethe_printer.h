@@ -19,7 +19,6 @@
 #define CVC5__PROOF__ALETHE__ALETHE_PROOF_PRINTER_H
 
 #include "context/cdhashset.h"
-#include "printer/smt2/smt2_printer.h"
 #include "proof/alethe/alethe_let_binding.h"
 #include "proof/alethe/alethe_node_converter.h"
 #include "proof/alethe/alethe_proof_rule.h"
@@ -161,6 +160,9 @@ class AletheProofPrinter : protected EnvObj
                  const std::vector<std::shared_ptr<ProofNode>>& pfChildren,
                  bool raw = false);
 
+  /** Printer for Alethe terms */
+  printer::smt2::Smt2Printer d_termPrinter;
+
   /** The let binder for printing with sharing. */
   AletheLetBinding d_lbind;
 
@@ -175,8 +177,6 @@ class AletheProofPrinter : protected EnvObj
 
   /** The id used for outermost proof steps. */
   size_t d_id;
-
-  printer::smt2::Smt2Printer d_termPrinter;
 };
 
 }  // namespace proof

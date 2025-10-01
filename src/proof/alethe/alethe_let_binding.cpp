@@ -21,7 +21,9 @@ namespace cvc5::internal {
 
 namespace proof {
 
-AletheLetBinding::AletheLetBinding(uint32_t thresh) : LetBinding("let", thresh)
+AletheLetBinding::AletheLetBinding(uint32_t thresh,
+                                   printer::smt2::Smt2Printer* termPrinter)
+    : LetBinding("let", thresh), d_termPrinter(termPrinter)
 {
 }
 
@@ -124,7 +126,8 @@ Node AletheLetBinding::convert(NodeManager* nm,
         // Guarantee we print reals as expected
         options::ioutils::applyPrintArithLitToken(ss, true);
         options::ioutils::applyFlattenHOChains(ss, true);
-        cur.toStream(ss);
+        d_termPrinter->toStream(ss, cur);
+
         ss << " :named " << prefix << id << ")";
         Node letVar = NodeManager::mkRawSymbol(ss.str(), cur.getType());
         visited[cur] = letVar;
@@ -217,7 +220,8 @@ Node AletheLetBinding::convert(NodeManager* nm,
         // Guarantee we print reals as expected
         options::ioutils::applyPrintArithLitToken(ss, true);
         options::ioutils::applyFlattenHOChains(ss, true);
-        ret.toStream(ss);
+        d_termPrinter->toStream(ss, ret);
+
         ssVar << prefix << id;
         ss << " :named " << ssVar.str() << ")";
         Node declaration = NodeManager::mkRawSymbol(ss.str(), ret.getType());

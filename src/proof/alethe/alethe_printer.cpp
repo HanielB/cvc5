@@ -81,12 +81,11 @@ AletheProofPrinter::AletheProofPrinter(Env& env, AletheNodeConverter& anc)
       d_context(),
       d_assumptionsMap(&d_context),
       d_pfMap(&d_context),
-      d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
-                                          : 0),
+      d_termPrinter(printer::smt2::Variant::alethe_variant),
+      d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1 : 0,
+              &d_termPrinter),
       d_anc(anc),
-      d_cb(new LetUpdaterPfCallback(d_lbind)),
-      d_termPrinter(printer::smt2::Variant::alethe_variant)
-
+      d_cb(new LetUpdaterPfCallback(d_lbind))
 {
   d_id = 0;
 }
