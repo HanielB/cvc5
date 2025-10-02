@@ -352,10 +352,6 @@ Node PropPfManager::normalizeAndRegister(TNode clauseNode,
       }
       else
       {
-        if (d_currLemmaId.back() == theory::InferenceId::NONE)
-        {
-          Unreachable();
-        }
         // otherwise we just notify the clause
         d_plog->logTheoryLemma(normClauseNode, d_currLemmaId.back());
       }
