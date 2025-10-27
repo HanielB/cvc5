@@ -81,6 +81,12 @@ class ProofLogger : protected EnvObj
    */
   virtual void logSatLearnedClause(const Node& n) {}
   /**
+   * Called when clause `n` is learned internally by the SAT solver, where `n`
+   * is a clause, and the premises are also known.
+   * @param n The clause.
+   */
+  virtual void logSatLearnedClausePremises(const Node& n, const std::vector<Node>& premises) {}
+  /**
    * Called when clause `pfn` is added to the SAT solver, where `pfn`
    * is a closed proof of (the CNF conversion of) a theory lemma.
    * @param pfn The closed proof of a theory lemma.

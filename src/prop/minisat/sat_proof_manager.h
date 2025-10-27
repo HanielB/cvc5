@@ -385,6 +385,8 @@ class SatProofManager : protected EnvObj
    */
   void notifyClauseInsertedAtLevel(const SatClause& clause, uint32_t clLevel);
 
+  bool d_logging;
+
  private:
   /** Ends resolution chain concluding clause
    *
@@ -576,6 +578,9 @@ class SatProofManager : protected EnvObj
    *
    * This accumulator is reset after each chain resolution. */
   std::vector<std::tuple<Node, Node, bool>> d_resLinks;
+
+  /** As above, but SAT literals stored and privots ignored. Useful for logging. */
+  std::vector<std::vector<SatLiteral>> d_resLinksSat;
 
   /** Redundant literals removed from the resolution chain's conclusion.
    *

@@ -366,6 +366,16 @@ void PropPfManager::presolve()
   d_plog = d_env.getProofLogger();
   Trace("pf-log-debug") << "PropPfManager::presolve, plog="
                         << (d_plog != nullptr) << std::endl;
+  d_satPm->d_logging = true;
+}
+
+void PropPfManager::logSatClause(const Node& n, const std::vector<Node>& premises)
+{
+  if (!d_plog)
+  {
+    return;
+  }
+  d_plog->logSatLearnedClausePremises(n, premises);
 }
 
 void PropPfManager::logPreprocessing()

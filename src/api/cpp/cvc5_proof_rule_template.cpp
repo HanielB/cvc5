@@ -48,6 +48,7 @@ const char* toString(ProofRule rule)
     case ProofRule::SAT_EXTERNAL_PROVE: return "SAT_EXTERNAL_PROVE";
     //================================================= Boolean rules
     case ProofRule::RESOLUTION: return "RESOLUTION";
+    case ProofRule::RESOLUTION_CL: return "RESOLUTION";
     case ProofRule::CHAIN_RESOLUTION: return "CHAIN_RESOLUTION";
     case ProofRule::FACTORING: return "FACTORING";
     case ProofRule::REORDERING: return "REORDERING";

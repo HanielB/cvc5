@@ -532,6 +532,7 @@ enum ENUM(ProofRule)
    * \endverbatim
    */
   EVALUE(RESOLUTION),
+  EVALUE(RESOLUTION_CL),
   /**
    * \verbatim embed:rst:leading-asterisk
    * **Boolean -- N-ary Resolution**

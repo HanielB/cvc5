@@ -53,6 +53,8 @@ class AletheProofLogger : public ProofLogger
   void logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn) override;
   /** Log SAT refutation */
   void logSatRefutation() override;
+  void logSatLearnedClausePremises(const Node& n, const std::vector<Node>& premises) override;
+
   /** Log SAT refutation proof */
   void logSatRefutationProof(std::shared_ptr<ProofNode>& pfn) override;
 
@@ -96,6 +98,8 @@ class AletheProofLogger : public ProofLogger
   std::vector<std::shared_ptr<ProofNode>> d_ppPfs;
   /** The list of translated theory lemma proofs we were notified of */
   std::vector<std::shared_ptr<ProofNode>> d_lemmaPfs;
+  /** The list of translated SAT clause proofs we were notified of */
+  std::map<Node, std::shared_ptr<ProofNode>> d_satClausePfs;
 
   /** Logged lemmas. Used to avoid logging repeated lemmas. */
   std::unordered_set<Node> d_lemmas;

@@ -71,8 +71,12 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::QNT_JOIN: return "qnt_join";
     case AletheRule::QNT_RM_UNUSED: return "qnt_rm_unused";
     case AletheRule::TH_RESOLUTION: return "th_resolution";
-    case AletheRule::RESOLUTION: return "resolution";
-    case AletheRule::RESOLUTION_OR: return "resolution";
+    case AletheRule::RESOLUTION:
+    case AletheRule::RESOLUTION_CL:
+    case AletheRule::RESOLUTION_OR:
+    {
+      return "resolution";
+    }
     case AletheRule::REFL: return "refl";
     case AletheRule::TRANS: return "trans";
     case AletheRule::CONG: return "cong";

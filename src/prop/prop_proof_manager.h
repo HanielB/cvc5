@@ -66,6 +66,9 @@ class PropPfManager : protected EnvObj
   void presolve();
   /** Logs the preprocessing proof, if the proof logger is set. */
   void logPreprocessing();
+
+  void logSatClause(const Node& n, const std::vector<Node>& premises);
+
   /** Postsolve, which finalizes proof logging. */
   void postsolve(SatValue result);
   /**

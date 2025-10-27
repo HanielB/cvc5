@@ -271,6 +271,22 @@ name   = "Proof"
   help       = "Proof logging mode"
 
 [[option]]
+  name       = "proofLogSat"
+  category   = "expert"
+  long       = "proof-log-sat"
+  type       = "bool"
+  default    = "false"
+  help       = "Log SAT learned clauses as well"
+
+[[option]]
+  name       = "proofLogTheoryProofs"
+  category   = "expert"
+  long       = "proof-log-theory-proofs"
+  type       = "bool"
+  default    = "false"
+  help       = "Log theory proofs as well"
+
+[[option]]
   name       = "proofLogLazyPreProcessing"
   category   = "expert"
   long       = "proof-log-lazy-pp"
@@ -285,4 +301,3 @@ name   = "Proof"
   type       = "uint64_t"
   default    = "2"
   help       = "the lookahead depth for merging proofs at previsit"
-

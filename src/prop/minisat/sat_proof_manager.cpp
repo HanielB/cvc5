@@ -86,6 +86,12 @@ void SatProofManager::startResChain(const Minisat::Clause& start)
     Trace("sat-proof") << "\n";
   }
   d_resLinks.emplace_back(getClauseNode(start), Node::null(), true);
+  std::vector<SatLiteral> clauseSatLits;
+  for (unsigned i = 0, size = start.size(); i < size; ++i)
+  {
+    clauseSatLits.push_back(MinisatSatSolver::toSatLiteral(start[i]));
+  }
+  d_resLinksSat.emplace_back(clauseSatLits);
 }
 
 void SatProofManager::addResolutionStep(Minisat::Lit lit, bool redundant)
@@ -105,6 +111,8 @@ void SatProofManager::addResolutionStep(Minisat::Lit lit, bool redundant)
     d_resLinks.emplace_back(d_cnfStream->getNodeCache()[~satLit],
                             negated ? litNode[0] : litNode,
                             !satLit.isNegated());
+    std::vector<SatLiteral> clauseSatLits{~satLit};
+    d_resLinksSat.emplace_back(clauseSatLits);
   }
   else
   {
@@ -127,6 +135,12 @@ void SatProofManager::addResolutionStep(const Minisat::Clause& clause,
   // negation in the first clause, which means that the third argument of the
   // tuple must be false
   d_resLinks.emplace_back(clauseNode, negated ? litNode[0] : litNode, negated);
+  std::vector<SatLiteral> clauseSatLits;
+  for (unsigned i = 0, size = clause.size(); i < size; ++i)
+  {
+    clauseSatLits.push_back(MinisatSatSolver::toSatLiteral(clause[i]));
+  }
+  d_resLinksSat.emplace_back(clauseSatLits);
   if (TraceIsOn("sat-proof"))
   {
     Trace("sat-proof") << "SatProofManager::addResolutionStep: {"
@@ -174,8 +188,34 @@ void SatProofManager::endResChain(Node conclusion,
   {
     Trace("sat-proof") << "SatProofManager::endResChain: cnf proof has "
                           "step/gen for it; skip\n";
+    if (d_logging)
+    {
+      std::vector<Node> premises;
+      for (auto link : d_resLinksSat)
+      {
+        std::vector<Node> clauseNodes;
+        for (unsigned i = 0, size = link.size(); i < size; ++i)
+        {
+          clauseNodes.push_back(d_cnfStream->getNode(link[i]));
+        }
+        premises.push_back(nodeManager()->mkNode(Kind::SEXPR, clauseNodes));
+      }
+      std::vector<Node> conclusionLitsNodes;
+      for (auto l : conclusionLits)
+      {
+        conclusionLitsNodes.push_back(d_cnfStream->getNode(l));
+      }
+      Node clConclusion = nodeManager()->mkNode(Kind::SEXPR, conclusionLitsNodes);
+      Trace("sat-proof") << "Would log: " << clConclusion << " from:\n";
+      for (auto premise : premises)
+      {
+        Trace("sat-proof") << "\t" << premise << "\n";
+      }
+      d_ppm->logSatClause(clConclusion, premises);
+    }
     // clearing
     d_resLinks.clear();
+    d_resLinksSat.clear();
     d_redundantLits.clear();
     return;
   }
@@ -184,8 +224,34 @@ void SatProofManager::endResChain(Node conclusion,
     Trace("sat-proof")
         << "SatProofManager::endResChain: skip repeated proof of " << conclusion
         << "\n";
+    if (d_logging)
+    {
+      std::vector<Node> premises;
+      for (auto link : d_resLinksSat)
+      {
+        std::vector<Node> clauseNodes;
+        for (unsigned i = 0, size = link.size(); i < size; ++i)
+        {
+          clauseNodes.push_back(d_cnfStream->getNode(link[i]));
+        }
+        premises.push_back(nodeManager()->mkNode(Kind::SEXPR, clauseNodes));
+      }
+      std::vector<Node> conclusionLitsNodes;
+      for (auto l : conclusionLits)
+      {
+        conclusionLitsNodes.push_back(d_cnfStream->getNode(l));
+      }
+      Node clConclusion = nodeManager()->mkNode(Kind::SEXPR, conclusionLitsNodes);
+      Trace("sat-proof") << "Would log: " << clConclusion << " from:\n";
+      for (auto premise : premises)
+      {
+        Trace("sat-proof") << "\t" << premise << "\n";
+      }
+      d_ppm->logSatClause(clConclusion, premises);
+    }
     // clearing
     d_resLinks.clear();
+    d_resLinksSat.clear();
     d_redundantLits.clear();
     return;
   }
@@ -246,8 +312,34 @@ void SatProofManager::endResChain(Node conclusion,
     }
     Trace("sat-proof") << clause << "\n";
   }
+  if (d_logging)
+  {
+    std::vector<Node> premises;
+    for (auto link : d_resLinksSat)
+    {
+      std::vector<Node> clauseNodes;
+      for (unsigned i = 0, size = link.size(); i < size; ++i)
+      {
+        clauseNodes.push_back(d_cnfStream->getNode(link[i]));
+      }
+      premises.push_back(nodeManager()->mkNode(Kind::SEXPR, clauseNodes));
+    }
+    std::vector<Node> conclusionLitsNodes;
+    for (auto l : conclusionLits)
+    {
+      conclusionLitsNodes.push_back(d_cnfStream->getNode(l));
+    }
+    Node clConclusion = nodeManager()->mkNode(Kind::SEXPR, conclusionLitsNodes);
+    Trace("sat-proof") << "Would log: " << clConclusion << " from:\n";
+    for (auto premise : premises)
+    {
+      Trace("sat-proof") << "\t" << premise << "\n";
+    }
+    d_ppm->logSatClause(clConclusion, premises);
+  }
   // clearing
   d_resLinks.clear();
+  d_resLinksSat.clear();
   // whether no-op
   if (children.size() == 1)
   {
@@ -319,6 +411,8 @@ void SatProofManager::processRedundantLit(
                        d_cnfStream->getNodeCache()[~lit],
                        negated ? litNode[0] : litNode,
                        !negated);
+    std::vector<SatLiteral> clauseSatLits{~lit};
+    d_resLinksSat.emplace(d_resLinksSat.begin() + pos, clauseSatLits);
     return;
   }
   Assert(reasonRef >= 0 && reasonRef < d_solver->ca.size())
@@ -366,6 +460,12 @@ void SatProofManager::processRedundantLit(
                      clauseNode,
                      negated ? litNode[0] : litNode,
                      !negated);
+  std::vector<SatLiteral> clauseSatLits;
+  for (unsigned i = 0, size = reason.size(); i < size; ++i)
+  {
+    clauseSatLits.push_back(MinisatSatSolver::toSatLiteral(reason[i]));
+  }
+  d_resLinksSat.emplace(d_resLinksSat.begin() + pos, clauseSatLits);
 }
 
 void SatProofManager::explainLit(SatLiteral lit,
@@ -597,6 +697,16 @@ void SatProofManager::finalizeProof(Node inConflictNode,
     }
     Trace("sat-proof-debug2") << pop;
   }
+  std::vector<Node> logPremises;
+  if (d_logging)
+  {
+    std::vector<Node> inConflictNodes;
+    for (auto l : inConflict)
+    {
+      inConflictNodes.push_back(d_cnfStream->getNode(l));
+    }
+    logPremises.push_back(nodeManager()->mkNode(Kind::SEXPR, inConflictNodes));
+  }
   // We will resolve away of the literals l_1...l_n in inConflict. At this point
   // each ~l_i must be either explainable, the result of a previously saved
   // resolution chain, or an input. In account of it possibly being the first,
@@ -613,6 +723,7 @@ void SatProofManager::finalizeProof(Node inConflictNode,
     Node negatedLitNode = d_cnfStream->getNodeCache()[~inConflict[i]];
     // save to resolution chain premises / arguments
     children.push_back(negatedLitNode);
+    logPremises.push_back(nodeManager()->mkNode(Kind::SEXPR, std::vector<Node>{negatedLitNode}));
     Node litNode = d_cnfStream->getNodeCache()[inConflict[i]];
     bool negated = inConflict[i].isNegated();
     Assert(!negated || litNode.getKind() == Kind::NOT);
@@ -730,6 +841,15 @@ void SatProofManager::finalizeProof(Node inConflictNode,
       premises.insert(fa);
     }
   } while (expanded);
+  if (d_logging)
+  {
+    Trace("sat-proof") << "Would log: () from:\n";
+    for (auto premise : logPremises)
+    {
+      Trace("sat-proof") << "\t" << premise << "\n";
+    }
+    d_ppm->logSatClause(d_false, logPremises);
+  }
 }
 
 void SatProofManager::storeUnitConflict(Minisat::Lit inConflict)

@@ -585,6 +585,36 @@ void AletheProofLogger::logTheoryLemma(const Node& n, theory::InferenceId id)
   Trace("alethe-pf-log") << "; log theory lemma end" << std::endl;
 }
 
+void AletheProofLogger::logSatLearnedClausePremises(const Node& n, const std::vector<Node>& premises)
+{
+  Trace("alethe-pf-log") << "Would log: " << n << " from:\n";
+  for (auto premise : premises)
+  {
+    Trace("alethe-pf-log") << "\t" << premise << "\n";
+  }
+  // collect premise proofs, if any (adds hole otherwise). I'll do the
+  // translation directly here and generate an ALETHE_RULE step, similarly to
+  // how it is done to the theory lemmas above. Hopefully the printer will
+  // figure it out how to print this...
+  std::vector<std::shared_ptr<ProofNode>> premisePfs;
+  for (const auto& premise : premises)
+  {
+    auto it = d_satClausePfs.find(premise);
+    if (it != d_satClausePfs.end())
+    {
+      premisePfs.push_back(it->second);
+    }
+    else
+    {
+      // create assumption
+      premisePfs.push_back(d_pnm->mkAssume(premise));
+    }
+  }
+  std::shared_ptr<ProofNode> pfn =
+      d_pnm->mkNode(ProofRule::RESOLUTION_CL, premisePfs, {}, n);
+}
+
+
 void AletheProofLogger::logSatRefutation()
 {
   if (d_hadError)
