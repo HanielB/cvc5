@@ -15,6 +15,7 @@
 
 #include "proof/alethe/alethe_proof_logger.h"
 
+#include "proof/alethe/alethe_util.h"
 #include "proof/alethe/alethe_proof_rule.h"
 #include "proof/proof.h"
 #include "proof/proof_node_algorithm.h"
@@ -51,6 +52,7 @@ AletheProofLogger::AletheProofLogger(Env& env,
            "elements\")";
     d_hadError = true;
   }
+  d_cl = d_anc.getCl();
 }
 
 AletheProofLogger::~AletheProofLogger() {}
@@ -249,7 +251,7 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
   }
   Trace("alethe-pf-log") << "; log theory lemma proof start "
                          << pfn->getResult() << std::endl;
-  d_lemmaPfs.emplace_back(pfn);
+  // d_lemmaPfs.emplace_back(pfn);
   printPfNodeAlethe(pfn, true);
   Trace("alethe-pf-log") << "; log theory lemma proof end" << std::endl;
 }
@@ -559,59 +561,113 @@ void AletheProofLogger::logTheoryLemma(const Node& n, theory::InferenceId id)
     return;
   }
   d_lemmas.insert(n);
-  Trace("alethe-pf-log") << "; log theory lemma start " << n << std::endl;
-  Trace("alethe-pf-log") << "id: " << id << std::endl;
+  Trace("alethe-pf-log") << "; log theory lemma (id " << id << ") start " << n << std::endl;
   // create Alethe step directly. No need to go via the post-processor.
-  std::vector<Node> args{nodeManager()->mkConstInt(
-      Rational(static_cast<uint32_t>(AletheRule::HOLE)))};
-  args.push_back(n);
-  Node conclusion = d_anc.maybeConvert(n);
-  if (conclusion.isNull())
+  CDProof cdp(d_env);
+  Node key = n;
+  NodeManager* nm = nodeManager();
+  auto it = s_infIdToStr.find(id);
+  std::vector<Node> args{
+      nm->mkConst(String("THEORY_LEMMA")),
+      nm->mkConst(String(it == s_infIdToStr.end() ? "other" : it->second))};
+  if (n.getKind() == Kind::OR)
   {
-    d_hadError = true;
+    std::vector<Node> lits{d_cl};
+    lits.insert(lits.end(), n.begin(), n.end());
+    key = nodeManager()->mkNode(Kind::SEXPR, lits);
+    d_hadError = !addAletheStepFromClause(
+        AletheRule::HOLE,
+        n,
+        std::vector<Node>{n.begin(), n.end()},
+        std::vector<Node>{},
+        args,
+        cdp,
+        nm,
+        &d_anc);
+  }
+  else
+  {
+    d_hadError = !addAletheStep(
+        AletheRule::HOLE, n, n, std::vector<Node>{}, args, cdp, nm, &d_anc);
+  }
+  if (d_hadError)
+  {
     d_out << "(error " << d_anc.getError() << ")";
     return;
   }
-  args.push_back(conclusion);
-  args.push_back(nodeManager()->mkConst(String("THEORY_LEMMA")));
-  auto it = s_infIdToStr.find(id);
-  args.push_back(nodeManager()->mkConst(String(it == s_infIdToStr.end()? "other" : it->second)));
-  std::shared_ptr<ProofNode> ptl =
-      d_pnm->mkNode(ProofRule::ALETHE_RULE, {}, args, n);
-  d_lemmaPfs.emplace_back(ptl);
-
+  std::shared_ptr<ProofNode> ptl = cdp.getProofFor(n);
+  d_lemmaPfs.emplace(key, ptl);
   d_apprinter.printProofNode(d_out, ptl, true);
-  // d_out << conclusion << "\n";
   Trace("alethe-pf-log") << "; log theory lemma end" << std::endl;
 }
 
 void AletheProofLogger::logSatLearnedClausePremises(const Node& n, const std::vector<Node>& premises)
 {
-  Trace("alethe-pf-log") << "Would log: " << n << " from:\n";
-  for (auto premise : premises)
-  {
-    Trace("alethe-pf-log") << "\t" << premise << "\n";
-  }
+  Trace("alethe-pf-log") << "; log sat clause " << n << " from " << premises << "\n";
   // collect premise proofs, if any (adds hole otherwise). I'll do the
   // translation directly here and generate an ALETHE_RULE step, similarly to
   // how it is done to the theory lemmas above. Hopefully the printer will
   // figure it out how to print this...
-  std::vector<std::shared_ptr<ProofNode>> premisePfs;
+  NodeManager* nm = nodeManager();
+  CDProof cdp(d_env);
+  std::vector<Node> premiseInPfs;
   for (const auto& premise : premises)
   {
-    auto it = d_satClausePfs.find(premise);
+    // build key
+    std::vector<Node> lits{premise.begin(), premise.end()};
+    std::sort(lits.begin(), lits.end());
+    lits.insert(lits.begin(), d_cl);
+    Node key = nodeManager()->mkNode(Kind::SEXPR, lits);
+    premiseInPfs.push_back(key);
+    auto it = d_lemmaPfs.find(key);
+    if (it != d_lemmaPfs.end())
+    {
+      cdp.addProof(it->second);
+      continue;
+    }
+    it = d_satClausePfs.find(key);
     if (it != d_satClausePfs.end())
     {
-      premisePfs.push_back(it->second);
+      cdp.addProof(it->second);
+      continue;
     }
-    else
+    // create hole
+    d_hadError = !addAletheStepFromClause(
+        AletheRule::HOLE,
+        key,
+        std::vector<Node>{premise.begin(), premise.end()},
+        std::vector<Node>{},
+        std::vector<Node>{nm->mkConst(String("lost"))},
+        cdp,
+        nm,
+        &d_anc);
+    if (d_hadError)
     {
-      // create assumption
-      premisePfs.push_back(d_pnm->mkAssume(premise));
+      break;
     }
   }
-  std::shared_ptr<ProofNode> pfn =
-      d_pnm->mkNode(ProofRule::RESOLUTION_CL, premisePfs, {}, n);
+  // build key
+  std::vector<Node> lits{n.begin(), n.end()};
+  std::sort(lits.begin(), lits.end());
+  lits.insert(lits.begin(), d_cl);
+  Node key = nm->mkNode(Kind::SEXPR, lits);
+  d_hadError = !addAletheStepFromClause(AletheRule::RESOLUTION,
+                                        key,
+                                        std::vector<Node>{n.begin(), n.end()},
+                                        premiseInPfs,
+                                        std::vector<Node>{},
+                                        cdp,
+                                        nm,
+                                        &d_anc);
+  if (d_hadError)
+  {
+    d_out << "(error " << d_anc.getError() << ")";
+    return;
+  }
+  std::shared_ptr<ProofNode> psat = cdp.getProofFor(key);
+  d_satClausePfs.emplace(key, psat);
+  d_apprinter.printProofNode(d_out, psat, true);
+  Trace("alethe-pf-log") << "; log sat clause end" << std::endl;
 }
 
 
@@ -622,8 +678,9 @@ void AletheProofLogger::logSatRefutation()
     return;
   }
   Trace("alethe-pf-log") << "; log SAT refutation start" << std::endl;
-  std::vector<std::shared_ptr<ProofNode>> premises{d_ppPfs.begin(),
-                                                   d_ppPfs.end()};
+  std::vector<std::shared_ptr<ProofNode>> premises;
+  // std::vector<std::shared_ptr<ProofNode>> premises{d_ppPfs.begin(),
+  //                                                  d_ppPfs.end()};
   if (Configuration::isAssertionBuild())
   {
     // make sure that each of these premises is present in the preprocessing
@@ -634,15 +691,15 @@ void AletheProofLogger::logSatRefutation()
         d_ppProof->getChildren()[0]->getChildren()[0];
     // we ignore the translated AND_INTRO step and rather directly get the
     // proofs for the clauses
-    for (const std::shared_ptr<ProofNode>& ppPf : d_ppPfs)
-    {
-      Node n = ppPf->getResult();
-      // Traverse the proof node to find a subproof concluding n.
-      Assert(expr::getSubproofFor(n, ppBody))
-          << "Could not find " << n << std::endl;
-    }
+    // for (const std::shared_ptr<ProofNode>& ppPf : d_ppPfs)
+    // {
+    //   Node n = ppPf->getResult();
+    //   // Traverse the proof node to find a subproof concluding n.
+    //   Assert(expr::getSubproofFor(n, ppBody))
+    //       << "Could not find " << n << std::endl;
+    // }
   }
-  premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
+  // premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
   Node f = nodeManager()->mkConst(false);
   std::shared_ptr<ProofNode> psr =
       d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);
@@ -675,8 +732,10 @@ void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
     premises.push_back(ppBody);
   }
 
-  // std::vector<std::shared_ptr<ProofNode>> premises{ppBody};
-  premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
+  for (const auto& p : d_lemmaPfs)
+  {
+    premises.push_back(p.second);
+  }
   Node f = nodeManager()->mkConst(false);
   std::shared_ptr<ProofNode> psr =
       d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);

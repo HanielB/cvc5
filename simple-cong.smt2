@@ -15,7 +15,7 @@
 (assert (= c d))
 (assert (and p1 true))
 (assert (or (not p1) (and p2 p3)))
-(assert (or (not p3) (not (= (f (+ a 0) c) (f b d)))))
+(assert (or (not p3) (not (= (f a c) (f b d)))))
 
 ; (or (not (= a b)) (not (= c d)) (= (f a c) (f b d)))
 

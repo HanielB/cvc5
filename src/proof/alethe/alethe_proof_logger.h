@@ -95,9 +95,9 @@ class AletheProofLogger : public ProofLogger
   /** The preprocessing proof we were notified of, which we may have created */
   std::shared_ptr<ProofNode> d_ppProof;
   /** The list of translated preprocessing proofs we were notified of */
-  std::vector<std::shared_ptr<ProofNode>> d_ppPfs;
+  std::map<Node, std::shared_ptr<ProofNode>> d_ppPfs;
   /** The list of translated theory lemma proofs we were notified of */
-  std::vector<std::shared_ptr<ProofNode>> d_lemmaPfs;
+  std::map<Node, std::shared_ptr<ProofNode>> d_lemmaPfs;
   /** The list of translated SAT clause proofs we were notified of */
   std::map<Node, std::shared_ptr<ProofNode>> d_satClausePfs;
 
@@ -108,6 +108,8 @@ class AletheProofLogger : public ProofLogger
 
   /** Whether there was an error for some logged proof. */
   bool d_hadError;
+  /** The cl operator. */
+  Node d_cl;
 };
 
 }  // namespace proof

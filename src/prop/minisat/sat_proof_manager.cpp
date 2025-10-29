@@ -526,6 +526,16 @@ void SatProofManager::explainLit(SatLiteral lit,
         << "cyclic justification\n";
   }
 #endif
+  std::vector<Node> logPremises;
+  if (d_logging)
+  {
+    std::vector<Node> reasonNodes;
+    for (size_t i = 0; i < size; ++i)
+    {
+      reasonNodes.push_back(d_cnfStream->getNode(MinisatSatSolver::toSatLiteral(reason[i])));
+    }
+    logPremises.push_back(nodeManager()->mkNode(Kind::SEXPR, reasonNodes));
+  }
   // add the reason clause first
   std::vector<Node> children{getClauseNode(reason)}, args;
   // save in the premises
@@ -555,6 +565,8 @@ void SatProofManager::explainLit(SatLiteral lit,
     Assert(d_cnfStream->getNodeCache().find(currLit)
            != d_cnfStream->getNodeCache().end());
     children.push_back(d_cnfStream->getNodeCache()[~currLit]);
+    logPremises.push_back(nodeManager()->mkNode(
+        Kind::SEXPR, std::vector<Node>{d_cnfStream->getNodeCache()[~currLit]}));
     Node currLitNode = d_cnfStream->getNodeCache()[currLit];
     bool negated = currLit.isNegated();
     Assert(!negated || currLitNode.getKind() == Kind::NOT);
@@ -581,6 +593,17 @@ void SatProofManager::explainLit(SatLiteral lit,
       }
       Trace("sat-proof") << "\n";
     }
+  }
+  if (d_logging)
+  {
+    Trace("sat-proof") << "Would log: (" << litNode << ") from:\n";
+    for (auto premise : logPremises)
+    {
+      Trace("sat-proof") << "\t" << premise << "\n";
+    }
+    d_ppm->logSatClause(
+        nodeManager()->mkNode(Kind::SEXPR, std::vector<Node>{litNode}),
+        logPremises);
   }
   // if justification of children contains the expected conclusion, avoid the
   // cyclic proof by aborting.
