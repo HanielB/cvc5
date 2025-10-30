@@ -92,6 +92,7 @@ class AletheProofPostprocessCallback : protected EnvObj,
   /** Retrieve the saved error message, if any. */
   const std::string& getError();
 
+  bool d_processingTheoryProof;
  private:
   /** The Alethe node converter */
   AletheNodeConverter& d_anc;
@@ -198,6 +199,7 @@ class AletheProofPostprocess : protected EnvObj
   /** Retrieve the saved error message, if any. */
   const std::string& getError();
 
+  bool processTheoryProof(std::shared_ptr<ProofNode>& pf);
  private:
   /** The post process callback */
   AletheProofPostprocessCallback d_cb;

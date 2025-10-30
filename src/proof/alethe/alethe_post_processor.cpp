@@ -58,12 +58,13 @@ std::unordered_map<Kind, AletheRule> s_bvKindToAletheRule = {
 
 AletheProofPostprocessCallback::AletheProofPostprocessCallback(
     Env& env, AletheNodeConverter& anc, bool resPivots)
-    : EnvObj(env), d_anc(anc), d_resPivots(resPivots)
+  : EnvObj(env), d_anc(anc), d_resPivots(resPivots)
 {
   NodeManager* nm = nodeManager();
   d_cl = d_anc.getCl();
   d_true = nm->mkConst(true);
   d_false = nm->mkConst(false);
+  d_processingTheoryProof = false;
 }
 
 const std::string& AletheProofPostprocessCallback::getError()
@@ -350,6 +351,13 @@ bool AletheProofPostprocessCallback::update(Node res,
       }
       negNode.push_back(children[0]);  // (cl (not F1) ... (not Fn) F)
       Node vp1 = nm->mkNode(Kind::SEXPR, negNode);
+      // We will have the Alethe conclusion of this SCOPE being the clause,
+      // which will be expected to be properly handled by its parents
+      if (d_processingTheoryProof)
+      {
+        return addAletheStep(
+          AletheRule::ANCHOR_SUBPROOF, res, vp1, children, args, *cdp);
+      }
       success &= addAletheStep(
           AletheRule::ANCHOR_SUBPROOF, vp1, vp1, children, args, *cdp);
 
@@ -2945,6 +2953,15 @@ bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode>& pf,
     ss << "\"Proof unsupported by Alethe: could not process final step\"";
     d_reasonForConversionFailure = ss.str();
   }
+  return d_reasonForConversionFailure.empty();
+}
+
+bool AletheProofPostprocess::processTheoryProof(std::shared_ptr<ProofNode>& pf)
+{
+  ProofNodeUpdater updater(d_env, d_cb, false, false);
+  d_cb.d_processingTheoryProof = true;
+  updater.process(pf);
+  d_cb.d_processingTheoryProof = false;
   return d_reasonForConversionFailure.empty();
 }
 

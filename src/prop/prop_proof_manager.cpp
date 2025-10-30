@@ -348,7 +348,7 @@ Node PropPfManager::normalizeAndRegister(TNode clauseNode,
       {
         // if theory proof producing, we get the proof to log
         std::shared_ptr<ProofNode> pfn = d_proof.getProofFor(normClauseNode);
-        d_plog->logTheoryLemmaProof(pfn);
+        d_plog->logTheoryLemmaProof(pfn, d_currLemmaId.back());
       }
       else
       {

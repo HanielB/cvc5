@@ -83,7 +83,8 @@ void ProofLoggerCpc::logCnfPreprocessInputProofs(
   Trace("pf-log") << "; log: cnf preprocess input proof end" << std::endl;
 }
 
-void ProofLoggerCpc::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn)
+void ProofLoggerCpc::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
+                                         theory::InferenceId id)
 {
   Trace("pf-log") << "; log theory lemma proof start " << pfn->getResult()
                   << std::endl;

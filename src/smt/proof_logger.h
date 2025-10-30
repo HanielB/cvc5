@@ -91,7 +91,11 @@ class ProofLogger : protected EnvObj
    * is a closed proof of (the CNF conversion of) a theory lemma.
    * @param pfn The closed proof of a theory lemma.
    */
-  virtual void logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn) {}
+  virtual void logTheoryLemmaProof(
+      std::shared_ptr<ProofNode>& pfn,
+      theory::InferenceId id = theory::InferenceId::NONE)
+  {
+  }
   /**
    * Called when the SAT solver derives false. The SAT refutation should be
    * derivable by propositional reasoning via the notified preprocessed input
@@ -132,7 +136,9 @@ class ProofLoggerCpc : public ProofLogger
       const Node& n,
       theory::InferenceId id = theory::InferenceId::NONE) override;
   /** Log theory lemma proof */
-  void logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn) override;
+  void logTheoryLemmaProof(
+      std::shared_ptr<ProofNode>& pfn,
+      theory::InferenceId id = theory::InferenceId::NONE) override;
   /** Log SAT refutation */
   void logSatRefutation() override;
   /** Log SAT refutation proof */

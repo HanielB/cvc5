@@ -50,7 +50,9 @@ class AletheProofLogger : public ProofLogger
       const Node& n,
       theory::InferenceId id = theory::InferenceId::NONE) override;
   /** Log theory lemma proof */
-  void logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn) override;
+  void logTheoryLemmaProof(
+      std::shared_ptr<ProofNode>& pfn,
+      theory::InferenceId id = theory::InferenceId::NONE) override;
   /** Log SAT refutation */
   void logSatRefutation() override;
   void logSatLearnedClausePremises(const Node& n, const std::vector<Node>& premises) override;
