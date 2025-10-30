@@ -40,8 +40,8 @@ bool addAletheStepFromClause(AletheRule rule,
                              const std::vector<Node>& args,
                              CDProof& cdp,
                              NodeManager* nm,
-                             proof::AletheNodeConverter* anc);
-
+                             proof::AletheNodeConverter* anc,
+                             bool ensureChildren = false);
 
 bool addAletheStep(AletheRule rule,
                    Node res,
@@ -50,8 +50,8 @@ bool addAletheStep(AletheRule rule,
                    const std::vector<Node>& args,
                    CDProof& cdp,
                    NodeManager* nm,
-                   proof::AletheNodeConverter* anc);
-
+                   proof::AletheNodeConverter* anc,
+                   bool ensureChildren = false);
 
 }  // namespace proof
 }  // namespace cvc5::internal

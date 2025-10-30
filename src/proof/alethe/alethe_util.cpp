@@ -1,4 +1,5 @@
 #include "proof/alethe/alethe_util.h"
+
 #include "util/rational.h"
 
 namespace cvc5::internal {
@@ -11,7 +12,8 @@ bool addAletheStepFromClause(AletheRule rule,
                              const std::vector<Node>& args,
                              CDProof& cdp,
                              NodeManager* nm,
-                             proof::AletheNodeConverter* anc)
+                             proof::AletheNodeConverter* anc,
+                             bool ensureChildren)
 {
   std::vector<Node> newArgs{
       nm->mkConstInt(Rational(static_cast<uint32_t>(rule)))};
@@ -35,7 +37,8 @@ bool addAletheStepFromClause(AletheRule rule,
     }
     newArgs.push_back(conv);
   }
-  return cdp.addStep(res, ProofRule::ALETHE_RULE, children, newArgs);
+  return cdp.addStep(
+      res, ProofRule::ALETHE_RULE, children, newArgs, ensureChildren);
 }
 
 bool addAletheStep(AletheRule rule,
@@ -45,7 +48,8 @@ bool addAletheStep(AletheRule rule,
                    const std::vector<Node>& args,
                    CDProof& cdp,
                    NodeManager* nm,
-                   proof::AletheNodeConverter* anc)
+                   proof::AletheNodeConverter* anc,
+                   bool ensureChildren)
 {
   std::vector<Node> newArgs{
       nm->mkConstInt(Rational(static_cast<uint32_t>(rule)))};
@@ -65,7 +69,8 @@ bool addAletheStep(AletheRule rule,
     }
     newArgs.push_back(conv);
   }
-  return cdp.addStep(res, ProofRule::ALETHE_RULE, children, newArgs);
+  return cdp.addStep(
+      res, ProofRule::ALETHE_RULE, children, newArgs, ensureChildren);
 }
 }  // namespace proof
 }  // namespace cvc5::internal

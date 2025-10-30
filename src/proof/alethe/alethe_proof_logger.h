@@ -58,6 +58,8 @@ class AletheProofLogger : public ProofLogger
   /** Log SAT refutation proof */
   void logSatRefutationProof(std::shared_ptr<ProofNode>& pfn) override;
 
+ private:
+
   /** Translate the proof node to Alethe, if possible. */
   bool processPfNodeAlethe(std::shared_ptr<ProofNode>& pfn,
                            bool inner,
@@ -75,7 +77,9 @@ class AletheProofLogger : public ProofLogger
 
   void printPreprocessingProof(std::vector<std::shared_ptr<ProofNode>>& pfns);
 
- private:
+  void collectPreprocessedClauses(std::vector<std::shared_ptr<ProofNode>>& clauses);
+  void buildPreproccessingClausesMap();
+
   /** The output stream */
   std::ostream& d_out;
   /** Pointer to the proof manager, for connecting proofs to inputsw */
@@ -110,6 +114,8 @@ class AletheProofLogger : public ProofLogger
   bool d_hadError;
   /** The cl operator. */
   Node d_cl;
+
+
 };
 
 }  // namespace proof
