@@ -385,8 +385,6 @@ class SatProofManager : protected EnvObj
    */
   void notifyClauseInsertedAtLevel(const SatClause& clause, uint32_t clLevel);
 
-  bool d_logging;
-
  private:
   /** Ends resolution chain concluding clause
    *
@@ -653,6 +651,9 @@ class SatProofManager : protected EnvObj
   /** Manager for optimized propagations and added clauses inserted at assertion
    * levels below the current user level. */
   OptimizedClausesManager d_optClausesManager;
+
+  /** Whether we are logging the SAT learned clauses */
+  bool d_logging;
 }; /* class SatProofManager */
 
 }  // namespace prop

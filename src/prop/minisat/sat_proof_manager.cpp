@@ -45,7 +45,8 @@ SatProofManager::SatProofManager(Env& env,
       d_conflictLit(undefSatVariable),
       d_optResLevels(userContext()),
       d_optResManager(userContext(), &d_resChains, d_optResProofs),
-      d_optClausesManager(userContext(), ppm->getCnfProof(), d_optClausesPfs)
+      d_optClausesManager(userContext(), ppm->getCnfProof(), d_optClausesPfs),
+      d_logging(env.getOptions().proof.proofLogSat)
 {
   d_true = nodeManager()->mkConst(true);
   d_false = nodeManager()->mkConst(false);

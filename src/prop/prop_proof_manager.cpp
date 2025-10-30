@@ -366,7 +366,6 @@ void PropPfManager::presolve()
   d_plog = d_env.getProofLogger();
   Trace("pf-log-debug") << "PropPfManager::presolve, plog="
                         << (d_plog != nullptr) << std::endl;
-  d_satPm->d_logging = true;
 }
 
 void PropPfManager::logSatClause(const Node& n, const std::vector<Node>& premises)
@@ -433,7 +432,10 @@ void PropPfManager::postsolve(SatValue result)
       {
         // if SAT proof producing, log the proof
         std::shared_ptr<ProofNode> satPf = getProof(true);
-        d_plog->logSatRefutationProof(satPf);
+        if (!options().proof.proofLogSat)
+        {
+          d_plog->logSatRefutationProof(satPf);
+        }
       }
       else
       {
