@@ -279,6 +279,14 @@ name   = "Proof"
   help       = "Log SAT learned clauses as well"
 
 [[option]]
+  name       = "proofLogTheory"
+  category   = "expert"
+  long       = "proof-log-theory"
+  type       = "bool"
+  default    = "false"
+  help       = "Log proofs of theory lemmas as well"
+
+[[option]]
   name       = "proofLogTheoryProofs"
   category   = "expert"
   long       = "proof-log-theory-proofs"
