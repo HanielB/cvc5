@@ -167,6 +167,15 @@ bool CDProof::addStep(Node expected,
       {
         // failed to get a proof for a child, fail
         Trace("cdproof") << "...fail, no child" << std::endl;
+        if (TraceIsOn("cdproof-debug"))
+        {
+          Trace("cdproof-debug") << "...child: " << c << std::endl;
+          Trace("cdproof-debug") << "...existing:" << std::endl;
+          for (const auto& p : d_nodes)
+          {
+            Trace("cdproof-debug") << "\t" << p.first << std::endl;
+          }
+        }
         return false;
       }
       Trace("cdproof") << "--- add assume" << std::endl;
