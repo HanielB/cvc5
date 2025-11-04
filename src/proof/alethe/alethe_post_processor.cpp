@@ -839,6 +839,46 @@ bool AletheProofPostprocessCallback::update(Node res,
     // * the corresponding proof node is F2
     case ProofRule::MODUS_PONENS:
     {
+      if (d_processingTheoryProof)
+      {
+        Assert(children.size() == 2);
+        std::shared_ptr<ProofNode> child0 = cdp->getProofFor(children[0]);
+        std::shared_ptr<ProofNode> child1 = cdp->getProofFor(children[1]);
+        if (child1->getRule() == ProofRule::SCOPE)
+        {
+          // Collect the assumptions, do the resolution with them and the result of SCOPE
+          std::vector<Node> resAssumptions;
+          ProofRule rule0 = child0->getRule();
+          if (rule0 == ProofRule::ASSUME)
+          {
+            resAssumptions.push_back(children[0]);
+          }
+          else if (rule0 == ProofRule::AND_INTRO)
+          {
+            const std::vector<std::shared_ptr<ProofNode>>& andIntroPremises = child0->getChildren();
+            for (const auto& cp : andIntroPremises)
+            {
+              resAssumptions.push_back(cp->getResult());
+            }
+          }
+          if (!resAssumptions.empty())
+          {
+            resAssumptions.push_back(children[1]);
+            std::vector<Node> resArgs;
+            for (const auto& resA : resAssumptions)
+            {
+              resArgs.push_back(resA);
+              resArgs.push_back(d_true);
+            }
+            return addAletheStep(AletheRule::RESOLUTION,
+                                 res,
+                                 nm->mkNode(Kind::SEXPR, d_cl, res),
+                                 resAssumptions,
+                                 d_resPivots ? resArgs : std::vector<Node>(),
+                                 *cdp);
+          }
+        }
+      }
       Node vp1 = nm->mkNode(Kind::SEXPR, d_cl, children[0].notNode(), res);
 
       return addAletheStep(

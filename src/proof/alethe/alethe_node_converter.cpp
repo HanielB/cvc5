@@ -451,7 +451,6 @@ Node AletheNodeConverter::postConvert(Node n)
       {
 
         Kind tnk = ttn.getKind();
-        Trace("test") << "Test " << ttn << ", kind " << tnk << "\n";
         switch (tnk)
         {
           case Kind::SORT_TYPE:
@@ -493,7 +492,6 @@ Node AletheNodeConverter::postConvert(Node n)
             {
               continue;
             }
-            Trace("test") << "\tBad: " << ttn << ", kind " << tnk << "\n";
             unsupported = ttn;
             break;
           }
