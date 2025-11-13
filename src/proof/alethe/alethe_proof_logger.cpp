@@ -664,9 +664,8 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
   {
     Trace("alethe-pf-log-debug") << "scope: " << *scope.get() << std::endl;
   }
-  Assert(scopes.empty() || scopes.size() == 1);
-
-  std::shared_ptr<ProofNode> resPf = scopes.empty()? pfn : scopes[0];
+  // Assert(scopes.empty() || scopes.size() == 1);
+  std::shared_ptr<ProofNode> resPf = scopes.size() == 1 ? scopes[0] : pfn;
   if (!d_appproc.processTheoryProof(resPf))
   {
     d_out << "(error " << d_appproc.getError() << ")\n";
