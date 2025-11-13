@@ -654,7 +654,7 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
     return;
   }
   d_lemmas.insert(res);
-  Trace("alethe-pf-log") << "; log theory lemma proof start " << res
+  Trace("alethe-pf-log") << "; log theory lemma (id " << id << ") start: " << res
                          << std::endl;
   // Get the first scope, run with it
   std::vector<std::shared_ptr<ProofNode>> scopes;
@@ -664,8 +664,10 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
   {
     Trace("alethe-pf-log-debug") << "scope: " << *scope.get() << std::endl;
   }
-  Assert(scopes.size() == 1);
-  if (!d_appproc.processTheoryProof(scopes[0]))
+  Assert(scopes.empty() || scopes.size() == 1);
+
+  std::shared_ptr<ProofNode> resPf = scopes.empty()? pfn : scopes[0];
+  if (!d_appproc.processTheoryProof(resPf))
   {
     d_out << "(error " << d_appproc.getError() << ")\n";
     d_hadError = true;
@@ -689,11 +691,11 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
   {
     key = res;
   }
-  cdp.addProof(scopes[0]);
+  cdp.addProof(resPf);
   Assert(addAletheStep(AletheRule::HOLE,
                        key,
                        key,
-                       {scopes[0]->getResult()},
+                       {resPf->getResult()},
                        args,
                        cdp,
                        nm,
