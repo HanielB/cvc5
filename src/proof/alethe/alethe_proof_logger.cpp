@@ -691,7 +691,7 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
     key = res;
   }
   cdp.addProof(resPf);
-  Assert(addAletheStep(AletheRule::HOLE,
+  addAletheStep(AletheRule::HOLE,
                        key,
                        key,
                        {resPf->getResult()},
@@ -699,7 +699,7 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
                        cdp,
                        nm,
                        &d_anc,
-                       true));
+                       true);
   std::shared_ptr<ProofNode> ptl = cdp.getProofFor(key);
   d_lemmaPfs.emplace(key, ptl);
   d_apprinter.printProofNode(d_out, ptl, true);
