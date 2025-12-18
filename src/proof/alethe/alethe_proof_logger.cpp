@@ -75,7 +75,7 @@ void AletheProofLogger::collectPreprocessedClauses(
   // We ignore the scopes and collect the preprocesed from the AND_INTRO step,
   // if any (if single B, there is none), to be premises of the sat_refutation
   // step.
-  Assert(d_ppProof->getRule() == ProofRule::SCOPE);
+  Assert(d_ppProof->getRule() == ProofRule::SCOPE) << *d_ppProof.get();
   Assert(d_ppProof->getChildren()[0]->getRule() == ProofRule::SCOPE);
   std::shared_ptr<ProofNode> ppBody =
       d_ppProof->getChildren()[0]->getChildren()[0];
@@ -94,8 +94,8 @@ void AletheProofLogger::collectPreprocessedClauses(
 
 void AletheProofLogger::buildPreproccessingClausesMap()
 {
-  // Only computes once
-  if (!d_ppPfs.empty())
+  // Only computes once, but also can only compute if there are preprocessing proofs
+  if (!d_ppPfs.empty() || !d_ppProof)
   {
     return;
   }
