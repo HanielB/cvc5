@@ -2979,6 +2979,7 @@ bool AletheProofPostprocess::processInnerProofs(std::vector<std::shared_ptr<Proo
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.setFreeAssumptions(assumptions, false);
   updater.process(pfs);
+  d_reasonForConversionFailure = d_cb.getError();
   return d_reasonForConversionFailure.empty();
 }
 
@@ -2987,13 +2988,19 @@ bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode>& pf,
 {
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.process(pf);
+  d_reasonForConversionFailure = d_cb.getError();
+  if (!d_reasonForConversionFailure.empty())
+  {
+    return false;
+  }
   if (ensureFinalStep && !d_cb.ensureFinalStep(pf))
   {
     std::stringstream ss;
     ss << "\"Proof unsupported by Alethe: could not process final step\"";
     d_reasonForConversionFailure = ss.str();
+    return false;
   }
-  return d_reasonForConversionFailure.empty();
+  return true;
 }
 
 bool AletheProofPostprocess::processTheoryProof(std::shared_ptr<ProofNode>& pf)
@@ -3002,6 +3009,7 @@ bool AletheProofPostprocess::processTheoryProof(std::shared_ptr<ProofNode>& pf)
   d_cb.d_processingTheoryProof = true;
   updater.process(pf);
   d_cb.d_processingTheoryProof = false;
+  d_reasonForConversionFailure = d_cb.getError();
   return d_reasonForConversionFailure.empty();
 }
 
@@ -3024,6 +3032,7 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
   // Translate proof node
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.process(internalProof);
+  d_reasonForConversionFailure = d_cb.getError();
   if (!d_reasonForConversionFailure.empty())
   {
     return false;
