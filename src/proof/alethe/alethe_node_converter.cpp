@@ -230,11 +230,12 @@ Node AletheNodeConverter::postConvert(Node n)
         TypeNode indexType = a.getType().getArrayIndexType();
         // get index element of array
         Node var = NodeManager::mkBoundVar("x", indexType);
-        Node body =
-            d_nm->mkNode(Kind::NOT,
+        Node eq = a.eqNode(b);
+        Node select = d_nm->mkNode(Kind::NOT,
                          d_nm->mkNode(Kind::EQUAL,
                                       d_nm->mkNode(Kind::SELECT, a, var),
                                       d_nm->mkNode(Kind::SELECT, b, var)));
+        Node body = d_nm->mkNode(Kind::OR, eq, select);
         Node choice = d_nm->mkNode(
             Kind::WITNESS, d_nm->mkNode(Kind::BOUND_VAR_LIST, var), body);
         return convert(choice);

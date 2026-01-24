@@ -729,22 +729,28 @@ void AletheProofLogger::logTheoryLemma(const Node& n, theory::InferenceId id)
       nm->mkConst(String("THEORY_LEMMA")),
       nm->mkConst(String(it == s_infIdToStr.end() ? "other" : it->second))};
   Node key, clause;
-  if (n.getKind() == Kind::OR)
-  {
-    std::vector<Node> lits{n.begin(), n.end()};
-    std::sort(lits.begin(), lits.end());
-    lits.insert(lits.begin(), d_cl);
-    key = nm->mkNode(Kind::SEXPR, lits);
-    lits.clear();
-    lits.push_back(d_cl);
-    lits.insert(lits.end(), n.begin(), n.end());
-    clause = nm->mkNode(Kind::SEXPR, lits);
-  }
-  else
-  {
-    key = n;
-    clause = nm->mkNode(Kind::SEXPR, d_cl, n);
-  }
+  // This handling avoids generating lemmas of the form (cl (or ...)) but this
+  // is at odds with using the default letification because it would also letify
+  // the cl application.
+
+  // if (n.getKind() == Kind::OR)
+  // {
+  //   std::vector<Node> lits{n.begin(), n.end()};
+  //   std::sort(lits.begin(), lits.end());
+  //   lits.insert(lits.begin(), d_cl);
+  //   key = nm->mkNode(Kind::SEXPR, lits);
+  //   lits.clear();
+  //   lits.push_back(d_cl);
+  //   lits.insert(lits.end(), n.begin(), n.end());
+  //   clause = nm->mkNode(Kind::SEXPR, lits);
+  // }
+  // else
+  // {
+  //   key = n;
+  //   clause = nm->mkNode(Kind::SEXPR, d_cl, n);
+  // }
+  key = n;
+  clause = nm->mkNode(Kind::SEXPR, d_cl, n);
   d_hadError = !addAletheStep(AletheRule::HOLE,
                               key,
                               clause,

@@ -152,7 +152,19 @@ void AletheProofPrinter::printTerm(std::ostream& out, TNode n, bool raw)
   {
     options::ioutils::applyOutputLanguage(out, Language::LANG_SMTLIB_V2_6);
     options::ioutils::applyPrintArithLitToken(out, true);
-    d_termPrinter.toStream(out, n);
+    if (n.getKind() == Kind::SEXPR && n[0] == d_anc.getCl())
+    {
+      out << "(cl ";
+      for (size_t i = 1, size = n.getNumChildren(); i < size; ++i)
+      {
+        d_termPrinter.toStream(out, n[i]);
+      }
+      out << ")";
+    }
+    else
+    {
+      d_termPrinter.toStream(out, n);
+    }
     return;
   }
   std::stringstream ss;
