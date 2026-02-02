@@ -117,7 +117,11 @@ class AletheProofLogger : public ProofLogger
   /** The cl operator. */
   Node d_cl;
 
-
+  /* Timers for registering the time of the proof logging */
+  TimerStat d_timer;
+  TimerStat d_timerCnf;
+  TimerStat d_timerTheory;
+  TimerStat d_timerSat;
 };
 
 }  // namespace proof

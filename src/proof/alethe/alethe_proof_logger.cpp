@@ -40,7 +40,11 @@ AletheProofLogger::AletheProofLogger(Env& env,
       d_ppp(ppp),
       d_anc(nodeManager(), options().proof.proofAletheDefineSkolems),
       d_appproc(env, d_anc),
-      d_apprinter(env, d_anc)
+      d_apprinter(env, d_anc),
+      d_timer(statisticsRegistry().registerTimer("alethe::pfLogger")),
+      d_timerCnf(statisticsRegistry().registerTimer("alethe::pfLogger::cnf")),
+      d_timerTheory(statisticsRegistry().registerTimer("alethe::pfLogger::theory")),
+      d_timerSat(statisticsRegistry().registerTimer("alethe::pfLogger::sat"))
 {
   d_hadError = false;
   d_multPPClauses = false;
@@ -246,6 +250,9 @@ void AletheProofLogger::logCnfPreprocessInputs(const std::vector<Node>& inputs)
   {
     return;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+  TimerStat::CodeTimer codeTimerCnf(d_timerCnf);
+
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof start"
                          << std::endl;
   CDProof cdp(d_env);
@@ -336,6 +343,9 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
   {
     return;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+  TimerStat::CodeTimer codeTimerCnf(d_timerCnf);
+
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof start"
                          << std::endl;
   // if the assertions are empty, we do nothing. We will answer sat.
@@ -646,6 +656,9 @@ void AletheProofLogger::logTheoryLemmaProof(std::shared_ptr<ProofNode>& pfn,
   {
     return;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+  TimerStat::CodeTimer codeTimerTh(d_timerTheory);
+
   Node res = pfn->getResult();
   if (d_lemmas.count(res))
   {
@@ -718,6 +731,9 @@ void AletheProofLogger::logTheoryLemma(const Node& n, theory::InferenceId id)
                            << std::endl;
     return;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+  TimerStat::CodeTimer codeTimerTh(d_timerTheory);
+
   d_lemmas.insert(n);
   Trace("alethe-pf-log") << "; log theory lemma (id " << id << ") start: " << n
                          << std::endl;
@@ -777,6 +793,9 @@ void AletheProofLogger::logSatLearnedClausePremises(
   {
     return;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+  TimerStat::CodeTimer codeTimerSat(d_timerSat);
+
   Trace("alethe-pf-log") << "; log sat clause " << n << " from " << premises
                          << "\n";
   // collect premise proofs, if any (adds hole otherwise). I'll do the
@@ -882,6 +901,9 @@ void AletheProofLogger::logSatRefutation()
   {
     return;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+  TimerStat::CodeTimer codeTimerSat(d_timerSat);
+
   Trace("alethe-pf-log") << "; log SAT refutation start" << std::endl;
   std::vector<std::shared_ptr<ProofNode>> premises;
   // std::vector<std::shared_ptr<ProofNode>> premises{d_ppPfs.begin(),
@@ -918,6 +940,9 @@ void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
   {
     return;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+  TimerStat::CodeTimer codeTimerSat(d_timerSat);
+
   Trace("alethe-pf-log") << "; log SAT refutation proof start" << std::endl;
   std::vector<std::shared_ptr<ProofNode>> premises;
   collectPreprocessedClauses(premises);
