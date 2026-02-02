@@ -313,40 +313,38 @@ void AletheProofPrinter::printProofNode(std::ostream& out,
 {
   Trace("alethe-printer") << "- Print proof node in Alethe format."
                           << std::endl;
-  if (!raw)
-  {  // print quantifier Skolems, if they are being defined
-    if (options().proof.proofAletheDefineSkolems)
+ // print quantifier Skolems, if they are being defined.
+  if (options().proof.proofAletheDefineSkolems)
+  {
+    const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
+    for (const auto& [skolem, choice] : skolemDefs)
     {
-      const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
-      for (const auto& [skolem, choice] : skolemDefs)
+      if (d_printedSkolemDefinitions.count(skolem))
       {
-        if (d_printedSkolemDefinitions.count(skolem))
-        {
-          continue;
-        }
-        d_printedSkolemDefinitions.insert(skolem);
-        out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
-        printTerm(out, choice);
-        out << ")" << std::endl;
+        continue;
       }
+      d_printedSkolemDefinitions.insert(skolem);
+      out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
+      printTerm(out, choice);
+      out << ")" << std::endl;
     }
-    if (options().printer.dagThresh)
-    {
-      // Traverse the proof node to letify the (converted) conclusions of proof
-      // steps.
-      ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
-      Trace("alethe-printer") << "- letify." << std::endl;
-      updater.process(pf);
+  }
+  if (!raw && options().printer.dagThresh)
+  {
+    // Traverse the proof node to letify the (converted) conclusions of proof
+    // steps.
+    ProofNodeUpdater updater(d_env, *(d_cb.get()), false, false);
+    Trace("alethe-printer") << "- letify." << std::endl;
+    updater.process(pf);
 
-      std::vector<Node> letList;
-      d_lbind.letify(letList);
-      if (TraceIsOn("alethe-printer"))
+    std::vector<Node> letList;
+    d_lbind.letify(letList);
+    if (TraceIsOn("alethe-printer"))
+    {
+      for (TNode n : letList)
       {
-        for (TNode n : letList)
-        {
-          Trace("alethe-printer")
-              << "Term " << n << " has id " << d_lbind.getId(n) << std::endl;
-        }
+        Trace("alethe-printer")
+            << "Term " << n << " has id " << d_lbind.getId(n) << std::endl;
       }
     }
   }
