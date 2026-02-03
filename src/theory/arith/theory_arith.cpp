@@ -115,7 +115,7 @@ void TheoryArith::preRegisterTerm(TNode n)
   // note that we don't throw an exception for non-linear multiplication in
   // linear logics, since this is caught in the linear solver with a more
   // informative error message
-  if (isTransKind || k == Kind::IAND || k == Kind::POW2 || k==Kind::POW)
+  if (isTransKind || isExtendedNonLinearKind(k))
   {
     if (!options().arith.arithExp)
     {
@@ -169,6 +169,10 @@ void TheoryArith::preRegisterTerm(TNode n)
   if (d_nonlinearExtension != nullptr)
   {
     d_nonlinearExtension->preRegisterTerm(n);
+  }
+  else if (n.getKind()==Kind::NONLINEAR_MULT)
+  {
+    throw LogicException("A non-linear term was asserted to arithmetic in a linear logic.");
   }
   d_internal.preRegisterTerm(n);
 }

@@ -121,6 +121,9 @@ option(ENABLE_PROFILING        "Enable support for gprof profiling")
 
 option(TREAT_WARNING_AS_ERROR  "Treat warnings on building as errors")
 
+# Ensure cvc5 does not use LibPoly's global context by stripping all related code
+option(NO_GLOBAL_POLY_CTX      "Remove global context from LibPoly source code")
+
 # Optional dependencies
 #
 # >> 2-valued: ON OFF
@@ -238,12 +241,13 @@ include(Config${CMAKE_BUILD_TYPE})
 
 add_check_c_cxx_flag("-O${OPTIMIZATION_LEVEL}")
 add_check_c_cxx_flag("-Wall")
-add_check_c_cxx_supression_flag("-Wno-unused-private-field")
 add_check_c_cxx_supression_flag("-Wno-dangling-reference")
 add_check_c_flag("-fexceptions")
 add_check_cxx_flag("-Wsuggest-override")
 add_check_cxx_flag("-Wnon-virtual-dtor")
+add_check_c_cxx_flag("-Wignored-qualifiers")
 add_check_c_cxx_flag("-Wimplicit-fallthrough")
+add_check_c_cxx_flag("-Wmissing-field-initializers")
 add_check_c_cxx_flag("-Wshadow")
 add_check_c_cxx_flag("-fno-operator-names")
 
@@ -428,34 +432,29 @@ macro(create_venv)
   endif()
 endmacro()
 
-if(ENABLE_AUTO_DOWNLOAD AND USE_PYTHON_VENV)
-  # Set up Python venv if one doesn't exist already
-  set(VENV_PATH "${CMAKE_BINARY_DIR}/venv-${Python_VERSION}")
-  if(NOT EXISTS ${VENV_PATH})
-    find_package(Pip REQUIRED)
-    create_venv()
-  else()
-    if(NOT (EXISTS ${VENV_PATH}/bin/pip OR EXISTS ${VENV_PATH}/Scripts/pip.exe))
-      # This situation may be possible if cvc5 was built before 715f649
-      execute_process(COMMAND ${CMAKE_COMMAND} -E remove_directory ${VENV_PATH})
-      find_package(Pip REQUIRED)
+if(ENABLE_AUTO_DOWNLOAD)
+  if(USE_PYTHON_VENV)
+    # Set up Python venv if one doesn't exist already
+    set(VENV_PATH "${CMAKE_BINARY_DIR}/venv-${Python_VERSION}")
+    if(NOT EXISTS ${VENV_PATH})
       create_venv()
     endif()
-  endif()
 
-  # Set up variables to find Python within the virtual environment
-  set(ENV{VIRTUAL_ENV} "${VENV_PATH}")
-  unset(Python_EXECUTABLE CACHE)
-  if(EXISTS ${VENV_PATH}/bin/python3)
-    set(Python_EXECUTABLE ${VENV_PATH}/bin/python3)
-  elseif(EXISTS ${VENV_PATH}/Scripts/python.exe)
-    set(Python_EXECUTABLE ${VENV_PATH}/Scripts/python.exe)
-  else()
-    message(FATAL_ERROR "Could not find Python interpreter in venv")
-  endif()
+    # Set up variables to find Python within the virtual environment
+    set(ENV{VIRTUAL_ENV} "${VENV_PATH}")
+    unset(Python_EXECUTABLE CACHE)
+    if(EXISTS ${VENV_PATH}/bin/python3)
+      set(Python_EXECUTABLE ${VENV_PATH}/bin/python3)
+    elseif(EXISTS ${VENV_PATH}/Scripts/python.exe)
+      set(Python_EXECUTABLE ${VENV_PATH}/Scripts/python.exe)
+    else()
+      message(FATAL_ERROR "Could not find Python interpreter in venv")
+    endif()
 
-  # Find the Python interpreter within the virtual environment
-  find_package(Python COMPONENTS Interpreter REQUIRED)
+    # Find the Python interpreter within the virtual environment
+    find_package(Python COMPONENTS Interpreter REQUIRED)
+  endif()
+  find_package(Pip REQUIRED)
 endif()
 
 find_package(GMP 6.3 REQUIRED)
@@ -588,7 +587,7 @@ if(ENABLE_SAFE_MODE)
 endif()
 
 if(USE_POLY)
-  find_package(Poly 0.2.0 REQUIRED)
+  find_package(Poly 0.2.1 REQUIRED)
   add_definitions(-DCVC5_USE_POLY)
   set(CVC5_USE_POLY_IMP 1)
 else()
