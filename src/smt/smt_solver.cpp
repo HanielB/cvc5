@@ -91,6 +91,7 @@ void SmtSolver::finishInit()
   d_propEngine->finishInit();
   finishInitPreprocessor();
 
+  Trace("test") << "Option pflog: " << options().proof.proofLog << "\n";
   if (options().proof.proofLog)
   {
     smt::PfManager* pm = d_env.getProofManager();

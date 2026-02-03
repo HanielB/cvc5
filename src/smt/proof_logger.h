@@ -123,8 +123,7 @@ class ProofLoggerCpc : public ProofLogger
   ProofLoggerCpc(Env& env,
                  std::ostream& out,
                  smt::PfManager* pm,
-                 smt::Assertions& as,
-                 smt::ProofPostprocess* ppp);
+                 smt::Assertions& as);
   ~ProofLoggerCpc();
   /** Log preprocessing input */
   void logCnfPreprocessInputs(const std::vector<Node>& inputs) override;
@@ -151,8 +150,6 @@ class ProofLoggerCpc : public ProofLogger
   ProofNodeManager* d_pnm;
   /** Reference to the assertions of SMT solver */
   smt::Assertions& d_as;
-  /** Pointer to the proof post-processor */
-  smt::ProofPostprocess* d_ppp;
   /** The node converter, used for printing */
   proof::AlfNodeConverter d_atp;
   /** The proof printer */
