@@ -147,14 +147,23 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::BV_BITBLAST_STEP_CONST: return "bv_bitblast_step_const";
     case AletheRule::BV_BITBLAST_STEP_SIGN_EXTEND:
       return "bv_bitblast_step_sign_extend";
-    //================================================= Temporary
+    //================================================= BV rewriting
     case AletheRule::BV_BITWISE_SLICING: return "bv_bitwise_slicing";
-    case AletheRule::BV_REPEAT_ELIM: return "bv_repeat_elim";
+    case AletheRule::BV_REPEAT_ELIM:
+      return "bv_repeat_elim";
+    //================================================= Quantifier rewriting
+    case AletheRule::MINISCOPE_DISTRIBUTE: return "miniscope_distribute";
+    case AletheRule::MINISCOPE_SPLIT: return "miniscope_split";
+    case AletheRule::MINISCOPE_ITE: return "miniscope_ite";
     //================================================= Hole
     case AletheRule::HOLE: return "hole";
     //================================================= Undefined rule
     case AletheRule::UNDEFINED: return "undefined";
-    default: return "?";
+    default:
+    {
+      Unreachable() << "Cannot print unknown Alethe rule" << std::endl;
+      return "?";
+    };
   }
 }
 
