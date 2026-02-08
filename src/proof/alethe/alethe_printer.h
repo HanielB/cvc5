@@ -177,6 +177,10 @@ class AletheProofPrinter : protected EnvObj
 
   /** The id used for outermost proof steps. */
   size_t d_id;
+
+  /* Timer for registering the time of the conversion */
+  TimerStat d_timer;
+  TimerStat d_timerPrintTerm;
 };
 
 }  // namespace proof

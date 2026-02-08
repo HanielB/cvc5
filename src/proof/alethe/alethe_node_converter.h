@@ -21,6 +21,8 @@
 #include "expr/node.h"
 #include "expr/node_converter.h"
 #include "proof/alf/alf_node_converter.h"
+#include "util/statistics_stats.h"
+#include "util/statistics_registry.h"
 
 namespace cvc5::internal {
 namespace proof {
@@ -38,12 +40,7 @@ class AletheNodeConverter : public BaseAlfNodeConverter
    * @param defineSkolems Whether Skolem definitions will be saved to be printed
    * separately.
    */
-  AletheNodeConverter(NodeManager* nm, bool defineSkolems = false)
-      : BaseAlfNodeConverter(nm),
-        d_cl(nm->mkBoundVar("cl", nm->sExprType())),
-        d_defineSkolems(defineSkolems)
-  {
-  }
+  AletheNodeConverter(NodeManager* nm, StatisticsRegistry& reg, bool defineSkolems = false);
   ~AletheNodeConverter() {}
 
   /** convert at post-order traversal */
@@ -115,6 +112,9 @@ class AletheNodeConverter : public BaseAlfNodeConverter
   /** Ordered Skolems such that a given entry does not have subterms occurring
    * in subsequent entries. */
   std::vector<Node> d_skolemsList;
+
+  /* Timer for registering the time of the conversion */
+  TimerStat d_timer;
 };
 
 }  // namespace proof

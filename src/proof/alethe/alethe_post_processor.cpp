@@ -3187,7 +3187,9 @@ bool AletheProofPostprocessCallback::addAletheStepFromOr(
 
 AletheProofPostprocess::AletheProofPostprocess(Env& env,
                                                AletheNodeConverter& anc)
-    : EnvObj(env), d_cb(env, anc, options().proof.proofAletheResPivots)
+    : EnvObj(env),
+      d_cb(env, anc, options().proof.proofAletheResPivots),
+      d_timer(statisticsRegistry().registerTimer("alethe::pfProcessor"))
 {
 }
 
@@ -3200,6 +3202,8 @@ const std::string& AletheProofPostprocess::getError()
 
 bool AletheProofPostprocess::processInnerProofs(std::vector<std::shared_ptr<ProofNode>>& pfs, const std::vector<Node>& assumptions)
 {
+  TimerStat::CodeTimer codeTimer(d_timer);
+
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.setFreeAssumptions(assumptions, false);
   updater.process(pfs);
@@ -3210,6 +3214,8 @@ bool AletheProofPostprocess::processInnerProofs(std::vector<std::shared_ptr<Proo
 bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode>& pf,
                                                bool ensureFinalStep)
 {
+  TimerStat::CodeTimer codeTimer(d_timer);
+
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   updater.process(pf);
   d_reasonForConversionFailure = d_cb.getError();
@@ -3229,6 +3235,8 @@ bool AletheProofPostprocess::processInnerProof(std::shared_ptr<ProofNode>& pf,
 
 bool AletheProofPostprocess::processTheoryProof(std::shared_ptr<ProofNode>& pf)
 {
+  TimerStat::CodeTimer codeTimer(d_timer);
+
   ProofNodeUpdater updater(d_env, d_cb, false, false);
   d_cb.d_processingTheoryProof = true;
   updater.process(pf);
@@ -3246,6 +3254,8 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
     d_reasonForConversionFailure = ss.str();
     return false;
   }
+  TimerStat::CodeTimer codeTimer(d_timer);
+
   // first two nodes are scopes for definitions and other assumptions. We
   // process only the internal proof node. And we merge these two scopes
   Assert(pf->getRule() == ProofRule::SCOPE

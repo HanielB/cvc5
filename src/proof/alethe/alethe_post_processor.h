@@ -206,6 +206,8 @@ class AletheProofPostprocess : protected EnvObj
 
   /** The reason for conversion failure, if any. */
   std::string d_reasonForConversionFailure;
+  /* Timer for registering the time of the post-processing */
+  TimerStat d_timer;
 };
 
 }  // namespace proof

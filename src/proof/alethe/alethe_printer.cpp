@@ -85,7 +85,9 @@ AletheProofPrinter::AletheProofPrinter(Env& env, AletheNodeConverter& anc)
       d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1 : 0,
               &d_termPrinter),
       d_anc(anc),
-      d_cb(new LetUpdaterPfCallback(d_lbind))
+      d_cb(new LetUpdaterPfCallback(d_lbind)),
+      d_timer(statisticsRegistry().registerTimer("alethe::printer")),
+      d_timerPrintTerm(statisticsRegistry().registerTimer("alethe::printerTerm"))
 {
   d_id = 0;
 }
@@ -148,6 +150,8 @@ void AletheProofPrinter::printStepId(std::ostream& out,
 void AletheProofPrinter::printTerm(std::ostream& out, TNode n, bool raw)
 {
   // TODO create an instance of the SMT2 printer, probably somewhere globally in this class, so that it has the alethe variant, and then do things parameterizedly
+  TimerStat::CodeTimer codeTimer(d_timerPrintTerm);
+
   if (raw)
   {
     options::ioutils::applyOutputLanguage(out, Language::LANG_SMTLIB_V2_6);
@@ -311,6 +315,8 @@ void AletheProofPrinter::printInternal(std::ostream& out,
 void AletheProofPrinter::printProofNode(std::ostream& out,
                                         std::shared_ptr<ProofNode> pf, bool raw)
 {
+  TimerStat::CodeTimer codeTimer(d_timer);
+
   Trace("alethe-printer") << "- Print proof node in Alethe format."
                           << std::endl;
  // print quantifier Skolems, if they are being defined.
@@ -358,6 +364,8 @@ void AletheProofPrinter::printInitialAssumptions(
     const std::map<Node, std::string>& assertionNames,
     bool raw)
 {
+  TimerStat::CodeTimer codeTimer(d_timer);
+
   // Special handling for the first scope. Print assumptions and add them to the
   // list but do not print anchor.
   Assert(!assumptions.empty());
@@ -399,6 +407,8 @@ void AletheProofPrinter::print(
     std::shared_ptr<ProofNode> pfn,
     const std::map<Node, std::string>& assertionNames)
 {
+  TimerStat::CodeTimer codeTimer(d_timer);
+
   Trace("alethe-printer") << "- Print proof in Alethe format." << std::endl;
   // ignore outer scope
   pfn = pfn->getChildren()[0];
