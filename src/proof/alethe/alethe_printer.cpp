@@ -364,7 +364,10 @@ void AletheProofPrinter::printInitialAssumptions(
     const std::map<Node, std::string>& assertionNames,
     bool raw)
 {
-  TimerStat::CodeTimer codeTimer(d_timer);
+  if (raw)
+  {
+    TimerStat::CodeTimer codeTimer(d_timer);
+  }
 
   // Special handling for the first scope. Print assumptions and add them to the
   // list but do not print anchor.
