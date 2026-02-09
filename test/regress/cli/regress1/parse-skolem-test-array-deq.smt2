@@ -1,5 +1,7 @@
 ; COMMAND-LINE: --parse-skolem-definitions --print-skolem-definitions
 ; EXPECT: unsat
+; @array_deq_diff not supported in Alethe
+; DISABLE-TESTER: alethe
 (set-option :parse-skolem-definitions true)
 (set-logic QF_AUFNIA)
 (set-info :status unsat)

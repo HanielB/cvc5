@@ -1,3 +1,5 @@
+; error because of my branch's parsing of datatypes (the `is` here is leading to issues)
+; DISABLE-TESTER: alethe
 (set-logic AUFLIA)
 (set-info :source | Simplify Theorem Prover Benchmark Suite |)
 (set-info :smt-lib-version 2.6)

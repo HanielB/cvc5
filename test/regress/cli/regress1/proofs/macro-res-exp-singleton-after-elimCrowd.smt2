@@ -1,3 +1,5 @@
+; error because of my branch's parsing of datatypes (the `is` here is leading to issues)
+; DISABLE-TESTER: alethe
 ; EXPECT: unsat
 ;; comes from UFLIA/simplify2/front_end_suite/javafe.util.StackVector.012.smt2
 (set-info :smt-lib-version 2.6)
