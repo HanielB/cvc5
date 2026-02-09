@@ -283,9 +283,13 @@ void BasicRewriteRCons::ensureProofForTheoryRewrite(CDProof* cdp,
       }
       break;
     case ProofRewriteRule::MACRO_QUANT_MERGE_PRENEX:
-      if (ensureProofMacroQuantMergePrenex(cdp, eq))
+      // this rule does not need to be expanded for Alethe
+      if (options().proof.proofFormatMode != options::ProofFormatMode::ALETHE)
       {
-        handledMacro = true;
+        if (ensureProofMacroQuantMergePrenex(cdp, eq))
+        {
+          handledMacro = true;
+        }
       }
       break;
     case ProofRewriteRule::MACRO_QUANT_PRENEX:
@@ -2929,7 +2933,7 @@ bool BasicRewriteRCons::ensureProofMacroElimShadow(CDProof* cdp, const Node& eq)
   {
     cdp->addProof(pfn);
     return true;
-  } 
+  }
   Assert(false);
   return false;
 }
