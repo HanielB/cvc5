@@ -309,7 +309,9 @@ class AletheTester(Tester):
             carcara_args = [
                 "--allow-int-real-subtyping",
                 "--expand-let-bindings",
-                "--ignore-unknown-rules"
+                "--ignore-unknown-rules",
+                "--rare-file",
+                "/home/hbarbosa/carcara/wt-cvc5/rewrites.eo",
             ]
             output, error, exit_status = run_process(
                 [benchmark_info.carcara_binary] + ["check"] +
