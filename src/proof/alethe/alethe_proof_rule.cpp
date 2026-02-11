@@ -128,10 +128,17 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::ALL_SIMPLIFY: return "all_simplify";
     case AletheRule::ACI_SIMP: return "aci_simp";
     case AletheRule::POLY_SIMP: return "poly_simp";
+    case AletheRule::POLY_SIMP_REL: return "poly_simp_rel";
+    case AletheRule::BV_POLY_SIMP: return "bv_poly_simp";
+    case AletheRule::BV_POLY_SIMP_EQ: return "bv_poly_simp_eq";
     case AletheRule::EVALUATE: return "evaluate";
     case AletheRule::RARE_REWRITE: return "rare_rewrite";
+    case AletheRule::RARE_REWRITE_BV: return "rare_rewrite_bv";
     case AletheRule::SYMM: return "symm";
     case AletheRule::NOT_SYMM: return "not_symm";
+    case AletheRule::MINISCOPE_DISTRIBUTE: return "miniscope_distribute";
+    case AletheRule::MINISCOPE_SPLIT: return "miniscope_split";
+    case AletheRule::MINISCOPE_ITE: return "miniscope_ite";
     case AletheRule::REORDERING: return "reordering";
     case AletheRule::ARRAYS_IDX: return "arrays_idx";
     case AletheRule::ARRAYS_ROW: return "arrays_row";

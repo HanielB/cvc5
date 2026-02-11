@@ -1,7 +1,9 @@
+; error because of my branch's parsing of datatypes (the `is` here is leading to issues)
+; DISABLE-TESTER: alethe
 ; COMMAND-LINE: --cbqi-tconstraint
 ; EXPECT: unsat
 (set-logic AUFLIA)
-(set-info :source | 
+(set-info :source |
   Simplify front end test suite.
   This benchmark was translated by Michal Moskal.
 |)

@@ -404,6 +404,10 @@ enum class AletheRule : uint32_t
   ACI_SIMP,
   EVALUATE,
   POLY_SIMP,
+  POLY_SIMP_REL,
+  BV_POLY_SIMP,
+  BV_POLY_SIMP_EQ,
+  RARE_REWRITE_BV,
   RARE_REWRITE,
   // ======== let
   // G,x1->F1,...,xn->Fn > j. (= G G')
