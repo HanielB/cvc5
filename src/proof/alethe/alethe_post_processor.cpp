@@ -739,10 +739,13 @@ bool AletheProofPostprocessCallback::update(Node res,
       // get the name
       ProofRewriteRule di;
       Node rule;
+      bool isBv = false;
       if (rewriter::getRewriteRule(args[0], di))
       {
         std::stringstream ss;
         ss << "\"" << di << "\"";
+        std::string toTest(ss.str());
+        isBv = toTest.rfind("\"bv-", 0) == 0;
         rule = NodeManager::mkRawSymbol(ss.str(), nm->sExprType());
       }
       else
@@ -750,6 +753,15 @@ bool AletheProofPostprocessCallback::update(Node res,
         Unreachable();
       }
       new_args.push_back(rule);
+      if (isBv)
+      {
+        return addAletheStep(AletheRule::RARE_REWRITE_BV,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl, res),
+                             children,
+                             new_args,
+                             *cdp);
+      }
       for (int i = 1, size = args.size(); i < size; i++)
       {
         if (!args[i].isNull())
