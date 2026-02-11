@@ -130,7 +130,7 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
             res,
             nm->mkNode(Kind::SEXPR, d_cl, res),
             {},
-            {nm->mkRawSymbol("\"distinct_bin_bool_elim\"", nm->sExprType()),
+            {nm->mkRawSymbol("\"distinct-binary-elim\"", nm->sExprType()),
              t1,
              eq[1]},
             *cdp);
