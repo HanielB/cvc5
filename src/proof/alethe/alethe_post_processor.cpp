@@ -906,11 +906,11 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     case ProofRule::TRUST_THEORY_REWRITE:
     {
-      return addAletheStep(AletheRule::ALL_SIMPLIFY,
+      return addAletheStep(AletheRule::HOLE,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
-                           {},
+                           {nm->mkRawSymbol("\"untranslated rewrite\"", nm->sExprType())},
                            *cdp);
     }
     case ProofRule::SAT_REFUTATION:
