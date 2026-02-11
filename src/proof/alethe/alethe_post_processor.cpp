@@ -358,22 +358,23 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
       std::vector<Node> rwArgs;
       if (isRhsOr)
       {
+        rwArgs.push_back(nm->mkRawSymbol("\"or-not-refl\"", nm->sExprType()));
+        rwArgs.push_back(t);
+        std::vector<Node> listArgs{nm->mkRawSymbol("rare-list", nm->sExprType())};
         std::vector<Node> disjuncts{t.eqNode(t).notNode()};
         // if n > 1, res[1] will be an OR and we get the disjuncts, otherwise
         // res[1] is the disjunct
         if (res[0][1].getNumChildren() > 2)
         {
           disjuncts.insert(disjuncts.end(), res[1].begin(), res[1].end());
+          listArgs.insert(listArgs.end(), res[1].begin(), res[1].end());
         }
         else
         {
           disjuncts.push_back(res[1]);
+          listArgs.insert(listArgs.end(), res[1]);
         }
         reflRhs = nm->mkNode(Kind::OR, disjuncts);
-        rwArgs.push_back(nm->mkRawSymbol("\"or-not-refl\"", nm->sExprType()));
-        rwArgs.push_back(t);
-        std::vector<Node> listArgs{nm->mkRawSymbol("rare-list", nm->sExprType())};
-        listArgs.insert(listArgs.end(), res[1].begin(), res[1].end());
         rwArgs.push_back(nm->mkNode(Kind::SEXPR, listArgs));
       }
       else
