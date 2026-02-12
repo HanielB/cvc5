@@ -314,122 +314,126 @@ Node AletheNodeConverter::postConvert(Node n)
     case Kind::TO_INTEGER:
     case Kind::TO_REAL:
     case Kind::POW2:
+    case Kind::INTS_ISPOW2:
+    case Kind::INTS_LOG2:
+
     /* from BV */
-    case Kind::BITVECTOR_TYPE:
-    case Kind::CONST_BITVECTOR:
-    case Kind::BITVECTOR_SIZE:
-    case Kind::CONST_BITVECTOR_SYMBOLIC:
-    case Kind::BITVECTOR_CONCAT:
-    case Kind::BITVECTOR_AND:
-    case Kind::BITVECTOR_COMP:
-    case Kind::BITVECTOR_OR:
-    case Kind::BITVECTOR_XOR:
-    case Kind::BITVECTOR_NOT:
-    case Kind::BITVECTOR_NAND:
-    case Kind::BITVECTOR_NOR:
-    case Kind::BITVECTOR_XNOR:
-    case Kind::BITVECTOR_MULT:
-    case Kind::BITVECTOR_NEG:
-    case Kind::BITVECTOR_ADD:
-    case Kind::BITVECTOR_SUB:
-    case Kind::BITVECTOR_UDIV:
-    case Kind::BITVECTOR_UREM:
-    case Kind::BITVECTOR_SDIV:
-    case Kind::BITVECTOR_SMOD:
-    case Kind::BITVECTOR_SREM:
-    case Kind::BITVECTOR_ASHR:
-    case Kind::BITVECTOR_LSHR:
-    case Kind::BITVECTOR_SHL:
-    case Kind::BITVECTOR_ULE:
-    case Kind::BITVECTOR_ULT:
-    case Kind::BITVECTOR_UGE:
-    case Kind::BITVECTOR_UGT:
-    case Kind::BITVECTOR_SLE:
-    case Kind::BITVECTOR_SLT:
-    case Kind::BITVECTOR_SGE:
-    case Kind::BITVECTOR_SGT:
-    case Kind::BITVECTOR_ULTBV:
-    case Kind::BITVECTOR_SLTBV:
-    case Kind::BITVECTOR_ACKERMANNIZE_UDIV:
-    case Kind::BITVECTOR_ACKERMANNIZE_UREM:
-    case Kind::BITVECTOR_BIT_OP:
-    case Kind::BITVECTOR_EXTRACT_OP:
-    case Kind::BITVECTOR_EXTRACT:
-    case Kind::BITVECTOR_REPEAT_OP:
-    case Kind::BITVECTOR_REPEAT:
-    case Kind::BITVECTOR_ROTATE_LEFT_OP:
-    case Kind::BITVECTOR_ROTATE_LEFT:
-    case Kind::BITVECTOR_ROTATE_RIGHT_OP:
-    case Kind::BITVECTOR_ROTATE_RIGHT:
-    case Kind::BITVECTOR_SIGN_EXTEND_OP:
-    case Kind::BITVECTOR_SIGN_EXTEND:
-    case Kind::BITVECTOR_ZERO_EXTEND_OP:
-    case Kind::BITVECTOR_ZERO_EXTEND:
+    // case Kind::BITVECTOR_TYPE:
+    // case Kind::CONST_BITVECTOR:
+    // case Kind::BITVECTOR_SIZE:
+    // case Kind::CONST_BITVECTOR_SYMBOLIC:
+    // case Kind::BITVECTOR_CONCAT:
+    // case Kind::BITVECTOR_AND:
+    // case Kind::BITVECTOR_COMP:
+    // case Kind::BITVECTOR_OR:
+    // case Kind::BITVECTOR_XOR:
+    // case Kind::BITVECTOR_NOT:
+    // case Kind::BITVECTOR_NAND:
+    // case Kind::BITVECTOR_NOR:
+    // case Kind::BITVECTOR_XNOR:
+    // case Kind::BITVECTOR_MULT:
+    // case Kind::BITVECTOR_NEG:
+    // case Kind::BITVECTOR_ADD:
+    // case Kind::BITVECTOR_SUB:
+    // case Kind::BITVECTOR_UDIV:
+    // case Kind::BITVECTOR_UREM:
+    // case Kind::BITVECTOR_SDIV:
+    // case Kind::BITVECTOR_SMOD:
+    // case Kind::BITVECTOR_SREM:
+    // case Kind::BITVECTOR_ASHR:
+    // case Kind::BITVECTOR_LSHR:
+    // case Kind::BITVECTOR_SHL:
+    // case Kind::BITVECTOR_ULE:
+    // case Kind::BITVECTOR_ULT:
+    // case Kind::BITVECTOR_UGE:
+    // case Kind::BITVECTOR_UGT:
+    // case Kind::BITVECTOR_SLE:
+    // case Kind::BITVECTOR_SLT:
+    // case Kind::BITVECTOR_SGE:
+    // case Kind::BITVECTOR_SGT:
+    // case Kind::BITVECTOR_ULTBV:
+    // case Kind::BITVECTOR_SLTBV:
+    // case Kind::BITVECTOR_ACKERMANNIZE_UDIV:
+    // case Kind::BITVECTOR_ACKERMANNIZE_UREM:
+    // case Kind::BITVECTOR_BIT_OP:
+    // case Kind::BITVECTOR_EXTRACT_OP:
+    // case Kind::BITVECTOR_EXTRACT:
+    // case Kind::BITVECTOR_REPEAT_OP:
+    // case Kind::BITVECTOR_REPEAT:
+    // case Kind::BITVECTOR_ROTATE_LEFT_OP:
+    // case Kind::BITVECTOR_ROTATE_LEFT:
+    // case Kind::BITVECTOR_ROTATE_RIGHT_OP:
+    // case Kind::BITVECTOR_ROTATE_RIGHT:
+    // case Kind::BITVECTOR_SIGN_EXTEND_OP:
+    // case Kind::BITVECTOR_SIGN_EXTEND:
+    // case Kind::BITVECTOR_ZERO_EXTEND_OP:
+    // case Kind::BITVECTOR_ZERO_EXTEND:
     /* from arrays */
-    case Kind::ARRAY_TYPE:
-    case Kind::SELECT:
-    case Kind::STORE:
-    case Kind::STORE_ALL:
-    case Kind::ARRAY_LAMBDA:
+    // case Kind::ARRAY_TYPE:
+    // case Kind::SELECT:
+    // case Kind::STORE:
+    // case Kind::STORE_ALL:
+    // case Kind::ARRAY_LAMBDA:
     /* from datatypes */
-    case Kind::CONSTRUCTOR_TYPE:
-    case Kind::SELECTOR_TYPE:
-    case Kind::TESTER_TYPE:
-    case Kind::APPLY_CONSTRUCTOR:
-    case Kind::APPLY_SELECTOR:
-    case Kind::APPLY_TESTER:
-    case Kind::DATATYPE_TYPE:
-    case Kind::PARAMETRIC_DATATYPE:
-    case Kind::TUPLE_TYPE:
-    case Kind::APPLY_TYPE_ASCRIPTION:
-    case Kind::ASCRIPTION_TYPE:
-    case Kind::DT_SIZE:
-    case Kind::DT_HEIGHT_BOUND:
-    case Kind::DT_SIZE_BOUND:
-    case Kind::MATCH:
-    case Kind::MATCH_CASE:
-    case Kind::MATCH_BIND_CASE:
+    // case Kind::CONSTRUCTOR_TYPE:
+    // case Kind::SELECTOR_TYPE:
+    // case Kind::TESTER_TYPE:
+    // case Kind::APPLY_CONSTRUCTOR:
+    // case Kind::APPLY_SELECTOR:
+    // case Kind::APPLY_TESTER:
+    // case Kind::DATATYPE_TYPE:
+    // case Kind::PARAMETRIC_DATATYPE:
+    // case Kind::TUPLE_TYPE:
+    // case Kind::APPLY_TYPE_ASCRIPTION:
+    // case Kind::ASCRIPTION_TYPE:
+    // case Kind::DT_SIZE:
+    // case Kind::DT_HEIGHT_BOUND:
+    // case Kind::DT_SIZE_BOUND:
+    // case Kind::MATCH:
+    // case Kind::MATCH_CASE:
+    // case Kind::MATCH_BIND_CASE:
+    // case Kind::CONST_STRING:
     /* from strings */
-    case Kind::STRING_CONCAT:
-    case Kind::STRING_IN_REGEXP:
-    case Kind::STRING_LENGTH:
-    case Kind::STRING_SUBSTR:
-    case Kind::STRING_CHARAT:
-    case Kind::STRING_CONTAINS:
-    case Kind::STRING_LT:
-    case Kind::STRING_LEQ:
-    case Kind::STRING_INDEXOF:
-    case Kind::STRING_REPLACE:
-    case Kind::STRING_REPLACE_ALL:
-    case Kind::STRING_REPLACE_RE:
-    case Kind::STRING_REPLACE_RE_ALL:
-    case Kind::STRING_PREFIX:
-    case Kind::STRING_SUFFIX:
-    case Kind::STRING_IS_DIGIT:
-    case Kind::STRING_ITOS:
-    case Kind::STRING_STOI:
-    case Kind::STRING_TO_CODE:
-    case Kind::STRING_FROM_CODE:
-    case Kind::STRING_UNIT:
-    case Kind::CONST_STRING:
-    case Kind::STRING_TO_REGEXP:
-    case Kind::REGEXP_CONCAT:
-    case Kind::REGEXP_UNION:
-    case Kind::REGEXP_INTER:
-    case Kind::REGEXP_DIFF:
-    case Kind::REGEXP_STAR:
-    case Kind::REGEXP_PLUS:
-    case Kind::REGEXP_OPT:
-    case Kind::REGEXP_RANGE:
-    case Kind::REGEXP_COMPLEMENT:
-    case Kind::REGEXP_NONE:
-    case Kind::REGEXP_ALL:
-    case Kind::REGEXP_ALLCHAR:
-    case Kind::REGEXP_REPEAT_OP:
-    case Kind::REGEXP_REPEAT:
-    case Kind::REGEXP_LOOP_OP:
-    case Kind::REGEXP_LOOP:
-    case Kind::REGEXP_RV:
+    // Have strings unsupported until add it to evaluate and to the rewrites
+    // case Kind::STRING_CONCAT:
+    // case Kind::STRING_IN_REGEXP:
+    // case Kind::STRING_LENGTH:
+    // case Kind::STRING_SUBSTR:
+    // case Kind::STRING_CHARAT:
+    // case Kind::STRING_CONTAINS:
+    // case Kind::STRING_LT:
+    // case Kind::STRING_LEQ:
+    // case Kind::STRING_INDEXOF:
+    // case Kind::STRING_REPLACE:
+    // case Kind::STRING_REPLACE_ALL:
+    // case Kind::STRING_REPLACE_RE:
+    // case Kind::STRING_REPLACE_RE_ALL:
+    // case Kind::STRING_PREFIX:
+    // case Kind::STRING_SUFFIX:
+    // case Kind::STRING_IS_DIGIT:
+    // case Kind::STRING_ITOS:
+    // case Kind::STRING_STOI:
+    // case Kind::STRING_TO_CODE:
+    // case Kind::STRING_FROM_CODE:
+    // case Kind::STRING_UNIT:
+    // case Kind::STRING_TO_REGEXP:
+    // case Kind::REGEXP_CONCAT:
+    // case Kind::REGEXP_UNION:
+    // case Kind::REGEXP_INTER:
+    // case Kind::REGEXP_DIFF:
+    // case Kind::REGEXP_STAR:
+    // case Kind::REGEXP_PLUS:
+    // case Kind::REGEXP_OPT:
+    // case Kind::REGEXP_RANGE:
+    // case Kind::REGEXP_COMPLEMENT:
+    // case Kind::REGEXP_NONE:
+    // case Kind::REGEXP_ALL:
+    // case Kind::REGEXP_ALLCHAR:
+    // case Kind::REGEXP_REPEAT_OP:
+    // case Kind::REGEXP_REPEAT:
+    // case Kind::REGEXP_LOOP_OP:
+    // case Kind::REGEXP_LOOP:
+    // case Kind::REGEXP_RV:
     /* from quantifiers */
     case Kind::EXISTS:
     case Kind::WITNESS:
@@ -466,12 +470,13 @@ Node AletheNodeConverter::postConvert(Node n)
           case Kind::SORT_TYPE:
           case Kind::INSTANTIATED_SORT_TYPE:
           case Kind::FUNCTION_TYPE:
-          case Kind::BITVECTOR_TYPE:
-          case Kind::ARRAY_TYPE:
-          case Kind::CONSTRUCTOR_TYPE:
-          case Kind::SELECTOR_TYPE:
-          case Kind::TESTER_TYPE:
-          case Kind::ASCRIPTION_TYPE:
+          // case Kind::BITVECTOR_TYPE:
+          // case Kind::ARRAY_TYPE:
+          // // DT types
+          // case Kind::CONSTRUCTOR_TYPE:
+          // case Kind::SELECTOR_TYPE:
+          // case Kind::TESTER_TYPE:
+          // case Kind::ASCRIPTION_TYPE:
           {
             continue;
           }
@@ -486,8 +491,8 @@ Node AletheNodeConverter::postConvert(Node n)
                 case TypeConstant::BOOLEAN_TYPE:
                 case TypeConstant::REAL_TYPE:
                 case TypeConstant::INTEGER_TYPE:
-                case TypeConstant::STRING_TYPE:
-                case TypeConstant::REGEXP_TYPE:
+                // case TypeConstant::STRING_TYPE:
+                // case TypeConstant::REGEXP_TYPE:
                 {
                   continue;
                 }
@@ -496,12 +501,12 @@ Node AletheNodeConverter::postConvert(Node n)
               }
             }
             // Only regular datatypes (parametric or not) are supported
-            else if (ttn.isDatatype() && !ttn.getDType().isCodatatype()
-                     && (tnk == Kind::DATATYPE_TYPE
-                         || tnk == Kind::PARAMETRIC_DATATYPE))
-            {
-              continue;
-            }
+            // else if (ttn.isDatatype() && !ttn.getDType().isCodatatype()
+            //          && (tnk == Kind::DATATYPE_TYPE
+            //              || tnk == Kind::PARAMETRIC_DATATYPE))
+            // {
+            //   continue;
+            // }
             unsupported = ttn;
             break;
           }

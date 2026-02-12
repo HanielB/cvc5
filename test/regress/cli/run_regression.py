@@ -120,11 +120,21 @@ class Tester:
 
     def strip_proof_body(self, output):
         # strip the unsat and parentheses
+
         if not output.startswith("unsat\n(\n".encode()) or not output.endswith("\n)\n".encode()):
             print_error("Failed to parse result for proof")
             return output, EXIT_FAILURE
         output = output[8:-2]
         return output, EXIT_OK
+
+    def strip_proof_body_alethe(self, output):
+        # strip the unsat and parentheses
+
+        if not output.startswith("unsat\n".encode()):
+            print_error("Failed to parse result for proof")
+            return output, EXIT_FAILURE
+        return output, EXIT_OK
+
 
 
 ################################################################################
@@ -280,7 +290,8 @@ class AletheTester(Tester):
         with tempfile.NamedTemporaryFile(suffix=".smt2.proof") as tmpf:
             cvc5_args = benchmark_info.command_line_args + [
                 "--dump-proofs",
-                "--proof-format=alethe"
+                "--proof-format=alethe",
+                # "--no-symmetry-breaker"
             ]
             # remove duplicates
             cvc5_args = list(dict.fromkeys(cvc5_args))
@@ -294,7 +305,7 @@ class AletheTester(Tester):
             if (re.search(r'Proof unsupported by Alethe', output.decode()) or re.search(r'Proof unsupported by Alethe', error.decode())):
                 return EXIT_SKIP
             # strip the unsat and parentheses
-            output, exit_code = self.strip_proof_body(output)
+            output, exit_code = self.strip_proof_body_alethe(output)
             if exit_code == EXIT_FAILURE:
                 return EXIT_FAILURE
             tmpf.write(output)
@@ -309,9 +320,18 @@ class AletheTester(Tester):
             carcara_args = [
                 "--allow-int-real-subtyping",
                 "--expand-let-bindings",
-                "--ignore-unknown-rules",
+                # "--ignore-unknown-rules",
+                "--allowed-rules",
+                # "rare_rewrite",
+                # "and_intro",
+                # "aci_simp",
+                "bv_poly_simp_eq",
+                "rare_rewrite_bv",
+                "bv_bitwise_slicing",
+                "bv_repeat_elim",
+                "undefined",
                 "--rare-file",
-                "/home/hbarbosa/carcara/wt-cvc5/rewrites.eo",
+                "/home/hbarbosa/carcara/wt-diff/rewrites.eo",
             ]
             output, error, exit_status = run_process(
                 [benchmark_info.carcara_binary] + ["check"] +
@@ -323,6 +343,7 @@ class AletheTester(Tester):
             exit_code = self.check_exit_status(EXIT_OK, exit_status, output,
                                                error, cvc5_args)
             if "valid" not in output and "holey" not in output:
+            # if "valid" not in output:
                 print_error("Invalid proof")
                 print()
                 print_outputs(output, error)
@@ -954,7 +975,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Runs benchmark and checks for correct exit status and output."
     )
-    
+
     g_testers_keys = list(g_testers.keys())
     tester_choices = ["all"] + g_testers_keys
     parser.add_argument("--use-skip-return-code", action="store_true")

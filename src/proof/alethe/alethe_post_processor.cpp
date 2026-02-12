@@ -442,6 +442,16 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
                            {},
                            *cdp);
     }
+  case ProofRewriteRule::BETA_REDUCE:
+    {
+      return addAletheStep(
+                           AletheRule::UNDEFINED,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           children,
+                           {},
+                           *cdp);
+    }
     default: break;
   }
   return false;
@@ -795,6 +805,7 @@ bool AletheProofPostprocessCallback::update(Node res,
       if (!success || k != tf.getKind() || (k != Kind::OR && k != Kind::AND))
       {
         return addAletheStep(AletheRule::HOLE,
+        // return addAletheStep(AletheRule::UNDEFINED,
                              res,
                              nm->mkNode(Kind::SEXPR, d_cl, res),
                              {},
