@@ -65,6 +65,7 @@ AletheProofPostprocessCallback::AletheProofPostprocessCallback(
   d_cl = d_anc.getCl();
   d_true = nm->mkConst(true);
   d_false = nm->mkConst(false);
+  d_rareList = nm->mkRawSymbol("rare-list", nm->sExprType());
   d_processingTheoryProof = false;
 }
 
@@ -142,6 +143,61 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
                            new_args,
                            *cdp);
     }
+    case ProofRewriteRule::DISTINCT_FALSE:
+    {
+      // find repeated term. Generate lists
+      std::unordered_set<Node> visited;
+      Assert(res[0].getKind() == Kind::DISTINCT);
+      Node repeated;
+      std::vector<Node> worklist;
+      std::vector<Node> argLists[3];
+      // we collect elements into worklist until we find a repetition. Then we
+      // split what is in there into argLists[0] and argLists[1] by finding the
+      // repeated element in worklist and creating a prefix and suffix according
+      // to the iterator
+      for (const Node& n : res[0])
+      {
+        // we only consider two repetitions
+        if (visited.count(n) && repeated.isNull())
+        {
+          repeated = n;
+          // split worklist into argLists[0] and argLists[1]
+          auto it = std::find(worklist.begin(), worklist.end(), repeated);
+          Assert(it != worklist.end());
+          argLists[0].insert(argLists[0].end(), worklist.begin(), it);
+          argLists[1].insert(argLists[1].end(), it + 1, worklist.end());
+          // clear for this to later become argLists[2]
+          worklist.clear();
+          continue;
+        }
+        visited.insert(n);
+        worklist.push_back(n);
+      }
+      Assert(!repeated.isNull());
+      argLists[2].insert(argLists[2].end(), worklist.begin(), worklist.end());
+      std::vector<Node> ruleArgs{
+          nm->mkRawSymbol("\"distinct-false\"", nm->sExprType()), repeated};
+      // build lists, in order
+      for (size_t i = 0; i < 3; ++i)
+      {
+        if (argLists[i].empty())
+        {
+          ruleArgs.push_back(d_rareList);
+          continue;
+        }
+        std::vector<Node> listElems{d_rareList};
+        listElems.insert(
+            listElems.end(), argLists[i].begin(), argLists[i].end());
+        ruleArgs.push_back(nm->mkNode(Kind::SEXPR, listElems));
+      }
+      return addAletheStep(AletheRule::RARE_REWRITE,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           {},
+                           ruleArgs,
+                           *cdp);
+    }
+
     // ======== EXISTS_ELIM
     // This rule is translated according to the clause pattern.
     case ProofRewriteRule::EXISTS_ELIM:
@@ -1702,6 +1758,7 @@ bool AletheProofPostprocessCallback::update(Node res,
     //   (cl (= (<kind> f? t1 ... tn) (<kind> f? s1 ... sn)))
     case ProofRule::CONG:
     case ProofRule::NARY_CONG:
+    case ProofRule::PAIRWISE_CONG:
     {
       if (res[0].isClosure())
       {
