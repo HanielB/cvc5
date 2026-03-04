@@ -372,6 +372,9 @@ enum class AletheRule : uint32_t
   // ite, i.e. Gi := (ite Fi Hi Hi'), then Fi = (ite Fi (= Gi Hi) (= Gi Hi')) if
   // Hi is of sort Bool
   ITE_INTRO,
+  MOD_INTRO,
+  DIV_INTRO,
+  LOG2_INTRO,
   // ======== contraction
   // > i. (cl F1 ... Fn)
   // ...
