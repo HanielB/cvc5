@@ -1066,7 +1066,7 @@ bool AletheProofPostprocessCallback::update(Node res,
       std::vector<Node> newArgs{
           NodeManager::mkRawSymbol(ss.str(), nm->sExprType())};
       newArgs.insert(newArgs.end(), args.begin() + 1, args.end());
-      return addAletheStep(AletheRule::HOLE,
+      return addAletheStep(AletheRule::UNDEFINED,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
