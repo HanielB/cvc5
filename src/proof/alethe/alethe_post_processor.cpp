@@ -143,6 +143,15 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
                            new_args,
                            *cdp);
     }
+    case ProofRewriteRule::DISTINCT_TRUE:
+    {
+      return addAletheStep(AletheRule::EVALUATE,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           {},
+                           {},
+                           *cdp);
+    }
     case ProofRewriteRule::DISTINCT_FALSE:
     {
       // find repeated term. Generate lists
