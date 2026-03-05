@@ -187,6 +187,9 @@ enum class AletheRule : uint32_t
   LA_MULT_POS,
   // Tautology for multiplying both sides of inequality by negative factor
   LA_MULT_NEG,
+
+  LA_MULT_SIGN,
+  LA_MULT_ABS_COMPARISON,
   // Tautology of linear integer arithmetic
   // > i. (cl F1 ... Fn)
   LIA_GENERIC,
