@@ -106,6 +106,8 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::DIV_INTRO: return "div_intro";
     case AletheRule::MOD_INTRO: return "mod_intro";
     case AletheRule::LOG2_INTRO: return "log2_intro";
+    case AletheRule::TO_INT_INTRO: return "to_int_intro";
+    case AletheRule::IS_INT_INTRO: return "is_int_intro";
     case AletheRule::CONTRACTION: return "contraction";
     case AletheRule::CONNECTIVE_DEF: return "connective_def";
     case AletheRule::AC_SIMP: return "ac_simp";

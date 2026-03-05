@@ -3011,6 +3011,24 @@ bool AletheProofPostprocessCallback::update(Node res,
                                {},
                                *cdp);
         }
+        case Kind::TO_INTEGER:
+        {
+          return addAletheStep(AletheRule::TO_INT_INTRO,
+                               res,
+                               nm->mkNode(Kind::SEXPR, d_cl, res),
+                               {},
+                               {},
+                               *cdp);
+        }
+        case Kind::IS_INTEGER:
+        {
+          return addAletheStep(AletheRule::IS_INT_INTRO,
+                               res,
+                               nm->mkNode(Kind::SEXPR, d_cl, res),
+                               {},
+                               {},
+                               *cdp);
+        }
         case Kind::INTS_LOG2:
         {
           return addAletheStep(AletheRule::LOG2_INTRO,

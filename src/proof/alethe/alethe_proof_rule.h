@@ -375,6 +375,8 @@ enum class AletheRule : uint32_t
   MOD_INTRO,
   DIV_INTRO,
   LOG2_INTRO,
+  TO_INT_INTRO,
+  IS_INT_INTRO,
   // ======== contraction
   // > i. (cl F1 ... Fn)
   // ...
