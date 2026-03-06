@@ -157,21 +157,16 @@ void MinisatSatSolver::setupOptions() {
   d_minisat->restart_inc = options().prop.satRestartInc;
 }
 
-ClauseId MinisatSatSolver::addClause(const SatClause& clause, bool removable)
+void MinisatSatSolver::addClause(const SatClause& clause, bool removable)
 {
   Minisat::vec<Minisat::Lit> minisat_clause;
   toMinisatClause(clause, minisat_clause);
-  ClauseId clause_id = ClauseIdError;
   // FIXME: This relies on the invariant that when ok() is false
   // the SAT solver does not add the clause (which is what Minisat currently does)
   if (!ok()) {
-    return ClauseIdUndef;
+    return;
   }
-  d_minisat->addClause(minisat_clause, removable, clause_id);
-  // FIXME: to be deleted when we kill old proof code for unsat cores
-  Assert(!options().smt.produceUnsatCores || options().smt.produceProofs
-         || clause_id != ClauseIdError);
-  return clause_id;
+  d_minisat->addClause(minisat_clause, removable);
 }
 
 SatVariable MinisatSatSolver::newVar(bool isTheoryAtom, bool canErase)

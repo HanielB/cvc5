@@ -81,7 +81,7 @@ void KissatSolver::initialize()
 
 KissatSolver::~KissatSolver() { kissat_release(d_solver); }
 
-ClauseId KissatSolver::addClause(const SatClause& clause,
+void KissatSolver::addClause(const SatClause& clause,
                                  CVC5_UNUSED bool removable)
 {
   for (const SatLiteral& lit : clause)
@@ -90,7 +90,6 @@ ClauseId KissatSolver::addClause(const SatClause& clause,
   }
   kissat_add(d_solver, 0);
   ++d_statistics.d_numClauses;
-  return ClauseIdError;
 }
 
 SatVariable KissatSolver::newVar(CVC5_UNUSED bool isTheoryAtom,

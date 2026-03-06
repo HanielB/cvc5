@@ -165,7 +165,7 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
 
 
 
-bool SimpSolver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
+bool SimpSolver::addClause_(vec<Lit>& ps, bool removable)
 {
 #ifdef CVC5_ASSERTIONS
   if (use_simplification)
@@ -566,14 +566,13 @@ bool SimpSolver::eliminateVar(Var v)
 
     for (int i = 0; i < cls.size(); i++) removeClause(cls[i]);
 
-    ClauseId id = ClauseIdUndef;
     // Produce clauses in cross product:
     vec<Lit>& resolvent = add_tmp;
     for (int i = 0; i < pos.size(); i++)
         for (int j = 0; j < neg.size(); j++) {
             bool removable = ca[pos[i]].removable() && ca[pos[neg[j]]].removable();
             if (merge(ca[pos[i]], ca[neg[j]], v, resolvent) &&
-                !addClause_(resolvent, removable, id)) {
+                !addClause_(resolvent, removable)) {
                 return false;
             }
         }
@@ -614,8 +613,7 @@ bool SimpSolver::substitute(Var v, Lit x)
     }
 
     removeClause(cls[i]);
-    ClauseId id = ClauseIdUndef;
-    if (!addClause_(subst_clause, c.removable(), id))
+    if (!addClause_(subst_clause, c.removable()))
     {
       return ok = false;
     }

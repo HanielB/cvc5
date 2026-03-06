@@ -223,7 +223,7 @@ SatValue CadicalSolver::_solve(const std::vector<SatLiteral>& assumptions)
 
 /* SatSolver Interface ------------------------------------------------------ */
 
-ClauseId CadicalSolver::addClause(const SatClause& clause, bool removable)
+void CadicalSolver::addClause(const SatClause& clause, bool removable)
 {
   if (d_propagator && TraceIsOn("cadical::propagator"))
   {
@@ -252,7 +252,6 @@ ClauseId CadicalSolver::addClause(const SatClause& clause, bool removable)
     d_solver->add(0);
   }
   ++d_statistics.d_numClauses;
-  return ClauseIdError;
 }
 
 SatVariable CadicalSolver::newVar(bool isTheoryAtom, CVC5_UNUSED bool canErase)

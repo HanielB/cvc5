@@ -58,15 +58,13 @@ class SimpSolver : public Solver {
              bool dvar = true,
              bool isTheoryAtom = false,
              bool canErase = true);
-  bool addClause(const vec<Lit>& ps, bool removable, ClauseId& id);
+  bool addClause(const vec<Lit>& ps, bool removable);
   bool addEmptyClause(bool removable);  // Add the empty clause to the solver.
   bool addClause(Lit p,
-                 bool removable,
-                 ClauseId& id);  // Add a unit clause to the solver.
+                 bool removable);  // Add a unit clause to the solver.
   bool addClause(Lit p,
                  Lit q,
-                 bool removable,
-                 ClauseId& id);  // Add a binary clause to the solver.
+                 bool removable);  // Add a binary clause to the solver.
   bool addClause(Lit p,
                  Lit q,
                  Lit r,

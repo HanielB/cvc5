@@ -131,14 +131,14 @@ ClauseId CryptoMinisatSolver::addXorClause(const SatClause& clause,
   return ClauseIdError;
 }
 
-ClauseId CryptoMinisatSolver::addClause(const SatClause& clause,
+void CryptoMinisatSolver::addClause(const SatClause& clause,
                                         CVC5_UNUSED bool removable)
 {
   Trace("sat::cryptominisat") << "Add clause " << clause <<"\n";
 
   if (!d_okay) {
     Trace("sat::cryptominisat") << "Solver unsat: not adding clause.\n";
-    return ClauseIdError;
+    return;
   }
 
   ++(d_statistics.d_clausesAdded);
@@ -147,7 +147,6 @@ ClauseId CryptoMinisatSolver::addClause(const SatClause& clause,
   toInternalClause(clause, internal_clause);
   const bool nowOkay = d_solver->add_clause(internal_clause);
   d_okay &= nowOkay;
-  return ClauseIdError;
 }
 
 bool CryptoMinisatSolver::ok() const { return d_okay; }

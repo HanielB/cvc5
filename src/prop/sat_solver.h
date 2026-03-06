@@ -40,7 +40,7 @@ class SatSolver
    * @param clause    The clause to add.
    * @param removable True to indicate that this clause is not irredundant.
    */
-  virtual ClauseId addClause(const SatClause& clause, bool removable) = 0;
+  virtual void addClause(const SatClause& clause, bool removable) = 0;
 
   /**
    * Create a new boolean variable in the solver.

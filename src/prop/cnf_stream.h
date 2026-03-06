@@ -253,26 +253,23 @@ class CnfStream : protected EnvObj
    * Asserts the given clause to the sat solver.
    * @param node the node giving rise to this clause
    * @param clause the clause to assert
-   * @return whether the clause was asserted in the SAT solver.
    */
-  bool assertClause(TNode node, SatClause& clause);
+  void assertClause(TNode node, SatClause& clause);
 
   /**
    * Asserts the unit clause to the sat solver.
    * @param node the node giving rise to this clause
    * @param a the unit literal of the clause
-   * @return whether the clause was asserted in the SAT solver.
    */
-  bool assertClause(TNode node, SatLiteral a);
+  void assertClause(TNode node, SatLiteral a);
 
   /**
    * Asserts the binary clause to the sat solver.
    * @param node the node giving rise to this clause
    * @param a the first literal in the clause
    * @param b the second literal in the clause
-   * @return whether the clause was asserted in the SAT solver.
    */
-  bool assertClause(TNode node, SatLiteral a, SatLiteral b);
+  void assertClause(TNode node, SatLiteral a, SatLiteral b);
 
   /**
    * Asserts the ternary clause to the sat solver.
@@ -282,7 +279,7 @@ class CnfStream : protected EnvObj
    * @param c the thirs literal in the clause
    * @return whether the clause was asserted in the SAT solver.
    */
-  bool assertClause(TNode node, SatLiteral a, SatLiteral b, SatLiteral c);
+  void assertClause(TNode node, SatLiteral a, SatLiteral b, SatLiteral c);
 
   /**
    * Acquires a new variable from the SAT solver to represent the node

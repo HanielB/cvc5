@@ -36,7 +36,7 @@ class KissatSolver : public SatSolver
  public:
   ~KissatSolver() override;
 
-  ClauseId addClause(const SatClause& clause, bool removable) override;
+  void addClause(const SatClause& clause, bool removable) override;
 
   SatVariable newVar(bool isTheoryAtom, bool canErase) override;
   SatVariable trueVar() override;

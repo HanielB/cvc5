@@ -48,7 +48,7 @@ CnfStream::CnfStream(Env& env,
 {
 }
 
-bool CnfStream::assertClause(TNode node, SatClause& c)
+void CnfStream::assertClause(TNode node, SatClause& c)
 {
   Trace("cnf") << "Inserting into stream " << c << " node = " << node << "\n";
 
@@ -66,27 +66,25 @@ bool CnfStream::assertClause(TNode node, SatClause& c)
     }
   }
 
-  ClauseId clauseId = d_satSolver->addClause(cl, d_removable);
-
-  return clauseId != ClauseIdUndef;
+  d_satSolver->addClause(cl, d_removable);
 }
 
-bool CnfStream::assertClause(TNode node, SatLiteral a)
+void CnfStream::assertClause(TNode node, SatLiteral a)
 {
   SatClause clause(1);
   clause[0] = a;
-  return assertClause(node, clause);
+  assertClause(node, clause);
 }
 
-bool CnfStream::assertClause(TNode node, SatLiteral a, SatLiteral b)
+void CnfStream::assertClause(TNode node, SatLiteral a, SatLiteral b)
 {
   SatClause clause(2);
   clause[0] = a;
   clause[1] = b;
-  return assertClause(node, clause);
+  assertClause(node, clause);
 }
 
-bool CnfStream::assertClause(TNode node,
+void CnfStream::assertClause(TNode node,
                              SatLiteral a,
                              SatLiteral b,
                              SatLiteral c)
@@ -95,7 +93,7 @@ bool CnfStream::assertClause(TNode node,
   clause[0] = a;
   clause[1] = b;
   clause[2] = c;
-  return assertClause(node, clause);
+  assertClause(node, clause);
 }
 
 bool CnfStream::hasLiteral(TNode n) const {
