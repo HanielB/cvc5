@@ -482,6 +482,8 @@ enum class AletheRule : uint32_t
   // where set representation of F1 and F2 are the same and the number of
   // literals in C2 is the same of that of C1.
   REORDERING,
+  // ======== HO
+  BETA_EQUIVALENCE,
   // ======== arrays
   ARRAYS_IDX,
   ARRAYS_ROW,

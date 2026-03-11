@@ -148,6 +148,7 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::MINISCOPE_SPLIT: return "miniscope_split";
     case AletheRule::MINISCOPE_ITE: return "miniscope_ite";
     case AletheRule::REORDERING: return "reordering";
+    case AletheRule::BETA_EQUIVALENCE: return "beta_equiv";
     case AletheRule::ARRAYS_IDX: return "arrays_idx";
     case AletheRule::ARRAYS_ROW: return "arrays_row";
     case AletheRule::ARRAYS_ROW_CONTRA: return "arrays_row_contra";

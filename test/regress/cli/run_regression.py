@@ -325,13 +325,21 @@ class AletheTester(Tester):
                 # "rare_rewrite",
                 # "and_intro",
                 # "aci_simp",
-                "bv_poly_simp_eq",
-                "rare_rewrite_bv",
-                "bv_bitwise_slicing",
-                "bv_repeat_elim",
+                # "bv_poly_simp_eq",
+                # "rare_rewrite_bv",
+                # "bv_bitwise_slicing",
+                # "bv_repeat_elim",
                 "undefined",
+                "div_intro",
+                "mod_intro",
+                "log2_intro",
+                "to_int_intro",
+                "is_int_intro",
+                "la_mult_sign",
+                "la_mult_abs_comparison",
+                "beta_equiv",
                 "--rare-file",
-                "/home/hbarbosa/carcara/wt-diff/rewrites.eo",
+                "/home/hbarbosa/carcara/rewrites.eo",
             ]
             output, error, exit_status = run_process(
                 [benchmark_info.carcara_binary] + ["check"] +
@@ -342,8 +350,8 @@ class AletheTester(Tester):
             output, error = output.decode(), error.decode()
             exit_code = self.check_exit_status(EXIT_OK, exit_status, output,
                                                error, cvc5_args)
-            if "valid" not in output and "holey" not in output:
-            # if "valid" not in output:
+            # if "valid" not in output and "holey" not in output:
+            if "valid" not in output:
                 print_error("Invalid proof")
                 print()
                 print_outputs(output, error)

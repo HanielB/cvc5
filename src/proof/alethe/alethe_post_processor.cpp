@@ -507,10 +507,9 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
                            {},
                            *cdp);
     }
-  case ProofRewriteRule::BETA_REDUCE:
+    case ProofRewriteRule::BETA_REDUCE:
     {
-      return addAletheStep(
-                           AletheRule::UNDEFINED,
+      return addAletheStep(AletheRule::BETA_EQUIVALENCE,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,
