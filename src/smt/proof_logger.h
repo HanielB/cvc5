@@ -1,10 +1,7 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Andrew Reynolds
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -58,7 +55,10 @@ class ProofLogger : protected EnvObj
    * after preprocessing and conversion to CNF.
    * @param input The list of input clauses.
    */
-  virtual void logCnfPreprocessInputs(const std::vector<Node>& inputs) {}
+  virtual void logCnfPreprocessInputs(
+      CVC5_UNUSED const std::vector<Node>& inputs)
+  {
+  }
   /**
    * Called when preprocessing is complete with the proofs of the preprocessed
    * inputs. The free assumptions of proofs in pfns are the preprocessed input
@@ -67,13 +67,15 @@ class ProofLogger : protected EnvObj
    * @param pfns Proofs of the preprocessed inputs.
    */
   virtual void logCnfPreprocessInputProofs(
-      std::vector<std::shared_ptr<ProofNode>>& pfns) {}
+      CVC5_UNUSED std::vector<std::shared_ptr<ProofNode>>& pfns)
+  {
+  }
   /**
    * Called when clause `n` is added to the SAT solver, where `n` is
    * (the CNF conversion of) a theory lemma.
    * @param n The theory lemma.
    */
-  virtual void logTheoryLemma(const Node& n, theory::InferenceId id = theory::InferenceId::NONE) {}
+  virtual void logTheoryLemma(CVC5_UNUSED const Node& n, theory::InferenceId id = theory::InferenceId::NONE) {}
   /**
    * Called when clause `n` is learned internally by the SAT solver, where `n`
    * is a clause.
@@ -92,7 +94,7 @@ class ProofLogger : protected EnvObj
    * @param pfn The closed proof of a theory lemma.
    */
   virtual void logTheoryLemmaProof(
-      std::shared_ptr<ProofNode>& pfn,
+      CVC5_UNUSED  std::shared_ptr<ProofNode>& pfn,
       theory::InferenceId id = theory::InferenceId::NONE)
   {
   }
@@ -109,7 +111,10 @@ class ProofLogger : protected EnvObj
    * as notified above.
    * @param pfn The refutation proof.
    */
-  virtual void logSatRefutationProof(std::shared_ptr<ProofNode>& pfn) {}
+  virtual void logSatRefutationProof(
+      CVC5_UNUSED std::shared_ptr<ProofNode>& pfn)
+  {
+  }
 };
 
 /**

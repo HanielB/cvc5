@@ -4,8 +4,6 @@
 
 ;;;;; ProofRule::REFL
 
-;;;;; ProofRule::REFL
-
 ; rule: refl
 ; implements: ProofRule::REFL
 ; args:

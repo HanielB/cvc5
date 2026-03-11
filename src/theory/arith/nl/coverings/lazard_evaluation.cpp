@@ -1,10 +1,7 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Gereon Kremer, Alex Ozdemir, Andres Noetzli
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -876,7 +873,7 @@ void LazardEvaluation::add(const poly::Variable& var, const poly::Value& val)
   d_state->d_assignment.set(var, val);
 }
 
-void LazardEvaluation::addFreeVariable(const poly::Variable& var) {}
+void LazardEvaluation::addFreeVariable(CVC5_UNUSED const poly::Variable& var) {}
 
 std::vector<poly::Polynomial> LazardEvaluation::reducePolynomial(
     const poly::Polynomial& p) const

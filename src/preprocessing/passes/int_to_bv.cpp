@@ -1,10 +1,7 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Andres Noetzli, Yoni Zohar, Aina Niemetz
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -237,10 +234,8 @@ Node IntToBV::intToBV(TNode n, NodeMap& cache)
       {
         if (current.getType() == nm->integerType())
         {
-          result =
-              NodeManager::mkDummySkolem("__intToBV_var",
-                                         nm->mkBitVectorType(size),
-                                         "Variable introduced in intToBV pass");
+          result = NodeManager::mkDummySkolem("__intToBV_var",
+                                              nm->mkBitVectorType(size));
           /**
            * Correctly convert signed/unsigned BV values to Integers as follows
            * x < 0 ? -nat(-x) : nat(x)

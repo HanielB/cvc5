@@ -1,10 +1,7 @@
 ###############################################################################
-# Top contributors (to current version):
-#   Andrew Reynolds, Aina Niemetz, Mathias Preiner
-#
 # This file is part of the cvc5 project.
 #
-# Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+# Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
 # in the top-level source directory and their institutional affiliations.
 # All rights reserved.  See the file COPYING in the top-level source
 # directory for licensing information.
@@ -861,6 +858,7 @@ set(regress_0_tests
   regress0/ff/bigff_is_zero_sound.smt2
   regress0/ff/bigff_is_zero_unsound.smt2
   regress0/ff/bitsum_eval.smt2
+  regress0/ff/bitsum_overflow.smt2
   regress0/ff/bool_nary_or_sound.smt2
   regress0/ff/bool_nary_or_unsound.smt2
   regress0/ff/combination.smt2
@@ -1065,6 +1063,7 @@ set(regress_0_tests
   regress0/issue1063-overloading-dt-sel.smt2
   regress0/issue11198-real-as-int.smt2
   regress0/issue12038-model-get-value.smt2
+  regress0/issue12320-difficulty-subtype-pf.smt2
   regress0/issue12386-get-assertions.smt2
   regress0/issue2832-qualId.smt2
   regress0/issue4010-sort-inf-var.smt2
@@ -1132,6 +1131,7 @@ set(regress_0_tests
   regress0/nl/issue10140-nl-tc.smt2
   regress0/nl/issue11901-pow-rewrite-type.smt2
   regress0/nl/issue12239-subtype-elim.smt2
+  regress0/nl/issue12408-nl-fm.smt2
   regress0/nl/issue3003.smt2
   regress0/nl/issue3407.smt2
   regress0/nl/issue3411.smt2
@@ -1463,9 +1463,12 @@ set(regress_0_tests
   regress0/proofs/bvrewrite-ite.smt2
   regress0/proofs/bvrewrite-shlbyconst.smt2
   regress0/proofs/com-galois-rewrite.smt2
+  regress0/proofs/dd.1004_attack_star_union_char.smt2
+  regress0/proofs/dd.63058_aa742630eef64f949de269382c1f9035_25_UFDTNIA.smt2
   regress0/proofs/dd.fastclose.smt2
   regress0/proofs/dd.fastclose2.smt2
   regress0/proofs/dd.fastclose3.smt2
+  regress0/proofs/dd.S715-026__dic_loop__ordering_buffers.adb_11_83_range_check___00.smt2
   regress0/proofs/dd_ada_open.smt2
   regress0/proofs/dd_alpha_eq_qpattern.smt2
   regress0/proofs/dd_bug787_beta_reduce.smt2
@@ -1515,7 +1518,10 @@ set(regress_0_tests
   regress0/proofs/issue12240-cyclic-proof.smt2
   regress0/proofs/issue12355-cm-mixed-arith.smt2
   regress0/proofs/lfsc-test-1.smt2
+  regress0/proofs/macro-eq-const-eq.smt2
   regress0/proofs/macro-quant-prenex-simple.smt2
+  regress0/proofs/mod-total-256.smt2
+  regress0/proofs/mod-total-mult.smt2
   regress0/proofs/nomerge-alethe-pf.smt2
   regress0/proofs/no-proof-uc.smt2
   regress0/proofs/pfcheck_rw_441.smt2
@@ -1558,6 +1564,8 @@ set(regress_0_tests
   regress0/proofs/qgu-fuzz-3-chainres-checking.smt2
   regress0/proofs/qgu-fuzz-4-bool-chainres-postprocessing-singleton.smt2
   regress0/proofs/qgu-fuzz-5-bool-open-sat.smt2
+  regress0/proofs/re-range-empty.smt2
+  regress0/proofs/re-range-refl.smt2
   regress0/proofs/RF-11-aci-norm-ndet.smt2
   regress0/proofs/scope.smt2
   regress0/proofs/shadow_quant.smt2
@@ -2104,6 +2112,7 @@ set(regress_0_tests
   regress0/strings/issue11890-eec-model.smt2
   regress0/strings/issue12027-str-ae.smt2
   regress0/strings/issue12241-aci.smt2
+  regress0/strings/issue12322-pf-eager-len-re.smt2
   regress0/strings/issue1189.smt2
   regress0/strings/issue2958.smt2
   regress0/strings/issue3440.smt2
@@ -2258,12 +2267,14 @@ set(regress_0_tests
   regress0/sygus/declare-var-grammar-err.sy
   regress0/sygus/dt-no-syntax.sy
   regress0/sygus/dt-sel-parse1.sy
+  regress0/sygus/feasible-trivial.sy
   regress0/sygus/find-synth-next.smt2
   regress0/sygus/General_plus10.sy
   regress0/sygus/hd-05-d1-prog-nogrammar.sy
   regress0/sygus/ho-occ-synth-fun.sy
   regress0/sygus/incremental-modify-ex.sy
   regress0/sygus/infeasible-constraint.sy
+  regress0/sygus/infeasible-trivial.sy
   regress0/sygus/interpolant-gn.smt2
   regress0/sygus/inv-different-var-order.sy
   regress0/sygus/issue3356-syg-inf-usort.smt2
@@ -2897,6 +2908,7 @@ set(regress_1_tests
   regress1/nl/issue11386-1-nl-cov-cyclic.smt2
   regress1/nl/issue11386-2-nl-cov-cyclic.smt2
   regress1/nl/issue11386-3-nl-cov-cyclic.smt2
+  regress1/nl/issue12376-nl-comp-pf.smt2
   regress1/nl/issue3300-approx-sqrt-witness.smt2
   regress1/nl/issue3441.smt2
   regress1/nl/issue3617.smt2
@@ -3152,6 +3164,9 @@ set(regress_1_tests
   regress1/quantifiers/isaplanner-goal20.smt2
   regress1/quantifiers/issue10346-ieval-index-conflict.smt2
   regress1/quantifiers/issue10373-cegqi-abs.smt2
+  regress1/quantifiers/issue12323-quant-rewrite-body.smt2
+  regress1/quantifiers/issue12323-quant-rewrite-body-min.smt2
+  regress1/quantifiers/issue12388-cegqi-excessive-string.smt2
   regress1/quantifiers/issue2970-string-var-elim.smt2
   regress1/quantifiers/issue3250-syg-inf-q.smt2
   regress1/quantifiers/issue3316.smt2
@@ -3666,6 +3681,7 @@ set(regress_1_tests
   regress1/strings/proj-issue659.smt2
   regress1/strings/proj-issue779-2-extr.smt2
   regress1/strings/proj-issue779-2-icycle.smt2
+  regress1/strings/proj-issue783-inorm-cycle.smt2
   regress1/strings/prop-engine-order.smt2
   regress1/strings/query4674.smt2
   regress1/strings/query8485.smt2
@@ -4430,7 +4446,7 @@ macro(cvc5_add_regression_test level file)
     ${RUN_REGRESSION_ARGS}
     --lfsc-binary ${CMAKE_SOURCE_DIR}/deps/bin/lfscc
     --lfsc-sig-dir ${CMAKE_SOURCE_DIR}/proofs/lfsc/signatures
-    --carcara-binary /home/hbarbosa/carcara/wt-diff/target/release/carcara
+    --carcara-binary /home/hbarbosa/carcara/target/release/carcara
     --ethos-binary ${CMAKE_SOURCE_DIR}/deps/bin/ethos
     --cpc-sig-dir ${CMAKE_SOURCE_DIR}/proofs/eo
     ${wrapper}

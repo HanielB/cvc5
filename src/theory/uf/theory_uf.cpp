@@ -1,10 +1,7 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Andrew Reynolds, Morgan Deters, Dejan Jovanovic
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -173,7 +170,10 @@ void TheoryUF::postCheck(Effort level)
   }
 }
 
-void TheoryUF::notifyFact(TNode atom, bool pol, TNode fact, bool isInternal)
+void TheoryUF::notifyFact(TNode atom,
+                          bool pol,
+                          TNode fact,
+                          CVC5_UNUSED bool isInternal)
 {
   if (d_state.isInConflict())
   {

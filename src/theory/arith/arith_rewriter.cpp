@@ -1,10 +1,7 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Andrew Reynolds, Gereon Kremer, Aina Niemetz
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -468,7 +465,7 @@ RewriteResponse ArithRewriter::preRewriteTerm(TNode t){
       case Kind::MULT:
       case Kind::NONLINEAR_MULT: return preRewriteMult(t);
       case Kind::INTS_DIVISION:
-      case Kind::INTS_MODULUS: return rewriteIntsDivMod(t, true);
+      case Kind::INTS_MODULUS: return rewriteIntsDivMod(t);
       case Kind::INTS_DIVISION_TOTAL:
       case Kind::INTS_MODULUS_TOTAL: return rewriteIntsDivModTotal(t, true);
       case Kind::ABS: return rewriteAbs(t);
@@ -522,7 +519,7 @@ RewriteResponse ArithRewriter::postRewriteTerm(TNode t){
       case Kind::INTS_ISPOW2: return postRewriteIntsIsPow2(t);
       case Kind::INTS_LOG2: return postRewriteIntsLog2(t);
       case Kind::INTS_DIVISION:
-      case Kind::INTS_MODULUS: return rewriteIntsDivMod(t, false);
+      case Kind::INTS_MODULUS: return rewriteIntsDivMod(t);
       case Kind::INTS_DIVISION_TOTAL:
       case Kind::INTS_MODULUS_TOTAL: return rewriteIntsDivModTotal(t, false);
       case Kind::ABS: return rewriteAbs(t);
@@ -944,7 +941,7 @@ RewriteResponse ArithRewriter::rewriteAbs(TNode t)
   return RewriteResponse(REWRITE_DONE, t);
 }
 
-RewriteResponse ArithRewriter::rewriteIntsDivMod(TNode t, bool pre)
+RewriteResponse ArithRewriter::rewriteIntsDivMod(TNode t)
 {
   NodeManager* nm = nodeManager();
   Kind k = t.getKind();
@@ -1396,7 +1393,7 @@ RewriteResponse ArithRewriter::postRewriteTranscendental(TNode t)
         }
         else
         {
-          Assert(false);
+          DebugUnhandled();
         }
 
         // if there is a factor of PI

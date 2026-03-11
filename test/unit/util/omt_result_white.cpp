@@ -1,16 +1,13 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Andrew Reynolds, Aina Niemetz, Gereon Kremer
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
  * ****************************************************************************
  *
- * White box testing of the internal OmtResult class 
+ * White box testing of the internal OmtResult class
  */
 
 #include "test.h"
@@ -31,8 +28,8 @@ TEST_F(TestUtilWhiteOmtResult, isNull)
   ASSERT_FALSE(res_null.getStatus() == OmtResult::LIMIT_OPTIMAL);
   ASSERT_FALSE(res_null.getStatus() == OmtResult::NON_OPTIMAL);
   ASSERT_FALSE(res_null.getStatus() == OmtResult::UNBOUNDED);
-  ASSERT_FALSE(res_null.getStatus() == OmtResult::UNSAT); 
-  ASSERT_FALSE(res_null.getStatus() == OmtResult::UNKNOWN); 
+  ASSERT_FALSE(res_null.getStatus() == OmtResult::UNSAT);
+  ASSERT_FALSE(res_null.getStatus() == OmtResult::UNKNOWN);
 }
 
 TEST_F(TestUtilWhiteOmtResult, isOptimal)
@@ -43,8 +40,8 @@ TEST_F(TestUtilWhiteOmtResult, isOptimal)
   ASSERT_FALSE(res.getStatus() == OmtResult::LIMIT_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::NON_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::UNBOUNDED);
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT); 
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN); 
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT);
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN);
 }
 
 TEST_F(TestUtilWhiteOmtResult, isLimitOptimal)
@@ -55,8 +52,8 @@ TEST_F(TestUtilWhiteOmtResult, isLimitOptimal)
   ASSERT_TRUE(res.getStatus() == OmtResult::LIMIT_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::NON_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::UNBOUNDED);
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT); 
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN); 
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT);
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN);
 }
 
 TEST_F(TestUtilWhiteOmtResult, isNonOptimal)
@@ -67,8 +64,8 @@ TEST_F(TestUtilWhiteOmtResult, isNonOptimal)
   ASSERT_FALSE(res.getStatus() == OmtResult::LIMIT_OPTIMAL);
   ASSERT_TRUE(res.getStatus() == OmtResult::NON_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::UNBOUNDED);
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT); 
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN); 
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT);
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN);
 }
 
 TEST_F(TestUtilWhiteOmtResult, isUnbounded)
@@ -79,8 +76,8 @@ TEST_F(TestUtilWhiteOmtResult, isUnbounded)
   ASSERT_FALSE(res.getStatus() == OmtResult::LIMIT_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::NON_OPTIMAL);
   ASSERT_TRUE(res.getStatus() == OmtResult::UNBOUNDED);
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT); 
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN); 
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT);
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN);
 }
 
 TEST_F(TestUtilWhiteOmtResult, isUnsat)
@@ -91,8 +88,8 @@ TEST_F(TestUtilWhiteOmtResult, isUnsat)
   ASSERT_FALSE(res.getStatus() == OmtResult::LIMIT_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::NON_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::UNBOUNDED);
-  ASSERT_TRUE(res.getStatus() == OmtResult::UNSAT); 
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN); 
+  ASSERT_TRUE(res.getStatus() == OmtResult::UNSAT);
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNKNOWN);
 }
 
 TEST_F(TestUtilWhiteOmtResult, isUnknown)
@@ -103,8 +100,8 @@ TEST_F(TestUtilWhiteOmtResult, isUnknown)
   ASSERT_FALSE(res.getStatus() == OmtResult::LIMIT_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::NON_OPTIMAL);
   ASSERT_FALSE(res.getStatus() == OmtResult::UNBOUNDED);
-  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT); 
-  ASSERT_TRUE(res.getStatus() == OmtResult::UNKNOWN); 
+  ASSERT_FALSE(res.getStatus() == OmtResult::UNSAT);
+  ASSERT_TRUE(res.getStatus() == OmtResult::UNKNOWN);
 }
 
 TEST_F(TestUtilWhiteOmtResult, statusStreamOutput)
