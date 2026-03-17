@@ -523,8 +523,6 @@ enum class AletheRule : uint32_t
   HOLE,
   // Used for unjustified SAT refutation
   SAT_REFUTATION,
-  // Used to avoid large resolution processing shenanigans
-  AND_INTRO,
   // ======== undefined
   // Used in case that a step in the proof rule could not be translated.
   UNDEFINED
