@@ -529,6 +529,15 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
                            {},
                            *cdp);
     }
+    case ProofRewriteRule::ARRAYS_SELECT_CONST:
+    {
+      return addAletheStep(AletheRule::ARRAYS_SELECT_CONST,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           children,
+                           {},
+                           *cdp);
+    }
     default: break;
   }
   return false;
@@ -2967,6 +2976,15 @@ bool AletheProofPostprocessCallback::update(Node res,
     case ProofRule::ARRAYS_EXT:
     {
       return addAletheStep(AletheRule::ARRAYS_EXT,
+                           res,
+                           nm->mkNode(Kind::SEXPR, d_cl, res),
+                           children,
+                           {},
+                           *cdp);
+    }
+    case ProofRule::DISTINCT_VALUES:
+    {
+      return addAletheStep(AletheRule::UNDEFINED,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),
                            children,

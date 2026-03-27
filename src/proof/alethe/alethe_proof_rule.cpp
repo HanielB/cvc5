@@ -148,6 +148,7 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::ARRAYS_ROW: return "arrays_row";
     case AletheRule::ARRAYS_ROW_CONTRA: return "arrays_row_contra";
     case AletheRule::ARRAYS_EXT: return "arrays_ext";
+    case AletheRule::ARRAYS_SELECT_CONST: return "arrays_select_const";
     case AletheRule::BV_BITBLAST_STEP_VAR: return "bv_bitblast_step_var";
     case AletheRule::BV_BITBLAST_STEP_BVAND: return "bv_bitblast_step_bvand";
     case AletheRule::BV_BITBLAST_STEP_BVOR: return "bv_bitblast_step_bvor";

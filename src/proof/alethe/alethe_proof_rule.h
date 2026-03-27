@@ -509,6 +509,7 @@ enum class AletheRule : uint32_t
   ARRAYS_ROW,
   ARRAYS_ROW_CONTRA,
   ARRAYS_EXT,
+  ARRAYS_SELECT_CONST,
   // ======== bitvector
   //  > i. (cl (= t bbt(t)))
   BV_BITBLAST_STEP_VAR,

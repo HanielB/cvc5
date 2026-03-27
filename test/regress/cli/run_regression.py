@@ -327,6 +327,7 @@ class AletheTester(Tester):
                 "la_mult_sign",
                 "la_mult_abs_comparison",
                 "beta_equiv",
+                "arrays_select_const",
                 "--rare-file",
                 "/home/hbarbosa/carcara/rewrites.eo",
             ]

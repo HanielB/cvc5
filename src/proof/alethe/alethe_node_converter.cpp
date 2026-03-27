@@ -366,11 +366,11 @@ Node AletheNodeConverter::postConvert(Node n)
     // case Kind::BITVECTOR_ZERO_EXTEND_OP:
     // case Kind::BITVECTOR_ZERO_EXTEND:
     /* from arrays */
-    // case Kind::ARRAY_TYPE:
-    // case Kind::SELECT:
-    // case Kind::STORE:
-    // case Kind::STORE_ALL:
-    // case Kind::ARRAY_LAMBDA:
+    case Kind::ARRAY_TYPE:
+    case Kind::SELECT:
+    case Kind::STORE:
+    case Kind::STORE_ALL:
+    case Kind::ARRAY_LAMBDA:
     /* from datatypes */
     // case Kind::CONSTRUCTOR_TYPE:
     // case Kind::SELECTOR_TYPE:
@@ -468,7 +468,7 @@ Node AletheNodeConverter::postConvert(Node n)
           case Kind::INSTANTIATED_SORT_TYPE:
           case Kind::FUNCTION_TYPE:
           // case Kind::BITVECTOR_TYPE:
-          // case Kind::ARRAY_TYPE:
+          case Kind::ARRAY_TYPE:
           // // DT types
           // case Kind::CONSTRUCTOR_TYPE:
           // case Kind::SELECTOR_TYPE:
