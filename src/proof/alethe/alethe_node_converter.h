@@ -17,7 +17,7 @@
 
 #include "expr/node.h"
 #include "expr/node_converter.h"
-#include "proof/alf/alf_node_converter.h"
+#include "proof/eo/eo_node_converter.h"
 #include "util/statistics_stats.h"
 #include "util/statistics_registry.h"
 
@@ -28,7 +28,7 @@ namespace proof {
  * This is a helper class for the Alethe post-processor that converts nodes into
  * their expected form in Alethe.
  */
-class AletheNodeConverter : public BaseAlfNodeConverter
+class AletheNodeConverter : public BaseEoNodeConverter
 {
  public:
   /** Constructor
