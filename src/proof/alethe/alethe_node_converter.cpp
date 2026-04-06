@@ -24,7 +24,7 @@ namespace cvc5::internal {
 namespace proof {
 
 AletheNodeConverter::AletheNodeConverter(NodeManager* nm, StatisticsRegistry& reg, bool defineSkolems)
-      : BaseAlfNodeConverter(nm),
+      : BaseEoNodeConverter(nm),
         d_cl(nm->mkBoundVar("cl", nm->sExprType())),
         d_defineSkolems(defineSkolems),
         d_timer(reg.registerTimer("alethe::nodeConverter"))

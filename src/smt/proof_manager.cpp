@@ -13,6 +13,7 @@
 #include "smt/proof_manager.h"
 
 #include "expr/subtype_elim_node_converter.h"
+#include "options/arrays_options.h"
 #include "options/base_options.h"
 #include "options/main_options.h"
 #include "options/smt_options.h"
@@ -345,21 +346,29 @@ void PfManager::printProof(std::ostream& out,
   }
   else if (mode == options::ProofFormatMode::ALETHE)
   {
-    options::ProofCheckMode oldMode = options().proof.proofCheck;
-    d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
-    proof::AletheNodeConverter anc(nodeManager(), statisticsRegistry(),
-                                   options().proof.proofAletheDefineSkolems);
-    proof::AletheProofPostprocess vpfpp(d_env, anc);
-    if (vpfpp.process(fp))
+    if (options().arrays.arraysExp)
     {
-      proof::AletheProofPrinter vpp(d_env, anc);
-      vpp.print(out, fp, assertionNames);
+      out << "(error \"Proof unsupported by Alethe: constant arrays not supported\")";
     }
     else
     {
-      out << "(error " << vpfpp.getError() << ")";
+      options::ProofCheckMode oldMode = options().proof.proofCheck;
+      d_pnm->getChecker()->setProofCheckMode(options::ProofCheckMode::NONE);
+      proof::AletheNodeConverter anc(nodeManager(),
+                                     statisticsRegistry(),
+                                     options().proof.proofAletheDefineSkolems);
+      proof::AletheProofPostprocess vpfpp(d_env, anc);
+      if (vpfpp.process(fp))
+      {
+        proof::AletheProofPrinter vpp(d_env, anc);
+        vpp.print(out, fp, assertionNames);
+      }
+      else
+      {
+        out << "(error " << vpfpp.getError() << ")";
+      }
+      d_pnm->getChecker()->setProofCheckMode(oldMode);
     }
-    d_pnm->getChecker()->setProofCheckMode(oldMode);
   }
   else if (mode == options::ProofFormatMode::LFSC)
   {
