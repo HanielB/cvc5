@@ -176,6 +176,14 @@ name   = "Proof"
   help       = "Add pivots to Alethe resolution steps"
 
 [[option]]
+  name       = "proofAletheCongNoRefl"
+  category   = "expert"
+  long       = "proof-alethe-cong-no-refl"
+  type       = "bool"
+  default    = "false"
+  help       = "Congruence steps ignore refl pemises"
+
+[[option]]
   name       = "printDotAsDAG"
   category   = "expert"
   long       = "proof-dot-dag"

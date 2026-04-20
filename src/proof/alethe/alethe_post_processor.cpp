@@ -1766,6 +1766,21 @@ bool AletheProofPostprocessCallback::update(Node res,
                              new_args,
                              *cdp);
       }
+      // alternative version of cong that ignores all REFL children
+      if (options().proof.proofAletheCongNoRefl)
+      {
+        std::vector<Node> noReflChildren;
+        std::copy_if(children.begin(),
+                     children.end(),
+                     std::back_inserter(noReflChildren),
+                     [](Node c) { return c[0] != c[1]; });
+        return addAletheStep(AletheRule::CONG,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl, res),
+                             noReflChildren,
+                             {},
+                             *cdp);
+      }
       // ignore prefix that is refl
       auto firstNonRefl =
           std::find_if(children.begin(), children.end(), [](const Node& c) {
