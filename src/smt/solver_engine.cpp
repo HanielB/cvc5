@@ -1514,10 +1514,7 @@ void SolverEngine::printProof(std::ostream& out,
                               modes::ProofFormat proofFormat,
                               const std::map<Node, std::string>& assertionNames)
 {
-  if (options().proof.proofFormatMode != options::ProofFormatMode::ALETHE)
-  {
-    out << "(" << std::endl;
-  }
+  out << "(" << std::endl;
   // we print in the format based on the proof mode
   options::ProofFormatMode mode = options::ProofFormatMode::NONE;
   switch (proofFormat)
@@ -1539,10 +1536,7 @@ void SolverEngine::printProof(std::ostream& out,
                           mode,
                           ProofScopeMode::DEFINITIONS_AND_ASSERTIONS,
                           assertionNames);
-  if (options().proof.proofFormatMode != options::ProofFormatMode::ALETHE)
-  {
-    out << ")" << std::endl;
-  }
+  out << ")" << std::endl;
 }
 
 std::vector<Node> SolverEngine::getSubstitutedAssertions()
