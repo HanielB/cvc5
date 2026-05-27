@@ -2254,6 +2254,71 @@ void GetUnsatCoreLemmasCommand::toStream(std::ostream& out) const
 }
 
 /* -------------------------------------------------------------------------- */
+/* class GetHintsCommand                                            */
+/* -------------------------------------------------------------------------- */
+
+GetHintsCommand::GetHintsCommand() : d_solver(nullptr) {}
+void GetHintsCommand::invoke(cvc5::Solver* solver, SymManager* sm)
+{
+  try
+  {
+    d_solver = solver;
+    d_result = solver->getHints();
+
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (cvc5::CVC5ApiRecoverableException& e)
+  {
+    d_commandStatus = new CommandRecoverableFailure(e.what());
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
+{
+  // the hints are given with the shape, with an s-expression and arguments
+  // being the lemmas:
+  //   - preprocessing lemmas
+  //   - lemmas
+  //   - instantiation
+  //   - (evaluaion instances)+
+  //   - (polynomial normalization instances)+
+  //   - (rewrite rule + instances)+
+  bool first = true;
+  for (size_t i = 0, size = d_result.size(); i < size; ++i)
+  {
+    first = i <= 5;
+    out << (i == 0   ? "Preprocess:"
+            : i == 1 ? "\nTheory lemmas:"
+            : i == 2
+                ? "\nInstantiations:"
+            : i == 3 ? "\nEvaluation/computation:"
+            : i == 4 ? "\nPolynomial normalization:"
+                : (first ? "\nRewrites (rule defs (if any) and their usages "
+                           "in quantifier-free terms):"
+                         : "Rewrites:"))
+        << "\n";
+    for (const auto& l : d_result[i])
+    {
+      out << "\t" << l << "\n";
+    }
+  }
+}
+
+std::string GetHintsCommand::getCommandName() const
+{
+  return "get-hints";
+}
+
+void GetHintsCommand::toStream(std::ostream& out) const
+{
+  internal::Printer::getPrinter(out)->toStreamCmdGetHints(out);
+}
+
+/* -------------------------------------------------------------------------- */
 /* class GetDifficultyCommand */
 /* -------------------------------------------------------------------------- */
 

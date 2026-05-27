@@ -39,6 +39,7 @@
 #include "options/theory_options.h"
 #include "preprocessing/passes/synth_rew_rules.h"
 #include "printer/printer.h"
+#include "proof/proof_node_algorithm.h"
 #include "proof/unsat_core.h"
 #include "prop/prop_engine.h"
 #include "smt/abduction_solver.h"
@@ -77,6 +78,11 @@
 #include "theory/quantifiers/sygus_sampler.h"
 #include "theory/quantifiers_engine.h"
 #include "theory/rewriter.h"
+
+#include "rewriter/rewrite_proof_rule.h"
+#include "rewriter/rewrites.h"
+#include "rewriter/rewrite_db.h"
+
 #include "theory/smt_engine_subsolver.h"
 #include "theory/theory_engine.h"
 #include "util/random.h"
@@ -1835,6 +1841,258 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
         "UNSAT response.");
   }
   return d_ucManager->getUnsatCoreLemmas(false);
+}
+
+void getRewrites(
+    const std::shared_ptr<ProofNode>& pf,
+    std::vector<Node>& evalInsts,
+    std::vector<Node>& polyNormInsts,
+    std::map<ProofRewriteRule, std::vector<Node>>& rewriteInsts,
+    std::unordered_set<ProofRewriteRule>& rewriteRules,
+    NodeManager* nm,
+    rewriter::RewriteDb* rdb)
+{
+  // get applications of DSL_REWRITE, EVALUATE, ARITH_POLY_NORM.
+  std::vector<std::shared_ptr<ProofNode>> subproofs;
+  expr::getRuleApplications(
+      pf,
+      {ProofRule::DSL_REWRITE, ProofRule::EVALUATE, ProofRule::ARITH_POLY_NORM},
+      subproofs);
+  // Got the rule instantiations only if we are not in the quantifier case,
+  // since these instances will have free variables. For them we will get only
+  // the rules
+  Trace("hints-proofs") << "\tRewrites:\n";
+  for (const std::shared_ptr<ProofNode>& rp : subproofs)
+  {
+    Trace("hints-proofs") << "\t\t" << *rp.get() << "\n";
+    ProofRule rule = rp->getRule();
+    ProofRewriteRule rareRule;
+    const std::vector<Node>& args = rp->getArguments();
+    // just get the instance
+    if (rule == ProofRule::EVALUATE)
+    {
+      Node res = rp->getResult();
+      if (std::find(evalInsts.begin(), evalInsts.end(), res) == evalInsts.end())
+      {
+        evalInsts.push_back(res);
+        Trace("hints-rewrites") << "\t\tEVALUATE instance: " << res << "\n";
+      }
+      continue;
+    }
+    if (rule == ProofRule::ARITH_POLY_NORM)
+    {
+      Node res = args[0];
+      if (std::find(polyNormInsts.begin(), polyNormInsts.end(), res)
+          == polyNormInsts.end())
+      {
+        polyNormInsts.push_back(res);
+        Trace("hints-rewrites") << "\t\tPolyNorm instance:: " << res << "\n";
+      }
+      continue;
+    }
+    if (!rewriter::getRewriteRule(args[0], rareRule))
+    {
+      Unreachable() << "Rare rule " << args[0] << " undefined\n";
+    }
+    // get the rule definition to build a node representation of it
+    auto it = rewriteRules.find(rareRule);
+    if (it == rewriteRules.end())
+    {
+      const rewriter::RewriteProofRule& rpr = rdb->getRule(rareRule);
+      const std::vector<Node>& conds = rpr.getConditions();
+      Node conc = rpr.getConclusion();
+      Node ruleDef = nm->mkNode(
+          Kind::FORALL,
+          nm->mkNode(Kind::BOUND_VAR_LIST, rpr.getVarList()),
+          conds.empty() ? conc
+                        : nm->mkNode(Kind::IMPLIES, nm->mkAnd(conds), conc));
+      rewriteInsts[rareRule].push_back(ruleDef);
+      Trace("hints-rewrites")
+          << "\t\tRare rule def: " << rareRule << ": " << ruleDef << "\n";
+      rewriteRules.insert(rareRule);
+    }
+    // if the original result of the preprocessing not a forall, get instance
+    if (pf->getResult().getKind() != Kind::FORALL)
+    {
+      Node res = SkolemManager::getOriginalForm(rp->getResult());
+      if (std::find(
+              rewriteInsts[rareRule].begin(), rewriteInsts[rareRule].end(), res)
+          == rewriteInsts[rareRule].end())
+      {
+        rewriteInsts[rareRule].push_back(res);
+        Trace("hints-rewrites")
+            << "\t\tRare instance " << rareRule << ": " << res << "\n";
+      }
+    }
+  }
+}
+
+std::vector<Node> SolverEngine::getHints()
+{
+  // The preprocessing and theory lemmas, as well as the instantiation lemmas, and, rewrites
+  std::vector<Node> result;
+
+  std::vector<Node> currResults;
+  // All instances of given rewrite rule
+  std::vector<Node> evalInsts;
+  std::vector<Node> polyNormInsts;
+  std::map<ProofRewriteRule, std::vector<Node>> rewriteInsts;
+  // Collected rules
+  std::unordered_set<ProofRewriteRule> rewriteRules;
+
+  // collect the proofs for lemmas and of preprocessing
+  std::vector<std::shared_ptr<ProofNode>> lemmaProofs =
+      getProof(modes::ProofComponent::THEORY_LEMMAS);
+  std::vector<std::shared_ptr<ProofNode>> preprocessProofs =
+      getProof(modes::ProofComponent::PREPROCESS);
+  Trace("hints") << "Preprocess:\n";
+  NodeManager* nm = d_env->getNodeManager();
+  rewriter::RewriteDb* rdb = d_pfManager->getRewriteDatabase();
+  for (auto p : preprocessProofs)
+  {
+    // ignore assertions that did not change. There are also cases in which the
+    // assertion does not effectively change, expect by just rewriting kinds
+    // (like from MULT to NON_LINEAR_MULT), but there is no simple way to
+    // control for this, so we do not try to
+    if (p->getRule() == ProofRule::ASSUME)
+    {
+      continue;
+    }
+    // get assumptions
+    Node res = p->getResult();
+    std::vector<Node> assumptions;
+    expr::getFreeAssumptions(p.get(), assumptions);
+    // get original form of skolems in assumptions and conclusion, and build an
+    // implication
+    std::transform(assumptions.begin(),
+                   assumptions.end(),
+                   assumptions.begin(),
+                   [](Node n) { return SkolemManager::getOriginalForm(n); });
+    res = nm->mkNode(Kind::IMPLIES,
+                     nm->mkAnd(assumptions),
+                     SkolemManager::getOriginalForm(res));
+    currResults.push_back(res);
+    Trace("hints") << "\t" << res << "\n";
+    Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
+
+    if (!options().proof.hintsOnlyRwInsts)
+    {
+      getRewrites(
+          p, evalInsts, polyNormInsts, rewriteInsts, rewriteRules, nm, rdb);
+    }
+  }
+  result.push_back(nm->mkNode(Kind::SEXPR, currResults));
+  currResults.clear();
+  Trace("hints") << "Lemmas:\n";
+  for (auto p : lemmaProofs)
+  {
+    ProofRule rule = p->getRule();
+    Assert(rule != ProofRule::ASSUME);
+    Node res = p->getResult();
+    Kind k = res.getKind();
+    // ignore "lemmas" that are not trust steps and have no assumptions, which
+    // indicates these are just things generated during CNF conversion. Also
+    // ignore instantiations, i.e., (or (not (forall ...)))
+    if ((rule != ProofRule::TRUST && !expr::containsAssumption(p.get()))
+        || (k == Kind::OR && res[0].getKind() == Kind::NOT
+            && res[0][0].getKind() == Kind::FORALL))
+    {
+      continue;
+    }
+    res = SkolemManager::getOriginalForm(res);
+    Trace("hints") << "\t" << res << "\n";
+    Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
+    // r will be a disjunction. If there is a positive atom and all others
+    // negatives, turn it into an implication
+    if (k == Kind::OR)
+    {
+      std::vector<Node> negLits;
+      std::copy_if(res.begin(), res.end(), std::back_inserter(negLits), [](Node n) {
+        return n.getKind() == Kind::NOT;
+      });
+      if (negLits.size() == res.getNumChildren() - 1)
+      {
+        Node conc;
+        for (const Node& rc : res)
+        {
+          if (std::find(negLits.begin(), negLits.end(), rc) == negLits.end())
+          {
+            conc = rc;
+            break;
+          }
+        }
+        Assert(!conc.isNull());
+        std::vector<Node> lits;
+        for (const Node& n : negLits)
+        {
+          lits.push_back(n[0]);
+        }
+        currResults.push_back(nm->mkNode(Kind::IMPLIES, nm->mkAnd(lits), conc));
+        continue;
+      }
+    }
+    currResults.push_back(res);
+
+    // there may be rewrites in the proofs
+    if (!options().proof.hintsOnlyRwInsts)
+    {
+      getRewrites(
+          p, evalInsts, polyNormInsts, rewriteInsts, rewriteRules, nm, rdb);
+    }
+
+    // if integer reasoning, collect, if any, rules for that
+    std::vector<std::shared_ptr<ProofNode>> subproofs;
+    expr::getRuleApplications(
+        p, {ProofRule::INT_TIGHT_UB, ProofRule::INT_TIGHT_LB}, subproofs);
+    // the rules
+    Trace("hints-int") << "\tInteger rules:\n";
+    for (const std::shared_ptr<ProofNode>& intPf : subproofs)
+    {
+      Assert(intPf->getChildren().size() == 1);
+      currResults.push_back(nm->mkNode(
+          Kind::IMPLIES,
+          SkolemManager::getOriginalForm(intPf->getChildren()[0]->getResult()),
+          SkolemManager::getOriginalForm(intPf->getResult())));
+      Trace("hints-int") << "\t\t" << currResults.back() << "\n";
+    }
+  }
+  result.push_back(nm->mkNode(Kind::SEXPR, currResults));
+  currResults.clear();
+  Trace("hints") << "Instantiations:\n";
+  for (auto p : lemmaProofs)
+  {
+    Assert(p->getRule() != ProofRule::ASSUME);
+    // Only consider instantiations
+    Node r = p->getResult();
+    if (r.getKind() == Kind::OR && r[0].getKind() == Kind::NOT
+        && r[0][0].getKind() == Kind::FORALL)
+    {
+      r = SkolemManager::getOriginalForm(r);
+      Trace("hints") << "\t" << r << "\n";
+      Trace("hints-proofs") << "\t\t" << *p.get() << "\n";
+      currResults.push_back(nm->mkNode(Kind::IMPLIES, r[0][0], r[1]));
+
+      getRewrites(
+          p, evalInsts, polyNormInsts, rewriteInsts, rewriteRules, nm, rdb);
+    }
+  }
+  result.push_back(nm->mkNode(Kind::SEXPR, currResults));
+  // add rewrites now
+  result.push_back(nm->mkNode(Kind::SEXPR, evalInsts));
+  result.push_back(nm->mkNode(Kind::SEXPR, polyNormInsts));
+  if (rewriteInsts.empty())
+  {
+    result.push_back(nm->mkNode(Kind::SEXPR));
+    return result;
+  }
+  for (const auto& p: rewriteInsts)
+  {
+    Trace("hints-rewrites") << "...adding to results: " << p.first << ": " << p.second << "\n";
+    currResults.clear();
+    currResults.insert(currResults.end(), p.second.begin(), p.second.end());
+    result.push_back(nm->mkNode(Kind::SEXPR, currResults));
+  }
+  return result;
 }
 
 void SolverEngine::getRelevantQuantTermVectors(
