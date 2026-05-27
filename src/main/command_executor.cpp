@@ -188,8 +188,7 @@ bool CommandExecutor::doCommandSingleton(Cmd* cmd)
       getterCommands.emplace_back(new GetUnsatCoreLemmasCommand());
     }
 
-    if (d_solver->getOptionInfo("dump-hints").boolValue()
-        && isResultUnsat)
+    if (d_solver->getOptionInfo("dump-hints").boolValue() && isResultUnsat)
     {
       getterCommands.emplace_back(new GetHintsCommand());
     }

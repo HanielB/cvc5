@@ -2293,10 +2293,10 @@ void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
     first = i <= 5;
     out << (i == 0   ? "Preprocess:"
             : i == 1 ? "\nTheory lemmas:"
-            : i == 2
-                ? "\nInstantiations:"
+            : i == 2 ? "\nInstantiations:"
             : i == 3 ? "\nEvaluation/computation:"
-            : i == 4 ? "\nPolynomial normalization:"
+            : i == 4
+                ? "\nPolynomial normalization:"
                 : (first ? "\nRewrites (rule defs (if any) and their usages "
                            "in quantifier-free terms):"
                          : "Rewrites:"))
@@ -2308,10 +2308,7 @@ void GetHintsCommand::printResult(cvc5::Solver* solver, std::ostream& out) const
   }
 }
 
-std::string GetHintsCommand::getCommandName() const
-{
-  return "get-hints";
-}
+std::string GetHintsCommand::getCommandName() const { return "get-hints"; }
 
 void GetHintsCommand::toStream(std::ostream& out) const
 {

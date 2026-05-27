@@ -42,6 +42,9 @@
 #include "proof/proof_node_algorithm.h"
 #include "proof/unsat_core.h"
 #include "prop/prop_engine.h"
+#include "rewriter/rewrite_db.h"
+#include "rewriter/rewrite_proof_rule.h"
+#include "rewriter/rewrites.h"
 #include "smt/abduction_solver.h"
 #include "smt/assertions.h"
 #include "smt/check_models.h"
@@ -78,11 +81,6 @@
 #include "theory/quantifiers/sygus_sampler.h"
 #include "theory/quantifiers_engine.h"
 #include "theory/rewriter.h"
-
-#include "rewriter/rewrite_proof_rule.h"
-#include "rewriter/rewrites.h"
-#include "rewriter/rewrite_db.h"
-
 #include "theory/smt_engine_subsolver.h"
 #include "theory/theory_engine.h"
 #include "util/random.h"
@@ -1843,14 +1841,13 @@ std::vector<Node> SolverEngine::getUnsatCoreLemmas()
   return d_ucManager->getUnsatCoreLemmas(false);
 }
 
-void getRewrites(
-    const std::shared_ptr<ProofNode>& pf,
-    std::vector<Node>& evalInsts,
-    std::vector<Node>& polyNormInsts,
-    std::map<ProofRewriteRule, std::vector<Node>>& rewriteInsts,
-    std::unordered_set<ProofRewriteRule>& rewriteRules,
-    NodeManager* nm,
-    rewriter::RewriteDb* rdb)
+void getRewrites(const std::shared_ptr<ProofNode>& pf,
+                 std::vector<Node>& evalInsts,
+                 std::vector<Node>& polyNormInsts,
+                 std::map<ProofRewriteRule, std::vector<Node>>& rewriteInsts,
+                 std::unordered_set<ProofRewriteRule>& rewriteRules,
+                 NodeManager* nm,
+                 rewriter::RewriteDb* rdb)
 {
   // get applications of DSL_REWRITE, EVALUATE, ARITH_POLY_NORM.
   std::vector<std::shared_ptr<ProofNode>> subproofs;
@@ -1929,7 +1926,8 @@ void getRewrites(
 
 std::vector<Node> SolverEngine::getHints()
 {
-  // The preprocessing and theory lemmas, as well as the instantiation lemmas, and, rewrites
+  // The preprocessing and theory lemmas, as well as the instantiation lemmas,
+  // and, rewrites
   std::vector<Node> result;
 
   std::vector<Node> currResults;
@@ -2007,9 +2005,10 @@ std::vector<Node> SolverEngine::getHints()
     if (k == Kind::OR)
     {
       std::vector<Node> negLits;
-      std::copy_if(res.begin(), res.end(), std::back_inserter(negLits), [](Node n) {
-        return n.getKind() == Kind::NOT;
-      });
+      std::copy_if(
+          res.begin(), res.end(), std::back_inserter(negLits), [](Node n) {
+            return n.getKind() == Kind::NOT;
+          });
       if (negLits.size() == res.getNumChildren() - 1)
       {
         Node conc;
@@ -2085,9 +2084,10 @@ std::vector<Node> SolverEngine::getHints()
     result.push_back(nm->mkNode(Kind::SEXPR));
     return result;
   }
-  for (const auto& p: rewriteInsts)
+  for (const auto& p : rewriteInsts)
   {
-    Trace("hints-rewrites") << "...adding to results: " << p.first << ": " << p.second << "\n";
+    Trace("hints-rewrites")
+        << "...adding to results: " << p.first << ": " << p.second << "\n";
     currResults.clear();
     currResults.insert(currResults.end(), p.second.begin(), p.second.end());
     result.push_back(nm->mkNode(Kind::SEXPR, currResults));

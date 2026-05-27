@@ -152,7 +152,6 @@ void getRuleApplications(std::shared_ptr<ProofNode> pn,
                          const std::unordered_set<ProofRule>& rules,
                          std::vector<std::shared_ptr<ProofNode>>& subproofs);
 
-
 }  // namespace expr
 }  // namespace cvc5::internal
 
