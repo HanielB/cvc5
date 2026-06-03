@@ -17,6 +17,7 @@
 
 #include "base/output.h"
 #include "options/arith_options.h"
+#include "options/smt_options.h"
 #include "theory/arith/linear/constraint.h"
 #include "theory/arith/linear/error_set.h"
 #include "theory/arith/linear/linear_equality.h"
@@ -828,8 +829,10 @@ Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
   return Result::UNKNOWN;
 }
 
-bool ScipSimplexDecisionProcedure::extractCandidates(
-    ScipSimplexProblem& p, ConstraintCPVec& candidates)
+bool ScipSimplexDecisionProcedure::extractCertificate(
+    ScipSimplexProblem& p,
+    ConstraintCPVec& constraints,
+    std::vector<Rational>& coeffs)
 {
   // The certificate of infeasibility is the exact dual Farkas ray if the LP
   // itself was infeasible. If instead the LP was optimal with a zero delta
@@ -837,8 +840,10 @@ bool ScipSimplexDecisionProcedure::extractCandidates(
   // the objective bound (max delta <= 0), and remains a valid such proof
   // when all rows with zero multiplier are dropped. Either way, the bound
   // rows in the support of the certificate form an infeasible subset of the
-  // delta-rational system (together with the definitional tableau rows,
-  // which are not part of explanations).
+  // delta-rational system, with the multipliers as Farkas coefficients (the
+  // definitional tableau rows may participate as well, but their multipliers
+  // only perform the substitution of the row polynomials and are not part of
+  // explanations).
   int nrows = p.numRows();
   int ntab = p.numTabRows();
   ScipRationalArray duals(nrows);
@@ -859,20 +864,22 @@ bool ScipSimplexDecisionProcedure::extractCandidates(
   {
     if (!SCIPrationalIsZero(duals[i]))
     {
-      candidates.push_back(p.d_boundOrigin[i - ntab]);
+      constraints.push_back(p.d_boundOrigin[i - ntab]);
+      coeffs.push_back(scipRationalToRational(duals[i]));
     }
   }
-  Trace("arith::scip") << "scip dual certificate candidates: "
-                       << candidates.size() << " of " << p.d_boundOrigin.size()
-                       << " bounds" << endl;
-  return !candidates.empty() && candidates.size() < p.d_boundOrigin.size();
+  Trace("arith::scip") << "scip dual certificate: " << constraints.size()
+                       << " of " << p.d_boundOrigin.size() << " bounds"
+                       << endl;
+  return !constraints.empty();
 }
 
 Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
     ScipSimplexProblem& p)
 {
-  ConstraintCPVec candidates;
-  if (extractCandidates(p, candidates))
+  ConstraintCPVec constraints;
+  std::vector<Rational> coeffs;
+  if (extractCertificate(p, constraints, coeffs) && constraints.size() >= 2)
   {
     // The certificate is exact, so its support is a genuine infeasible
     // subset. In assertion builds this is double-checked by an exact
@@ -881,16 +888,62 @@ Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
     {
       ScipSimplexProblem pv;
       ++d_statistics.d_auxSolves;
-      Assert(buildLp(pv, &candidates)
+      Assert(buildLp(pv, &constraints)
              && solveLp(pv) == ScipSolveResult::INFEASIBLE)
           << "SCIP conflict subset failed exact verification";
     }
 #endif /* CVC5_ASSERTIONS */
-    ++d_statistics.d_subsetConflicts;
-    return raiseConflictOver(candidates);
+
+    // Build a native Farkas conflict (carrying a Farkas proof when proofs
+    // are enabled) through the conflict builder, mirroring the construction
+    // in LinearEqualityModule::minimallyWeakConflict. The consequent must be
+    // a constraint whose negation is not yet proven; it is added last.
+    Assert(!d_conflictBuilder->underConstruction());
+    size_t consequent = constraints.size();
+    for (size_t i = constraints.size(); i-- > 0;)
+    {
+      if (!constraints[i]->negationHasProof())
+      {
+        consequent = i;
+        break;
+      }
+    }
+    if (consequent < constraints.size())
+    {
+      for (size_t i = 0; i < constraints.size(); ++i)
+      {
+        if (i != consequent)
+        {
+          d_conflictBuilder->addConstraint(constraints[i], coeffs[i]);
+        }
+      }
+      d_conflictBuilder->addConstraint(constraints[consequent],
+                                       coeffs[consequent]);
+      d_conflictBuilder->makeLastConsequent();
+      ConstraintCP conflicted = d_conflictBuilder->commitConflict(nodeManager());
+      ++d_statistics.d_subsetConflicts;
+      Trace("arith::scip") << "scip farkas conflict over "
+                           << constraints.size() << " bounds" << endl;
+      d_conflictChannel.raiseConflict(conflicted,
+                                      InferenceId::ARITH_CONF_SIMPLEX);
+      return Result::UNSAT;
+    }
+    d_conflictBuilder->reset();
   }
 
-  // Fall back to the full bound set, which is infeasible by the main solve.
+  if (options().smt.produceProofs)
+  {
+    // Without a certificate no proof-carrying conflict can be built. Give
+    // up on this check; reporting unknown is sound.
+    warning() << "The SCIP-based simplex found an infeasible system but no "
+                 "certificate for it; giving up on this check"
+              << std::endl;
+    ++d_statistics.d_scipUnknown;
+    return Result::UNKNOWN;
+  }
+
+  // Fall back to a black box conflict over the full bound set, which is
+  // infeasible by the main solve.
   ConstraintCPVec all;
   collectAllBounds(all);
   ++d_statistics.d_fallbackConflicts;

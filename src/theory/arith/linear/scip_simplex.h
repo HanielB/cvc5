@@ -121,20 +121,26 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
 
   /**
    * Computes, raises and returns the conflict for an infeasible solve. The
-   * exact dual certificate of the LP identifies the subset of the bound
-   * constraints participating in the infeasibility. Falls back to the full
-   * bound set if no usable certificate is obtained.
+   * exact dual certificate of the LP identifies the participating bound
+   * constraints together with their Farkas coefficients, from which a
+   * native Farkas conflict (with a proof, if proofs are enabled) is built
+   * via the conflict builder. Falls back to a black box conflict over the
+   * full bound set if no certificate is obtained (or, with proofs, gives
+   * up and returns UNKNOWN, which is sound).
    */
   Result::Status raiseScipConflict(ScipSimplexProblem& p);
 
   /**
-   * Extracts the conflict subset from the exact dual certificate of the
+   * Extracts the conflict certificate from the exact dual values of the
    * last solve of p: the bound rows with nonzero multiplier in the dual
    * Farkas ray (infeasible LP), or in the optimal dual solution (optimal LP
    * whose delta maximum is zero, for which the dual solution proves the
-   * objective bound). Returns false if no proper subset was obtained.
+   * objective bound), together with those exact multipliers. Returns false
+   * if no certificate was obtained.
    */
-  bool extractCandidates(ScipSimplexProblem& p, ConstraintCPVec& candidates);
+  bool extractCertificate(ScipSimplexProblem& p,
+                          ConstraintCPVec& constraints,
+                          std::vector<Rational>& coeffs);
 
   /**
    * Raises a black box conflict consisting of the conjunction of the given

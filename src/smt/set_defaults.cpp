@@ -1091,14 +1091,6 @@ bool SetDefaults::incompatibleWithProofs(Options& opts,
     reason << "fresh-binders";
     return true;
   }
-  if (opts.arith.arithUseScipSimplex)
-  {
-    // The SCIP-based simplex currently raises unjustified (black box)
-    // conflicts; deriving Farkas proofs from SCIP's exact dual certificates
-    // is planned.
-    reason << "use-scip-simplex";
-    return true;
-  }
   if (opts.quantifiers.globalNegate)
   {
     // When global negate answers "unsat", it is not due to showing a set of
