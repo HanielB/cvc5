@@ -14,6 +14,9 @@
 
 #pragma once
 
+#include <set>
+#include <vector>
+
 #include "expr/node.h"
 #include "theory/arith/arith_preprocess.h"
 #include "theory/arith/arith_rewriter.h"
@@ -146,6 +149,14 @@ class TheoryArith : public Theory
 
   /** Get the proof equality engine */
   eq::ProofEqEngine* getProofEqEngine();
+  /**
+   * Dump the current satisfiability check of the linear arithmetic solver as a
+   * standalone SMT-LIB benchmark. The benchmark asserts the conjunction of all
+   * literals currently asserted to this theory and ends with a (check-sat).
+   * Each call writes to a fresh file arith_lin_problem_N.smt2. Used when
+   * option arithDumpLinProblems is enabled.
+   */
+  void dumpLinearProblem();
   /** Timer for ppRewrite */
   TimerStat d_ppRewriteTimer;
   /** The state object  */
@@ -190,6 +201,14 @@ class TheoryArith : public Theory
   bool d_arithModelCacheSet;
   /** Checks the proof rules of this theory. */
   ArithProofRuleChecker d_checker;
+  /** Counter for naming dumped linear arithmetic problems. */
+  size_t d_dumpLinProblemCounter;
+  /**
+   * Canonical (sorted, duplicate-free) keys of the fact sets already dumped,
+   * used to guarantee the same set of literals is not written to more than one
+   * file.
+   */
+  std::set<std::vector<Node>> d_dumpedLinProblems;
 
 }; /* class TheoryArith */
 

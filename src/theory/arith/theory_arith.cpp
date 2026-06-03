@@ -12,10 +12,16 @@
 
 #include "theory/arith/theory_arith.h"
 
+#include <algorithm>
+#include <fstream>
+
 #include "cvc5/cvc5_proof_rule.h"
+#include "options/arith_options.h"
 #include "options/smt_options.h"
+#include "printer/printer.h"
 #include "printer/smt2/smt2_printer.h"
 #include "proof/proof_checker.h"
+#include "smt/print_benchmark.h"
 #include "smt/logic_exception.h"
 #include "theory/arith/arith_evaluator.h"
 #include "theory/arith/arith_rewriter.h"
@@ -49,7 +55,8 @@ TheoryArith::TheoryArith(Env& env, OutputChannel& out, Valuation valuation)
       d_arithPreproc(env, d_im, d_opElim),
       d_rewriter(nodeManager(), d_opElim, options().arith.arithExp),
       d_arithModelCacheSet(false),
-      d_checker(nodeManager())
+      d_checker(nodeManager()),
+      d_dumpLinProblemCounter(0)
 {
 #ifdef CVC5_USE_COCOA
   // must be initialized before using CoCoA.
@@ -251,6 +258,11 @@ void TheoryArith::postCheck(Effort level)
   }
   // we don't check at last call
   Assert(level != Theory::EFFORT_LAST_CALL);
+  // dump the satisfiability check the linear solver is about to perform
+  if (options().arith.arithDumpLinProblems)
+  {
+    dumpLinearProblem();
+  }
   // otherwise, check with the linear solver
   if (d_internal.postCheck(level))
   {
@@ -491,6 +503,39 @@ std::pair<bool, Node> TheoryArith::entailmentCheck(TNode lit)
 eq::ProofEqEngine* TheoryArith::getProofEqEngine()
 {
   return d_im.getProofEqEngine();
+}
+
+void TheoryArith::dumpLinearProblem()
+{
+  // The satisfiability check performed by the linear solver is over the
+  // conjunction of all literals currently asserted to this theory.
+  std::vector<Node> assertions;
+  for (assertions_iterator it = facts_begin(), itEnd = facts_end();
+       it != itEnd;
+       ++it)
+  {
+    assertions.push_back((*it).d_assertion);
+  }
+  // Compute a canonical (sorted, duplicate-free) key for this fact set, so that
+  // the same set of literals is never written to more than one file, even if it
+  // is checked in a different order or across multiple postCheck calls.
+  std::vector<Node> key = assertions;
+  std::sort(key.begin(), key.end());
+  key.erase(std::unique(key.begin(), key.end()), key.end());
+  if (!d_dumpedLinProblems.insert(key).second)
+  {
+    // we have already dumped this exact fact set
+    return;
+  }
+  std::stringstream fname;
+  fname << "arith_lin_problem_" << d_dumpLinProblemCounter << ".smt2";
+  d_dumpLinProblemCounter++;
+  std::ofstream fs(fname.str(), std::ofstream::out);
+  smt::PrintBenchmark pb(nodeManager(), Printer::getPrinter(fs));
+  pb.printBenchmark(fs, logicInfo().getLogicString(), {}, assertions);
+  fs.close();
+  Trace("arith-check") << "TheoryArith: dumped linear problem to " << fname.str()
+                       << std::endl;
 }
 
 void TheoryArith::updateModelCache(std::set<Node>& termSet)
