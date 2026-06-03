@@ -144,6 +144,12 @@ TheoryArithPrivate::TheoryArithPrivate(Env& env,
           env, d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
       d_attemptSolSimplex(
           env, d_linEq, d_errorSet, RaiseConflict(*this), TempVarMalloc(*this)),
+      d_scipSimplex(env,
+                    d_linEq,
+                    d_errorSet,
+                    RaiseConflict(*this),
+                    RaiseBlackBoxConflict(*this),
+                    TempVarMalloc(*this)),
       d_pass1SDP(nullptr),
       d_otherSDP(nullptr),
       d_lastContextIntegerAttempted(context(), -1),
@@ -3328,7 +3334,11 @@ SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(bool pass1)
   {
     if (d_pass1SDP == nullptr)
     {
-      if (options().arith.useFC)
+      if (options().arith.arithUseScipSimplex)
+      {
+        d_pass1SDP = (SimplexDecisionProcedure*)(&d_scipSimplex);
+      }
+      else if (options().arith.useFC)
       {
         d_pass1SDP = (SimplexDecisionProcedure*)(&d_fcSimplex);
       }
@@ -3348,7 +3358,11 @@ SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(bool pass1)
   {
     if (d_otherSDP == nullptr)
     {
-      if (options().arith.useFC)
+      if (options().arith.arithUseScipSimplex)
+      {
+        d_otherSDP = (SimplexDecisionProcedure*)(&d_scipSimplex);
+      }
+      else if (options().arith.useFC)
       {
         d_otherSDP = (SimplexDecisionProcedure*)(&d_fcSimplex);
       }

@@ -202,6 +202,24 @@ class RaiseEqualityEngineConflict
   void raiseEEConflict(Node n, std::shared_ptr<ProofNode> pf) const;
 };
 
+class RaiseBlackBoxConflict
+{
+ private:
+  TheoryArithPrivate& d_ta;
+
+ public:
+  RaiseBlackBoxConflict(TheoryArithPrivate& ta);
+
+  /**
+   * Calls d_ta.raiseBlackBoxConflict(n, pf), where n is a conjunction of
+   * asserted literals that is infeasible and pf (optionally) proves that n
+   * is a conflict. Used by external solvers (e.g. the SCIP-based simplex)
+   * that detect infeasibility without producing a Farkas conflict through
+   * the constraint database.
+   */
+  void raiseConflict(Node n, std::shared_ptr<ProofNode> pf = nullptr) const;
+};
+
 class BoundCountingLookup
 {
  private:

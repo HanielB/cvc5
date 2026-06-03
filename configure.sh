@@ -67,6 +67,7 @@ Optional Packages:
 The following flags enable optional packages (disable with --no-<option name>).
   --cln                    use CLN instead of GMP
   --glpk                   use GLPK simplex solver
+  --scip                   use SCIP exact rational LP solver
   --cryptominisat          use the CryptoMiniSat SAT solver
   --kissat                 use the Kissat SAT solver
   --poly                   use the LibPoly library [default=yes]
@@ -76,6 +77,7 @@ The following flags enable optional packages (disable with --no-<option name>).
 
 Optional Path to Optional Packages:
   --glpk-dir=PATH          path to top level of GLPK installation
+  --scip-dir=PATH          path to top level of SCIP installation
   --dep-path=PATH          path to a dependency installation dir
   --pythonic-path=PATH     path to the Pythonic API's repository
 
@@ -140,6 +142,7 @@ debug_symbols=default
 docs=default
 docs_ga=default
 glpk=default
+scip=default
 gpl=default
 kissat=default
 poly=ON
@@ -170,6 +173,7 @@ werror=default
 ipo=default
 
 glpk_dir=default
+scip_dir=default
 
 wasm=default
 wasm_flags=""
@@ -281,6 +285,9 @@ do
     --glpk) glpk=ON;;
     --no-glpk) glpk=OFF;;
 
+    --scip) scip=ON;;
+    --no-scip) scip=OFF;;
+
     --poly) poly=ON;;
     --no-poly) poly=OFF;;
 
@@ -337,6 +344,9 @@ do
 
     --glpk-dir) die "missing argument to $1 (try -h)" ;;
     --glpk-dir=*) glpk_dir=${1##*=} ;;
+
+    --scip-dir) die "missing argument to $1 (try -h)" ;;
+    --scip-dir=*) scip_dir=${1##*=} ;;
 
     --dep-path) die "missing argument to $1 (try -h)" ;;
     --dep-path=*) dep_path="${dep_path};${1##*=}" ;;
@@ -496,6 +506,8 @@ fi
   && cmake_opts="$cmake_opts -DUSE_CRYPTOMINISAT=$cryptominisat"
 [ $glpk != default ] \
   && cmake_opts="$cmake_opts -DUSE_GLPK=$glpk"
+[ $scip != default ] \
+  && cmake_opts="$cmake_opts -DUSE_SCIP=$scip"
 [ $kissat != default ] \
   && cmake_opts="$cmake_opts -DUSE_KISSAT=$kissat"
 [ $poly != default ] \
@@ -506,6 +518,8 @@ fi
   && cmake_opts="$cmake_opts -DUSE_MPFR=$mpfr"
 [ "$glpk_dir" != default ] \
   && cmake_opts="$cmake_opts -DGLPK_DIR=$glpk_dir"
+[ "$scip_dir" != default ] \
+  && cmake_opts="$cmake_opts -DSCIP_DIR=$scip_dir"
 [ "$dep_path" != default ] \
   && cmake_opts="$cmake_opts -DCMAKE_PREFIX_PATH=$dep_path"
 [ "$pythonic_path" != default ] \

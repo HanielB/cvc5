@@ -200,6 +200,16 @@ void RaiseEqualityEngineConflict::raiseEEConflict(
   d_ta.raiseBlackBoxConflict(n, pf);
 }
 
+RaiseBlackBoxConflict::RaiseBlackBoxConflict(TheoryArithPrivate& ta) : d_ta(ta)
+{
+}
+
+void RaiseBlackBoxConflict::raiseConflict(Node n,
+                                          std::shared_ptr<ProofNode> pf) const
+{
+  d_ta.raiseBlackBoxConflict(n, pf);
+}
+
 BoundCountingLookup::BoundCountingLookup(TheoryArithPrivate& ta) : d_ta(ta) {}
 
 const BoundsInfo& BoundCountingLookup::boundsInfo(ArithVar basic) const

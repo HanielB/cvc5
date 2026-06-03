@@ -456,6 +456,8 @@ libcvc5_add_sources(
   theory/arith/linear/normal_form.h
   theory/arith/linear/partial_model.cpp
   theory/arith/linear/partial_model.h
+  theory/arith/linear/scip_simplex.cpp
+  theory/arith/linear/scip_simplex.h
   theory/arith/linear/simplex.cpp
   theory/arith/linear/simplex.h
   theory/arith/linear/simplex_update.cpp
@@ -1578,6 +1580,11 @@ if(USE_GLPK)
   add_dependencies(cvc5-obj GLPK)
   target_include_directories(cvc5-obj SYSTEM PRIVATE ${GLPK_INCLUDE_DIR})
   target_link_libraries(cvc5 PRIVATE $<BUILD_INTERFACE:GLPK> $<INSTALL_INTERFACE:glpk>)
+endif()
+if(USE_SCIP)
+  add_dependencies(cvc5-obj SCIP)
+  target_include_directories(cvc5-obj SYSTEM PRIVATE ${SCIP_INCLUDE_DIR})
+  target_link_libraries(cvc5 PRIVATE $<BUILD_INTERFACE:SCIP> $<INSTALL_INTERFACE:scip>)
 endif()
 if(USE_POLY)
   add_dependencies(cvc5-obj Polyxx)

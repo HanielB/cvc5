@@ -277,6 +277,19 @@ void OptionsHandler::setResourceWeight(CVC5_UNUSED const std::string& flag,
   d_options->write_base().resourceWeightHolder.emplace_back(optarg);
 }
 
+void OptionsHandler::checkScipSimplex(const std::string& flag,
+                                      const bool value) const
+{
+  if (value && !Configuration::isBuiltWithScip())
+  {
+    std::stringstream ss;
+    ss << "option `" << flag
+       << "' requires a SCIP build of cvc5; this binary was not built with "
+          "SCIP support";
+    throw OptionException(ss.str());
+  }
+}
+
 void OptionsHandler::checkBvSatSolver(const std::string& flag,
                                       const BvSatSolverMode m) const
 {
@@ -370,6 +383,7 @@ void OptionsHandler::showConfiguration(CVC5_UNUSED const std::string& flag,
 
   print_config_cond(o, "cln", Configuration::isBuiltWithCln());
   print_config_cond(o, "glpk", Configuration::isBuiltWithGlpk());
+  print_config_cond(o, "scip", Configuration::isBuiltWithScip());
   print_config_cond(
       o, "cryptominisat", Configuration::isBuiltWithCryptominisat());
   print_config_cond(o, "gmp", Configuration::isBuiltWithGmp());

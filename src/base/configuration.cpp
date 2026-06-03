@@ -200,6 +200,8 @@ bool Configuration::isBuiltWithCln() { return IS_CLN_BUILD; }
 
 bool Configuration::isBuiltWithGlpk() { return IS_GLPK_BUILD; }
 
+bool Configuration::isBuiltWithScip() { return IS_SCIP_BUILD; }
+
 bool Configuration::isBuiltWithCryptominisat()
 {
   return IS_CRYPTOMINISAT_BUILD;

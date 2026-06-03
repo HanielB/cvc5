@@ -102,6 +102,8 @@ class CVC5_EXPORT Configuration final
 
   static bool isBuiltWithGlpk();
 
+  static bool isBuiltWithScip();
+
   static bool isBuiltWithCryptominisat();
 
   static bool isBuiltWithKissat();

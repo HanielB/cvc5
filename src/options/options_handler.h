@@ -95,6 +95,11 @@ class OptionsHandler
   void setResourceWeight(const std::string& flag,
                          const std::string& optarg) const;
 
+  /****************************** arith options ******************************/
+
+  /** Check that the binary was built with SCIP support */
+  void checkScipSimplex(const std::string& flag, bool value) const;
+
   /******************************* bv options *******************************/
 
   /** Check that the sat solver mode is compatible with other bv options */

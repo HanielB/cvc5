@@ -93,6 +93,12 @@ namespace cvc5::internal {
 #define IS_GLPK_BUILD false
 #endif /* CVC5_USE_GLPK */
 
+#if CVC5_USE_SCIP
+#define IS_SCIP_BUILD true
+#else /* CVC5_USE_SCIP */
+#define IS_SCIP_BUILD false
+#endif /* CVC5_USE_SCIP */
+
 #if CVC5_USE_CRYPTOMINISAT
 #define IS_CRYPTOMINISAT_BUILD true
 #else /* CVC5_USE_CRYPTOMINISAT */

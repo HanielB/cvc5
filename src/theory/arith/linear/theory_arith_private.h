@@ -43,6 +43,7 @@
 #include "theory/arith/linear/matrix.h"
 #include "theory/arith/linear/normal_form.h"
 #include "theory/arith/linear/partial_model.h"
+#include "theory/arith/linear/scip_simplex.h"
 #include "theory/arith/linear/soi_simplex.h"
 #include "theory/theory.h"
 #include "theory/valuation.h"
@@ -399,6 +400,8 @@ class TheoryArithPrivate : protected EnvObj
   FCSimplexDecisionProcedure d_fcSimplex;
   SumOfInfeasibilitiesSPD d_soiSimplex;
   AttemptSolutionSDP d_attemptSolSimplex;
+  /** Alternative to the above based on the SCIP exact rational solver. */
+  ScipSimplexDecisionProcedure d_scipSimplex;
 
   bool solveRealRelaxation(Theory::Effort effortLevel);
 
