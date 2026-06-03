@@ -22,6 +22,8 @@ namespace cvc5::internal {
 namespace theory {
 namespace arith::linear {
 
+struct ScipSimplexProblem;
+
 /**
  * A drop-in alternative to the simplex decision procedures that delegates
  * the satisfiability check of the real relaxation (the variable bounds
@@ -57,20 +59,72 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   Result::Status findModel(bool exactResult) override;
 
  private:
+  /** The outcome of one exact LP solve, see solveLp. */
+  enum class ScipSolveResult
+  {
+    /** A (delta-)satisfying assignment exists. */
+    FEASIBLE,
+    /** The system, including the strictness of bounds, is infeasible. */
+    INFEASIBLE,
+    /** SCIP failed or was inconclusive. */
+    UNKNOWN
+  };
+
   /**
-   * Translates the current bounds and tableau into a SCIP exact problem,
-   * solves it, and imports the result (model or conflict). Only defined in
-   * builds with SCIP support.
+   * Translates the current bounds and tableau into an exact LP, solves it
+   * via SCIP's exact LP interface, and imports the result (model or
+   * conflict). Only defined in builds with SCIP support.
    */
   Result::Status solveWithScip();
 
   /**
-   * Raises a black box conflict consisting of the conjunction of all
-   * currently asserted bound constraints of the given variables. This is
-   * sound whenever the conjunction of bounds and tableau equalities is
-   * infeasible, but not minimal.
+   * Builds the exact LP into p: one free column per arithmetic variable
+   * (plus the delta column if any included bound is strict), one row per
+   * included bound constraint (all bounds if filter is null), and one row
+   * per tableau equality. The objective maximizes delta if present, so that
+   * the delta-rational system is satisfiable iff the exact optimum of delta
+   * is positive. Returns false on failure.
    */
-  Result::Status raiseCoarseConflict(const std::vector<ArithVar>& vars);
+  bool buildLp(ScipSimplexProblem& p, const ConstraintCPVec* filter);
+
+  /**
+   * Solves the exact LP of p and classifies the outcome, including the test
+   * whether the delta optimum is positive when strict bounds are present.
+   */
+  ScipSolveResult solveLp(ScipSimplexProblem& p);
+
+  /**
+   * Imports the exact solution of a feasible solve into the partial model by
+   * updating the nonbasic variables. Returns SAT on success.
+   */
+  Result::Status importModel(ScipSimplexProblem& p);
+
+  /**
+   * Computes, raises and returns the conflict for an infeasible solve. The
+   * exact dual certificate of the LP identifies the subset of the bound
+   * constraints participating in the infeasibility. Falls back to the full
+   * bound set if no usable certificate is obtained.
+   */
+  Result::Status raiseScipConflict(ScipSimplexProblem& p);
+
+  /**
+   * Extracts the conflict subset from the exact dual certificate of the
+   * last solve of p: the bound rows with nonzero multiplier in the dual
+   * Farkas ray (infeasible LP), or in the optimal dual solution (optimal LP
+   * whose delta maximum is zero, for which the dual solution proves the
+   * objective bound). Returns false if no proper subset was obtained.
+   */
+  bool extractCandidates(ScipSimplexProblem& p, ConstraintCPVec& candidates);
+
+  /**
+   * Raises a black box conflict consisting of the conjunction of the given
+   * bound constraints. This is sound whenever the given bounds together with
+   * the tableau equalities are infeasible, but carries no proof.
+   */
+  Result::Status raiseConflictOver(const ConstraintCPVec& bounds);
+
+  /** Collects all currently asserted bound constraints. */
+  void collectAllBounds(ConstraintCPVec& bounds) const;
 
   /** Channel for raising node-based (black box) conflicts. */
   RaiseBlackBoxConflict d_bbConflictChannel;
@@ -93,7 +147,12 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     IntStat d_scipSat;
     IntStat d_scipUnsat;
     IntStat d_scipUnknown;
-    IntStat d_coarseConflicts;
+    /** Conflicts raised over a verified minimal candidate subset. */
+    IntStat d_subsetConflicts;
+    /** Conflicts raised over the full bound set (no usable subset). */
+    IntStat d_fallbackConflicts;
+    /** Additional exact solves for harvesting duals and verification. */
+    IntStat d_auxSolves;
 
     Statistics(StatisticsRegistry& sr);
   } d_statistics;
