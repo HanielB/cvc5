@@ -13,6 +13,8 @@
 
 #include "theory/arith/linear/scip_simplex.h"
 
+#include <algorithm>
+
 #include "base/output.h"
 #include "options/arith_options.h"
 #include "theory/arith/linear/constraint.h"
@@ -65,7 +67,9 @@ ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
       d_subsetConflicts(sr.registerInt("theory::arith::scip::subsetConflicts")),
       d_fallbackConflicts(
           sr.registerInt("theory::arith::scip::fallbackConflicts")),
-      d_auxSolves(sr.registerInt("theory::arith::scip::auxSolves"))
+      d_auxSolves(sr.registerInt("theory::arith::scip::auxSolves")),
+      d_lpRebuilds(sr.registerInt("theory::arith::scip::lpRebuilds")),
+      d_lpRefreshes(sr.registerInt("theory::arith::scip::lpRefreshes"))
 {
 }
 
@@ -235,43 +239,65 @@ class ScipRationalArray
 
 /**
  * RAII owner of an exact LP interface instance together with the rationals
- * created for it, and the maps attributing the LP columns and rows to the
- * arithmetic variables and bound constraints they encode.
+ * created for it, the maps attributing the LP columns and rows to the
+ * arithmetic variables and bound constraints they encode, and a mirror of
+ * the encoded tableau for detecting changes across calls.
+ *
+ * The LP layout is: column 0 is the delta column (realizing the
+ * infinitesimal of strict bounds, maximized in [0,1]); columns 1.. encode
+ * the arithmetic variables. Rows 0..numTabRows()-1 are the definitional
+ * tableau equalities; the remaining rows encode the currently asserted
+ * bound constraints and are replaced on every refresh.
  */
 struct ScipSimplexProblem
 {
   SCIP_LPIEXACT* d_lpi = nullptr;
-  /** All created rationals (freed on destruction). */
+  /** Cached constant rationals (freed on destruction). */
+  SCIP_RATIONAL* d_posInf = nullptr;
+  SCIP_RATIONAL* d_negInf = nullptr;
+  SCIP_RATIONAL* d_zero = nullptr;
+  SCIP_RATIONAL* d_one = nullptr;
+  /** Scratch rationals, freed after each build or refresh. */
   std::vector<SCIP_RATIONAL*> d_rats;
 
-  /** The arithmetic variables of the encoded system. */
+  /** The arithmetic variables encoded so far. */
   std::vector<ArithVar> d_avars;
-  /** Map from ArithVar to its LP column index. */
+  /** Map from ArithVar to its LP column index (0 is the delta column). */
   std::vector<int> d_toCol;
-  /** The column of the variable realizing the infinitesimal delta, or -1. */
-  int d_deltaCol = -1;
-  /** Whether any included bound is strict. */
-  bool d_haveDelta = false;
-  /** The number of LP columns. */
+  /** The number of LP columns, including the delta column. */
   int d_ncols = 0;
+
+  /** Mirror of the encoded tableau: the basic variable per tableau row. */
+  std::vector<ArithVar> d_tabBasics;
   /**
-   * Per LP row, the asserted bound constraint it encodes, or NullConstraint
-   * for the definitional tableau rows.
+   * Mirror of the encoded tableau: per tableau row, the (variable,
+   * coefficient) entries (excluding the basic variable), sorted by variable.
    */
-  std::vector<ConstraintCP> d_rowOrigin;
+  std::vector<std::vector<std::pair<ArithVar, Rational>>> d_tabRows;
+  /** Per bound row (after the tableau rows), the encoded bound constraint. */
+  std::vector<ConstraintCP> d_boundOrigin;
+
   /**
    * Whether the last solve ended in an infeasible LP, for which a dual
-   * Farkas ray is available.
+   * Farkas ray is available (as opposed to an optimal LP with zero delta
+   * maximum, for which the optimal dual solution is the certificate).
    */
   bool d_lastWasFarkas = false;
 
+  int numTabRows() const { return static_cast<int>(d_tabBasics.size()); }
+  int numRows() const
+  {
+    return numTabRows() + static_cast<int>(d_boundOrigin.size());
+  }
+
   ~ScipSimplexProblem()
   {
-    for (SCIP_RATIONAL*& r : d_rats)
+    freeScratch();
+    for (SCIP_RATIONAL** r : {&d_posInf, &d_negInf, &d_zero, &d_one})
     {
-      if (r != nullptr)
+      if (*r != nullptr)
       {
-        SCIPrationalFree(&r);
+        SCIPrationalFree(r);
       }
     }
     if (d_lpi != nullptr)
@@ -280,7 +306,20 @@ struct ScipSimplexProblem
     }
   }
 
-  /** Creates a rational owned by this problem, or nullptr on failure. */
+  /** Frees the scratch rationals. */
+  void freeScratch()
+  {
+    for (SCIP_RATIONAL*& r : d_rats)
+    {
+      if (r != nullptr)
+      {
+        SCIPrationalFree(&r);
+      }
+    }
+    d_rats.clear();
+  }
+
+  /** Creates a scratch rational owned by this problem, or nullptr. */
   SCIP_RATIONAL* mkRat()
   {
     SCIP_RATIONAL* r = nullptr;
@@ -292,7 +331,7 @@ struct ScipSimplexProblem
     return r;
   }
 
-  /** Creates a rational with the value of the given cvc5 Rational. */
+  /** Creates a scratch rational with the value of the given Rational. */
   SCIP_RATIONAL* mkRat(const Rational& q)
   {
     SCIP_RATIONAL* r = mkRat();
@@ -303,6 +342,8 @@ struct ScipSimplexProblem
     return r;
   }
 };
+
+ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
 
 /** Evaluates to retval if a SCIP call fails. */
 #define CVC5_SCIP_CALL_RET(x, retval)                                  \
@@ -331,20 +372,288 @@ struct ScipSimplexProblem
 #define CVC5_SCIP_CALL_FALSE(x) CVC5_SCIP_CALL_RET(x, false)
 #define CVC5_SCIP_CHECK_RAT_FALSE(r) CVC5_SCIP_CHECK_RAT_RET(r, false)
 
-bool ScipSimplexDecisionProcedure::buildLp(ScipSimplexProblem& p,
-                                           const ConstraintCPVec* filter)
+namespace {
+
+/** Anonymous-namespace helpers for the LP construction. */
+
+/** Reads the (sorted) row content of a basic variable from the tableau. */
+void readTableauRow(const Tableau& tableau,
+                    ArithVar basic,
+                    std::vector<std::pair<ArithVar, Rational>>& content)
 {
-  // The bound constraints to include in the system.
+  for (Tableau::RowIterator ri = tableau.basicRowIterator(basic); !ri.atEnd();
+       ++ri)
+  {
+    const Tableau::Entry& entry = *ri;
+    if (entry.getColVar() == basic)
+    {
+      continue;
+    }
+    content.emplace_back(entry.getColVar(), entry.getCoefficient());
+  }
+  std::sort(content.begin(),
+            content.end(),
+            [](const auto& a, const auto& b) { return a.first < b.first; });
+}
+
+}  // namespace
+
+/**
+ * Creates the LP interface of p with the delta column (column 0): bounds
+ * [0,1] and the only nonzero objective coefficient, maximized. The
+ * delta-rational system is satisfiable iff the exact maximum of delta is
+ * positive [cf. Dutertre and de Moura, CAV 2006, Lemma 1]; when no strict
+ * bound constrains delta, the maximum is trivially 1.
+ */
+static bool initLpi(ScipSimplexProblem& p,
+                    const std::function<void(const char*)>& warn)
+{
+  if (SCIPlpiExactCreate(
+          &p.d_lpi, nullptr, "cvc5_linear_arith", SCIP_OBJSEN_MAXIMIZE)
+      != SCIP_OKAY)
+  {
+    warn("SCIPlpiExactCreate failed");
+    return false;
+  }
+  for (SCIP_RATIONAL** r : {&p.d_posInf, &p.d_negInf, &p.d_zero, &p.d_one})
+  {
+    if (SCIPrationalCreate(r) != SCIP_OKAY)
+    {
+      warn("SCIP rational allocation failed");
+      return false;
+    }
+  }
+  SCIPrationalSetInfinity(p.d_posInf);
+  SCIPrationalSetNegInfinity(p.d_negInf);
+  SCIPrationalSetReal(p.d_zero, 0.0);
+  SCIPrationalSetReal(p.d_one, 1.0);
+
+  SCIP_RATIONAL* obj[1] = {p.d_one};
+  SCIP_RATIONAL* lb[1] = {p.d_zero};
+  SCIP_RATIONAL* ub[1] = {p.d_one};
+  if (SCIPlpiExactAddCols(
+          p.d_lpi, 1, obj, lb, ub, nullptr, 0, nullptr, nullptr, nullptr)
+      != SCIP_OKAY)
+  {
+    warn("adding the delta column failed");
+    return false;
+  }
+  p.d_ncols = 1;
+  return true;
+}
+
+bool ScipSimplexDecisionProcedure::ensureLp()
+{
+  if (d_persistent != nullptr)
+  {
+    ScipSimplexProblem& p = *d_persistent;
+    // Remove the bound rows of the previous call.
+    if (!p.d_boundOrigin.empty())
+    {
+      if (SCIPlpiExactDelRows(p.d_lpi, p.numTabRows(), p.numRows() - 1)
+          != SCIP_OKAY)
+      {
+        d_persistent.reset();
+      }
+      else
+      {
+        p.d_boundOrigin.clear();
+      }
+    }
+  }
+  if (d_persistent != nullptr)
+  {
+    // Extend the columns by new variables, and check the encoded tableau
+    // against the mirror, appending new rows. On any mismatch (e.g. after a
+    // tableau reset on restarts) rebuild from scratch.
+    ScipSimplexProblem& p = *d_persistent;
+    bool ok = true;
+    for (ArithVariables::var_iterator vi = d_variables.var_begin(),
+                                      vend = d_variables.var_end();
+         ok && vi != vend;
+         ++vi)
+    {
+      ArithVar v = *vi;
+      if (v < p.d_toCol.size() && p.d_toCol[v] >= 0)
+      {
+        continue;
+      }
+      if (v >= p.d_toCol.size())
+      {
+        p.d_toCol.resize(v + 1, -1);
+      }
+      SCIP_RATIONAL* obj[1] = {p.d_zero};
+      SCIP_RATIONAL* lb[1] = {p.d_negInf};
+      SCIP_RATIONAL* ub[1] = {p.d_posInf};
+      ok = SCIPlpiExactAddCols(p.d_lpi,
+                               1,
+                               obj,
+                               lb,
+                               ub,
+                               nullptr,
+                               0,
+                               nullptr,
+                               nullptr,
+                               nullptr)
+           == SCIP_OKAY;
+      if (ok)
+      {
+        p.d_avars.push_back(v);
+        p.d_toCol[v] = p.d_ncols++;
+      }
+    }
+    size_t i = 0;
+    int beg[1] = {0};
+    for (Tableau::BasicIterator bi = d_tableau.beginBasic(),
+                                bend = d_tableau.endBasic();
+         ok && bi != bend;
+         ++bi, ++i)
+    {
+      ArithVar basic = *bi;
+      std::vector<std::pair<ArithVar, Rational>> content;
+      readTableauRow(d_tableau, basic, content);
+      if (i < p.d_tabBasics.size())
+      {
+        if (p.d_tabBasics[i] != basic || p.d_tabRows[i] != content)
+        {
+          ok = false;  // tableau changed; rebuild
+        }
+        continue;
+      }
+      // a new tableau row; append it (the bound rows are already deleted)
+      std::vector<int> ind;
+      std::vector<SCIP_RATIONAL*> val;
+      ind.push_back(p.d_toCol[basic]);
+      SCIP_RATIONAL* minusOne = p.mkRat(Rational(-1));
+      ok = minusOne != nullptr;
+      val.push_back(minusOne);
+      for (const auto& [nb, coeff] : content)
+      {
+        SCIP_RATIONAL* c = p.mkRat(coeff);
+        ok = ok && c != nullptr;
+        ind.push_back(ok ? p.d_toCol[nb] : 0);
+        val.push_back(c);
+      }
+      SCIP_RATIONAL* lhs[1] = {p.d_zero};
+      SCIP_RATIONAL* rhs[1] = {p.d_zero};
+      ok = ok
+           && SCIPlpiExactAddRows(p.d_lpi,
+                                  1,
+                                  lhs,
+                                  rhs,
+                                  nullptr,
+                                  static_cast<int>(ind.size()),
+                                  beg,
+                                  ind.data(),
+                                  val.data())
+                  == SCIP_OKAY;
+      if (ok)
+      {
+        p.d_tabBasics.push_back(basic);
+        p.d_tabRows.push_back(std::move(content));
+      }
+    }
+    // fewer tableau rows than mirrored also means the tableau changed
+    ok = ok && i == p.d_tabBasics.size();
+    if (ok)
+    {
+      ok = addBoundRows(p, nullptr);
+    }
+    if (ok)
+    {
+      p.freeScratch();
+      ++d_statistics.d_lpRefreshes;
+      return true;
+    }
+    Trace("arith::scip") << "scip lp refresh failed; rebuilding" << endl;
+    d_persistent.reset();
+  }
+
+  d_persistent = std::make_unique<ScipSimplexProblem>();
+  ++d_statistics.d_lpRebuilds;
+  if (!buildLp(*d_persistent, nullptr))
+  {
+    d_persistent.reset();
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Adds one row per included bound constraint. A bound with value
+ * c + k*delta on x becomes the row x {>=,<=} c (k = 0) or
+ * x - k*delta {>=,<=} c (k != 0). All bounds are encoded as explicit LP
+ * rows (not as column bounds) so that the exact dual certificates attribute
+ * infeasibility to individual bound constraints.
+ */
+bool ScipSimplexDecisionProcedure::addBoundRows(ScipSimplexProblem& p,
+                                                const ConstraintCPVec* filter)
+{
   std::unordered_set<ConstraintCP> included;
   if (filter != nullptr)
   {
     included.insert(filter->begin(), filter->end());
   }
-  auto isIncluded = [&included, filter](ConstraintCP c) {
-    return filter == nullptr || included.find(c) != included.end();
-  };
+  int beg[1] = {0};
+  for (ArithVariables::var_iterator vi = d_variables.var_begin(),
+                                    vend = d_variables.var_end();
+       vi != vend;
+       ++vi)
+  {
+    ArithVar v = *vi;
+    for (bool lower : {true, false})
+    {
+      if (lower ? !d_variables.hasLowerBound(v)
+                : !d_variables.hasUpperBound(v))
+      {
+        continue;
+      }
+      ConstraintCP bc = lower ? d_variables.getLowerBoundConstraint(v)
+                              : d_variables.getUpperBoundConstraint(v);
+      if (filter != nullptr && included.find(bc) == included.end())
+      {
+        continue;
+      }
+      const DeltaRational& b = lower ? d_variables.getLowerBound(v)
+                                     : d_variables.getUpperBound(v);
+      SCIP_RATIONAL* c = p.mkRat(b.getNoninfinitesimalPart());
+      CVC5_SCIP_CHECK_RAT_FALSE(c);
+      int nnonz = 1;
+      int ind[2] = {p.d_toCol[v], 0};
+      SCIP_RATIONAL* val[2] = {p.d_one, nullptr};
+      if (!b.infinitesimalIsZero())
+      {
+        // Strict bounds are expected to tighten: positive delta coefficient
+        // on lower bounds, negative on upper bounds.
+        Assert(b.infinitesimalSgn() == (lower ? 1 : -1));
+        SCIP_RATIONAL* minusK = p.mkRat(-b.getInfinitesimalPart());
+        CVC5_SCIP_CHECK_RAT_FALSE(minusK);
+        ind[1] = 0;  // the delta column
+        val[1] = minusK;
+        nnonz = 2;
+      }
+      SCIP_RATIONAL* lhs[1] = {lower ? c : p.d_negInf};
+      SCIP_RATIONAL* rhs[1] = {lower ? p.d_posInf : c};
+      CVC5_SCIP_CALL_FALSE(SCIPlpiExactAddRows(
+          p.d_lpi, 1, lhs, rhs, nullptr, nnonz, beg, ind, val));
+      p.d_boundOrigin.push_back(bc);
+    }
+  }
+  return true;
+}
 
-  // Collect the variables of the current system.
+bool ScipSimplexDecisionProcedure::buildLp(ScipSimplexProblem& p,
+                                           const ConstraintCPVec* filter)
+{
+  auto warn = [this](const char* msg) { warning() << msg << std::endl; };
+  if (!initLpi(p, warn))
+  {
+    return false;
+  }
+
+  // One free column per arithmetic variable. Note that this LP solves the
+  // real relaxation: integrality is enforced by the layer above this
+  // decision procedure.
   ArithVar maxVar = 0;
   for (ArithVariables::var_iterator vi = d_variables.var_begin(),
                                     vend = d_variables.var_end();
@@ -355,66 +664,14 @@ bool ScipSimplexDecisionProcedure::buildLp(ScipSimplexProblem& p,
     p.d_avars.push_back(v);
     maxVar = v > maxVar ? v : maxVar;
   }
-
-  // Detect whether any included bound is strict, i.e. has a nonzero delta
-  // component.
-  for (ArithVar v : p.d_avars)
-  {
-    if ((d_variables.hasLowerBound(v)
-         && isIncluded(d_variables.getLowerBoundConstraint(v))
-         && !d_variables.getLowerBound(v).infinitesimalIsZero())
-        || (d_variables.hasUpperBound(v)
-            && isIncluded(d_variables.getUpperBoundConstraint(v))
-            && !d_variables.getUpperBound(v).infinitesimalIsZero()))
-    {
-      p.d_haveDelta = true;
-      break;
-    }
-  }
-
-  CVC5_SCIP_CALL_FALSE(SCIPlpiExactCreate(
-      &p.d_lpi, nullptr, "cvc5_linear_arith", SCIP_OBJSEN_MAXIMIZE));
-
-  SCIP_RATIONAL* posInf = p.mkRat();
-  CVC5_SCIP_CHECK_RAT_FALSE(posInf);
-  SCIPrationalSetInfinity(posInf);
-  SCIP_RATIONAL* negInf = p.mkRat();
-  CVC5_SCIP_CHECK_RAT_FALSE(negInf);
-  SCIPrationalSetNegInfinity(negInf);
-  SCIP_RATIONAL* zero = p.mkRat();
-  CVC5_SCIP_CHECK_RAT_FALSE(zero);
-  SCIPrationalSetReal(zero, 0.0);
-  SCIP_RATIONAL* one = p.mkRat();
-  CVC5_SCIP_CHECK_RAT_FALSE(one);
-  SCIPrationalSetReal(one, 1.0);
-
-  // One free column per arithmetic variable, plus the delta column if any
-  // included bound is strict. Delta realizes the infinitesimal of strict
-  // bounds as an LP variable in [0,1] whose value is maximized (the only
-  // nonzero objective coefficient): the delta-rational system is satisfiable
-  // iff the exact maximum of delta is positive [cf. Dutertre and de Moura,
-  // CAV 2006, Lemma 1]. Note that this LP solves the real relaxation:
-  // integrality is enforced by the layer above this decision procedure.
   p.d_toCol.assign(maxVar + 1, -1);
-  p.d_ncols = static_cast<int>(p.d_avars.size()) + (p.d_haveDelta ? 1 : 0);
   {
-    std::vector<SCIP_RATIONAL*> obj(p.d_ncols, zero);
-    std::vector<SCIP_RATIONAL*> lb(p.d_ncols, negInf);
-    std::vector<SCIP_RATIONAL*> ub(p.d_ncols, posInf);
-    int col = 0;
-    for (ArithVar v : p.d_avars)
-    {
-      p.d_toCol[v] = col++;
-    }
-    if (p.d_haveDelta)
-    {
-      p.d_deltaCol = col;
-      obj[col] = one;
-      lb[col] = zero;
-      ub[col] = one;
-    }
+    int nvars = static_cast<int>(p.d_avars.size());
+    std::vector<SCIP_RATIONAL*> obj(nvars, p.d_zero);
+    std::vector<SCIP_RATIONAL*> lb(nvars, p.d_negInf);
+    std::vector<SCIP_RATIONAL*> ub(nvars, p.d_posInf);
     CVC5_SCIP_CALL_FALSE(SCIPlpiExactAddCols(p.d_lpi,
-                                             p.d_ncols,
+                                             nvars,
                                              obj.data(),
                                              lb.data(),
                                              ub.data(),
@@ -423,87 +680,39 @@ bool ScipSimplexDecisionProcedure::buildLp(ScipSimplexProblem& p,
                                              nullptr,
                                              nullptr,
                                              nullptr));
-  }
-
-  // Translate the included variable bounds. All bounds are encoded as
-  // explicit LP rows (not as column bounds) so that the dual Farkas ray
-  // attributes infeasibility to individual bound constraints. A bound with
-  // value c + k*delta on x becomes the row x {>=,<=} c (k = 0) or
-  // x - k*delta {>=,<=} c (k != 0).
-  int beg[1] = {0};
-  for (ArithVar v : p.d_avars)
-  {
-    for (bool lower : {true, false})
+    for (ArithVar v : p.d_avars)
     {
-      if (lower ? !d_variables.hasLowerBound(v)
-                : !d_variables.hasUpperBound(v))
-      {
-        continue;
-      }
-      ConstraintCP bc = lower ? d_variables.getLowerBoundConstraint(v)
-                              : d_variables.getUpperBoundConstraint(v);
-      if (!isIncluded(bc))
-      {
-        continue;
-      }
-      const DeltaRational& b = lower ? d_variables.getLowerBound(v)
-                                     : d_variables.getUpperBound(v);
-      SCIP_RATIONAL* c = p.mkRat(b.getNoninfinitesimalPart());
-      CVC5_SCIP_CHECK_RAT_FALSE(c);
-      int nnonz = 1;
-      int ind[2] = {p.d_toCol[v], 0};
-      SCIP_RATIONAL* val[2] = {one, nullptr};
-      if (!b.infinitesimalIsZero())
-      {
-        // Strict bounds are expected to tighten: positive delta coefficient
-        // on lower bounds, negative on upper bounds.
-        Assert(b.infinitesimalSgn() == (lower ? 1 : -1));
-        SCIP_RATIONAL* minusK = p.mkRat(-b.getInfinitesimalPart());
-        CVC5_SCIP_CHECK_RAT_FALSE(minusK);
-        ind[1] = p.d_deltaCol;
-        val[1] = minusK;
-        nnonz = 2;
-      }
-      SCIP_RATIONAL* lhs[1] = {lower ? c : negInf};
-      SCIP_RATIONAL* rhs[1] = {lower ? posInf : c};
-      CVC5_SCIP_CALL_FALSE(SCIPlpiExactAddRows(
-          p.d_lpi, 1, lhs, rhs, nullptr, nnonz, beg, ind, val));
-      p.d_rowOrigin.push_back(bc);
+      p.d_toCol[v] = p.d_ncols++;
     }
   }
 
   // Translate the tableau: for each basic variable b with row entries
   // (coeff_i, x_i), add the equality (sum_i coeff_i * x_i) - b = 0, where the
   // entry of b itself is skipped (cf. LinearEqualityModule::computeRowValue).
+  int beg[1] = {0};
   for (Tableau::BasicIterator bi = d_tableau.beginBasic(),
                               bend = d_tableau.endBasic();
        bi != bend;
        ++bi)
   {
     ArithVar basic = *bi;
+    std::vector<std::pair<ArithVar, Rational>> content;
+    readTableauRow(d_tableau, basic, content);
     std::vector<int> ind;
     std::vector<SCIP_RATIONAL*> val;
     ind.push_back(p.d_toCol[basic]);
     SCIP_RATIONAL* minusOne = p.mkRat(Rational(-1));
     CVC5_SCIP_CHECK_RAT_FALSE(minusOne);
     val.push_back(minusOne);
-    for (Tableau::RowIterator ri = d_tableau.basicRowIterator(basic);
-         !ri.atEnd();
-         ++ri)
+    for (const auto& [nb, coeff] : content)
     {
-      const Tableau::Entry& entry = *ri;
-      ArithVar nb = entry.getColVar();
-      if (nb == basic)
-      {
-        continue;
-      }
-      SCIP_RATIONAL* coeff = p.mkRat(entry.getCoefficient());
-      CVC5_SCIP_CHECK_RAT_FALSE(coeff);
+      SCIP_RATIONAL* c = p.mkRat(coeff);
+      CVC5_SCIP_CHECK_RAT_FALSE(c);
       ind.push_back(p.d_toCol[nb]);
-      val.push_back(coeff);
+      val.push_back(c);
     }
-    SCIP_RATIONAL* lhs[1] = {zero};
-    SCIP_RATIONAL* rhs[1] = {zero};
+    SCIP_RATIONAL* lhs[1] = {p.d_zero};
+    SCIP_RATIONAL* rhs[1] = {p.d_zero};
     CVC5_SCIP_CALL_FALSE(SCIPlpiExactAddRows(p.d_lpi,
                                              1,
                                              lhs,
@@ -513,9 +722,15 @@ bool ScipSimplexDecisionProcedure::buildLp(ScipSimplexProblem& p,
                                              beg,
                                              ind.data(),
                                              val.data()));
-    p.d_rowOrigin.push_back(NullConstraint);
+    p.d_tabBasics.push_back(basic);
+    p.d_tabRows.push_back(std::move(content));
   }
 
+  if (!addBoundRows(p, filter))
+  {
+    return false;
+  }
+  p.freeScratch();
   return true;
 }
 
@@ -529,7 +744,8 @@ ScipSimplexDecisionProcedure::solveLp(ScipSimplexProblem& p)
 {
   p.d_lastWasFarkas = false;
   // Solve. The standard streams are silenced during solving since SoPlex
-  // writes some diagnostics directly to them.
+  // writes some diagnostics directly to them. Re-solving a persistent
+  // instance warm-starts from the basis of the previous solve.
   SCIP_RETCODE solveRc;
   {
     StreamSilencer silencer;
@@ -539,19 +755,16 @@ ScipSimplexDecisionProcedure::solveLp(ScipSimplexProblem& p)
 
   if (SCIPlpiExactIsOptimal(p.d_lpi))
   {
-    if (p.d_haveDelta)
+    // The delta-rational system is satisfiable iff the optimum of delta,
+    // which is the objective value, is positive.
+    SCIP_RATIONAL* objval = p.mkRat();
+    CVC5_SCIP_CHECK_RAT_UNKNOWN(objval);
+    CVC5_SCIP_CALL_UNKNOWN(SCIPlpiExactGetObjval(p.d_lpi, objval));
+    Trace("arith::scip") << "scip delta optimum positive: "
+                         << (SCIPrationalIsPositive(objval) != 0) << endl;
+    if (!SCIPrationalIsPositive(objval))
     {
-      // The strict system is satisfiable iff the optimum of delta is
-      // positive.
-      SCIP_RATIONAL* objval = p.mkRat();
-      CVC5_SCIP_CHECK_RAT_UNKNOWN(objval);
-      CVC5_SCIP_CALL_UNKNOWN(SCIPlpiExactGetObjval(p.d_lpi, objval));
-      Trace("arith::scip") << "scip delta optimum positive: "
-                           << (SCIPrationalIsPositive(objval) != 0) << endl;
-      if (!SCIPrationalIsPositive(objval))
-      {
-        return ScipSolveResult::INFEASIBLE;
-      }
+      return ScipSolveResult::INFEASIBLE;
     }
     return ScipSolveResult::FEASIBLE;
   }
@@ -626,7 +839,8 @@ bool ScipSimplexDecisionProcedure::extractCandidates(
   // rows in the support of the certificate form an infeasible subset of the
   // delta-rational system (together with the definitional tableau rows,
   // which are not part of explanations).
-  int nrows = static_cast<int>(p.d_rowOrigin.size());
+  int nrows = p.numRows();
+  int ntab = p.numTabRows();
   ScipRationalArray duals(nrows);
   if (duals.get() == nullptr)
   {
@@ -641,23 +855,17 @@ bool ScipSimplexDecisionProcedure::extractCandidates(
     CVC5_SCIP_CALL_FALSE(SCIPlpiExactGetSol(
         p.d_lpi, nullptr, nullptr, duals.get(), nullptr, nullptr));
   }
-  size_t nbounds = 0;
-  for (int i = 0; i < nrows; ++i)
+  for (int i = ntab; i < nrows; ++i)
   {
-    if (p.d_rowOrigin[i] == NullConstraint)
-    {
-      continue;
-    }
-    ++nbounds;
     if (!SCIPrationalIsZero(duals[i]))
     {
-      candidates.push_back(p.d_rowOrigin[i]);
+      candidates.push_back(p.d_boundOrigin[i - ntab]);
     }
   }
   Trace("arith::scip") << "scip dual certificate candidates: "
-                       << candidates.size() << " of " << nbounds << " bounds"
-                       << endl;
-  return !candidates.empty() && candidates.size() < nbounds;
+                       << candidates.size() << " of " << p.d_boundOrigin.size()
+                       << " bounds" << endl;
+  return !candidates.empty() && candidates.size() < p.d_boundOrigin.size();
 }
 
 Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
@@ -666,9 +874,9 @@ Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
   ConstraintCPVec candidates;
   if (extractCandidates(p, candidates))
   {
-    // The ray is exact, so its support is a genuine infeasible subset. In
-    // assertion builds this is double-checked by an exact re-solve
-    // restricted to the subset.
+    // The certificate is exact, so its support is a genuine infeasible
+    // subset. In assertion builds this is double-checked by an exact
+    // re-solve restricted to the subset.
 #ifdef CVC5_ASSERTIONS
     {
       ScipSimplexProblem pv;
@@ -694,12 +902,12 @@ Result::Status ScipSimplexDecisionProcedure::solveWithScip()
   TimerStat::CodeTimer codeTimer(d_statistics.d_scipTime);
   ++d_statistics.d_scipCalls;
 
-  ScipSimplexProblem p;
-  if (!buildLp(p, nullptr))
+  if (!ensureLp())
   {
     ++d_statistics.d_scipUnknown;
     return Result::UNKNOWN;
   }
+  ScipSimplexProblem& p = *d_persistent;
   switch (solveLp(p))
   {
     case ScipSolveResult::FEASIBLE:
@@ -724,13 +932,22 @@ Result::Status ScipSimplexDecisionProcedure::solveWithScip()
 #undef CVC5_SCIP_CALL_RET
 #undef CVC5_SCIP_CHECK_RAT_RET
 
-#elif defined(CVC5_USE_SCIP)
+#else /* CVC5_USE_SCIP && !CVC5_CLN_IMP */
 
+/** Stub so that the persistent instance member can be destructed. */
+struct ScipSimplexProblem
+{
+};
+
+ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
+
+#ifdef CVC5_USE_SCIP
 Result::Status ScipSimplexDecisionProcedure::solveWithScip()
 {
   Unreachable()
       << "The SCIP-based simplex requires cvc5 to be built with GMP (not CLN)";
 }
+#endif /* CVC5_USE_SCIP */
 
 #endif /* CVC5_USE_SCIP && !CVC5_CLN_IMP */
 

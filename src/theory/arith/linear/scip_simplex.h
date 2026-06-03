@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include "theory/arith/linear/simplex.h"
 #include "util/statistics_stats.h"
 
@@ -55,6 +57,7 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
                                RaiseConflict conflictChannel,
                                RaiseBlackBoxConflict bbConflictChannel,
                                TempVarMalloc tvmalloc);
+  ~ScipSimplexDecisionProcedure();
 
   Result::Status findModel(bool exactResult) override;
 
@@ -78,14 +81,31 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   Result::Status solveWithScip();
 
   /**
-   * Builds the exact LP into p: one free column per arithmetic variable
-   * (plus the delta column if any included bound is strict), one row per
-   * included bound constraint (all bounds if filter is null), and one row
-   * per tableau equality. The objective maximizes delta if present, so that
-   * the delta-rational system is satisfiable iff the exact optimum of delta
-   * is positive. Returns false on failure.
+   * Builds the exact LP into p from scratch: the delta column and one free
+   * column per arithmetic variable, one row per tableau equality, and one
+   * row per included bound constraint (all bounds if filter is null). The
+   * objective maximizes delta in [0,1], so that the delta-rational system
+   * is satisfiable iff the exact optimum of delta is positive (delta is
+   * unconstrained, with optimum 1, when no included bound is strict).
+   * Returns false on failure.
    */
   bool buildLp(ScipSimplexProblem& p, const ConstraintCPVec* filter);
+
+  /**
+   * Ensures that the persistent LP instance reflects the current bounds and
+   * tableau, building or incrementally refreshing it: columns and tableau
+   * rows persist across calls (verified against a mirror, with a full
+   * rebuild on any mismatch, e.g. after tableau resets), while the bound
+   * rows are replaced on every call. Re-solving the persistent instance
+   * warm-starts from the previous basis. Returns false on failure.
+   */
+  bool ensureLp();
+
+  /**
+   * Adds one LP row per bound constraint in filter (all bounds if filter is
+   * null) to p. Returns false on failure.
+   */
+  bool addBoundRows(ScipSimplexProblem& p, const ConstraintCPVec* filter);
 
   /**
    * Solves the exact LP of p and classifies the outcome, including the test
@@ -129,6 +149,9 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   /** Channel for raising node-based (black box) conflicts. */
   RaiseBlackBoxConflict d_bbConflictChannel;
 
+  /** The persistent LP instance, lazily created by ensureLp. */
+  std::unique_ptr<ScipSimplexProblem> d_persistent;
+
   bool processSignals()
   {
     TimerStat& timer = d_statistics.d_queueTime;
@@ -153,6 +176,10 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     IntStat d_fallbackConflicts;
     /** Additional exact solves for harvesting duals and verification. */
     IntStat d_auxSolves;
+    /** Full (re)builds of the persistent LP instance. */
+    IntStat d_lpRebuilds;
+    /** Incremental refreshes of the persistent LP instance. */
+    IntStat d_lpRefreshes;
 
     Statistics(StatisticsRegistry& sr);
   } d_statistics;
