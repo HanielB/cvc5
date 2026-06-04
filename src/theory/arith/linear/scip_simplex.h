@@ -43,9 +43,16 @@ struct ScipSimplexProblem;
  *
  * On SAT, the exact rational solution is imported into the partial model by
  * updating the nonbasic variables (basic variables follow via the tableau).
- * On UNSAT, a (currently coarse) black box conflict over the asserted bound
- * constraints is raised; deriving minimal Farkas conflicts from SCIP's exact
- * dual certificate is planned.
+ * On UNSAT, the exact dual certificate of the LP identifies the
+ * participating bound constraints and their Farkas coefficients, from which
+ * a native Farkas conflict (with a proof, if enabled) is raised.
+ *
+ * SCIP's rational layer coerces any value of absolute value >= its infinity
+ * threshold (1e20 by default) to infinity at construction, which would make
+ * distinct huge constants indistinguishable in the LP (and unsound). Every
+ * constant is therefore checked when it is translated; if any constant of
+ * the problem is not exactly encodable, the call is declined and delegated
+ * to the conventional simplex procedure registered via setFallback.
  *
  * Only available in builds configured with --scip; the option
  * --use-scip-simplex guards selection of this procedure.
@@ -63,6 +70,15 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   ~ScipSimplexDecisionProcedure();
 
   Result::Status findModel(bool exactResult) override;
+
+  /**
+   * Registers the procedure to which findModel delegates when the problem
+   * cannot be encoded exactly for SCIP (see the class documentation).
+   */
+  void setFallback(SimplexDecisionProcedure* fallback)
+  {
+    d_fallback = fallback;
+  }
 
  private:
   /** The outcome of one exact LP solve, see solveLp. */
@@ -229,6 +245,11 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   /** The persistent LP instance, lazily created by ensureLp. */
   std::unique_ptr<ScipSimplexProblem> d_persistent;
 
+  /** The procedure to delegate to when a problem is not encodable. */
+  SimplexDecisionProcedure* d_fallback = nullptr;
+  /** Whether the last call was declined (not encodable), see setFallback. */
+  bool d_declined = false;
+
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics
   {
@@ -240,6 +261,8 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     IntStat d_scipSat;
     IntStat d_scipUnsat;
     IntStat d_scipUnknown;
+    /** Calls declined as not exactly encodable (delegated to fallback). */
+    IntStat d_scipDeclined;
     /** Conflicts raised over a verified minimal candidate subset. */
     IntStat d_subsetConflicts;
     /** Conflicts raised over the full bound set (no usable subset). */

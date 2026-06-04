@@ -176,6 +176,14 @@ TheoryArithPrivate::TheoryArithPrivate(Env& env,
       d_previousStatus(Result::UNKNOWN),
       d_statistics(statisticsRegistry(), "theory::arith::")
 {
+  // The procedure the SCIP simplex delegates to when a problem cannot be
+  // encoded exactly for SCIP; mirrors the first-pass selection of
+  // selectSimplex without the SCIP option.
+  d_scipSimplex.setFallback(options().arith.useFC
+                                ? (SimplexDecisionProcedure*)&d_fcSimplex
+                            : options().arith.useSOI
+                                ? (SimplexDecisionProcedure*)&d_soiSimplex
+                                : (SimplexDecisionProcedure*)&d_dualSimplex);
 }
 
 TheoryArithPrivate::~TheoryArithPrivate()

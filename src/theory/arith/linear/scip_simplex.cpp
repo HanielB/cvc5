@@ -66,6 +66,7 @@ ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
       d_scipSat(sr.registerInt("theory::arith::scip::sat")),
       d_scipUnsat(sr.registerInt("theory::arith::scip::unsat")),
       d_scipUnknown(sr.registerInt("theory::arith::scip::unknown")),
+      d_scipDeclined(sr.registerInt("theory::arith::scip::declined")),
       d_subsetConflicts(sr.registerInt("theory::arith::scip::subsetConflicts")),
       d_fallbackConflicts(
           sr.registerInt("theory::arith::scip::fallbackConflicts")),
@@ -113,7 +114,19 @@ Result::Status ScipSimplexDecisionProcedure::findModel(bool exactResult)
   Trace("arith::findModel") << "scipFindModel() start non-trivial" << endl;
 
 #ifdef CVC5_USE_SCIP
-  return solveWithScip(exactResult);
+  d_declined = false;
+  Result::Status res = solveWithScip(exactResult);
+  if (d_declined && d_fallback != nullptr)
+  {
+    // The problem contains a constant that cannot be encoded exactly for
+    // SCIP (see the class documentation). Delegate the check to the
+    // conventional procedure; the consumed signals are bookkeeping only
+    // and the error set still holds the violated variables, from which
+    // the fallback derives its verdict.
+    Trace("arith::scip") << "scip declined; delegating to fallback" << endl;
+    return d_fallback->findModel(exactResult);
+  }
+  return res;
 #else
   Unreachable() << "cvc5 was not compiled with SCIP support";
 #endif
@@ -403,16 +416,31 @@ struct ScipSimplexProblem
     return r;
   }
 
-  /** Creates a scratch rational with the value of the given Rational. */
+  /**
+   * Creates a scratch rational with the value of the given Rational.
+   * SCIP's rational layer coerces any value of absolute value at or above
+   * its infinity threshold to infinity on construction, which would lose
+   * the distinction between such constants (and thereby soundness). A
+   * coerced value is reported by setting d_unencodable and returning null.
+   */
   SCIP_RATIONAL* mkRat(const Rational& q)
   {
     SCIP_RATIONAL* r = mkRat();
     if (r != nullptr)
     {
       SCIPrationalSetGMP(r, q.getValue().get_mpq_t());
+      if (SCIPrationalIsAbsInfinity(r))
+      {
+        Trace("arith::scip") << "scip cannot encode constant " << q << endl;
+        d_unencodable = true;
+        return nullptr;
+      }
     }
     return r;
   }
+
+  /** Whether a constant of the problem was not exactly encodable. */
+  bool d_unencodable = false;
 };
 
 ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
@@ -430,15 +458,20 @@ ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
     }                                                                  \
   } while (0)
 
-/** Evaluates to retval if a rational could not be allocated. */
-#define CVC5_SCIP_CHECK_RAT_RET(r, retval)                         \
-  do                                                               \
-  {                                                                \
-    if ((r) == nullptr)                                            \
-    {                                                              \
-      warning() << "SCIP rational allocation failed" << std::endl; \
-      return retval;                                               \
-    }                                                              \
+/**
+ * Evaluates to retval if a rational is null, i.e. could not be allocated
+ * or, for the value of a constant of the problem, was not exactly
+ * encodable (see ScipSimplexProblem::mkRat). The latter is an expected
+ * condition (the call is declined), so no warning is emitted.
+ */
+#define CVC5_SCIP_CHECK_RAT_RET(r, retval)                              \
+  do                                                                    \
+  {                                                                     \
+    if ((r) == nullptr)                                                 \
+    {                                                                   \
+      Trace("arith::scip") << "scip rational unavailable" << std::endl; \
+      return retval;                                                    \
+    }                                                                   \
   } while (0)
 
 #define CVC5_SCIP_CALL_FALSE(x) CVC5_SCIP_CALL_RET(x, false)
@@ -638,6 +671,17 @@ bool ScipSimplexDecisionProcedure::ensureLp()
       ++d_statistics.d_lpRefreshes;
       return true;
     }
+    if (p.d_unencodable)
+    {
+      // A constant of the problem cannot be encoded exactly (see mkRat).
+      // The instance is consistent up to the offending row (the mirrors are
+      // updated in lockstep with successful additions), so it is kept for
+      // future refreshes; the call is declined.
+      p.d_unencodable = false;
+      p.freeScratch();
+      d_declined = true;
+      return false;
+    }
     Trace("arith::scip") << "scip lp refresh failed; rebuilding" << endl;
     d_persistent.reset();
   }
@@ -646,6 +690,14 @@ bool ScipSimplexDecisionProcedure::ensureLp()
   ++d_statistics.d_lpRebuilds;
   if (!buildLp(*d_persistent, nullptr))
   {
+    if (d_persistent->d_unencodable && d_persistent->d_lpi != nullptr)
+    {
+      // As above: the partial instance is consistent; keep it and decline.
+      d_persistent->d_unencodable = false;
+      d_persistent->freeScratch();
+      d_declined = true;
+      return false;
+    }
     d_persistent.reset();
     return false;
   }
@@ -1428,7 +1480,7 @@ Result::Status ScipSimplexDecisionProcedure::solveWithScip(bool exactResult)
 
   if (!ensureLp())
   {
-    ++d_statistics.d_scipUnknown;
+    ++(d_declined ? d_statistics.d_scipDeclined : d_statistics.d_scipUnknown);
     return Result::UNKNOWN;
   }
   ScipSimplexProblem& p = *d_persistent;
