@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <memory>
 
 #include "theory/arith/linear/simplex.h"
@@ -77,6 +78,14 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
    * Translates the current bounds and tableau into an exact LP, solves it
    * via SCIP's exact LP interface, and imports the result (model or
    * conflict). Only defined in builds with SCIP support.
+   *
+   * Note that the model of a feasible solve is imported eagerly at every
+   * effort: the materialized assignment is what allows the cheap
+   * assignment-based preamble (and the assertion-time bookkeeping) to
+   * answer subsequent checks without an LP solve. An experiment deferring
+   * the import below full effort caused an order-of-magnitude regression
+   * (every new-fact batch forced an LP re-solve) and interacted unsoundly
+   * with the integer layer, which branches on assignment values.
    */
   Result::Status solveWithScip();
 
@@ -114,10 +123,25 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   ScipSolveResult solveLp(ScipSimplexProblem& p);
 
   /**
-   * Imports the exact solution of a feasible solve into the partial model by
-   * updating the nonbasic variables. Returns SAT on success.
+   * Writes the exact solution of a feasible solve into the partial model by
+   * updating the nonbasic variables (the basic variables follow via the
+   * tableau). Returns false on failure.
+   */
+  bool importValues(ScipSimplexProblem& p);
+
+  /**
+   * Imports the exact solution of a feasible solve into the partial model
+   * (importValues) and processes the resulting signals. Returns SAT on
+   * success. Only used within a check.
    */
   Result::Status importModel(ScipSimplexProblem& p);
+
+  /**
+   * Bookkeeping-only counterpart of processSignals: consumes all error-set
+   * signals without performing the row-based conflict checks, leaving any
+   * infeasibility to be detected by the LP.
+   */
+  void drainSignals();
 
   /**
    * Computes, raises and returns the conflict for an infeasible solve. The
@@ -186,6 +210,8 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     IntStat d_lpRebuilds;
     /** Incremental refreshes of the persistent LP instance. */
     IntStat d_lpRefreshes;
+    /** Materialized model imports. */
+    IntStat d_modelImports;
 
     Statistics(StatisticsRegistry& sr);
   } d_statistics;

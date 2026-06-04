@@ -70,7 +70,8 @@ ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
           sr.registerInt("theory::arith::scip::fallbackConflicts")),
       d_auxSolves(sr.registerInt("theory::arith::scip::auxSolves")),
       d_lpRebuilds(sr.registerInt("theory::arith::scip::lpRebuilds")),
-      d_lpRefreshes(sr.registerInt("theory::arith::scip::lpRefreshes"))
+      d_lpRefreshes(sr.registerInt("theory::arith::scip::lpRefreshes")),
+      d_modelImports(sr.registerInt("theory::arith::scip::modelImports"))
 {
 }
 
@@ -284,6 +285,9 @@ struct ScipSimplexProblem
    * maximum, for which the optimal dual solution is the certificate).
    */
   bool d_lastWasFarkas = false;
+  /** Reusable buffer for extracting primal solutions, sized d_primsolCap. */
+  SCIP_RATIONAL** d_primsol = nullptr;
+  int d_primsolCap = 0;
 
   int numTabRows() const { return static_cast<int>(d_tabBasics.size()); }
   int numRows() const
@@ -301,10 +305,41 @@ struct ScipSimplexProblem
         SCIPrationalFree(r);
       }
     }
+    if (d_primsol != nullptr)
+    {
+      SCIPrationalFreeArray(&d_primsol, d_primsolCap);
+    }
     if (d_lpi != nullptr)
     {
       SCIPlpiExactFree(&d_lpi);
     }
+  }
+
+  /** Returns the primal solution buffer with capacity for ncols, or null. */
+  SCIP_RATIONAL** primsolBuffer(int ncols)
+  {
+    if (d_primsolCap < ncols)
+    {
+      if (d_primsol != nullptr)
+      {
+        SCIPrationalFreeArray(&d_primsol, d_primsolCap);
+        d_primsol = nullptr;
+      }
+      // grow geometrically to amortize reallocation
+      int cap = d_primsolCap == 0 ? 16 : d_primsolCap;
+      while (cap < ncols)
+      {
+        cap *= 2;
+      }
+      if (SCIPrationalCreateArray(&d_primsol, cap) != SCIP_OKAY)
+      {
+        d_primsol = nullptr;
+        d_primsolCap = 0;
+        return nullptr;
+      }
+      d_primsolCap = cap;
+    }
+    return d_primsol;
   }
 
   /** Frees the scratch rationals. */
@@ -781,18 +816,29 @@ ScipSimplexDecisionProcedure::solveLp(ScipSimplexProblem& p)
 #define CVC5_SCIP_CALL(x) CVC5_SCIP_CALL_RET(x, Result::UNKNOWN)
 #define CVC5_SCIP_CHECK_RAT(r) CVC5_SCIP_CHECK_RAT_RET(r, Result::UNKNOWN)
 
-Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
+void ScipSimplexDecisionProcedure::drainSignals()
 {
-  // Import the exact solution into the partial model by updating the
+  while (d_errorSet.moreSignals())
+  {
+    d_errorSet.popSignal();
+  }
+  d_errorSize = d_errorSet.errorSize();
+}
+
+bool ScipSimplexDecisionProcedure::importValues(ScipSimplexProblem& p)
+{
+  // Write the exact solution into the partial model by updating the
   // nonbasic variables; the values of the basic variables follow from the
   // tableau (cf. AttemptSolutionSDP::attempt).
-  ScipRationalArray primsol(p.d_ncols);
-  if (primsol.get() == nullptr)
+  ++d_statistics.d_modelImports;
+  SCIP_RATIONAL** primsol = p.primsolBuffer(p.d_ncols);
+  if (primsol == nullptr)
   {
-    return Result::UNKNOWN;
+    return false;
   }
-  CVC5_SCIP_CALL(SCIPlpiExactGetSol(
-      p.d_lpi, nullptr, primsol.get(), nullptr, nullptr, nullptr));
+  CVC5_SCIP_CALL_RET(
+      SCIPlpiExactGetSol(p.d_lpi, nullptr, primsol, nullptr, nullptr, nullptr),
+      false);
   for (ArithVar v : p.d_avars)
   {
     if (d_tableau.isBasic(v))
@@ -805,6 +851,16 @@ Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
       Trace("arith::scip") << "scip model: " << v << " <- " << dr << endl;
       d_linEq.update(v, dr);
     }
+  }
+  return true;
+}
+
+Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
+{
+  if (!importValues(p))
+  {
+    ++d_statistics.d_scipUnknown;
+    return Result::UNKNOWN;
   }
 
   d_errorSet.reduceToSignals();
