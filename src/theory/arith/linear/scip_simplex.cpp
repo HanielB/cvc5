@@ -59,7 +59,6 @@ ScipSimplexDecisionProcedure::ScipSimplexDecisionProcedure(
 
 ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
     : d_queueTime(sr.registerTimer("theory::arith::scip::queueTime")),
-      d_conflicts(sr.registerInt("theory::arith::scip::conflicts")),
       d_scipTime(sr.registerTimer("theory::arith::scip::solveTime")),
       d_scipCalls(sr.registerInt("theory::arith::scip::calls")),
       d_scipSat(sr.registerInt("theory::arith::scip::sat")),
@@ -89,16 +88,16 @@ Result::Status ScipSimplexDecisionProcedure::findModel(
     return Result::SAT;
   }
 
+  // Consume the error-set signals without the row-based conflict checks the
+  // pivot-based procedures perform here: every conflict of this procedure
+  // is derived from a certificate of the LP. The SAT early returns below
+  // and above are pure bookkeeping facts (the current assignment satisfies
+  // all bounds) and hence remain.
   d_errorSet.reduceToSignals();
   d_errorSet.setSelectionRule(options::ErrorSelectionRule::VAR_ORDER);
+  drainSignals();
 
-  if (processSignals())
-  {
-    d_conflictVariables.purge();
-    Trace("arith::findModel") << "scipFindModel() early conflict" << endl;
-    return Result::UNSAT;
-  }
-  else if (d_errorSet.errorEmpty())
+  if (d_errorSet.errorEmpty())
   {
     Trace("arith::findModel") << "scipFindModel() fixed itself" << endl;
     return Result::SAT;
@@ -131,6 +130,16 @@ void ScipSimplexDecisionProcedure::collectAllBounds(
       bounds.push_back(d_variables.getUpperBoundConstraint(v));
     }
   }
+}
+
+void ScipSimplexDecisionProcedure::drainSignals()
+{
+  TimerStat::CodeTimer codeTimer(d_statistics.d_queueTime);
+  while (d_errorSet.moreSignals())
+  {
+    d_errorSet.popSignal();
+  }
+  d_errorSize = d_errorSet.errorSize();
 }
 
 Result::Status ScipSimplexDecisionProcedure::raiseConflictOver(
@@ -816,15 +825,6 @@ ScipSimplexDecisionProcedure::solveLp(ScipSimplexProblem& p)
 #define CVC5_SCIP_CALL(x) CVC5_SCIP_CALL_RET(x, Result::UNKNOWN)
 #define CVC5_SCIP_CHECK_RAT(r) CVC5_SCIP_CHECK_RAT_RET(r, Result::UNKNOWN)
 
-void ScipSimplexDecisionProcedure::drainSignals()
-{
-  while (d_errorSet.moreSignals())
-  {
-    d_errorSet.popSignal();
-  }
-  d_errorSize = d_errorSet.errorSize();
-}
-
 bool ScipSimplexDecisionProcedure::importValues(ScipSimplexProblem& p)
 {
   // Write the exact solution into the partial model by updating the
@@ -864,14 +864,8 @@ Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
   }
 
   d_errorSet.reduceToSignals();
-  if (processSignals())
-  {
-    // This should not happen for a correct SCIP model; handled defensively.
-    d_conflictVariables.purge();
-    Trace("arith::scip") << "scip model import found conflict" << endl;
-    return Result::UNSAT;
-  }
-  else if (d_errorSet.errorEmpty())
+  drainSignals();
+  if (d_errorSet.errorEmpty())
   {
     return Result::SAT;
   }
@@ -880,7 +874,6 @@ Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
   // and give up rather than report an incorrect result.
   warning() << "SCIP model import left bound violations; returning unknown"
             << std::endl;
-  d_errorSet.reduceToSignals();
   ++d_statistics.d_scipUnknown;
   return Result::UNKNOWN;
 }

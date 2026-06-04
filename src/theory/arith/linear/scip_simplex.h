@@ -182,19 +182,12 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   /** The persistent LP instance, lazily created by ensureLp. */
   std::unique_ptr<ScipSimplexProblem> d_persistent;
 
-  bool processSignals()
-  {
-    TimerStat& timer = d_statistics.d_queueTime;
-    IntStat& conflictStat = d_statistics.d_conflicts;
-    return standardProcessSignals(timer, conflictStat);
-  }
-
   /** These fields are designed to be accessible to TheoryArith methods. */
   class Statistics
   {
    public:
+    /** Time spent consuming error-set signals (see drainSignals). */
     TimerStat d_queueTime;
-    IntStat d_conflicts;
     TimerStat d_scipTime;
     IntStat d_scipCalls;
     IntStat d_scipSat;
