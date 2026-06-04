@@ -59,7 +59,7 @@ chmod +x $BASE_DIR/bin/cvc5-alethe-proof.sh
 
 cat << EOF > $BASE_DIR/bin/carcara-check.sh
 #!/usr/bin/env bash
-$BASE_DIR/bin/carcara check --allow-int-real-subtyping --expand-let-bindings --ignore-unknown-rules \$@ > carcara.out
+$BASE_DIR/bin/carcara check --allow-int-real-subtyping --expand-let-bindings --ignore-unknown-rules --rare-file $BASE_DIR/rare/rewrites.eo \$@ > carcara.out
 cat carcara.out
 rm carcara.out
 EOF

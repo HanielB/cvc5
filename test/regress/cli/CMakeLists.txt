@@ -106,6 +106,7 @@ set(regress_0_tests
   regress0/arith/scip-simplex-lra-unsat.smt2
   regress0/arith/scip-simplex-lra.smt2
   regress0/arith/scip-simplex-propagation.smt2
+  regress0/arith/scip-simplex-uflra.smt2
   regress0/arith-bv-conv-ineq-rewrites.smt2
   regress0/arr1.smt2
   regress0/arr1.smtv1.smt2
