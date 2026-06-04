@@ -210,12 +210,37 @@ name   = "Arithmetic Theory"
   help       = "solve the real relaxation in linear arithmetic with the SCIP exact rational LP solver instead of the internal simplex (requires a build with --scip)"
 
 [[option]]
-  name       = "arithScipPropagate"
+  name       = "arithScipPropagation"
   category   = "expert"
-  long       = "scip-propagation"
-  type       = "bool"
-  default    = "false"
-  help       = "perform theory propagation from the SCIP exact LP engine by exact objective probing at full effort checks (only relevant with --use-scip-simplex)"
+  long       = "scip-propagation=MODE"
+  type       = "ArithScipPropagationMode"
+  default    = "NONE"
+  help       = "technique for theory propagation from the SCIP exact LP engine (only relevant with --use-scip-simplex)"
+  help_mode  = "Theory propagation techniques of the SCIP exact LP engine."
+[[option.mode.NONE]]
+  name = "none"
+  help = "No propagation."
+[[option.mode.BASIS]]
+  name = "basis"
+  help = "Derive implied bounds from the rows of the optimal basis of the feasibility check itself (a by-product; no additional LP solves)."
+[[option.mode.PROBE]]
+  name = "probe"
+  help = "Derive exact strongest implied bounds by objective probing (one warm-started LP re-solve per candidate variable side)."
+
+[[option]]
+  name       = "arithScipPropagationEffort"
+  category   = "expert"
+  long       = "scip-propagation-effort=MODE"
+  type       = "ArithScipPropagationEffort"
+  default    = "FULL"
+  help       = "at which efforts the SCIP exact LP engine performs theory propagation"
+  help_mode  = "Efforts at which the SCIP exact LP engine performs theory propagation."
+[[option.mode.FULL]]
+  name = "full"
+  help = "Only after feasible full effort checks."
+[[option.mode.ALL]]
+  name = "all"
+  help = "After every feasible check."
 
 [[option]]
   name       = "restrictedPivots"

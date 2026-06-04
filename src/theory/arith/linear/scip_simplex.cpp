@@ -75,6 +75,8 @@ ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
       d_modelImports(sr.registerInt("theory::arith::scip::modelImports")),
       d_probes(sr.registerInt("theory::arith::scip::probes")),
       d_probeTime(sr.registerTimer("theory::arith::scip::probeTime")),
+      d_basisRows(sr.registerInt("theory::arith::scip::basisRows")),
+      d_basisPropTime(sr.registerTimer("theory::arith::scip::basisPropTime")),
       d_propagatedAtoms(sr.registerInt("theory::arith::scip::propagatedAtoms"))
 {
 }
@@ -292,6 +294,8 @@ struct ScipSimplexProblem
   std::vector<std::vector<std::pair<ArithVar, Rational>>> d_tabRows;
   /** Per bound row (after the tableau rows), the encoded bound constraint. */
   std::vector<ConstraintCP> d_boundOrigin;
+  /** Per bound row, whether it encodes a lower bound (lhs finite). */
+  std::vector<bool> d_boundIsLower;
 
   /**
    * Whether the last solve ended in an infeasible LP, for which a dual
@@ -302,6 +306,9 @@ struct ScipSimplexProblem
   /** Reusable buffer for extracting primal solutions, sized d_primsolCap. */
   SCIP_RATIONAL** d_primsol = nullptr;
   int d_primsolCap = 0;
+  /** Reusable buffer for basis inverse rows, sized d_binvCap. */
+  SCIP_RATIONAL** d_binv = nullptr;
+  int d_binvCap = 0;
 
   int numTabRows() const { return static_cast<int>(d_tabBasics.size()); }
   int numRows() const
@@ -323,37 +330,52 @@ struct ScipSimplexProblem
     {
       SCIPrationalFreeArray(&d_primsol, d_primsolCap);
     }
+    if (d_binv != nullptr)
+    {
+      SCIPrationalFreeArray(&d_binv, d_binvCap);
+    }
     if (d_lpi != nullptr)
     {
       SCIPlpiExactFree(&d_lpi);
     }
   }
 
+  /** Grows a rational buffer geometrically to capacity n, or nulls it. */
+  static SCIP_RATIONAL** growBuffer(SCIP_RATIONAL**& buf, int& cap, int n)
+  {
+    if (cap < n)
+    {
+      if (buf != nullptr)
+      {
+        SCIPrationalFreeArray(&buf, cap);
+        buf = nullptr;
+      }
+      int newCap = cap == 0 ? 16 : cap;
+      while (newCap < n)
+      {
+        newCap *= 2;
+      }
+      if (SCIPrationalCreateArray(&buf, newCap) != SCIP_OKAY)
+      {
+        buf = nullptr;
+        cap = 0;
+        return nullptr;
+      }
+      cap = newCap;
+    }
+    return buf;
+  }
+
   /** Returns the primal solution buffer with capacity for ncols, or null. */
   SCIP_RATIONAL** primsolBuffer(int ncols)
   {
-    if (d_primsolCap < ncols)
-    {
-      if (d_primsol != nullptr)
-      {
-        SCIPrationalFreeArray(&d_primsol, d_primsolCap);
-        d_primsol = nullptr;
-      }
-      // grow geometrically to amortize reallocation
-      int cap = d_primsolCap == 0 ? 16 : d_primsolCap;
-      while (cap < ncols)
-      {
-        cap *= 2;
-      }
-      if (SCIPrationalCreateArray(&d_primsol, cap) != SCIP_OKAY)
-      {
-        d_primsol = nullptr;
-        d_primsolCap = 0;
-        return nullptr;
-      }
-      d_primsolCap = cap;
-    }
-    return d_primsol;
+    return growBuffer(d_primsol, d_primsolCap, ncols);
+  }
+
+  /** Returns the basis inverse row buffer with capacity for nrows, or null. */
+  SCIP_RATIONAL** binvBuffer(int nrows)
+  {
+    return growBuffer(d_binv, d_binvCap, nrows);
   }
 
   /** Frees the scratch rationals. */
@@ -508,6 +530,7 @@ bool ScipSimplexDecisionProcedure::ensureLp()
       else
       {
         p.d_boundOrigin.clear();
+        p.d_boundIsLower.clear();
       }
     }
   }
@@ -687,6 +710,7 @@ bool ScipSimplexDecisionProcedure::addBoundRows(ScipSimplexProblem& p,
       CVC5_SCIP_CALL_FALSE(SCIPlpiExactAddRows(
           p.d_lpi, 1, lhs, rhs, nullptr, nnonz, beg, ind, val));
       p.d_boundOrigin.push_back(bc);
+      p.d_boundIsLower.push_back(lower);
     }
   }
   return true;
@@ -1145,6 +1169,258 @@ void ScipSimplexDecisionProcedure::propagateFromLp(ScipSimplexProblem& p)
   }
 }
 
+void ScipSimplexDecisionProcedure::propagateBasisRows(ScipSimplexProblem& p)
+{
+  TimerStat::CodeTimer codeTimer(d_statistics.d_basisPropTime);
+  NodeManager* nm = nodeManager();
+  bool produceProofs = options().smt.produceProofs;
+
+  int nrows = p.numRows();
+  int ntab = p.numTabRows();
+  if (nrows == 0)
+  {
+    return;
+  }
+
+  // The basis status of columns and rows and the basis index map (which
+  // column or row slack is basic in which basis row); plain int arrays.
+  std::vector<int> cstat(p.d_ncols), rstat(nrows), bind(nrows);
+  if (SCIPlpiExactGetBase(p.d_lpi, cstat.data(), rstat.data()) != SCIP_OKAY
+      || SCIPlpiExactGetBasisInd(p.d_lpi, bind.data()) != SCIP_OKAY)
+  {
+    Trace("arith::scip") << "scip basis information unavailable" << endl;
+    return;
+  }
+  std::vector<int> basisRowOfCol(p.d_ncols, -1);
+  for (int k = 0; k < nrows; ++k)
+  {
+    if (bind[k] >= 0)
+    {
+      basisRowOfCol[bind[k]] = k;
+    }
+  }
+  // Free nonbasic columns are pinned at zero; a basis row combining one
+  // admits no entailed bound. Track them (other than delta, handled by its
+  // own accumulator) so such rows can be skipped; typically there are none.
+  std::vector<int> zeroColIndex(p.d_ncols, -1);
+  size_t numZeroCols = 0;
+  for (int c = 1; c < p.d_ncols; ++c)
+  {
+    if (cstat[c] == SCIP_BASESTAT_ZERO)
+    {
+      zeroColIndex[c] = static_cast<int>(numZeroCols++);
+    }
+  }
+
+  for (ArithVar v : p.d_avars)
+  {
+    if (!d_constraintDatabase.variableDatabaseIsSetup(v))
+    {
+      continue;
+    }
+    // candidate pruning, as in the probe path, per side
+    const DeltaRational& mv = d_variables.getAssignment(v);
+    bool want[2];  // [0] = lower, [1] = upper
+    for (bool lower : {true, false})
+    {
+      ConstraintP best = d_constraintDatabase.getBestImpliedBound(
+          v, lower ? LowerBound : UpperBound, mv);
+      want[lower ? 0 : 1] =
+          best != NullConstraint && !best->assertedToTheTheory()
+          && !best->hasProof() && best->canBePropagated();
+    }
+    if (!want[0] && !want[1])
+    {
+      continue;
+    }
+    int col = p.d_toCol[v];
+    if (cstat[col] != SCIP_BASESTAT_BASIC || basisRowOfCol[col] < 0)
+    {
+      continue;
+    }
+    SCIP_RATIONAL** binv = p.binvBuffer(nrows);
+    if (binv == nullptr)
+    {
+      return;
+    }
+    // Note that the sparsity arguments are mandatory (the exact LPI writes
+    // them unconditionally), and on success only the listed entries of the
+    // coefficient array are valid.
+    std::vector<int> binvInds(nrows);
+    int binvNnz = -1;
+    if (SCIPlpiExactGetBInvRow(
+            p.d_lpi, basisRowOfCol[col], binv, binvInds.data(), &binvNnz)
+        != SCIP_OKAY)
+    {
+      Trace("arith::scip") << "scip basis inverse row unavailable" << endl;
+      return;
+    }
+    // On success the result is packed: coefficient i (at the front of the
+    // coefficient array) belongs to row binvInds[i]. A negative count means
+    // a dense result, where coefficient r belongs to row r.
+    bool binvPacked = binvNnz >= 0;
+    if (!binvPacked)
+    {
+      binvNnz = nrows;
+    }
+    ++d_statistics.d_basisRows;
+
+    // One scan of the basis inverse row: collect the antecedent bound rows
+    // (nonbasic slacks at their finite side) with their exact coefficients
+    // and the implied bounds per direction in DeltaRational arithmetic, and
+    // accumulate the combination's coefficients on the delta column and on
+    // any free nonbasic column (sparse dots binv * A_c over our own rows;
+    // a nonzero entry on either invalidates the row).
+    bool okRow = true;
+    bool ok[2] = {want[0], want[1]};
+    DeltaRational bound[2] = {DeltaRational(0), DeltaRational(0)};
+    std::vector<std::pair<ConstraintCP, Rational>> ants;
+    Rational deltaAcc(0);
+    std::vector<Rational> zeroAcc(numZeroCols, Rational(0));
+    for (int i = 0; okRow && i < binvNnz; ++i)
+    {
+      int r = binvPacked ? binvInds[i] : i;
+      if (SCIPrationalIsZero(binv[i]))
+      {
+        continue;
+      }
+      // the representation coefficient of the row activity x_r in
+      // v = sum_r a_r * x_r
+      Rational a = scipRationalToRational(binv[i]);
+      if (r < ntab)
+      {
+        // Definitional tableau row: its slack is fixed at zero (no value,
+        // no antecedent), but the row's columns contribute to the dots.
+        if (numZeroCols != 0)
+        {
+          int bc = p.d_toCol[p.d_tabBasics[r]];
+          if (zeroColIndex[bc] >= 0)
+          {
+            zeroAcc[zeroColIndex[bc]] -= a;  // basic variable coefficient -1
+          }
+          for (const auto& [var, coeff] : p.d_tabRows[r])
+          {
+            int cc = p.d_toCol[var];
+            if (zeroColIndex[cc] >= 0)
+            {
+              zeroAcc[zeroColIndex[cc]] += a * coeff;
+            }
+          }
+        }
+        continue;
+      }
+      size_t bidx = r - ntab;
+      ConstraintCP origin = p.d_boundOrigin[bidx];
+      bool rowLower = p.d_boundIsLower[bidx];
+      const DeltaRational& value = origin->getValue();
+      // dot contributions: A[r][delta] = -k for strict rows, A[r][col(x)] = 1
+      if (!value.getInfinitesimalPart().isZero())
+      {
+        deltaAcc = deltaAcc - a * value.getInfinitesimalPart();
+      }
+      if (numZeroCols != 0)
+      {
+        int oc = p.d_toCol[origin->getVariable()];
+        if (zeroColIndex[oc] >= 0)
+        {
+          zeroAcc[zeroColIndex[oc]] += a;
+        }
+      }
+      if (rstat[r] == SCIP_BASESTAT_BASIC)
+      {
+        // the slack is inside the basis; not part of the representation
+        continue;
+      }
+      // The nonbasic slack must sit at its (single) finite side.
+      if (rstat[r]
+          != (rowLower ? SCIP_BASESTAT_LOWER : SCIP_BASESTAT_UPPER))
+      {
+        okRow = false;
+        break;
+      }
+      // Direction usability: an entry with coefficient a needs its upper
+      // (lower) side finite for the upper (lower) implied bound of v when
+      // a > 0, and vice versa.
+      int sgn = a.sgn();
+      Assert(sgn != 0);
+      bool entryForUpper = (sgn > 0) ? !rowLower : rowLower;
+      if (entryForUpper)
+      {
+        ok[0] = false;  // unusable for the lower bound of v
+        if (ok[1])
+        {
+          bound[1] = bound[1] + value * a;
+        }
+      }
+      else
+      {
+        ok[1] = false;
+        if (ok[0])
+        {
+          bound[0] = bound[0] + value * a;
+        }
+      }
+      ants.emplace_back(origin, a);
+    }
+    if (!okRow || (!ok[0] && !ok[1]) || ants.empty()
+        || !deltaAcc.isZero())
+    {
+      continue;
+    }
+    if (std::any_of(zeroAcc.begin(), zeroAcc.end(), [](const Rational& q) {
+          return !q.isZero();
+        }))
+    {
+      continue;
+    }
+
+    for (bool lower : {true, false})
+    {
+      if (!ok[lower ? 0 : 1])
+      {
+        continue;
+      }
+      ConstraintType t = lower ? LowerBound : UpperBound;
+      ConstraintP implied = d_constraintDatabase.getBestImpliedBound(
+          v, t, bound[lower ? 0 : 1]);
+      if (implied == NullConstraint || implied->assertedToTheTheory()
+          || implied->hasProof() || !implied->canBePropagated()
+          || implied->negationHasProof())
+      {
+        continue;
+      }
+      // Certificate by the basis identity: v == sum a_r * x_r over the
+      // antecedent rows; the coefficient conventions are as in the probe
+      // path (cf. Constraint::wellFormedFarkasProof).
+      ConstraintCPVec antecedents;
+      RationalVector coeffs;
+      RationalVectorP coeffsP = nullptr;
+      if (produceProofs)
+      {
+        coeffs.push_back(lower ? Rational(1) : Rational(-1));
+      }
+      for (const auto& [origin, a] : ants)
+      {
+        antecedents.push_back(origin);
+        if (produceProofs)
+        {
+          coeffs.push_back(lower ? -a : a);
+        }
+      }
+      if (produceProofs)
+      {
+        coeffsP = &coeffs;
+      }
+      implied->impliedByFarkas(nm, antecedents, coeffsP, false);
+      implied->tryToPropagate();
+      ++d_statistics.d_propagatedAtoms;
+      Trace("arith::scip") << "scip propagated " << implied
+                           << " from basis row of v" << v << " ("
+                           << antecedents.size() << " antecedents)" << endl;
+    }
+  }
+}
+
 Result::Status ScipSimplexDecisionProcedure::solveWithScip(bool exactResult)
 {
   TimerStat::CodeTimer codeTimer(d_statistics.d_scipTime);
@@ -1162,13 +1438,26 @@ Result::Status ScipSimplexDecisionProcedure::solveWithScip(bool exactResult)
     {
       ++d_statistics.d_scipSat;
       Result::Status res = importModel(p);
-      // Propagation runs at every effort: below full effort is where it can
-      // get ahead of the SAT solver's decisions (at full effort the trail
-      // is already complete). The candidate pruning in propagateFromLp
-      // bounds its cost.
-      if (res == Result::SAT && options().arith.arithScipPropagate)
+      // Note that propagation below full effort is where it can get ahead
+      // of the SAT solver's decisions (at full effort the trail is already
+      // complete), but it is also performed much more often there; the
+      // effort option selects the schedule.
+      if (res == Result::SAT
+          && options().arith.arithScipPropagation
+                 != options::ArithScipPropagationMode::NONE
+          && (exactResult
+              || options().arith.arithScipPropagationEffort
+                     == options::ArithScipPropagationEffort::ALL))
       {
-        propagateFromLp(p);
+        if (options().arith.arithScipPropagation
+            == options::ArithScipPropagationMode::BASIS)
+        {
+          propagateBasisRows(p);
+        }
+        else
+        {
+          propagateFromLp(p);
+        }
       }
       return res;
     }

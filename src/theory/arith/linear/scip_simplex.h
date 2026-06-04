@@ -119,6 +119,22 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   bool probeSolve(ScipSimplexProblem& p, Rational& value);
 
   /**
+   * Theory propagation from the optimal basis of the just-solved feasible
+   * LP of p, as a by-product of the feasibility check: no additional LP
+   * solves are performed and the stored solution and basis remain valid.
+   * For each candidate variable (same atom-based pruning as the probe
+   * path) that is basic, the exact row of the basis inverse
+   * (SCIPlpiExactGetBInvRow) expresses it as an affine combination of
+   * nonbasic bound-row slacks sitting at their bounds, yielding implied
+   * bounds in DeltaRational arithmetic (strictness included) together
+   * with their Farkas certificate (the row coefficients). Rows whose
+   * combination involves the delta column or a nonbasic free column are
+   * skipped. This has the strength of one-row bound inference, on SCIP's
+   * final basis.
+   */
+  void propagateBasisRows(ScipSimplexProblem& p);
+
+  /**
    * Builds the exact LP into p from scratch: the delta column and one free
    * column per arithmetic variable, one row per tableau equality, and one
    * row per included bound constraint (all bounds if filter is null). The
@@ -240,7 +256,11 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     IntStat d_probes;
     /** Time spent in bound probing and propagation. */
     TimerStat d_probeTime;
-    /** Atoms propagated from probe results. */
+    /** Basis inverse rows read for by-product propagation. */
+    IntStat d_basisRows;
+    /** Time spent in basis-row propagation. */
+    TimerStat d_basisPropTime;
+    /** Atoms propagated (probe or basis mode). */
     IntStat d_propagatedAtoms;
 
     Statistics(StatisticsRegistry& sr);
