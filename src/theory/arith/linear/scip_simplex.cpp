@@ -48,10 +48,12 @@ ScipSimplexDecisionProcedure::ScipSimplexDecisionProcedure(
     Env& env,
     LinearEqualityModule& linEq,
     ErrorSet& errors,
+    ConstraintDatabase& constraintDatabase,
     RaiseConflict conflictChannel,
     RaiseBlackBoxConflict bbConflictChannel,
     TempVarMalloc tvmalloc)
     : SimplexDecisionProcedure(env, linEq, errors, conflictChannel, tvmalloc),
+      d_constraintDatabase(constraintDatabase),
       d_bbConflictChannel(bbConflictChannel),
       d_statistics(statisticsRegistry())
 {
@@ -70,15 +72,18 @@ ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
       d_auxSolves(sr.registerInt("theory::arith::scip::auxSolves")),
       d_lpRebuilds(sr.registerInt("theory::arith::scip::lpRebuilds")),
       d_lpRefreshes(sr.registerInt("theory::arith::scip::lpRefreshes")),
-      d_modelImports(sr.registerInt("theory::arith::scip::modelImports"))
+      d_modelImports(sr.registerInt("theory::arith::scip::modelImports")),
+      d_probes(sr.registerInt("theory::arith::scip::probes")),
+      d_probeTime(sr.registerTimer("theory::arith::scip::probeTime")),
+      d_propagatedAtoms(sr.registerInt("theory::arith::scip::propagatedAtoms"))
 {
 }
 
-Result::Status ScipSimplexDecisionProcedure::findModel(
-    CVC5_UNUSED bool exactResult)
+Result::Status ScipSimplexDecisionProcedure::findModel(bool exactResult)
 {
   // Note that in contrast to the pivot-based procedures, SCIP always solves
-  // the problem completely, i.e. exactResult does not limit the search.
+  // the problem completely, i.e. exactResult does not limit the search; it
+  // only gates the bound probing for theory propagation (full effort only).
   Assert(d_conflictVariables.empty());
   d_pivots = 0;
 
@@ -106,7 +111,7 @@ Result::Status ScipSimplexDecisionProcedure::findModel(
   Trace("arith::findModel") << "scipFindModel() start non-trivial" << endl;
 
 #ifdef CVC5_USE_SCIP
-  return solveWithScip();
+  return solveWithScip(exactResult);
 #else
   Unreachable() << "cvc5 was not compiled with SCIP support";
 #endif
@@ -999,7 +1004,148 @@ Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
   return raiseConflictOver(all);
 }
 
-Result::Status ScipSimplexDecisionProcedure::solveWithScip()
+bool ScipSimplexDecisionProcedure::probeSolve(ScipSimplexProblem& p,
+                                              Rational& value)
+{
+  ++d_statistics.d_probes;
+  SCIP_RETCODE solveRc;
+  {
+    StreamSilencer silencer;
+    solveRc = SCIPlpiExactSolveDual(p.d_lpi);
+  }
+  if (solveRc != SCIP_OKAY || !SCIPlpiExactIsOptimal(p.d_lpi))
+  {
+    return false;
+  }
+  SCIP_RATIONAL* objval = p.mkRat();
+  if (objval == nullptr
+      || SCIPlpiExactGetObjval(p.d_lpi, objval) != SCIP_OKAY
+      || SCIPrationalIsAbsInfinity(objval))
+  {
+    return false;
+  }
+  value = scipRationalToRational(objval);
+  return true;
+}
+
+void ScipSimplexDecisionProcedure::propagateFromLp(ScipSimplexProblem& p)
+{
+  TimerStat::CodeTimer codeTimer(d_statistics.d_probeTime);
+  NodeManager* nm = nodeManager();
+  bool produceProofs = options().smt.produceProofs;
+
+  // The delta column leaves the objective for the duration of the probes
+  // (restored below); each probe puts a single variable into the objective.
+  int ind[1] = {0};
+  SCIP_RATIONAL* objs[1] = {p.d_zero};
+  if (SCIPlpiExactChgObj(p.d_lpi, 1, ind, objs) != SCIP_OKAY)
+  {
+    return;
+  }
+  SCIP_RATIONAL* minusOne = p.mkRat(Rational(-1));
+
+  for (ArithVar v : p.d_avars)
+  {
+    if (!d_constraintDatabase.variableDatabaseIsSetup(v))
+    {
+      continue;
+    }
+    for (bool lower : {true, false})
+    {
+      // An atom can only be newly entailed if it holds in the LP model (the
+      // current assignment, just imported) and is not already proven: check
+      // the strongest atom on the model-value side of the variable.
+      ConstraintType t = lower ? LowerBound : UpperBound;
+      const DeltaRational& mv = d_variables.getAssignment(v);
+      ConstraintP best = d_constraintDatabase.getBestImpliedBound(v, t, mv);
+      if (best == NullConstraint || best->assertedToTheTheory()
+          || best->hasProof() || !best->canBePropagated())
+      {
+        continue;
+      }
+      // Probe: the exact strongest implied bound of v is the optimum of
+      // (maximize v) for upper bounds, and of (maximize -v), negated, for
+      // lower bounds. The probe solves the closure (delta free in [0,1]),
+      // so the derived bound is a sound non-strict bound of the
+      // delta-rational system.
+      ind[0] = p.d_toCol[v];
+      objs[0] = lower ? minusOne : p.d_one;
+      if (minusOne == nullptr
+          || SCIPlpiExactChgObj(p.d_lpi, 1, ind, objs) != SCIP_OKAY)
+      {
+        break;
+      }
+      Rational b;
+      // Note that the certificate must be consumed before the objective is
+      // restored below, which invalidates the stored LP solution.
+      if (probeSolve(p, b))
+      {
+        if (lower)
+        {
+          b = -b;
+        }
+        ConstraintP implied =
+            d_constraintDatabase.getBestImpliedBound(v, t, DeltaRational(b));
+        if (implied != NullConstraint && !implied->assertedToTheTheory()
+            && !implied->hasProof() && implied->canBePropagated()
+            && !implied->negationHasProof())
+        {
+          // The optimal dual solution of the probe is the Farkas derivation
+          // of the bound: by dual feasibility, the multipliers y of the
+          // bound rows satisfy (sum_r y_r * x_r) == objective == +/-v as
+          // polynomials once the auxiliary variables are expanded by their
+          // definitions (the tableau row multipliers perform exactly that
+          // substitution). The antecedent coefficients are hence the raw
+          // multipliers, and the implied (weaker) atom has coefficient -1
+          // (upper probes, objective +v) or +1 (lower probes, objective
+          // -v), making the polynomial sum of the proof zero (cf.
+          // Constraint::wellFormedFarkasProof; coeffs[0] is for the implied
+          // constraint as in rowImplicationCanBeApplied).
+          p.d_lastWasFarkas = false;
+          ConstraintCPVec antecedents;
+          std::vector<Rational> dualCoeffs;
+          if (extractCertificate(p, antecedents, dualCoeffs))
+          {
+            RationalVector coeffs;
+            RationalVectorP coeffsP = nullptr;
+            if (produceProofs)
+            {
+              coeffs.push_back(lower ? Rational(1) : Rational(-1));
+              coeffs.insert(coeffs.end(), dualCoeffs.begin(), dualCoeffs.end());
+              coeffsP = &coeffs;
+            }
+            implied->impliedByFarkas(nm, antecedents, coeffsP, false);
+            implied->tryToPropagate();
+            ++d_statistics.d_propagatedAtoms;
+            Trace("arith::scip")
+                << "scip propagated " << implied << " from probe "
+                << (lower ? "lb " : "ub ") << v << " = " << b << " ("
+                << antecedents.size() << " antecedents)" << endl;
+          }
+        }
+      }
+      // take the variable back out of the objective
+      objs[0] = p.d_zero;
+      if (SCIPlpiExactChgObj(p.d_lpi, 1, ind, objs) != SCIP_OKAY)
+      {
+        break;
+      }
+    }
+  }
+
+  // restore the delta objective
+  ind[0] = 0;
+  objs[0] = p.d_one;
+  if (SCIPlpiExactChgObj(p.d_lpi, 1, ind, objs) != SCIP_OKAY)
+  {
+    // The LP would maximize a zero objective on the next solve, which is
+    // sound but loses the strictness test; force a rebuild instead.
+    warning() << "SCIP failed to restore the delta objective" << std::endl;
+    d_persistent.reset();
+  }
+}
+
+Result::Status ScipSimplexDecisionProcedure::solveWithScip(bool exactResult)
 {
   TimerStat::CodeTimer codeTimer(d_statistics.d_scipTime);
   ++d_statistics.d_scipCalls;
@@ -1013,8 +1159,19 @@ Result::Status ScipSimplexDecisionProcedure::solveWithScip()
   switch (solveLp(p))
   {
     case ScipSolveResult::FEASIBLE:
+    {
       ++d_statistics.d_scipSat;
-      return importModel(p);
+      Result::Status res = importModel(p);
+      // Propagation runs at every effort: below full effort is where it can
+      // get ahead of the SAT solver's decisions (at full effort the trail
+      // is already complete). The candidate pruning in propagateFromLp
+      // bounds its cost.
+      if (res == Result::SAT && options().arith.arithScipPropagate)
+      {
+        propagateFromLp(p);
+      }
+      return res;
+    }
     case ScipSolveResult::INFEASIBLE:
       ++d_statistics.d_scipUnsat;
       return raiseScipConflict(p);
@@ -1044,7 +1201,8 @@ struct ScipSimplexProblem
 ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
 
 #ifdef CVC5_USE_SCIP
-Result::Status ScipSimplexDecisionProcedure::solveWithScip()
+Result::Status ScipSimplexDecisionProcedure::solveWithScip(
+    CVC5_UNUSED bool exactResult)
 {
   Unreachable()
       << "The SCIP-based simplex requires cvc5 to be built with GMP (not CLN)";

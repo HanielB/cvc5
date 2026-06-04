@@ -25,6 +25,7 @@ namespace cvc5::internal {
 namespace theory {
 namespace arith::linear {
 
+class ConstraintDatabase;
 struct ScipSimplexProblem;
 
 /**
@@ -55,6 +56,7 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   ScipSimplexDecisionProcedure(Env& env,
                                LinearEqualityModule& linEq,
                                ErrorSet& errors,
+                               ConstraintDatabase& constraintDatabase,
                                RaiseConflict conflictChannel,
                                RaiseBlackBoxConflict bbConflictChannel,
                                TempVarMalloc tvmalloc);
@@ -86,8 +88,35 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
    * the import below full effort caused an order-of-magnitude regression
    * (every new-fact batch forced an LP re-solve) and interacted unsoundly
    * with the integer layer, which branches on assignment values.
+   *
+   * On feasible full-effort checks (exactResult), theory propagation by
+   * exact objective probing is performed when enabled (see
+   * propagateFromLp).
    */
-  Result::Status solveWithScip();
+  Result::Status solveWithScip(bool exactResult);
+
+  /**
+   * Theory propagation by exact bound probing (objective-based bound
+   * tightening) on the just-solved feasible LP of p: for each variable
+   * with an unassigned atom that holds in the LP model (a necessary
+   * condition for entailment), the exact strongest implied bound is
+   * computed by re-solving the LP with the variable as the (maximized or
+   * minimized) objective, warm-started from the previous basis. The
+   * strongest existing atom entailed by that bound (per
+   * ConstraintDatabase::getBestImpliedBound) is then marked as implied,
+   * with the optimal dual solution of the probe providing the antecedent
+   * bound constraints and exact Farkas coefficients, and is enqueued for
+   * propagation (Constraint::tryToPropagate); the existing machinery emits
+   * it and builds its explanation lazily on demand.
+   */
+  void propagateFromLp(ScipSimplexProblem& p);
+
+  /**
+   * Solves the LP of p (warm-started) for the current objective and
+   * returns true if it is optimal with finite optimum, storing the exact
+   * optimum in value.
+   */
+  bool probeSolve(ScipSimplexProblem& p, Rational& value);
 
   /**
    * Builds the exact LP into p from scratch: the delta column and one free
@@ -176,6 +205,8 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   /** Collects all currently asserted bound constraints. */
   void collectAllBounds(ConstraintCPVec& bounds) const;
 
+  /** The database of constraints (atoms), for matching propagations. */
+  ConstraintDatabase& d_constraintDatabase;
   /** Channel for raising node-based (black box) conflicts. */
   RaiseBlackBoxConflict d_bbConflictChannel;
 
@@ -205,6 +236,12 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     IntStat d_lpRefreshes;
     /** Materialized model imports. */
     IntStat d_modelImports;
+    /** Bound probes (LP re-solves with a variable objective). */
+    IntStat d_probes;
+    /** Time spent in bound probing and propagation. */
+    TimerStat d_probeTime;
+    /** Atoms propagated from probe results. */
+    IntStat d_propagatedAtoms;
 
     Statistics(StatisticsRegistry& sr);
   } d_statistics;

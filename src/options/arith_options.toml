@@ -210,6 +210,14 @@ name   = "Arithmetic Theory"
   help       = "solve the real relaxation in linear arithmetic with the SCIP exact rational LP solver instead of the internal simplex (requires a build with --scip)"
 
 [[option]]
+  name       = "arithScipPropagate"
+  category   = "expert"
+  long       = "scip-propagation"
+  type       = "bool"
+  default    = "false"
+  help       = "perform theory propagation from the SCIP exact LP engine by exact objective probing at full effort checks (only relevant with --use-scip-simplex)"
+
+[[option]]
   name       = "restrictedPivots"
   category   = "expert"
   long       = "restrict-pivots"
