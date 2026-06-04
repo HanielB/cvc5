@@ -50,11 +50,9 @@ ScipSimplexDecisionProcedure::ScipSimplexDecisionProcedure(
     ErrorSet& errors,
     ConstraintDatabase& constraintDatabase,
     RaiseConflict conflictChannel,
-    RaiseBlackBoxConflict bbConflictChannel,
     TempVarMalloc tvmalloc)
     : SimplexDecisionProcedure(env, linEq, errors, conflictChannel, tvmalloc),
       d_constraintDatabase(constraintDatabase),
-      d_bbConflictChannel(bbConflictChannel),
       d_statistics(statisticsRegistry())
 {
 }
@@ -70,6 +68,7 @@ ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
       d_subsetConflicts(sr.registerInt("theory::arith::scip::subsetConflicts")),
       d_fallbackConflicts(
           sr.registerInt("theory::arith::scip::fallbackConflicts")),
+      d_certTime(sr.registerTimer("theory::arith::scip::certTime")),
       d_auxSolves(sr.registerInt("theory::arith::scip::auxSolves")),
       d_lpRebuilds(sr.registerInt("theory::arith::scip::lpRebuilds")),
       d_lpRefreshes(sr.registerInt("theory::arith::scip::lpRefreshes")),
@@ -118,11 +117,12 @@ Result::Status ScipSimplexDecisionProcedure::findModel(bool exactResult)
   Result::Status res = solveWithScip(exactResult);
   if (d_declined && d_fallback != nullptr)
   {
-    // The problem contains a constant that cannot be encoded exactly for
-    // SCIP (see the class documentation). Delegate the check to the
-    // conventional procedure; the consumed signals are bookkeeping only
-    // and the error set still holds the violated variables, from which
-    // the fallback derives its verdict.
+    // The check was declined: the problem contains a constant that cannot
+    // be encoded exactly for SCIP, or no certificate was available for an
+    // infeasible system (see the class documentation). Delegate the check
+    // to the conventional procedure; the consumed signals are bookkeeping
+    // only and the error set still holds the violated variables, from
+    // which the fallback derives its verdict.
     Trace("arith::scip") << "scip declined; delegating to fallback" << endl;
     return d_fallback->findModel(exactResult);
   }
@@ -130,26 +130,6 @@ Result::Status ScipSimplexDecisionProcedure::findModel(bool exactResult)
 #else
   Unreachable() << "cvc5 was not compiled with SCIP support";
 #endif
-}
-
-void ScipSimplexDecisionProcedure::collectAllBounds(
-    ConstraintCPVec& bounds) const
-{
-  for (ArithVariables::var_iterator vi = d_variables.var_begin(),
-                                    vend = d_variables.var_end();
-       vi != vend;
-       ++vi)
-  {
-    ArithVar v = *vi;
-    if (d_variables.hasLowerBound(v))
-    {
-      bounds.push_back(d_variables.getLowerBoundConstraint(v));
-    }
-    if (d_variables.hasUpperBound(v))
-    {
-      bounds.push_back(d_variables.getUpperBoundConstraint(v));
-    }
-  }
 }
 
 void ScipSimplexDecisionProcedure::drainSignals()
@@ -160,20 +140,6 @@ void ScipSimplexDecisionProcedure::drainSignals()
     d_errorSet.popSignal();
   }
   d_errorSize = d_errorSet.errorSize();
-}
-
-Result::Status ScipSimplexDecisionProcedure::raiseConflictOver(
-    const ConstraintCPVec& bounds)
-{
-  // The conjunction of the given bound constraints (together with the
-  // tableau equalities, which are definitional) is infeasible. Raise the
-  // conjunction as a black box conflict.
-  Assert(!bounds.empty());
-  Node conflict = Constraint::externalExplainByAssertions(nodeManager(), bounds);
-  Trace("arith::scip") << "scip conflict (" << bounds.size()
-                       << " bounds): " << conflict << endl;
-  d_bbConflictChannel.raiseConflict(conflict);
-  return Result::UNSAT;
 }
 
 #if defined(CVC5_USE_SCIP) && !defined(CVC5_CLN_IMP)
@@ -238,34 +204,6 @@ class StreamSilencer
   int d_savedErr = -1;
 };
 
-/** RAII owner of an array of SCIP rationals. */
-class ScipRationalArray
-{
- public:
-  ScipRationalArray(int size) : d_size(size)
-  {
-    if (SCIPrationalCreateArray(&d_array, size) != SCIP_OKAY)
-    {
-      d_array = nullptr;
-    }
-  }
-
-  ~ScipRationalArray()
-  {
-    if (d_array != nullptr)
-    {
-      SCIPrationalFreeArray(&d_array, d_size);
-    }
-  }
-
-  SCIP_RATIONAL** get() { return d_array; }
-  SCIP_RATIONAL* operator[](int i) { return d_array[i]; }
-
- private:
-  SCIP_RATIONAL** d_array = nullptr;
-  int d_size;
-};
-
 }  // namespace
 
 /**
@@ -322,6 +260,9 @@ struct ScipSimplexProblem
   /** Reusable buffer for basis inverse rows, sized d_binvCap. */
   SCIP_RATIONAL** d_binv = nullptr;
   int d_binvCap = 0;
+  /** Reusable buffer for dual certificates, sized d_dualsCap. */
+  SCIP_RATIONAL** d_duals = nullptr;
+  int d_dualsCap = 0;
 
   int numTabRows() const { return static_cast<int>(d_tabBasics.size()); }
   int numRows() const
@@ -346,6 +287,10 @@ struct ScipSimplexProblem
     if (d_binv != nullptr)
     {
       SCIPrationalFreeArray(&d_binv, d_binvCap);
+    }
+    if (d_duals != nullptr)
+    {
+      SCIPrationalFreeArray(&d_duals, d_dualsCap);
     }
     if (d_lpi != nullptr)
     {
@@ -389,6 +334,12 @@ struct ScipSimplexProblem
   SCIP_RATIONAL** binvBuffer(int nrows)
   {
     return growBuffer(d_binv, d_binvCap, nrows);
+  }
+
+  /** Returns the dual certificate buffer with capacity for nrows, or null. */
+  SCIP_RATIONAL** dualsBuffer(int nrows)
+  {
+    return growBuffer(d_duals, d_dualsCap, nrows);
   }
 
   /** Frees the scratch rationals. */
@@ -962,7 +913,7 @@ Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
 bool ScipSimplexDecisionProcedure::extractCertificate(
     ScipSimplexProblem& p,
     ConstraintCPVec& constraints,
-    std::vector<Rational>& coeffs)
+    std::vector<Rational>* coeffs)
 {
   // The certificate of infeasibility is the exact dual Farkas ray if the LP
   // itself was infeasible. If instead the LP was optimal with a zero delta
@@ -973,29 +924,32 @@ bool ScipSimplexDecisionProcedure::extractCertificate(
   // delta-rational system, with the multipliers as Farkas coefficients (the
   // definitional tableau rows may participate as well, but their multipliers
   // only perform the substitution of the row polynomials and are not part of
-  // explanations).
+  // explanations). The multipliers are converted only when coeffs is given
+  // (they are needed for proofs only); the certificate itself is read at
+  // every conflict, as its support is what minimizes the conflict.
+  TimerStat::CodeTimer codeTimer(d_statistics.d_certTime);
   int nrows = p.numRows();
   int ntab = p.numTabRows();
-  ScipRationalArray duals(nrows);
-  if (duals.get() == nullptr)
-  {
-    return false;
-  }
+  SCIP_RATIONAL** duals = p.dualsBuffer(nrows);
+  CVC5_SCIP_CHECK_RAT_FALSE(duals);
   if (p.d_lastWasFarkas)
   {
-    CVC5_SCIP_CALL_FALSE(SCIPlpiExactGetDualfarkas(p.d_lpi, duals.get()));
+    CVC5_SCIP_CALL_FALSE(SCIPlpiExactGetDualfarkas(p.d_lpi, duals));
   }
   else
   {
     CVC5_SCIP_CALL_FALSE(SCIPlpiExactGetSol(
-        p.d_lpi, nullptr, nullptr, duals.get(), nullptr, nullptr));
+        p.d_lpi, nullptr, nullptr, duals, nullptr, nullptr));
   }
   for (int i = ntab; i < nrows; ++i)
   {
     if (!SCIPrationalIsZero(duals[i]))
     {
       constraints.push_back(p.d_boundOrigin[i - ntab]);
-      coeffs.push_back(scipRationalToRational(duals[i]));
+      if (coeffs != nullptr)
+      {
+        coeffs->push_back(scipRationalToRational(duals[i]));
+      }
     }
   }
   Trace("arith::scip") << "scip dual certificate: " << constraints.size()
@@ -1007,9 +961,13 @@ bool ScipSimplexDecisionProcedure::extractCertificate(
 Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
     ScipSimplexProblem& p)
 {
+  // The Farkas coefficients are needed for the proof of the conflict only;
+  // without proofs the conflict builder ignores them.
+  bool produceProofs = options().smt.produceProofs;
   ConstraintCPVec constraints;
   std::vector<Rational> coeffs;
-  if (extractCertificate(p, constraints, coeffs) && constraints.size() >= 2)
+  if (extractCertificate(p, constraints, produceProofs ? &coeffs : nullptr)
+      && constraints.size() >= 2)
   {
     // The certificate is exact, so its support is a genuine infeasible
     // subset. In assertion builds this is double-checked by an exact
@@ -1029,6 +987,7 @@ Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
     // in LinearEqualityModule::minimallyWeakConflict. The consequent must be
     // a constraint whose negation is not yet proven; it is added last.
     Assert(!d_conflictBuilder->underConstruction());
+    const Rational one(1);
     size_t consequent = constraints.size();
     for (size_t i = constraints.size(); i-- > 0;)
     {
@@ -1044,11 +1003,12 @@ Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
       {
         if (i != consequent)
         {
-          d_conflictBuilder->addConstraint(constraints[i], coeffs[i]);
+          d_conflictBuilder->addConstraint(constraints[i],
+                                           produceProofs ? coeffs[i] : one);
         }
       }
-      d_conflictBuilder->addConstraint(constraints[consequent],
-                                       coeffs[consequent]);
+      d_conflictBuilder->addConstraint(
+          constraints[consequent], produceProofs ? coeffs[consequent] : one);
       d_conflictBuilder->makeLastConsequent();
       ConstraintCP conflicted = d_conflictBuilder->commitConflict(nodeManager());
       ++d_statistics.d_subsetConflicts;
@@ -1061,23 +1021,17 @@ Result::Status ScipSimplexDecisionProcedure::raiseScipConflict(
     d_conflictBuilder->reset();
   }
 
-  if (options().smt.produceProofs)
-  {
-    // Without a certificate no proof-carrying conflict can be built. Give
-    // up on this check; reporting unknown is sound.
-    warning() << "The SCIP-based simplex found an infeasible system but no "
-                 "certificate for it; giving up on this check"
-              << std::endl;
-    ++d_statistics.d_scipUnknown;
-    return Result::UNKNOWN;
-  }
-
-  // Fall back to a black box conflict over the full bound set, which is
-  // infeasible by the main solve.
-  ConstraintCPVec all;
-  collectAllBounds(all);
+  // No usable certificate (possible, e.g., when the exact LP interface
+  // cannot provide the dual values; never observed on regression corpora).
+  // The system is infeasible, but rather than weaken to an unminimized
+  // conflict, decline so that findModel delegates the check to the
+  // conventional procedure, which re-derives a minimal conflict (with a
+  // proof when proofs are enabled).
+  Trace("arith::scip") << "scip conflict without certificate; declining"
+                       << endl;
   ++d_statistics.d_fallbackConflicts;
-  return raiseConflictOver(all);
+  d_declined = true;
+  return Result::UNKNOWN;
 }
 
 bool ScipSimplexDecisionProcedure::probeSolve(ScipSimplexProblem& p,
@@ -1180,7 +1134,8 @@ void ScipSimplexDecisionProcedure::propagateFromLp(ScipSimplexProblem& p)
           p.d_lastWasFarkas = false;
           ConstraintCPVec antecedents;
           std::vector<Rational> dualCoeffs;
-          if (extractCertificate(p, antecedents, dualCoeffs))
+          if (extractCertificate(
+                  p, antecedents, produceProofs ? &dualCoeffs : nullptr))
           {
             RationalVector coeffs;
             RationalVectorP coeffsP = nullptr;
@@ -1514,8 +1469,14 @@ Result::Status ScipSimplexDecisionProcedure::solveWithScip(bool exactResult)
       return res;
     }
     case ScipSolveResult::INFEASIBLE:
-      ++d_statistics.d_scipUnsat;
-      return raiseScipConflict(p);
+    {
+      Result::Status res = raiseScipConflict(p);
+      if (res == Result::UNSAT)
+      {
+        ++d_statistics.d_scipUnsat;
+      }
+      return res;
+    }
     case ScipSolveResult::UNKNOWN:
     default:
       ++d_statistics.d_scipUnknown;

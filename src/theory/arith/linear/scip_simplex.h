@@ -44,15 +44,18 @@ struct ScipSimplexProblem;
  * On SAT, the exact rational solution is imported into the partial model by
  * updating the nonbasic variables (basic variables follow via the tableau).
  * On UNSAT, the exact dual certificate of the LP identifies the
- * participating bound constraints and their Farkas coefficients, from which
- * a native Farkas conflict (with a proof, if enabled) is raised.
+ * participating bound constraints (the minimized conflict) and their Farkas
+ * coefficients (its proof, when proofs are enabled), from which a native
+ * Farkas conflict is raised.
  *
  * SCIP's rational layer coerces any value of absolute value >= its infinity
  * threshold (1e20 by default) to infinity at construction, which would make
  * distinct huge constants indistinguishable in the LP (and unsound). Every
  * constant is therefore checked when it is translated; if any constant of
  * the problem is not exactly encodable, the call is declined and delegated
- * to the conventional simplex procedure registered via setFallback.
+ * to the conventional simplex procedure registered via setFallback. A call
+ * is likewise declined when an infeasible solve yields no usable
+ * certificate, leaving the conflict to the fallback procedure.
  *
  * Only available in builds configured with --scip; the option
  * --use-scip-simplex guards selection of this procedure.
@@ -65,15 +68,14 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
                                ErrorSet& errors,
                                ConstraintDatabase& constraintDatabase,
                                RaiseConflict conflictChannel,
-                               RaiseBlackBoxConflict bbConflictChannel,
                                TempVarMalloc tvmalloc);
   ~ScipSimplexDecisionProcedure();
 
   Result::Status findModel(bool exactResult) override;
 
   /**
-   * Registers the procedure to which findModel delegates when the problem
-   * cannot be encoded exactly for SCIP (see the class documentation).
+   * Registers the procedure to which findModel delegates declined checks
+   * (see the class documentation).
    */
   void setFallback(SimplexDecisionProcedure* fallback)
   {
@@ -207,11 +209,11 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   /**
    * Computes, raises and returns the conflict for an infeasible solve. The
    * exact dual certificate of the LP identifies the participating bound
-   * constraints together with their Farkas coefficients, from which a
-   * native Farkas conflict (with a proof, if proofs are enabled) is built
-   * via the conflict builder. Falls back to a black box conflict over the
-   * full bound set if no certificate is obtained (or, with proofs, gives
-   * up and returns UNKNOWN, which is sound).
+   * constraints (the minimized conflict) together with their Farkas
+   * coefficients, from which a native Farkas conflict (with a proof, if
+   * proofs are enabled) is built via the conflict builder. If no usable
+   * certificate is obtained, the call is declined (returning UNKNOWN) and
+   * findModel delegates the check to the fallback procedure.
    */
   Result::Status raiseScipConflict(ScipSimplexProblem& p);
 
@@ -220,34 +222,26 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
    * last solve of p: the bound rows with nonzero multiplier in the dual
    * Farkas ray (infeasible LP), or in the optimal dual solution (optimal LP
    * whose delta maximum is zero, for which the dual solution proves the
-   * objective bound), together with those exact multipliers. Returns false
-   * if no certificate was obtained.
+   * objective bound). The multipliers are converted into coeffs only if it
+   * is non-null (they are needed for proofs only). Returns false if no
+   * certificate was obtained.
    */
   bool extractCertificate(ScipSimplexProblem& p,
                           ConstraintCPVec& constraints,
-                          std::vector<Rational>& coeffs);
-
-  /**
-   * Raises a black box conflict consisting of the conjunction of the given
-   * bound constraints. This is sound whenever the given bounds together with
-   * the tableau equalities are infeasible, but carries no proof.
-   */
-  Result::Status raiseConflictOver(const ConstraintCPVec& bounds);
-
-  /** Collects all currently asserted bound constraints. */
-  void collectAllBounds(ConstraintCPVec& bounds) const;
+                          std::vector<Rational>* coeffs);
 
   /** The database of constraints (atoms), for matching propagations. */
   ConstraintDatabase& d_constraintDatabase;
-  /** Channel for raising node-based (black box) conflicts. */
-  RaiseBlackBoxConflict d_bbConflictChannel;
 
   /** The persistent LP instance, lazily created by ensureLp. */
   std::unique_ptr<ScipSimplexProblem> d_persistent;
 
-  /** The procedure to delegate to when a problem is not encodable. */
+  /** The procedure to delegate declined checks to, see setFallback. */
   SimplexDecisionProcedure* d_fallback = nullptr;
-  /** Whether the last call was declined (not encodable), see setFallback. */
+  /**
+   * Whether the last call was declined (problem not encodable, or no
+   * certificate for an infeasible solve), see setFallback.
+   */
   bool d_declined = false;
 
   /** These fields are designed to be accessible to TheoryArith methods. */
@@ -265,8 +259,10 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     IntStat d_scipDeclined;
     /** Conflicts raised over a verified minimal candidate subset. */
     IntStat d_subsetConflicts;
-    /** Conflicts raised over the full bound set (no usable subset). */
+    /** Infeasible checks declined to the fallback (no usable certificate). */
     IntStat d_fallbackConflicts;
+    /** Time spent extracting conflict certificates. */
+    TimerStat d_certTime;
     /** Additional exact solves for harvesting duals and verification. */
     IntStat d_auxSolves;
     /** Full (re)builds of the persistent LP instance. */
