@@ -1,5 +1,5 @@
 ; REQUIRES: scip
-; COMMAND-LINE: --use-scip-simplex
+; COMMAND-LINE: --use-scip
 ; EXPECT: sat
 (set-logic QF_LIA)
 (declare-fun x () Int)

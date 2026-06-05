@@ -14,10 +14,21 @@
 #include "theory/arith/linear/scip_simplex.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <fstream>
+#include <map>
+#include <sstream>
+#include <unordered_map>
 
 #include "base/output.h"
+#include "expr/node_builder.h"
 #include "options/arith_options.h"
 #include "options/smt_options.h"
+#include "proof/proof_checker.h"
+#include "proof/proof_node.h"
+#include "proof/proof_node_algorithm.h"
+#include "proof/proof_node_manager.h"
+#include "smt/env.h"
 #include "theory/arith/linear/constraint.h"
 #include "theory/arith/linear/error_set.h"
 #include "theory/arith/linear/linear_equality.h"
@@ -27,8 +38,12 @@
 
 #ifdef CVC5_USE_SCIP
 #include <lpiexact/lpiexact.h>
+#include <scip/cons_exactlinear.h>
 #include <scip/def.h>
 #include <scip/rational.h>
+#include <scip/scip.h>
+#include <scip/scip_exact.h>
+#include <scip/scipdefplugins.h>
 #ifndef CVC5_CLN_IMP
 #include <scip/rationalgmp.h>
 #endif /* CVC5_CLN_IMP */
@@ -77,7 +92,15 @@ ScipSimplexDecisionProcedure::Statistics::Statistics(StatisticsRegistry& sr)
       d_probeTime(sr.registerTimer("theory::arith::scip::probeTime")),
       d_basisRows(sr.registerInt("theory::arith::scip::basisRows")),
       d_basisPropTime(sr.registerTimer("theory::arith::scip::basisPropTime")),
-      d_propagatedAtoms(sr.registerInt("theory::arith::scip::propagatedAtoms"))
+      d_propagatedAtoms(sr.registerInt("theory::arith::scip::propagatedAtoms")),
+      d_mipCalls(sr.registerInt("theory::arith::scip::mipCalls")),
+      d_mipSat(sr.registerInt("theory::arith::scip::mipSat")),
+      d_mipUnsat(sr.registerInt("theory::arith::scip::mipUnsat")),
+      d_mipUnknown(sr.registerInt("theory::arith::scip::mipUnknown")),
+      d_mipDeclined(sr.registerInt("theory::arith::scip::mipDeclined")),
+      d_mipTime(sr.registerTimer("theory::arith::scip::mipTime")),
+      d_mipProofs(sr.registerInt("theory::arith::scip::mipProofs")),
+      d_mipProofsFailed(sr.registerInt("theory::arith::scip::mipProofsFailed"))
 {
 }
 
@@ -132,6 +155,26 @@ Result::Status ScipSimplexDecisionProcedure::findModel(bool exactResult)
 #endif
 }
 
+Result::Status ScipSimplexDecisionProcedure::findIntegerModel()
+{
+#ifdef CVC5_USE_SCIP
+  try
+  {
+    return solveIntegerWithScip();
+  }
+  catch (const std::exception& e)
+  {
+    // e.g. arithmetic failures within SCIP's solving machinery; the
+    // conventional procedures proceed
+    Trace("arith::scip") << "scip mip exception: " << e.what() << std::endl;
+    ++d_statistics.d_mipUnknown;
+    return Result::UNKNOWN;
+  }
+#else
+  Unreachable() << "cvc5 was not compiled with SCIP support";
+#endif
+}
+
 void ScipSimplexDecisionProcedure::drainSignals()
 {
   TimerStat::CodeTimer codeTimer(d_statistics.d_queueTime);
@@ -145,6 +188,19 @@ void ScipSimplexDecisionProcedure::drainSignals()
 #if defined(CVC5_USE_SCIP) && !defined(CVC5_CLN_IMP)
 
 namespace {
+
+/**
+ * The floating-point infinity configured for full SCIP instances
+ * (numerics/infinity). SCIP's default of 1e20 makes the floating-point
+ * layers (e.g. bound propagation) treat solution values beyond it as
+ * impossible, wrongly for the exact problem; raising it widens the
+ * exactly solved range. It must stay below the infinity of the underlying
+ * exact LP solver (1e100 for SoPlex), beyond which solves fail (soundly,
+ * as an error). Note that the input-side coercion threshold of the
+ * rational layer (see ScipScratchRationals::mkRat) is a separate, fixed
+ * 1e20: SCIPrationalChgInfinity refuses to change it in this build.
+ */
+constexpr SCIP_Real scipMipInfinity = 1e96;
 
 /** Converts a SCIP rational to a cvc5 Rational. Must not be infinite. */
 Rational scipRationalToRational(SCIP_RATIONAL* r)
@@ -207,6 +263,66 @@ class StreamSilencer
 }  // namespace
 
 /**
+ * Owner of scratch SCIP rationals for the lifetime of an encoded problem,
+ * with the conversion guard shared by all SCIP backends: SCIP's rational
+ * layer coerces any value of absolute value at or above its infinity
+ * threshold to infinity on construction, which would lose the distinction
+ * between such constants (and thereby soundness); a coerced value is
+ * reported by setting d_unencodable and returning null.
+ */
+struct ScipScratchRationals
+{
+  /** Scratch rationals, freed by freeScratch or on destruction. */
+  std::vector<SCIP_RATIONAL*> d_rats;
+  /** Whether a constant of the problem was not exactly encodable. */
+  bool d_unencodable = false;
+
+  ~ScipScratchRationals() { freeScratch(); }
+
+  /** Creates a scratch rational owned by this pool, or nullptr. */
+  SCIP_RATIONAL* mkRat()
+  {
+    SCIP_RATIONAL* r = nullptr;
+    if (SCIPrationalCreate(&r) != SCIP_OKAY)
+    {
+      return nullptr;
+    }
+    d_rats.push_back(r);
+    return r;
+  }
+
+  /** Creates a scratch rational with the value of the given Rational. */
+  SCIP_RATIONAL* mkRat(const Rational& q)
+  {
+    SCIP_RATIONAL* r = mkRat();
+    if (r != nullptr)
+    {
+      SCIPrationalSetGMP(r, q.getValue().get_mpq_t());
+      if (SCIPrationalIsAbsInfinity(r))
+      {
+        Trace("arith::scip") << "scip cannot encode constant " << q << endl;
+        d_unencodable = true;
+        return nullptr;
+      }
+    }
+    return r;
+  }
+
+  /** Frees the scratch rationals. */
+  void freeScratch()
+  {
+    for (SCIP_RATIONAL*& r : d_rats)
+    {
+      if (r != nullptr)
+      {
+        SCIPrationalFree(&r);
+      }
+    }
+    d_rats.clear();
+  }
+};
+
+/**
  * RAII owner of an exact LP interface instance together with the rationals
  * created for it, the maps attributing the LP columns and rows to the
  * arithmetic variables and bound constraints they encode, and a mirror of
@@ -226,8 +342,9 @@ struct ScipSimplexProblem
   SCIP_RATIONAL* d_negInf = nullptr;
   SCIP_RATIONAL* d_zero = nullptr;
   SCIP_RATIONAL* d_one = nullptr;
-  /** Scratch rationals, freed after each build or refresh. */
-  std::vector<SCIP_RATIONAL*> d_rats;
+  /** Scratch rationals (freed after each build or refresh) and the
+   * encodability guard, see ScipScratchRationals. */
+  ScipScratchRationals d_scratch;
 
   /** The arithmetic variables encoded so far. */
   std::vector<ArithVar> d_avars;
@@ -343,55 +460,78 @@ struct ScipSimplexProblem
   }
 
   /** Frees the scratch rationals. */
-  void freeScratch()
-  {
-    for (SCIP_RATIONAL*& r : d_rats)
-    {
-      if (r != nullptr)
-      {
-        SCIPrationalFree(&r);
-      }
-    }
-    d_rats.clear();
-  }
+  void freeScratch() { d_scratch.freeScratch(); }
 
   /** Creates a scratch rational owned by this problem, or nullptr. */
-  SCIP_RATIONAL* mkRat()
-  {
-    SCIP_RATIONAL* r = nullptr;
-    if (SCIPrationalCreate(&r) != SCIP_OKAY)
-    {
-      return nullptr;
-    }
-    d_rats.push_back(r);
-    return r;
-  }
+  SCIP_RATIONAL* mkRat() { return d_scratch.mkRat(); }
+
+  /** Creates a scratch rational with the value of the given Rational, or
+   * nullptr (allocation failure or not exactly encodable, see
+   * ScipScratchRationals::mkRat). */
+  SCIP_RATIONAL* mkRat(const Rational& q) { return d_scratch.mkRat(q); }
+};
+
+/**
+ * RAII owner of a full SCIP instance encoding the mixed-integer problem of
+ * the current bounds, tableau, and variable integralities: the delta
+ * variable (realizing the infinitesimal of strict bounds, maximized in
+ * [0,1]) and one variable per arithmetic variable, with one exact linear
+ * constraint per tableau equality and per asserted bound. In contrast to
+ * the persistent LP instance, a MIP instance is built per check
+ * (branch-and-bound state does not usefully carry over).
+ */
+struct ScipMipProblem
+{
+  SCIP* d_scip = nullptr;
+  /** Scratch rationals (freed on destruction) and the encodability guard. */
+  ScipScratchRationals d_scratch;
+  /** Cached constant rationals (owned by the scratch pool). */
+  SCIP_RATIONAL* d_posInf = nullptr;
+  SCIP_RATIONAL* d_negInf = nullptr;
+  SCIP_RATIONAL* d_zero = nullptr;
+  SCIP_RATIONAL* d_one = nullptr;
+  /** The delta variable. */
+  SCIP_VAR* d_delta = nullptr;
+  /** The arithmetic variables encoded. */
+  std::vector<ArithVar> d_avars;
+  /** Their SCIP variables (parallel to d_avars). */
+  std::vector<SCIP_VAR*> d_vars;
+  /** Map from ArithVar to its SCIP variable. */
+  std::vector<SCIP_VAR*> d_toVar;
+  /** Whether any strict bound (nonzero delta coefficient) was encoded. */
+  bool d_anyStrict = false;
+  /**
+   * Per added constraint (in insertion order), the originating bound
+   * constraint, or null for the definitional tableau equalities. Used to
+   * resolve the constraint section of certificates.
+   */
+  std::vector<ConstraintCP> d_consOrigin;
+  /** The certificate output file, when certification is enabled. */
+  std::string d_certFile;
 
   /**
-   * Creates a scratch rational with the value of the given Rational.
-   * SCIP's rational layer coerces any value of absolute value at or above
-   * its infinity threshold to infinity on construction, which would lose
-   * the distinction between such constants (and thereby soundness). A
-   * coerced value is reported by setting d_unencodable and returning null.
+   * Releases the SCIP instance. The certificate file is only completed
+   * and closed here, so this must precede reading it.
    */
-  SCIP_RATIONAL* mkRat(const Rational& q)
+  void freeScip()
   {
-    SCIP_RATIONAL* r = mkRat();
-    if (r != nullptr)
+    if (d_scip != nullptr)
     {
-      SCIPrationalSetGMP(r, q.getValue().get_mpq_t());
-      if (SCIPrationalIsAbsInfinity(r))
+      for (SCIP_VAR*& v : d_vars)
       {
-        Trace("arith::scip") << "scip cannot encode constant " << q << endl;
-        d_unencodable = true;
-        return nullptr;
+        SCIPreleaseVar(d_scip, &v);
       }
+      d_vars.clear();
+      if (d_delta != nullptr)
+      {
+        SCIPreleaseVar(d_scip, &d_delta);
+      }
+      SCIPfree(&d_scip);
+      d_scip = nullptr;
     }
-    return r;
   }
 
-  /** Whether a constant of the problem was not exactly encodable. */
-  bool d_unencodable = false;
+  ~ScipMipProblem() { freeScip(); }
 };
 
 ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
@@ -430,7 +570,7 @@ ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
 
 namespace {
 
-/** Anonymous-namespace helpers for the LP construction. */
+/** Anonymous-namespace helpers shared by the problem constructions. */
 
 /** Reads the (sorted) row content of a basic variable from the tableau. */
 void readTableauRow(const Tableau& tableau,
@@ -450,6 +590,56 @@ void readTableauRow(const Tableau& tableau,
   std::sort(content.begin(),
             content.end(),
             [](const auto& a, const auto& b) { return a.first < b.first; });
+}
+
+/**
+ * Invokes f(bc, v, lower, b) for every currently asserted bound constraint
+ * bc (restricted to those in filter, if non-null) on a variable v, where
+ * lower selects the side and b is the delta-rational bound value (whose
+ * infinitesimal is nonnegative for lower and nonpositive for upper bounds).
+ * Returns false as soon as f does.
+ */
+template <typename F>
+bool forEachAssertedBound(const ArithVariables& vars,
+                          const ConstraintCPVec* filter,
+                          F&& f)
+{
+  std::unordered_set<ConstraintCP> included;
+  if (filter != nullptr)
+  {
+    included.insert(filter->begin(), filter->end());
+  }
+  for (ArithVariables::var_iterator vi = vars.var_begin(),
+                                    vend = vars.var_end();
+       vi != vend;
+       ++vi)
+  {
+    ArithVar v = *vi;
+    for (bool lower : {true, false})
+    {
+      if (lower ? !vars.hasLowerBound(v) : !vars.hasUpperBound(v))
+      {
+        continue;
+      }
+      ConstraintCP bc = lower ? vars.getLowerBoundConstraint(v)
+                              : vars.getUpperBoundConstraint(v);
+      if (filter != nullptr && included.find(bc) == included.end())
+      {
+        continue;
+      }
+      const DeltaRational& b =
+          lower ? vars.getLowerBound(v) : vars.getUpperBound(v);
+      // Strict bounds are expected to tighten: positive delta coefficient
+      // on lower bounds, negative on upper bounds.
+      Assert(b.infinitesimalIsZero()
+             || b.infinitesimalSgn() == (lower ? 1 : -1));
+      if (!f(bc, v, lower, b))
+      {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 }  // namespace
@@ -622,13 +812,13 @@ bool ScipSimplexDecisionProcedure::ensureLp()
       ++d_statistics.d_lpRefreshes;
       return true;
     }
-    if (p.d_unencodable)
+    if (p.d_scratch.d_unencodable)
     {
       // A constant of the problem cannot be encoded exactly (see mkRat).
       // The instance is consistent up to the offending row (the mirrors are
       // updated in lockstep with successful additions), so it is kept for
       // future refreshes; the call is declined.
-      p.d_unencodable = false;
+      p.d_scratch.d_unencodable = false;
       p.freeScratch();
       d_declined = true;
       return false;
@@ -641,10 +831,10 @@ bool ScipSimplexDecisionProcedure::ensureLp()
   ++d_statistics.d_lpRebuilds;
   if (!buildLp(*d_persistent, nullptr))
   {
-    if (d_persistent->d_unencodable && d_persistent->d_lpi != nullptr)
+    if (d_persistent->d_scratch.d_unencodable && d_persistent->d_lpi != nullptr)
     {
       // As above: the partial instance is consistent; keep it and decline.
-      d_persistent->d_unencodable = false;
+      d_persistent->d_scratch.d_unencodable = false;
       d_persistent->freeScratch();
       d_declined = true;
       return false;
@@ -665,58 +855,44 @@ bool ScipSimplexDecisionProcedure::ensureLp()
 bool ScipSimplexDecisionProcedure::addBoundRows(ScipSimplexProblem& p,
                                                 const ConstraintCPVec* filter)
 {
-  std::unordered_set<ConstraintCP> included;
-  if (filter != nullptr)
-  {
-    included.insert(filter->begin(), filter->end());
-  }
   int beg[1] = {0};
-  for (ArithVariables::var_iterator vi = d_variables.var_begin(),
-                                    vend = d_variables.var_end();
-       vi != vend;
-       ++vi)
-  {
-    ArithVar v = *vi;
-    for (bool lower : {true, false})
-    {
-      if (lower ? !d_variables.hasLowerBound(v)
-                : !d_variables.hasUpperBound(v))
+  return forEachAssertedBound(
+      d_variables,
+      filter,
+      [&](ConstraintCP bc, ArithVar v, bool lower, const DeltaRational& b)
       {
-        continue;
-      }
-      ConstraintCP bc = lower ? d_variables.getLowerBoundConstraint(v)
-                              : d_variables.getUpperBoundConstraint(v);
-      if (filter != nullptr && included.find(bc) == included.end())
-      {
-        continue;
-      }
-      const DeltaRational& b = lower ? d_variables.getLowerBound(v)
-                                     : d_variables.getUpperBound(v);
-      SCIP_RATIONAL* c = p.mkRat(b.getNoninfinitesimalPart());
-      CVC5_SCIP_CHECK_RAT_FALSE(c);
-      int nnonz = 1;
-      int ind[2] = {p.d_toCol[v], 0};
-      SCIP_RATIONAL* val[2] = {p.d_one, nullptr};
-      if (!b.infinitesimalIsZero())
-      {
-        // Strict bounds are expected to tighten: positive delta coefficient
-        // on lower bounds, negative on upper bounds.
-        Assert(b.infinitesimalSgn() == (lower ? 1 : -1));
-        SCIP_RATIONAL* minusK = p.mkRat(-b.getInfinitesimalPart());
-        CVC5_SCIP_CHECK_RAT_FALSE(minusK);
-        ind[1] = 0;  // the delta column
-        val[1] = minusK;
-        nnonz = 2;
-      }
-      SCIP_RATIONAL* lhs[1] = {lower ? c : p.d_negInf};
-      SCIP_RATIONAL* rhs[1] = {lower ? p.d_posInf : c};
-      CVC5_SCIP_CALL_FALSE(SCIPlpiExactAddRows(
-          p.d_lpi, 1, lhs, rhs, nullptr, nnonz, beg, ind, val));
-      p.d_boundOrigin.push_back(bc);
-      p.d_boundIsLower.push_back(lower);
-    }
-  }
-  return true;
+        SCIP_RATIONAL* c = p.mkRat(b.getNoninfinitesimalPart());
+        if (c == nullptr)
+        {
+          return false;
+        }
+        int nnonz = 1;
+        int ind[2] = {p.d_toCol[v], 0};
+        SCIP_RATIONAL* val[2] = {p.d_one, nullptr};
+        if (!b.infinitesimalIsZero())
+        {
+          SCIP_RATIONAL* minusK = p.mkRat(-b.getInfinitesimalPart());
+          if (minusK == nullptr)
+          {
+            return false;
+          }
+          ind[1] = 0;  // the delta column
+          val[1] = minusK;
+          nnonz = 2;
+        }
+        SCIP_RATIONAL* lhs[1] = {lower ? c : p.d_negInf};
+        SCIP_RATIONAL* rhs[1] = {lower ? p.d_posInf : c};
+        if (SCIPlpiExactAddRows(
+                p.d_lpi, 1, lhs, rhs, nullptr, nnonz, beg, ind, val)
+            != SCIP_OKAY)
+        {
+          warning() << "SCIP call 'SCIPlpiExactAddRows' failed" << std::endl;
+          return false;
+        }
+        p.d_boundOrigin.push_back(bc);
+        p.d_boundIsLower.push_back(lower);
+        return true;
+      });
 }
 
 bool ScipSimplexDecisionProcedure::buildLp(ScipSimplexProblem& p,
@@ -857,27 +1033,25 @@ ScipSimplexDecisionProcedure::solveLp(ScipSimplexProblem& p)
 #define CVC5_SCIP_CALL(x) CVC5_SCIP_CALL_RET(x, Result::UNKNOWN)
 #define CVC5_SCIP_CHECK_RAT(r) CVC5_SCIP_CHECK_RAT_RET(r, Result::UNKNOWN)
 
-bool ScipSimplexDecisionProcedure::importValues(ScipSimplexProblem& p)
+bool ScipSimplexDecisionProcedure::importAssignment(
+    const std::vector<ArithVar>& vars,
+    const std::function<bool(ArithVar, DeltaRational&)>& valueOf)
 {
   // Write the exact solution into the partial model by updating the
   // nonbasic variables; the values of the basic variables follow from the
   // tableau (cf. AttemptSolutionSDP::attempt).
   ++d_statistics.d_modelImports;
-  SCIP_RATIONAL** primsol = p.primsolBuffer(p.d_ncols);
-  if (primsol == nullptr)
-  {
-    return false;
-  }
-  CVC5_SCIP_CALL_RET(
-      SCIPlpiExactGetSol(p.d_lpi, nullptr, primsol, nullptr, nullptr, nullptr),
-      false);
-  for (ArithVar v : p.d_avars)
+  for (ArithVar v : vars)
   {
     if (d_tableau.isBasic(v))
     {
       continue;
     }
-    DeltaRational dr(scipRationalToRational(primsol[p.d_toCol[v]]));
+    DeltaRational dr;
+    if (!valueOf(v, dr))
+    {
+      return false;
+    }
     if (d_variables.getAssignment(v) != dr)
     {
       Trace("arith::scip") << "scip model: " << v << " <- " << dr << endl;
@@ -887,14 +1061,27 @@ bool ScipSimplexDecisionProcedure::importValues(ScipSimplexProblem& p)
   return true;
 }
 
-Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
+bool ScipSimplexDecisionProcedure::importValues(ScipSimplexProblem& p)
 {
-  if (!importValues(p))
+  SCIP_RATIONAL** primsol = p.primsolBuffer(p.d_ncols);
+  if (primsol == nullptr)
   {
-    ++d_statistics.d_scipUnknown;
-    return Result::UNKNOWN;
+    return false;
   }
+  CVC5_SCIP_CALL_RET(
+      SCIPlpiExactGetSol(p.d_lpi, nullptr, primsol, nullptr, nullptr, nullptr),
+      false);
+  return importAssignment(
+      p.d_avars,
+      [&p, primsol](ArithVar v, DeltaRational& dr)
+      {
+        dr = DeltaRational(scipRationalToRational(primsol[p.d_toCol[v]]));
+        return true;
+      });
+}
 
+Result::Status ScipSimplexDecisionProcedure::checkImportedModel()
+{
   d_errorSet.reduceToSignals();
   drainSignals();
   if (d_errorSet.errorEmpty())
@@ -902,12 +1089,22 @@ Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
     return Result::SAT;
   }
   // The imported model did not satisfy all bounds; this indicates a
-  // discrepancy between the LP encoding and the partial model. Be defensive
+  // discrepancy between the encoding and the partial model. Be defensive
   // and give up rather than report an incorrect result.
   warning() << "SCIP model import left bound violations; returning unknown"
             << std::endl;
   ++d_statistics.d_scipUnknown;
   return Result::UNKNOWN;
+}
+
+Result::Status ScipSimplexDecisionProcedure::importModel(ScipSimplexProblem& p)
+{
+  if (!importValues(p))
+  {
+    ++d_statistics.d_scipUnknown;
+    return Result::UNKNOWN;
+  }
+  return checkImportedModel();
 }
 
 bool ScipSimplexDecisionProcedure::extractCertificate(
@@ -1484,6 +1681,1281 @@ Result::Status ScipSimplexDecisionProcedure::solveWithScip(bool exactResult)
   }
 }
 
+namespace {
+
+/**
+ * Reconstructs a VIPR certificate of an infeasible (or zero-delta-
+ * optimum) exact MIP solve into a cvc5 proof of the negation of the
+ * conjunction of the participating bound constraints, using only
+ * existing proof rules:
+ * - lin steps (weighted sums of rows) become scaled sums
+ *   (MACRO_ARITH_SCALE_SUM_UB), normalized by MACRO_SR_PRED_TRANSFORM;
+ * - rnd steps (Chvatal-Gomory rounding) are the same scaled sums, with
+ *   the rounding of the constant absorbed by the integer bound
+ *   tightening the rewriter performs in the normalization;
+ * - asm rows (branching assumptions) become assumptions, discharged by
+ *   the uns steps: the two branch refutations are scoped on their
+ *   assumptions, the negation of the one branch is rewritten into the
+ *   other (the split being exhaustive over the integers), and the
+ *   contradiction is concluded by CONTRA;
+ * - the rows of the original problem become assumptions for the bound
+ *   constraints (collected into the conflict) and rewrite-introductions
+ *   for the definitional tableau equalities.
+ * The delta column is translated away: by the delta encoding, a row
+ * poly - k*delta >= c with k > 0 denotes the strict bound poly > c (and
+ * correspondingly for upper bounds), which is exactly the strictness
+ * semantics of the arithmetic proof calculus, so the delta coefficients
+ * of combinations turn into the strictness of the derived atoms.
+ *
+ * The conclusion of every step is recomputed from the premises in exact
+ * arithmetic (the rows stated in the certificate are used for shape
+ * only), and every proof node is constructed with its expected
+ * conclusion, so a checker validates each step; any failure aborts the
+ * reconstruction and the check is treated as inconclusive, which is
+ * sound.
+ */
+class ViprProofReconstructor
+{
+ public:
+  ViprProofReconstructor(Env& env,
+                         const ScipMipProblem& mp,
+                         const ArithVariables& vars)
+      : d_env(env), d_mp(mp), d_vars(vars)
+  {
+  }
+
+  /**
+   * Collects the support of the certificate: the bound constraints whose
+   * rows are reachable from the final derivation through the premises.
+   * This is a parse and a traversal only (no proof is built); it serves
+   * the minimization of the trusted conflict when proofs are disabled.
+   */
+  bool collectSupport(const std::string& filename, ConstraintCPVec& support)
+  {
+    std::ifstream in(filename);
+    if (!in || !parse(in) || d_rows.empty())
+    {
+      Trace("arith::scip::pf") << "vipr: parse failure" << std::endl;
+      return false;
+    }
+    std::vector<bool> seen(d_rows.size(), false);
+    std::vector<size_t> stack{d_rows.size() - 1};
+    seen.back() = true;
+    while (!stack.empty())
+    {
+      size_t idx = stack.back();
+      stack.pop_back();
+      const ViprRow& r = d_rows[idx];
+      if (r.d_kind == ViprRow::CON)
+      {
+        if (idx < d_mp.d_consOrigin.size()
+            && d_mp.d_consOrigin[idx] != NullConstraint)
+        {
+          support.push_back(d_mp.d_consOrigin[idx]);
+        }
+        continue;
+      }
+      if (r.d_kind == ViprRow::UNSUPPORTED)
+      {
+        // its premises are unknown; be conservative
+        return false;
+      }
+      auto push = [&](int p) {
+        if (p >= 0 && static_cast<size_t>(p) < idx && !seen[p])
+        {
+          seen[p] = true;
+          stack.push_back(static_cast<size_t>(p));
+        }
+      };
+      for (const auto& [pidx, mult] : r.d_premises)
+      {
+        push(pidx);
+      }
+      if (r.d_kind == ViprRow::UNS)
+      {
+        for (int u : r.d_uns)
+        {
+          push(u);
+        }
+      }
+    }
+    return !support.empty();
+  }
+
+  /** Runs the reconstruction; on success sets conflict and proof. */
+  bool reconstruct(const std::string& filename,
+                   Node& conflict,
+                   std::shared_ptr<ProofNode>& proof)
+  {
+    std::ifstream in(filename);
+    if (!in || !parse(in))
+    {
+      Trace("arith::scip::pf") << "vipr: parse failure" << std::endl;
+      return false;
+    }
+    if (d_rows.empty())
+    {
+      return false;
+    }
+    // the certificate's final derivation establishes the contradiction
+    std::shared_ptr<ProofNode> last = proveRow(d_rows.size() - 1);
+    std::shared_ptr<ProofNode> falsePf = toFalse(last);
+    if (falsePf == nullptr)
+    {
+      Trace("arith::scip::pf") << "vipr: no final contradiction" << std::endl;
+      return false;
+    }
+    // the open assumptions must be exactly the bound constraint literals
+    std::vector<Node> rawAssumptions;
+    expr::getFreeAssumptions(falsePf.get(), rawAssumptions);
+    std::vector<Node> assumptions;
+    std::unordered_set<Node> seen;
+    for (const Node& a : rawAssumptions)
+    {
+      if (d_assertionLits.find(a) == d_assertionLits.end())
+      {
+        Trace("arith::scip::pf")
+            << "vipr: undischarged assumption " << a << std::endl;
+        return false;
+      }
+      if (seen.insert(a).second)
+      {
+        assumptions.push_back(a);
+      }
+    }
+    if (assumptions.empty())
+    {
+      return false;
+    }
+    NodeManager* nm = d_env.getNodeManager();
+    Node conf = assumptions.size() == 1 ? assumptions[0]
+                                        : nm->mkNode(Kind::AND, assumptions);
+    std::shared_ptr<ProofNode> scoped =
+        mkStep(ProofRule::SCOPE, {falsePf}, assumptions, conf.notNode());
+    if (scoped == nullptr)
+    {
+      return false;
+    }
+    conflict = conf;
+    proof = scoped;
+    return true;
+  }
+
+ private:
+  /** A row of the certificate, in its space (the delta column included). */
+  struct ViprRow
+  {
+    enum Kind
+    {
+      CON,
+      ASM,
+      LIN,
+      RND,
+      UNS,
+      UNSUPPORTED
+    };
+    Kind d_kind = CON;
+    /** The relation: GEQ, LEQ or EQUAL. */
+    cvc5::internal::Kind d_rel = cvc5::internal::Kind::GEQ;
+    Rational d_rhs;
+    /** Sparse left-hand side over the certificate's variable indices. */
+    std::map<int, Rational> d_lhs;
+    /** The premises (row index, multiplier) of lin and rnd steps. */
+    std::vector<std::pair<int, Rational>> d_premises;
+    /** The branch refutations and assumptions (i1 a1 i2 a2) of uns. */
+    int d_uns[4] = {-1, -1, -1, -1};
+  };
+
+  /** Parses the certificate (cf. the VIPR format, version 1.0). */
+  bool parse(std::istream& in)
+  {
+    std::string tok;
+    auto expect = [&](const char* what) {
+      return bool(in >> tok) && tok == what;
+    };
+    if (!expect("VER") || !(in >> tok))
+    {
+      return false;
+    }
+    size_t nvars = 0;
+    if (!expect("VAR") || !(in >> nvars))
+    {
+      return false;
+    }
+    // map the variable names back: "delta" and "v<arithvar>", with the
+    // "t_" prefix of SCIP's transformed problem
+    d_varTerm.resize(nvars);
+    d_isDelta.assign(nvars, false);
+    for (size_t i = 0; i < nvars; ++i)
+    {
+      if (!(in >> tok))
+      {
+        return false;
+      }
+      std::string name = tok.rfind("t_", 0) == 0 ? tok.substr(2) : tok;
+      if (name == "delta")
+      {
+        d_isDelta[i] = true;
+      }
+      else if (name.size() > 1 && name[0] == 'v')
+      {
+        ArithVar v =
+            static_cast<ArithVar>(std::stoul(name.substr(1), nullptr, 10));
+        if (!d_vars.hasNode(v))
+        {
+          return false;
+        }
+        d_varTerm[i] = d_vars.asNode(v);
+      }
+      else
+      {
+        return false;
+      }
+    }
+    size_t nint = 0;
+    if (!expect("INT") || !(in >> nint))
+    {
+      return false;
+    }
+    for (size_t i = 0; i < nint; ++i)
+    {
+      if (!(in >> tok))
+      {
+        return false;
+      }
+    }
+    // the objective: a sparse row (our encoding maximizes delta)
+    if (!expect("OBJ") || !(in >> tok))
+    {
+      return false;
+    }
+    if (!parseSparse(in, d_objRow))
+    {
+      return false;
+    }
+    size_t ncons = 0, nbounded = 0;
+    if (!expect("CON") || !(in >> ncons) || !(in >> nbounded))
+    {
+      return false;
+    }
+    d_rows.resize(ncons);
+    for (size_t i = 0; i < ncons; ++i)
+    {
+      if (!parseRowBody(in, d_rows[i]))
+      {
+        return false;
+      }
+      d_rows[i].d_kind = ViprRow::CON;
+    }
+    // RTP infeas, or RTP range <l> <u>
+    if (!expect("RTP") || !(in >> tok))
+    {
+      return false;
+    }
+    if (tok == "range")
+    {
+      if (!(in >> tok) || !(in >> tok))
+      {
+        return false;
+      }
+    }
+    // solutions: a name and a sparse row each
+    size_t nsol = 0;
+    if (!expect("SOL") || !(in >> nsol))
+    {
+      return false;
+    }
+    for (size_t i = 0; i < nsol; ++i)
+    {
+      ViprRow ignored;
+      if (!(in >> tok) || !parseSparse(in, ignored.d_lhs))
+      {
+        return false;
+      }
+    }
+    size_t nder = 0;
+    if (!expect("DER") || !(in >> nder))
+    {
+      return false;
+    }
+    d_rows.reserve(ncons + nder);
+    for (size_t i = 0; i < nder; ++i)
+    {
+      ViprRow r;
+      if (!parseRowBody(in, r) || !parseDerivation(in, r))
+      {
+        return false;
+      }
+      d_rows.push_back(std::move(r));
+    }
+    return true;
+  }
+
+  /** Parses "<nnz> (<idx> <coef>)*" or "OBJ" into a sparse vector. */
+  bool parseSparse(std::istream& in, std::map<int, Rational>& lhs)
+  {
+    std::string tok;
+    if (!(in >> tok))
+    {
+      return false;
+    }
+    if (tok == "OBJ")
+    {
+      lhs = d_objRow;
+      return true;
+    }
+    size_t nnz;
+    Rational coef;
+    try
+    {
+      nnz = std::stoul(tok, nullptr, 10);
+      for (size_t i = 0; i < nnz; ++i)
+      {
+        int idx;
+        if (!(in >> idx) || !(in >> tok))
+        {
+          return false;
+        }
+        lhs[idx] += Rational(tok.c_str());
+      }
+    }
+    catch (...)
+    {
+      return false;
+    }
+    return true;
+  }
+
+  /** Parses "<name> <sense> <rhs>" followed by the sparse row. */
+  bool parseRowBody(std::istream& in, ViprRow& r)
+  {
+    std::string name, sense, rhs;
+    if (!(in >> name) || !(in >> sense) || !(in >> rhs))
+    {
+      return false;
+    }
+    if (sense == "G")
+    {
+      r.d_rel = Kind::GEQ;
+    }
+    else if (sense == "L")
+    {
+      r.d_rel = Kind::LEQ;
+    }
+    else if (sense == "E")
+    {
+      r.d_rel = Kind::EQUAL;
+    }
+    else
+    {
+      return false;
+    }
+    try
+    {
+      r.d_rhs = Rational(rhs.c_str());
+    }
+    catch (...)
+    {
+      return false;
+    }
+    return parseSparse(in, r.d_lhs);
+  }
+
+  /** Parses "{ <rule> ... } <maxidx>" of a derivation. */
+  bool parseDerivation(std::istream& in, ViprRow& r)
+  {
+    std::string tok;
+    if (!(in >> tok) || tok != "{" || !(in >> tok))
+    {
+      return false;
+    }
+    bool supported = true;
+    if (tok == "asm")
+    {
+      r.d_kind = ViprRow::ASM;
+    }
+    else if (tok == "lin" || tok == "rnd")
+    {
+      r.d_kind = tok == "lin" ? ViprRow::LIN : ViprRow::RND;
+      size_t n = 0;
+      if (!(in >> tok))
+      {
+        return false;
+      }
+      if (tok == "weak")
+      {
+        // weakly dominated combinations are not reconstructed; the row
+        // is only rejected if some needed derivation depends on it
+        supported = false;
+      }
+      else
+      {
+        try
+        {
+          n = std::stoul(tok, nullptr, 10);
+        }
+        catch (...)
+        {
+          return false;
+        }
+        for (size_t i = 0; i < n; ++i)
+        {
+          int idx;
+          if (!(in >> idx) || !(in >> tok))
+          {
+            return false;
+          }
+          try
+          {
+            r.d_premises.emplace_back(idx, Rational(tok.c_str()));
+          }
+          catch (...)
+          {
+            return false;
+          }
+        }
+      }
+    }
+    else if (tok == "uns")
+    {
+      r.d_kind = ViprRow::UNS;
+      for (int& u : r.d_uns)
+      {
+        if (!(in >> u))
+        {
+          return false;
+        }
+      }
+    }
+    else
+    {
+      supported = false;
+    }
+    // skip to the matching closing brace (nested braces possible)
+    int depth = 1;
+    while (depth > 0)
+    {
+      if (!(in >> tok))
+      {
+        return false;
+      }
+      if (tok == "{")
+      {
+        ++depth;
+      }
+      else if (tok == "}")
+      {
+        --depth;
+      }
+      else if (!supported)
+      {
+        continue;
+      }
+      else if (depth == 1 && r.d_kind != ViprRow::UNSUPPORTED && tok != "}")
+      {
+        // unexpected trailing tokens within a supported rule
+        supported = false;
+      }
+    }
+    if (!supported)
+    {
+      r.d_kind = ViprRow::UNSUPPORTED;
+      r.d_premises.clear();
+    }
+    // the trailing hint (the largest premise index, or -1)
+    return bool(in >> tok);
+  }
+
+  /** The arithmetic type of the non-delta part of a row. */
+  TypeNode rowType(const ViprRow& r)
+  {
+    NodeManager* nm = d_env.getNodeManager();
+    for (const auto& [idx, coef] : r.d_lhs)
+    {
+      if (!d_isDelta[idx]
+          && (d_varTerm[idx].getType().isReal() || !coef.isIntegral()))
+      {
+        return nm->realType();
+      }
+    }
+    return nm->integerType();
+  }
+
+  /**
+   * The cvc5 atom of a row: the delta column is dropped, with a nonzero
+   * delta coefficient turning the relation strict (see above), and
+   * fractional constants over integer polynomials are tightened (which
+   * the rewriter justifies in the normalization steps). With forceEqual
+   * the relation is an equality (for the two bound rows of an asserted
+   * equality constraint, whose literal proves both at once).
+   */
+  Node atomOf(const ViprRow& r, bool forceEqual = false)
+  {
+    NodeManager* nm = d_env.getNodeManager();
+    Rational deltaCoef(0);
+    std::vector<Node> sum;
+    TypeNode tn = rowType(r);
+    bool real = tn.isReal();
+    for (const auto& [idx, coef] : r.d_lhs)
+    {
+      if (coef.isZero())
+      {
+        continue;
+      }
+      if (d_isDelta[idx])
+      {
+        deltaCoef = coef;
+        continue;
+      }
+      Node c = real ? nm->mkConstReal(coef) : nm->mkConstInt(coef);
+      sum.push_back(coef.isOne() ? d_varTerm[idx]
+                                 : nm->mkNode(Kind::MULT, c, d_varTerm[idx]));
+    }
+    Node poly;
+    if (sum.empty())
+    {
+      poly = real ? nm->mkConstReal(Rational(0)) : nm->mkConstInt(Rational(0));
+    }
+    else if (sum.size() == 1)
+    {
+      poly = sum[0];
+    }
+    else
+    {
+      poly = nm->mkNode(Kind::ADD, sum);
+    }
+    Kind rel = forceEqual ? Kind::EQUAL : r.d_rel;
+    if (!deltaCoef.isZero())
+    {
+      if (forceEqual)
+      {
+        return Node::null();  // equality constraints are never strict
+      }
+      if (rel == Kind::GEQ && deltaCoef.sgn() < 0)
+      {
+        rel = Kind::GT;
+      }
+      else if (rel == Kind::LEQ && deltaCoef.sgn() > 0)
+      {
+        rel = Kind::LT;
+      }
+      else if (!sum.empty())
+      {
+        // a delta coefficient that weakens the relation: unexpected on
+        // the reconstructed paths
+        return Node::null();
+      }
+      // pure delta rows (the delta bounds) keep their relation; they
+      // translate to valid constant facts (e.g. 0 >= 0)
+    }
+    Rational rhs = r.d_rhs;
+    if (!real && !rhs.isIntegral())
+    {
+      // tighten to the integer bound (justified by the rewriter)
+      switch (rel)
+      {
+        case Kind::GEQ: rhs = Rational(rhs.ceiling()); break;
+        case Kind::GT:
+          rhs = Rational(rhs.floor() + 1);
+          rel = Kind::GEQ;
+          break;
+        case Kind::LEQ: rhs = Rational(rhs.floor()); break;
+        case Kind::LT:
+          rhs = Rational(rhs.ceiling() - 1);
+          rel = Kind::LEQ;
+          break;
+        default: return Node::null();  // fractional integer equality
+      }
+    }
+    Node c = real ? nm->mkConstReal(rhs) : nm->mkConstInt(rhs);
+    return nm->mkNode(rel, poly, c);
+  }
+
+  /**
+   * Creates a checked proof node, or null. The step is pre-validated
+   * with the non-aborting checker entry (constructing a mismatched node
+   * would fail fatally); a null result aborts the reconstruction.
+   */
+  std::shared_ptr<ProofNode> mkStep(
+      ProofRule rule,
+      const std::vector<std::shared_ptr<ProofNode>>& children,
+      const std::vector<Node>& args,
+      Node expected)
+  {
+    ProofNodeManager* pnm = d_env.getProofNodeManager();
+    ProofChecker* pc = pnm->getChecker();
+    if (pc != nullptr)
+    {
+      std::vector<Node> cres;
+      for (const std::shared_ptr<ProofNode>& c : children)
+      {
+        cres.push_back(c->getResult());
+      }
+      Node res = pc->checkDebug(rule, cres, args, expected, "arith::scip::pf");
+      if (res.isNull())
+      {
+        Trace("arith::scip::pf") << "vipr: failed step " << rule << " for "
+                                 << expected << std::endl;
+        return nullptr;
+      }
+    }
+    return pnm->mkNode(rule, children, args, expected);
+  }
+
+  /** A proof of target from pf, justified by rewriting. */
+  std::shared_ptr<ProofNode> transform(std::shared_ptr<ProofNode> pf,
+                                       Node target)
+  {
+    if (pf == nullptr || target.isNull())
+    {
+      return nullptr;
+    }
+    if (pf->getResult() == target)
+    {
+      return pf;
+    }
+    return mkStep(
+        ProofRule::MACRO_SR_PRED_TRANSFORM, {pf}, {target}, target);
+  }
+
+  /** A proof of false from a proof of an absurd constant atom. */
+  std::shared_ptr<ProofNode> toFalse(std::shared_ptr<ProofNode> pf)
+  {
+    if (pf == nullptr)
+    {
+      return nullptr;
+    }
+    Node f = d_env.getNodeManager()->mkConst(false);
+    return transform(pf, f);
+  }
+
+  /** Proves the row of the given index, memoized. */
+  std::shared_ptr<ProofNode> proveRow(size_t idx)
+  {
+    if (idx >= d_rows.size())
+    {
+      return nullptr;
+    }
+    auto it = d_proofs.find(idx);
+    if (it != d_proofs.end())
+    {
+      return it->second;
+    }
+    std::shared_ptr<ProofNode> pf = proveRowInternal(idx);
+    d_proofs[idx] = pf;
+    return pf;
+  }
+
+  std::shared_ptr<ProofNode> proveRowInternal(size_t idx)
+  {
+    NodeManager* nm = d_env.getNodeManager();
+    ProofNodeManager* pnm = d_env.getProofNodeManager();
+    ViprRow& r = d_rows[idx];
+    switch (r.d_kind)
+    {
+      case ViprRow::CON:
+      {
+        ConstraintCP bc = idx < d_mp.d_consOrigin.size()
+                              ? d_mp.d_consOrigin[idx]
+                              : NullConstraint;
+        if (bc == NullConstraint)
+        {
+          // a definitional tableau equality, or a delta bound: valid
+          Node atom = atomOf(r);
+          if (atom.isNull())
+          {
+            return nullptr;
+          }
+          return mkStep(ProofRule::MACRO_SR_PRED_INTRO, {}, {atom}, atom);
+        }
+        // A bound constraint: an assumption, normalized to the row atom.
+        // The two bound rows of an asserted equality both carry the
+        // equality atom (a valid summand of any sign).
+        Node atom = atomOf(r, bc->getType() == Equality);
+        if (atom.isNull())
+        {
+          return nullptr;
+        }
+        Node lit = Constraint::externalExplainByAssertions(
+            nm, ConstraintCPVec{bc});
+        d_assertionLits.insert(lit);
+        return transform(pnm->mkAssume(lit), atom);
+      }
+      case ViprRow::ASM:
+      {
+        Node atom = atomOf(r);
+        if (atom.isNull())
+        {
+          return nullptr;
+        }
+        return pnm->mkAssume(atom);
+      }
+      case ViprRow::LIN:
+      case ViprRow::RND:
+      {
+        return proveCombination(idx);
+      }
+      case ViprRow::UNS:
+      {
+        return proveUnsplit(idx);
+      }
+      default: return nullptr;
+    }
+  }
+
+  /** Proves a lin or rnd row: a checked scaled sum of the premises. */
+  std::shared_ptr<ProofNode> proveCombination(size_t idx)
+  {
+    NodeManager* nm = d_env.getNodeManager();
+    ViprRow& r = d_rows[idx];
+    // recompute the combination in the certificate's space (the delta
+    // column flows through and lands in the strictness of the atom)
+    ViprRow comb;
+    comb.d_rel = r.d_rel == Kind::EQUAL ? Kind::GEQ : r.d_rel;
+    if (r.d_rel == Kind::EQUAL)
+    {
+      return nullptr;  // combinations concluding equalities: unsupported
+    }
+    comb.d_rhs = Rational(0);
+    bool conclLower = r.d_rel == Kind::LEQ;
+    std::vector<std::shared_ptr<ProofNode>> children;
+    std::vector<Node> scalars;
+    std::vector<Node> premiseAtoms;
+    for (const auto& [pidx, mult] : r.d_premises)
+    {
+      if (mult.isZero())
+      {
+        continue;
+      }
+      if (pidx < 0 || static_cast<size_t>(pidx) >= idx)
+      {
+        return nullptr;
+      }
+      std::shared_ptr<ProofNode> ppf = proveRow(pidx);
+      if (ppf == nullptr)
+      {
+        return nullptr;
+      }
+      const ViprRow& prow = d_rows[pidx];
+      // sign conditions of a valid combination
+      if ((prow.d_rel == Kind::GEQ && (conclLower ? mult.sgn() > 0 : false))
+          || (prow.d_rel == Kind::LEQ
+              && (conclLower ? false : mult.sgn() > 0)))
+      {
+        // a >= premise with positive multiplier cannot support a <=
+        // conclusion and vice versa
+        return nullptr;
+      }
+      for (const auto& [vi, coef] : prow.d_lhs)
+      {
+        comb.d_lhs[vi] += mult * coef;
+      }
+      comb.d_rhs += mult * prow.d_rhs;
+      // the scaled-sum rule works in upper-bound space: >= premises
+      // need negative scalars and <= premises positive ones
+      Rational k = conclLower ? mult : -mult;
+      Node atom = ppf->getResult();
+      Kind ak = atom.getKind();
+      if (ak == Kind::NOT || atom.getNumChildren() != 2
+          || !atom[1].isConst())
+      {
+        return nullptr;
+      }
+      if ((ak == Kind::GEQ || ak == Kind::GT) && k.sgn() > 0)
+      {
+        return nullptr;
+      }
+      if ((ak == Kind::LEQ || ak == Kind::LT) && k.sgn() < 0)
+      {
+        return nullptr;
+      }
+      // the scalar's type follows the premise terms (cf. the checker)
+      bool real = atom[0].getType().isReal() || atom[1].getType().isReal();
+      Node kn = real || !k.isIntegral() ? nm->mkConstReal(k)
+                                        : nm->mkConstInt(k);
+      children.push_back(ppf);
+      scalars.push_back(kn);
+      premiseAtoms.push_back(atom);
+    }
+    if (children.empty())
+    {
+      return nullptr;
+    }
+    Node target = atomOf(comb);
+    if (target.isNull())
+    {
+      return nullptr;
+    }
+    if (children.size() == 1)
+    {
+      // a pure scaling: the normal forms agree
+      return transform(children[0], target);
+    }
+    // replicate the conclusion the checker computes for the scaled sum
+    bool strict = false;
+    NodeBuilder leftSum(nm, Kind::ADD);
+    NodeBuilder rightSum(nm, Kind::ADD);
+    for (size_t i = 0; i < children.size(); ++i)
+    {
+      Kind ak = premiseAtoms[i].getKind();
+      strict = strict || ak == Kind::GT || ak == Kind::LT;
+      Rational k = scalars[i].getConst<Rational>();
+      if (k.isOne())
+      {
+        leftSum << premiseAtoms[i][0];
+        rightSum << premiseAtoms[i][1];
+      }
+      else
+      {
+        leftSum << nm->mkNode(Kind::MULT, scalars[i], premiseAtoms[i][0]);
+        rightSum << nm->mkNode(Kind::MULT, scalars[i], premiseAtoms[i][1]);
+      }
+    }
+    Node sum = nm->mkNode(strict ? Kind::LT : Kind::LEQ,
+                          leftSum.constructNode(),
+                          rightSum.constructNode());
+    std::shared_ptr<ProofNode> pf = mkStep(
+        ProofRule::MACRO_ARITH_SCALE_SUM_UB, children, scalars, sum);
+    pf = transform(pf, target);
+    if (pf != nullptr)
+    {
+      // downstream steps use the recomputed row
+      comb.d_kind = r.d_kind;
+      d_rows[idx] = std::move(comb);
+    }
+    return pf;
+  }
+
+  /** Proves false from an unsplitting step (a branch resolution). */
+  std::shared_ptr<ProofNode> proveUnsplit(size_t idx)
+  {
+    const ViprRow& r = d_rows[idx];
+    int i1 = r.d_uns[0], a1 = r.d_uns[1], i2 = r.d_uns[2], a2 = r.d_uns[3];
+    if (i1 < 0 || a1 < 0 || i2 < 0 || a2 < 0
+        || static_cast<size_t>(std::max(std::max(i1, a1), std::max(i2, a2)))
+               >= idx
+        || d_rows[a1].d_kind != ViprRow::ASM
+        || d_rows[a2].d_kind != ViprRow::ASM)
+    {
+      return nullptr;
+    }
+    // both branches must refute; their assumptions are exhaustive over
+    // the integers (x <= k and x >= k+1), so the negation of the one
+    // rewrites into the other
+    std::shared_ptr<ProofNode> f1 = toFalse(proveRow(i1));
+    std::shared_ptr<ProofNode> f2 = toFalse(proveRow(i2));
+    Node atom1 = atomOf(d_rows[a1]);
+    Node atom2 = atomOf(d_rows[a2]);
+    if (f1 == nullptr || f2 == nullptr || atom1.isNull() || atom2.isNull())
+    {
+      return nullptr;
+    }
+    std::shared_ptr<ProofNode> s1 =
+        mkStep(ProofRule::SCOPE, {f1}, {atom1}, atom1.notNode());
+    std::shared_ptr<ProofNode> s2 =
+        mkStep(ProofRule::SCOPE, {f2}, {atom2}, atom2.notNode());
+    if (s1 == nullptr || s2 == nullptr)
+    {
+      return nullptr;
+    }
+    std::shared_ptr<ProofNode> t = transform(s1, atom2);
+    if (t == nullptr)
+    {
+      return nullptr;
+    }
+    Node f = d_env.getNodeManager()->mkConst(false);
+    return mkStep(ProofRule::CONTRA, {t, s2}, {}, f);
+  }
+
+  Env& d_env;
+  const ScipMipProblem& d_mp;
+  const ArithVariables& d_vars;
+  /** The terms of the certificate's variables (null for delta). */
+  std::vector<Node> d_varTerm;
+  std::vector<bool> d_isDelta;
+  /** The objective row (the delta variable, in our encoding). */
+  std::map<int, Rational> d_objRow;
+  /** All rows: the problem constraints, then the derivations. */
+  std::vector<ViprRow> d_rows;
+  /** Memoized proofs per row index. */
+  std::map<size_t, std::shared_ptr<ProofNode>> d_proofs;
+  /** The assumption literals of the used bound constraints. */
+  std::unordered_set<Node> d_assertionLits;
+};
+
+}  // namespace
+
+bool ScipSimplexDecisionProcedure::reconstructMipProof(
+    const ScipMipProblem& mp, const std::string& filename)
+{
+  ViprProofReconstructor rec(d_env, mp, d_variables);
+  Node conflict;
+  std::shared_ptr<ProofNode> proof;
+  if (!rec.reconstruct(filename, conflict, proof))
+  {
+    return false;
+  }
+  d_mipConflict = conflict;
+  d_mipProof = proof;
+  return true;
+}
+
+namespace {
+
+/** The branch-and-bound node budget of one integer (MIP) check. */
+constexpr SCIP_Longint scipMipNodeLimit = 10000;
+/**
+ * The wall-clock budget of one integer (MIP) check, in seconds. The
+ * checks repeat across the full-effort rounds of a solve, so this also
+ * bounds the slowdown such rounds can accumulate, as well as the window
+ * in which an expiring cvc5 time limit can only abort the process hard
+ * (the limit cannot interrupt SCIP cooperatively).
+ */
+constexpr SCIP_Real scipMipTimeLimit = 2.0;
+
+}  // namespace
+
+bool ScipSimplexDecisionProcedure::buildMip(ScipMipProblem& mp)
+{
+  CVC5_SCIP_CALL_FALSE(SCIPcreate(&mp.d_scip));
+  CVC5_SCIP_CALL_FALSE(SCIPincludeDefaultPlugins(mp.d_scip));
+  SCIPsetMessagehdlrQuiet(mp.d_scip, TRUE);
+  // Exact solving must be enabled before the problem is created.
+  CVC5_SCIP_CALL_FALSE(SCIPenableExactSolving(mp.d_scip, TRUE));
+  if (!mp.d_certFile.empty())
+  {
+    // With proofs the certificate of the solve is requested, to be
+    // reconstructed into a cvc5 proof on infeasible outcomes.
+    CVC5_SCIP_CALL_FALSE(SCIPsetStringParam(
+        mp.d_scip, "certificate/filename", mp.d_certFile.c_str()));
+  }
+  {
+    // The parameter change attempts to reassert the rational layer's
+    // threshold, printing a note directly to the error stream.
+    StreamSilencer silencer;
+    CVC5_SCIP_CALL_FALSE(
+        SCIPsetRealParam(mp.d_scip, "numerics/infinity", scipMipInfinity));
+  }
+  // Presolve derives infeasibility from solution values crossing the
+  // floating-point infinity, which is wrong for the exact problem; without
+  // presolve the exact LP layer instead rejects such solves (an error,
+  // turned into UNKNOWN below), which is sound.
+  CVC5_SCIP_CALL_FALSE(
+      SCIPsetIntParam(mp.d_scip, "presolving/maxrounds", 0));
+  CVC5_SCIP_CALL_FALSE(
+      SCIPsetLongintParam(mp.d_scip, "limits/nodes", scipMipNodeLimit));
+  CVC5_SCIP_CALL_FALSE(
+      SCIPsetRealParam(mp.d_scip, "limits/time", scipMipTimeLimit));
+  CVC5_SCIP_CALL_FALSE(SCIPcreateProbBasic(mp.d_scip, "cvc5_linear_arith"));
+  CVC5_SCIP_CALL_FALSE(SCIPsetObjsense(mp.d_scip, SCIP_OBJSENSE_MAXIMIZE));
+
+  mp.d_posInf = mp.d_scratch.mkRat();
+  mp.d_negInf = mp.d_scratch.mkRat();
+  mp.d_zero = mp.d_scratch.mkRat();
+  mp.d_one = mp.d_scratch.mkRat();
+  CVC5_SCIP_CHECK_RAT_FALSE(mp.d_posInf);
+  CVC5_SCIP_CHECK_RAT_FALSE(mp.d_negInf);
+  CVC5_SCIP_CHECK_RAT_FALSE(mp.d_zero);
+  CVC5_SCIP_CHECK_RAT_FALSE(mp.d_one);
+  SCIPrationalSetInfinity(mp.d_posInf);
+  SCIPrationalSetNegInfinity(mp.d_negInf);
+  SCIPrationalSetReal(mp.d_zero, 0.0);
+  SCIPrationalSetReal(mp.d_one, 1.0);
+
+  // the delta variable, maximized in [0,1]
+  CVC5_SCIP_CALL_FALSE(SCIPcreateVarBasic(
+      mp.d_scip, &mp.d_delta, "delta", 0.0, 1.0, 1.0,
+      SCIP_VARTYPE_CONTINUOUS));
+  CVC5_SCIP_CALL_FALSE(SCIPaddVarExactData(
+      mp.d_scip, mp.d_delta, mp.d_zero, mp.d_one, mp.d_one));
+  CVC5_SCIP_CALL_FALSE(SCIPaddVar(mp.d_scip, mp.d_delta));
+
+  // one free variable per arithmetic variable, integral per its type
+  char name[32];
+  for (ArithVariables::var_iterator vi = d_variables.var_begin(),
+                                    vend = d_variables.var_end();
+       vi != vend;
+       ++vi)
+  {
+    ArithVar v = *vi;
+    snprintf(name, sizeof(name), "v%u", static_cast<unsigned>(v));
+    SCIP_VAR* var = nullptr;
+    CVC5_SCIP_CALL_FALSE(
+        SCIPcreateVarBasic(mp.d_scip,
+                           &var,
+                           name,
+                           -SCIPinfinity(mp.d_scip),
+                           SCIPinfinity(mp.d_scip),
+                           0.0,
+                           d_variables.isInteger(v)
+                               ? SCIP_VARTYPE_INTEGER
+                               : SCIP_VARTYPE_CONTINUOUS));
+    // owned (and released) via d_vars from here on
+    mp.d_avars.push_back(v);
+    mp.d_vars.push_back(var);
+    if (v >= mp.d_toVar.size())
+    {
+      mp.d_toVar.resize(v + 1, nullptr);
+    }
+    mp.d_toVar[v] = var;
+    CVC5_SCIP_CALL_FALSE(SCIPaddVarExactData(
+        mp.d_scip, var, mp.d_negInf, mp.d_posInf, mp.d_zero));
+    CVC5_SCIP_CALL_FALSE(SCIPaddVar(mp.d_scip, var));
+  }
+
+  // the tableau equalities: (sum_i coeff_i * x_i) - b = 0 per basic b
+  std::vector<SCIP_VAR*> cvars;
+  std::vector<SCIP_RATIONAL*> cvals;
+  SCIP_RATIONAL* minusOne = mp.d_scratch.mkRat(Rational(-1));
+  CVC5_SCIP_CHECK_RAT_FALSE(minusOne);
+  size_t consIdx = 0;
+  for (Tableau::BasicIterator bi = d_tableau.beginBasic(),
+                              bend = d_tableau.endBasic();
+       bi != bend;
+       ++bi, ++consIdx)
+  {
+    ArithVar basic = *bi;
+    std::vector<std::pair<ArithVar, Rational>> content;
+    readTableauRow(d_tableau, basic, content);
+    cvars.clear();
+    cvals.clear();
+    cvars.push_back(mp.d_toVar[basic]);
+    cvals.push_back(minusOne);
+    for (const auto& [nb, coeff] : content)
+    {
+      SCIP_RATIONAL* c = mp.d_scratch.mkRat(coeff);
+      CVC5_SCIP_CHECK_RAT_FALSE(c);
+      cvars.push_back(mp.d_toVar[nb]);
+      cvals.push_back(c);
+    }
+    snprintf(name, sizeof(name), "t%zu", consIdx);
+    SCIP_CONS* cons = nullptr;
+    CVC5_SCIP_CALL_FALSE(
+        SCIPcreateConsBasicExactLinear(mp.d_scip,
+                                       &cons,
+                                       name,
+                                       static_cast<int>(cvars.size()),
+                                       cvars.data(),
+                                       cvals.data(),
+                                       mp.d_zero,
+                                       mp.d_zero));
+    CVC5_SCIP_CALL_FALSE(SCIPaddCons(mp.d_scip, cons));
+    CVC5_SCIP_CALL_FALSE(SCIPreleaseCons(mp.d_scip, &cons));
+    mp.d_consOrigin.push_back(NullConstraint);
+  }
+
+  // the asserted bounds, sharing the traversal of the LP construction
+  return forEachAssertedBound(
+      d_variables,
+      nullptr,
+      [&](ConstraintCP bc, ArithVar v, bool lower, const DeltaRational& b)
+      {
+        SCIP_RATIONAL* c = mp.d_scratch.mkRat(b.getNoninfinitesimalPart());
+        if (c == nullptr)
+        {
+          return false;
+        }
+        cvars.clear();
+        cvals.clear();
+        cvars.push_back(mp.d_toVar[v]);
+        cvals.push_back(mp.d_one);
+        if (!b.infinitesimalIsZero())
+        {
+          SCIP_RATIONAL* minusK = mp.d_scratch.mkRat(-b.getInfinitesimalPart());
+          if (minusK == nullptr)
+          {
+            return false;
+          }
+          mp.d_anyStrict = true;
+          cvars.push_back(mp.d_delta);
+          cvals.push_back(minusK);
+        }
+        snprintf(name, sizeof(name), "b%zu", consIdx++);
+        SCIP_CONS* cons = nullptr;
+        if (SCIPcreateConsBasicExactLinear(mp.d_scip,
+                                           &cons,
+                                           name,
+                                           static_cast<int>(cvars.size()),
+                                           cvars.data(),
+                                           cvals.data(),
+                                           lower ? c : mp.d_negInf,
+                                           lower ? mp.d_posInf : c)
+                != SCIP_OKAY
+            || SCIPaddCons(mp.d_scip, cons) != SCIP_OKAY
+            || SCIPreleaseCons(mp.d_scip, &cons) != SCIP_OKAY)
+        {
+          warning() << "SCIP exact constraint creation failed" << std::endl;
+          return false;
+        }
+        mp.d_consOrigin.push_back(bc);
+        return true;
+      });
+}
+
+Result::Status ScipSimplexDecisionProcedure::solveIntegerWithScip()
+{
+  TimerStat::CodeTimer codeTimer(d_statistics.d_mipTime);
+  ++d_statistics.d_mipCalls;
+  d_mipConflict = Node::null();
+  d_mipProof = nullptr;
+
+  ScipMipProblem mp;
+  bool produceProofs = options().smt.produceProofs;
+  {
+    // Request the certificate (SCIP only streams certificates to files):
+    // on infeasible outcomes it is reconstructed into a proof (with
+    // proofs), or its support minimizes the trusted conflict (without).
+    const char* tmpdir = getenv("TMPDIR");
+    mp.d_certFile = std::string(tmpdir != nullptr ? tmpdir : "/tmp")
+                    + "/cvc5_scip_cert_"
+#ifndef _WIN32
+                    + std::to_string(getpid()) + "_"
+#endif
+                    + std::to_string(++d_mipCertCounter) + ".vipr";
+  }
+  // on return, remove the certificate files (SCIP writes a transformed-
+  // and an original-space file)
+  struct CertCleanup
+  {
+    const std::string& d_f;
+    ~CertCleanup()
+    {
+      if (!d_f.empty())
+      {
+        std::remove(d_f.c_str());
+        std::remove((d_f + "_ori").c_str());
+      }
+    }
+  } cleanup{mp.d_certFile};
+
+  if (!buildMip(mp))
+  {
+    ++(mp.d_scratch.d_unencodable ? d_statistics.d_mipDeclined
+                                  : d_statistics.d_mipUnknown);
+    return Result::UNKNOWN;
+  }
+  SCIP_RETCODE rc;
+  {
+    StreamSilencer silencer;
+    rc = SCIPsolve(mp.d_scip);
+  }
+  if (rc != SCIP_OKAY)
+  {
+    // e.g. the exact LP layer rejects solves whose values cross the
+    // floating-point infinity
+    Trace("arith::scip") << "scip mip solve failed (" << rc << ")" << endl;
+    ++d_statistics.d_mipUnknown;
+    return Result::UNKNOWN;
+  }
+  // concludes an established infeasibility per the proof discipline:
+  // without proofs the exact verdict is trusted, with the conflict
+  // minimized to the certificate's support; with proofs the certificate
+  // is reconstructed into a cvc5 proof, and failing that the check is
+  // inconclusive (which is sound)
+  auto concludeUnsat = [&]() -> Result::Status {
+    // the certificate file is only completed when the instance is
+    // released (its solution and status are no longer needed here)
+    std::string certFile = mp.d_certFile;
+    mp.freeScip();
+    if (produceProofs)
+    {
+      if (!reconstructMipProof(mp, certFile))
+      {
+        ++d_statistics.d_mipProofsFailed;
+        ++d_statistics.d_mipUnknown;
+        return Result::UNKNOWN;
+      }
+      ++d_statistics.d_mipProofs;
+    }
+    else
+    {
+      ViprProofReconstructor rec(d_env, mp, d_variables);
+      ConstraintCPVec support;
+      if (rec.collectSupport(certFile, support))
+      {
+        d_mipConflict =
+            Constraint::externalExplainByAssertions(nodeManager(), support);
+      }
+      // on failure d_mipConflict stays null; the caller falls back to
+      // the conflict over all asserted bounds
+    }
+    ++d_statistics.d_mipUnsat;
+    return Result::UNSAT;
+  };
+  SCIP_STATUS status = SCIPgetStatus(mp.d_scip);
+  if (status == SCIP_STATUS_INFEASIBLE)
+  {
+    return concludeUnsat();
+  }
+  if (status != SCIP_STATUS_OPTIMAL)
+  {
+    Trace("arith::scip") << "scip mip without outcome (status " << status
+                         << ")" << endl;
+    ++d_statistics.d_mipUnknown;
+    return Result::UNKNOWN;
+  }
+  SCIP_SOL* sol = SCIPgetBestSol(mp.d_scip);
+  SCIP_RATIONAL* val = mp.d_scratch.mkRat();
+  if (sol == nullptr || val == nullptr)
+  {
+    ++d_statistics.d_mipUnknown;
+    return Result::UNKNOWN;
+  }
+  if (mp.d_anyStrict)
+  {
+    // satisfiable with delta = 0 only: some strict bound is violated by
+    // every solution of the closure [cf. the delta encoding of the LP]
+    SCIPgetSolValExact(mp.d_scip, sol, mp.d_delta, val);
+    if (SCIPrationalIsZero(val))
+    {
+      return concludeUnsat();
+    }
+  }
+  if (!logicInfo().isLinear())
+  {
+    // Under the nonlinear extension this layer sees a linear abstraction:
+    // infeasibility transfers (handled above), but the abstraction's
+    // models are merely candidate points for the model-based refinement,
+    // which is built around the small steps of the conventional branching
+    // and diverges on the unbiased vertices found here. Leave the model
+    // search to the conventional machinery (the backoff of the caller
+    // bounds the cost of these outcome-less solves).
+    ++d_statistics.d_mipUnknown;
+    return Result::UNKNOWN;
+  }
+  // Extract and validate the full solution before any of it is written: a
+  // partial import would leave an inconsistent assignment behind. The
+  // values of the basic variables follow via the tableau, whose
+  // equalities the solution satisfies.
+  std::unordered_map<ArithVar, DeltaRational> values;
+  for (size_t i = 0; i < mp.d_avars.size(); ++i)
+  {
+    SCIPgetSolValExact(mp.d_scip, sol, mp.d_vars[i], val);
+    if (SCIPrationalIsAbsInfinity(val))
+    {
+      // the value was coerced on extraction
+      ++d_statistics.d_mipUnknown;
+      return Result::UNKNOWN;
+    }
+    values.emplace(mp.d_avars[i], DeltaRational(scipRationalToRational(val)));
+  }
+  bool imported = importAssignment(
+      mp.d_avars,
+      [&values](ArithVar v, DeltaRational& dr)
+      {
+        dr = values[v];
+        return true;
+      });
+  if (!imported)
+  {
+    ++d_statistics.d_mipUnknown;
+    return Result::UNKNOWN;
+  }
+  Result::Status res = checkImportedModel();
+  ++(res == Result::SAT ? d_statistics.d_mipSat : d_statistics.d_mipUnknown);
+  return res;
+}
+
 #undef CVC5_SCIP_CALL
 #undef CVC5_SCIP_CHECK_RAT
 #undef CVC5_SCIP_CALL_UNKNOWN
@@ -1505,6 +2977,12 @@ ScipSimplexDecisionProcedure::~ScipSimplexDecisionProcedure() {}
 #ifdef CVC5_USE_SCIP
 Result::Status ScipSimplexDecisionProcedure::solveWithScip(
     CVC5_UNUSED bool exactResult)
+{
+  Unreachable()
+      << "The SCIP-based simplex requires cvc5 to be built with GMP (not CLN)";
+}
+
+Result::Status ScipSimplexDecisionProcedure::solveIntegerWithScip()
 {
   Unreachable()
       << "The SCIP-based simplex requires cvc5 to be built with GMP (not CLN)";

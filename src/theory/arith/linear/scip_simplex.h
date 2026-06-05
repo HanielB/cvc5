@@ -16,17 +16,24 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <vector>
 
+#include "expr/node.h"
 #include "theory/arith/linear/simplex.h"
 #include "util/statistics_stats.h"
 
 namespace cvc5::internal {
+
+class ProofNode;
+
 namespace theory {
 namespace arith::linear {
 
 class ConstraintDatabase;
 struct ScipSimplexProblem;
+struct ScipMipProblem;
 
 /**
  * A drop-in alternative to the simplex decision procedures that delegates
@@ -72,6 +79,36 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   ~ScipSimplexDecisionProcedure();
 
   Result::Status findModel(bool exactResult) override;
+
+  /**
+   * Decides the satisfiability of the current bounds and tableau together
+   * with the integrality of the integer variables, by a budgeted solve of
+   * the corresponding exact mixed-integer program (strict bounds realized
+   * by the maximized delta variable, as for the relaxation). Intended at
+   * full effort when the relaxation is satisfiable but the assignment is
+   * not integral.
+   *
+   * Returns SAT after writing an exact integral solution into the partial
+   * model (verified against the bounds like any import); UNSAT when the
+   * MIP is infeasible or its delta maximum is zero, which SCIP established
+   * by exact reasoning (without proofs the caller trusts this; with proofs
+   * SCIP's certificate is reconstructed into a cvc5 proof, available
+   * together with the corresponding conflict via mipConflict/mipProof);
+   * and UNKNOWN when the problem was not exactly encodable, the budget was
+   * exhausted, SCIP failed, or the certificate could not be reconstructed,
+   * in which case the conventional integer machinery should proceed.
+   */
+  Result::Status findIntegerModel();
+
+  /**
+   * The conflict of the last infeasible integer check under proofs: the
+   * conjunction of the participating bound constraints (the support of
+   * the reconstructed certificate).
+   */
+  const Node& mipConflict() const { return d_mipConflict; }
+
+  /** The reconstructed proof of the negation of mipConflict(). */
+  std::shared_ptr<ProofNode> mipProof() const { return d_mipProof; }
 
   /**
    * Registers the procedure to which findModel delegates declined checks
@@ -186,11 +223,52 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   ScipSolveResult solveLp(ScipSimplexProblem& p);
 
   /**
-   * Writes the exact solution of a feasible solve into the partial model by
-   * updating the nonbasic variables (the basic variables follow via the
-   * tableau). Returns false on failure.
+   * Builds the exact mixed-integer program into mp: the delta variable and
+   * one variable per arithmetic variable (integral per its type), with the
+   * tableau equalities and the asserted bounds as exact linear constraints
+   * (sharing the traversal of the LP construction). Returns false on
+   * failure.
+   */
+  bool buildMip(ScipMipProblem& mp);
+
+  /**
+   * The body of findIntegerModel. Only defined in builds with SCIP
+   * support.
+   */
+  Result::Status solveIntegerWithScip();
+
+  /**
+   * Reconstructs the VIPR certificate of an infeasible exact MIP solve
+   * (written to filename) into a cvc5 proof, setting d_mipConflict and
+   * d_mipProof on success. See the documentation in the implementation
+   * for the translation. Returns false if the certificate could not be
+   * reconstructed (the check is then treated as inconclusive).
+   */
+  bool reconstructMipProof(const ScipMipProblem& mp,
+                           const std::string& filename);
+
+  /**
+   * Writes an exact assignment into the partial model by updating the
+   * nonbasic variables among vars (the basic variables follow via the
+   * tableau), querying each value through valueOf. Shared by the model
+   * imports of the SCIP backends. Returns false on failure.
+   */
+  bool importAssignment(
+      const std::vector<ArithVar>& vars,
+      const std::function<bool(ArithVar, DeltaRational&)>& valueOf);
+
+  /**
+   * Writes the exact solution of a feasible solve into the partial model
+   * (importAssignment over the LP columns). Returns false on failure.
    */
   bool importValues(ScipSimplexProblem& p);
+
+  /**
+   * Processes the signals of a just-imported assignment: SAT if the
+   * assignment satisfies all bounds, and a defensive UNKNOWN otherwise.
+   * Only used within a check.
+   */
+  Result::Status checkImportedModel();
 
   /**
    * Imports the exact solution of a feasible solve into the partial model
@@ -235,6 +313,13 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
 
   /** The persistent LP instance, lazily created by ensureLp. */
   std::unique_ptr<ScipSimplexProblem> d_persistent;
+
+  /** The conflict of the last infeasible integer check, see mipConflict. */
+  Node d_mipConflict;
+  /** The proof of the negation of d_mipConflict, see mipProof. */
+  std::shared_ptr<ProofNode> d_mipProof;
+  /** Counter for unique certificate file names. */
+  size_t d_mipCertCounter = 0;
 
   /** The procedure to delegate declined checks to, see setFallback. */
   SimplexDecisionProcedure* d_fallback = nullptr;
@@ -281,6 +366,22 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
     TimerStat d_basisPropTime;
     /** Atoms propagated (probe or basis mode). */
     IntStat d_propagatedAtoms;
+    /** Integer (MIP) checks, see findIntegerModel. */
+    IntStat d_mipCalls;
+    /** Integer checks concluded satisfiable (model imported). */
+    IntStat d_mipSat;
+    /** Integer checks established infeasible. */
+    IntStat d_mipUnsat;
+    /** Integer checks without an outcome (budget, failures). */
+    IntStat d_mipUnknown;
+    /** Integer checks declined as not exactly encodable. */
+    IntStat d_mipDeclined;
+    /** Time spent in integer (MIP) checks. */
+    TimerStat d_mipTime;
+    /** Certificates reconstructed into proofs (proof mode). */
+    IntStat d_mipProofs;
+    /** Certificates whose reconstruction failed (proof mode). */
+    IntStat d_mipProofsFailed;
 
     Statistics(StatisticsRegistry& sr);
   } d_statistics;

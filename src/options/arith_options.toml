@@ -201,13 +201,14 @@ name   = "Arithmetic Theory"
   help       = "use sum of infeasibility simplex (FMCAD 2013 submission)"
 
 [[option]]
-  name       = "arithUseScipSimplex"
+  name       = "arithUseScip"
   category   = "expert"
-  long       = "use-scip-simplex"
+  long       = "use-scip"
+  alias      = ["use-scip-simplex"]
   type       = "bool"
   default    = "false"
   predicates = ["checkScipSimplex"]
-  help       = "solve the real relaxation in linear arithmetic with the SCIP exact rational LP solver instead of the internal simplex (requires a build with --scip)"
+  help       = "solve linear arithmetic (the real relaxation and integer feasibility) with the SCIP exact rational solver instead of the internal machinery (requires a build with --scip)"
 
 [[option]]
   name       = "arithScipPropagation"
@@ -215,7 +216,7 @@ name   = "Arithmetic Theory"
   long       = "scip-propagation=MODE"
   type       = "ArithScipPropagationMode"
   default    = "NONE"
-  help       = "technique for theory propagation from the SCIP exact LP engine (only relevant with --use-scip-simplex)"
+  help       = "technique for theory propagation from the SCIP exact LP engine (only relevant with --use-scip)"
   help_mode  = "Theory propagation techniques of the SCIP exact LP engine."
 [[option.mode.NONE]]
   name = "none"

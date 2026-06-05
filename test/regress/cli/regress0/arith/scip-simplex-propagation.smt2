@@ -1,6 +1,6 @@
 ; REQUIRES: scip
-; COMMAND-LINE: --use-scip-simplex --scip-propagation=probe --scip-propagation-effort=all --arith-prop=none --check-proofs
-; COMMAND-LINE: --use-scip-simplex --scip-propagation=basis --scip-propagation-effort=all --arith-prop=none --check-proofs
+; COMMAND-LINE: --use-scip --scip-propagation=probe --scip-propagation-effort=all --arith-prop=none --check-proofs
+; COMMAND-LINE: --use-scip --scip-propagation=basis --scip-propagation-effort=all --arith-prop=none --check-proofs
 ; EXPECT: unsat
 (set-logic QF_LRA)
 (declare-fun x () Real)

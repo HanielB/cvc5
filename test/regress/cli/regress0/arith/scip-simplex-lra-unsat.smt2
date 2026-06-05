@@ -1,5 +1,5 @@
 ; REQUIRES: scip
-; COMMAND-LINE: --use-scip-simplex --check-proofs
+; COMMAND-LINE: --use-scip --check-proofs
 ; EXPECT: unsat
 (set-logic QF_LRA)
 (declare-fun x () Real)

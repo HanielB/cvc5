@@ -102,6 +102,10 @@ set(regress_0_tests
   regress0/arith/pow-issue-10676.smt2
   regress0/arith/projissue469-int-equality.smt2
   regress0/arith/proj-issue780-arith-mult-pf.smt2
+  regress0/arith/scip-mip-lia-sat.smt2
+  regress0/arith/scip-mip-lia.smt2
+  regress0/arith/scip-mip-lira-sat.smt2
+  regress0/arith/scip-mip-lira.smt2
   regress0/arith/scip-simplex-huge-constants.smt2
   regress0/arith/scip-simplex-lia.smt2
   regress0/arith/scip-simplex-lra-unsat.smt2

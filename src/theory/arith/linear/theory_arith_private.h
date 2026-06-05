@@ -410,6 +410,23 @@ class TheoryArithPrivate : protected EnvObj
    */
   bool attemptSolveInteger(Theory::Effort effortLevel,
                            bool emmmittedLemmaOrSplit);
+  /**
+   * Decides integer feasibility with the SCIP exact MIP engine
+   * (--use-scip): on a satisfiable check the exact integral assignment is
+   * imported into the partial model; on an infeasible one a conflict over
+   * the asserted bounds is raised when proofs are disabled (the verdict is
+   * trusted), while with proofs the conventional machinery proceeds.
+   * Returns whether the engine was invoked.
+   */
+  bool scipSolveInteger(Theory::Effort effortLevel, bool emittedLemmaOrSplit);
+  /**
+   * Exponential backoff for scipSolveInteger: consecutive checks without
+   * an outcome (budget exhaustion, rejected models) grow the number of
+   * full-effort rounds skipped before the next attempt; any outcome
+   * resets it.
+   */
+  uint32_t d_mipUselessStreak = 0;
+  uint32_t d_mipSkip = 0;
   bool replayLemmas(ApproximateSimplex* approx);
   void solveInteger(Theory::Effort effortLevel);
   bool safeToCallApprox() const;

@@ -2181,6 +2181,85 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel,
   return false;
 }
 
+bool TheoryArithPrivate::scipSolveInteger(Theory::Effort effortLevel,
+                                          bool emittedLemmaOrSplit)
+{
+  // The SCIP exact MIP engine decides integer feasibility at full effort
+  // when the relaxation is satisfiable but the assignment is not integral.
+  if (!Theory::fullEffort(effortLevel) || emittedLemmaOrSplit
+      || d_qflraStatus != Result::SAT || anyConflict() || hasIntegerModel())
+  {
+    return false;
+  }
+  if (d_mipSkip > 0)
+  {
+    // backing off after checks without an outcome, see d_mipUselessStreak
+    --d_mipSkip;
+    return false;
+  }
+  Result::Status res = d_scipSimplex.findIntegerModel();
+  Trace("arith::scip") << "scipSolveInteger: " << res << endl;
+  if (res == Result::UNKNOWN)
+  {
+    ++d_mipUselessStreak;
+    d_mipSkip = 1u << std::min<uint32_t>(d_mipUselessStreak, 6);
+  }
+  else
+  {
+    d_mipUselessStreak = 0;
+  }
+  switch (res)
+  {
+    case Result::SAT:
+      // The exact integral assignment is in the partial model (already
+      // verified against the bounds by the import); it is committed by the
+      // status handling of postCheck.
+      return true;
+    case Result::UNSAT:
+    {
+      // SCIP established by exact reasoning that the bounds, the tableau
+      // and the integralities admit no solution (the tableau is
+      // definitional and the integralities are types). With proofs the
+      // certificate was reconstructed into a proof of the negation of the
+      // conflict; without proofs the verdict is trusted, with the
+      // conflict minimized to the certificate's support when available.
+      d_likelyIntegerInfeasible = true;
+      Node conflict = d_scipSimplex.mipConflict();
+      if (conflict.isNull())
+      {
+        // fall back to the conflict over all asserted bound constraints
+        ConstraintCPVec bounds;
+        for (ArithVariables::var_iterator vi = d_partialModel.var_begin(),
+                                          vend = d_partialModel.var_end();
+             vi != vend;
+             ++vi)
+        {
+          ArithVar v = *vi;
+          if (d_partialModel.hasLowerBound(v))
+          {
+            bounds.push_back(d_partialModel.getLowerBoundConstraint(v));
+          }
+          if (d_partialModel.hasUpperBound(v))
+          {
+            bounds.push_back(d_partialModel.getUpperBoundConstraint(v));
+          }
+        }
+        Assert(!bounds.empty());
+        conflict =
+            Constraint::externalExplainByAssertions(nodeManager(), bounds);
+      }
+      Trace("arith::scip") << "scip mip conflict: " << conflict << endl;
+      raiseBlackBoxConflict(conflict, d_scipSimplex.mipProof());
+      return true;
+    }
+    case Result::UNKNOWN:
+    default:
+      // Not encodable, budget exhausted, a SCIP failure, or a failed
+      // certificate reconstruction: the conventional machinery proceeds.
+      return true;
+  }
+}
+
 bool TheoryArithPrivate::replayLog(ApproximateSimplex* approx)
 {
   TimerStat::CodeTimer codeTimer(d_statistics.d_replayLogTimer);
@@ -3342,7 +3421,7 @@ SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(bool pass1)
   {
     if (d_pass1SDP == nullptr)
     {
-      if (options().arith.arithUseScipSimplex)
+      if (options().arith.arithUseScip)
       {
         d_pass1SDP = (SimplexDecisionProcedure*)(&d_scipSimplex);
       }
@@ -3366,7 +3445,7 @@ SimplexDecisionProcedure& TheoryArithPrivate::selectSimplex(bool pass1)
   {
     if (d_otherSDP == nullptr)
     {
-      if (options().arith.arithUseScipSimplex)
+      if (options().arith.arithUseScip)
       {
         d_otherSDP = (SimplexDecisionProcedure*)(&d_scipSimplex);
       }
@@ -3697,20 +3776,30 @@ bool TheoryArithPrivate::postCheck(Theory::Effort effortLevel)
   Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
                       << "pre solveInteger" << endl;
 
-  if (attemptSolveInteger(effortLevel, emmittedConflictOrSplit))
+  bool attemptedInteger = false;
+  if (options().arith.arithUseScip)
   {
+    // Under --use-scip the integer feasibility check is performed by the
+    // SCIP exact MIP engine instead of the approximate machinery; the
+    // conventional branching below remains the fallback when the engine
+    // has no verdict.
+    attemptedInteger = scipSolveInteger(effortLevel, emmittedConflictOrSplit);
+  }
+  else if (attemptSolveInteger(effortLevel, emmittedConflictOrSplit))
+  {
+    attemptedInteger = true;
     solveInteger(effortLevel);
-    if (anyConflict())
-    {
-      ++d_statistics.d_commitsOnConflicts;
-      Trace("arith::bt") << "committing here "
-                         << " " << d_newFacts << " " << d_previousStatus << " "
-                         << d_qflraStatus << endl;
-      revertOutOfConflict();
-      d_errorSet.clear();
-      outputConflicts();
-      return true;
-    }
+  }
+  if (attemptedInteger && anyConflict())
+  {
+    ++d_statistics.d_commitsOnConflicts;
+    Trace("arith::bt") << "committing here "
+                       << " " << d_newFacts << " " << d_previousStatus << " "
+                       << d_qflraStatus << endl;
+    revertOutOfConflict();
+    d_errorSet.clear();
+    outputConflicts();
+    return true;
   }
 
   Trace("arith::ems") << "ems: " << emmittedConflictOrSplit
