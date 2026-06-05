@@ -208,7 +208,16 @@ name   = "Arithmetic Theory"
   type       = "bool"
   default    = "false"
   predicates = ["checkScipSimplex"]
-  help       = "solve linear arithmetic (the real relaxation and integer feasibility) with the SCIP exact rational solver instead of the internal machinery (requires a build with --scip)"
+  help       = "solve the real relaxation in linear arithmetic with the SCIP exact rational LP solver instead of the internal simplex (requires a build with --scip)"
+
+[[option]]
+  name       = "arithScipMip"
+  category   = "expert"
+  long       = "scip-mip"
+  type       = "bool"
+  default    = "false"
+  predicates = ["checkScipSimplex"]
+  help       = "decide integer feasibility in linear arithmetic with the SCIP exact mixed-integer solver instead of branch-and-bound, independently of the engine of the real relaxation (requires a build with --scip)"
 
 [[option]]
   name       = "arithScipPropagation"

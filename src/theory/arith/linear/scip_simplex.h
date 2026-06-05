@@ -101,14 +101,27 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   Result::Status findIntegerModel();
 
   /**
-   * The conflict of the last infeasible integer check under proofs: the
-   * conjunction of the participating bound constraints (the support of
-   * the reconstructed certificate).
+   * The conflict of the last infeasible integer check: the conjunction
+   * of the bound constraints in the support of SCIP's certificate (null
+   * if it could not be collected; the caller then weakens to all
+   * asserted bounds).
    */
   const Node& mipConflict() const { return d_mipConflict; }
 
-  /** The reconstructed proof of the negation of mipConflict(). */
+  /** The reconstructed proof of the negation of mipConflict() (proof
+   * mode only; null otherwise). */
   std::shared_ptr<ProofNode> mipProof() const { return d_mipProof; }
+
+  /**
+   * The branching assumptions of the certificate of the last infeasible
+   * integer check, as (variable, branch value) pairs: emitting the
+   * corresponding branch lemmas makes SCIP's case structure reusable by
+   * the SAT solver (see TheoryArithPrivate::scipSolveInteger).
+   */
+  const std::vector<std::pair<ArithVar, Rational>>& mipSplits() const
+  {
+    return d_mipSplits;
+  }
 
   /**
    * Registers the procedure to which findModel delegates declined checks
@@ -318,6 +331,8 @@ class ScipSimplexDecisionProcedure : public SimplexDecisionProcedure
   Node d_mipConflict;
   /** The proof of the negation of d_mipConflict, see mipProof. */
   std::shared_ptr<ProofNode> d_mipProof;
+  /** The splits of the last infeasible integer check, see mipSplits. */
+  std::vector<std::pair<ArithVar, Rational>> d_mipSplits;
   /** Counter for unique certificate file names. */
   size_t d_mipCertCounter = 0;
 

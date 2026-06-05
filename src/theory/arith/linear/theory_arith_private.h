@@ -412,13 +412,15 @@ class TheoryArithPrivate : protected EnvObj
                            bool emmmittedLemmaOrSplit);
   /**
    * Decides integer feasibility with the SCIP exact MIP engine
-   * (--use-scip): on a satisfiable check the exact integral assignment is
-   * imported into the partial model; on an infeasible one a conflict over
-   * the asserted bounds is raised when proofs are disabled (the verdict is
-   * trusted), while with proofs the conventional machinery proceeds.
-   * Returns whether the engine was invoked.
+   * (--scip-mip): on a satisfiable check the exact integral assignment is
+   * imported into the partial model; on an infeasible one the branching
+   * structure of SCIP's refutation is emitted as branch lemmas (setting
+   * emittedLemmaOrSplit), and if none are fresh, a conflict is raised
+   * (with the reconstructed proof of SCIP's certificate when proofs are
+   * enabled, and trusted otherwise). Returns whether the engine was
+   * invoked.
    */
-  bool scipSolveInteger(Theory::Effort effortLevel, bool emittedLemmaOrSplit);
+  bool scipSolveInteger(Theory::Effort effortLevel, bool& emittedLemmaOrSplit);
   /**
    * Exponential backoff for scipSolveInteger: consecutive checks without
    * an outcome (budget exhaustion, rejected models) grow the number of
@@ -832,6 +834,8 @@ class TheoryArithPrivate : protected EnvObj
     TimerStat d_newPropTime;
 
     IntStat d_externalBranchAndBounds;
+    /** Branch lemmas taken from SCIP MIP refutations, see --scip-mip. */
+    IntStat d_scipMipSplitLemmas;
 
     IntStat d_initialTableauSize;
     IntStat d_currSetToSmaller;

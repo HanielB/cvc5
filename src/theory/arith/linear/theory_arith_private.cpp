@@ -291,6 +291,7 @@ TheoryArithPrivate::Statistics::Statistics(StatisticsRegistry& reg,
       d_newPropTime(reg.registerTimer(name + "newPropTimer")),
       d_externalBranchAndBounds(
           reg.registerInt(name + "externalBranchAndBounds")),
+      d_scipMipSplitLemmas(reg.registerInt(name + "scip::mipSplitLemmas")),
       d_initialTableauSize(reg.registerInt(name + "initialTableauSize")),
       d_currSetToSmaller(reg.registerInt(name + "currSetToSmaller")),
       d_smallerSetToCurr(reg.registerInt(name + "smallerSetToCurr")),
@@ -2182,7 +2183,7 @@ bool TheoryArithPrivate::attemptSolveInteger(Theory::Effort effortLevel,
 }
 
 bool TheoryArithPrivate::scipSolveInteger(Theory::Effort effortLevel,
-                                          bool emittedLemmaOrSplit)
+                                          bool& emittedLemmaOrSplit)
 {
   // The SCIP exact MIP engine decides integer feasibility at full effort
   // when the relaxation is satisfiable but the assignment is not integral.
@@ -2219,11 +2220,42 @@ bool TheoryArithPrivate::scipSolveInteger(Theory::Effort effortLevel,
     {
       // SCIP established by exact reasoning that the bounds, the tableau
       // and the integralities admit no solution (the tableau is
-      // definitional and the integralities are types). With proofs the
+      // definitional and the integralities are types).
+      d_likelyIntegerInfeasible = true;
+      // Prefer emitting the branching structure of SCIP's refutation as
+      // branch lemmas: the splits become reusable atoms of the search,
+      // whose cases the (incremental) engine of the relaxation refutes
+      // with minimized conflicts, where a conflict here would only block
+      // the current combination of bounds. Fresh lemmas are progress, so
+      // no conflict is needed.
+      bool emitted = false;
+      for (const auto& [v, val] : d_scipSimplex.mipSplits())
+      {
+        if (!d_partialModel.hasNode(v) || !d_partialModel.isInteger(v))
+        {
+          continue;
+        }
+        TNode var = d_partialModel.asNode(v);
+        std::vector<TrustNode> lems = d_bab.branchIntegerVariable(var, val);
+        for (const TrustNode& lem : lems)
+        {
+          Trace("arith::scip") << "scip mip split: " << lem.getNode() << endl;
+          if (outputTrustedLemma(lem, InferenceId::ARITH_SCIP_MIP_BRANCH))
+          {
+            emitted = true;
+            ++d_statistics.d_scipMipSplitLemmas;
+          }
+        }
+      }
+      if (emitted)
+      {
+        emittedLemmaOrSplit = true;
+        return true;
+      }
+      // No (fresh) splits: conclude with the conflict. With proofs the
       // certificate was reconstructed into a proof of the negation of the
       // conflict; without proofs the verdict is trusted, with the
       // conflict minimized to the certificate's support when available.
-      d_likelyIntegerInfeasible = true;
       Node conflict = d_scipSimplex.mipConflict();
       if (conflict.isNull())
       {
@@ -3777,9 +3809,9 @@ bool TheoryArithPrivate::postCheck(Theory::Effort effortLevel)
                       << "pre solveInteger" << endl;
 
   bool attemptedInteger = false;
-  if (options().arith.arithUseScip)
+  if (options().arith.arithScipMip)
   {
-    // Under --use-scip the integer feasibility check is performed by the
+    // Under --scip-mip the integer feasibility check is performed by the
     // SCIP exact MIP engine instead of the approximate machinery; the
     // conventional branching below remains the fallback when the engine
     // has no verdict.

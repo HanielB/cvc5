@@ -90,14 +90,28 @@ std::vector<TrustNode> BranchAndBound::branchIntegerVariable(TNode var,
       Trace("integers::pf") << "eq: " << eq << std::endl;
       Trace("integers::pf") << "rawEq: " << rawEq << std::endl;
       Pf pfNotLit = pnm->mkAssume(literal.negate());
-      // rewrite notLiteral to notRawEq, using teq.
-      Pf pfNotRawEq =
-          literal == rawEq
-              ? pfNotLit
-              : pnm->mkNode(ProofRule::MACRO_SR_PRED_TRANSFORM,
-                            {pfNotLit,
-                             teq.getGenerator()->getProofFor(teq.getProven())},
-                            {rawEq.negate()});
+      // rewrite notLiteral to notRawEq, using teq when the literal stems
+      // from the preprocessing of the equality, and rewriting alone
+      // otherwise (the literal is then the rewritten form of rawEq)
+      Pf pfNotRawEq;
+      if (literal == rawEq)
+      {
+        pfNotRawEq = pfNotLit;
+      }
+      else if (teq.isNull() || teq.getGenerator() == nullptr)
+      {
+        pfNotRawEq = pnm->mkNode(ProofRule::MACRO_SR_PRED_TRANSFORM,
+                                 {pfNotLit},
+                                 {rawEq.negate()});
+      }
+      else
+      {
+        pfNotRawEq =
+            pnm->mkNode(ProofRule::MACRO_SR_PRED_TRANSFORM,
+                        {pfNotLit,
+                         teq.getGenerator()->getProofFor(teq.getProven())},
+                        {rawEq.negate()});
+      }
       Pf pfBot =
           pnm->mkNode(ProofRule::CONTRA,
                       {pnm->mkNode(ProofRule::ARITH_TRICHOTOMY,

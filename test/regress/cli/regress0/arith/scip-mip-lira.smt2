@@ -1,6 +1,7 @@
 ; REQUIRES: scip
-; COMMAND-LINE: --use-scip
-; COMMAND-LINE: --use-scip --check-proofs
+; COMMAND-LINE: --use-scip --scip-mip
+; COMMAND-LINE: --scip-mip
+; COMMAND-LINE: --use-scip --scip-mip --check-proofs
 ; EXPECT: unsat
 ;
 ; Unsatisfiable only through the interplay of integrality and the strict

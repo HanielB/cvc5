@@ -90,6 +90,9 @@ enum class InferenceId
   ARITH_TIGHTEN_FLOOR,
   ARITH_APPROX_CUT,
   ARITH_BB_LEMMA,
+  // an integer branch taken from the refutation of the SCIP exact
+  // mixed-integer solver (see --scip-mip)
+  ARITH_SCIP_MIP_BRANCH,
   ARITH_DIO_CUT,
   ARITH_DIO_DECOMPOSITION,
   // unate lemma during presolve

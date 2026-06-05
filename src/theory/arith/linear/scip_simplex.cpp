@@ -1725,12 +1725,16 @@ class ViprProofReconstructor
   }
 
   /**
-   * Collects the support of the certificate: the bound constraints whose
-   * rows are reachable from the final derivation through the premises.
-   * This is a parse and a traversal only (no proof is built); it serves
-   * the minimization of the trusted conflict when proofs are disabled.
+   * Collects, from the rows reachable from the final derivation through
+   * the premises: the support (the participating bound constraints, for
+   * the minimization of the trusted conflict) and the splits (the
+   * branching assumptions, as (variable, branch value) pairs, for their
+   * emission as branch lemmas). This is a parse and a traversal only; no
+   * proof is built.
    */
-  bool collectSupport(const std::string& filename, ConstraintCPVec& support)
+  bool collectCertificateInfo(const std::string& filename,
+                              ConstraintCPVec& support,
+                              std::vector<std::pair<ArithVar, Rational>>& splits)
   {
     std::ifstream in(filename);
     if (!in || !parse(in) || d_rows.empty())
@@ -1752,6 +1756,23 @@ class ViprProofReconstructor
             && d_mp.d_consOrigin[idx] != NullConstraint)
         {
           support.push_back(d_mp.d_consOrigin[idx]);
+        }
+        continue;
+      }
+      if (r.d_kind == ViprRow::ASM)
+      {
+        // a branching assumption x <= k or x >= k + 1 over an integer
+        // variable: record the split at k
+        if (r.d_lhs.size() == 1)
+        {
+          const auto& [vi, coef] = *r.d_lhs.begin();
+          if (!d_isDelta[vi] && coef.isOne() && r.d_rhs.isIntegral()
+              && d_varAv[vi] != ARITHVAR_SENTINEL)
+          {
+            splits.emplace_back(
+                d_varAv[vi],
+                r.d_rel == Kind::LEQ ? r.d_rhs : r.d_rhs - Rational(1));
+          }
         }
         continue;
       }
@@ -1779,6 +1800,8 @@ class ViprProofReconstructor
         }
       }
     }
+    std::sort(splits.begin(), splits.end());
+    splits.erase(std::unique(splits.begin(), splits.end()), splits.end());
     return !support.empty();
   }
 
@@ -1885,6 +1908,7 @@ class ViprProofReconstructor
     // map the variable names back: "delta" and "v<arithvar>", with the
     // "t_" prefix of SCIP's transformed problem
     d_varTerm.resize(nvars);
+    d_varAv.assign(nvars, ARITHVAR_SENTINEL);
     d_isDelta.assign(nvars, false);
     for (size_t i = 0; i < nvars; ++i)
     {
@@ -1905,6 +1929,7 @@ class ViprProofReconstructor
         {
           return false;
         }
+        d_varAv[i] = v;
         d_varTerm[i] = d_vars.asNode(v);
       }
       else
@@ -2572,6 +2597,8 @@ class ViprProofReconstructor
   const ArithVariables& d_vars;
   /** The terms of the certificate's variables (null for delta). */
   std::vector<Node> d_varTerm;
+  /** Their arithmetic variables (the sentinel for delta). */
+  std::vector<ArithVar> d_varAv;
   std::vector<bool> d_isDelta;
   /** The objective row (the delta variable, in our encoding). */
   std::map<int, Rational> d_objRow;
@@ -2603,7 +2630,7 @@ bool ScipSimplexDecisionProcedure::reconstructMipProof(
 namespace {
 
 /** The branch-and-bound node budget of one integer (MIP) check. */
-constexpr SCIP_Longint scipMipNodeLimit = 10000;
+constexpr SCIP_Longint scipMipNodeLimit = 2000;
 /**
  * The wall-clock budget of one integer (MIP) check, in seconds. The
  * checks repeat across the full-effort rounds of a solve, so this also
@@ -2611,7 +2638,7 @@ constexpr SCIP_Longint scipMipNodeLimit = 10000;
  * in which an expiring cvc5 time limit can only abort the process hard
  * (the limit cannot interrupt SCIP cooperatively).
  */
-constexpr SCIP_Real scipMipTimeLimit = 2.0;
+constexpr SCIP_Real scipMipTimeLimit = 0.5;
 
 }  // namespace
 
@@ -2798,6 +2825,7 @@ Result::Status ScipSimplexDecisionProcedure::solveIntegerWithScip()
   ++d_statistics.d_mipCalls;
   d_mipConflict = Node::null();
   d_mipProof = nullptr;
+  d_mipSplits.clear();
 
   ScipMipProblem mp;
   bool produceProofs = options().smt.produceProofs;
@@ -2857,6 +2885,21 @@ Result::Status ScipSimplexDecisionProcedure::solveIntegerWithScip()
     // released (its solution and status are no longer needed here)
     std::string certFile = mp.d_certFile;
     mp.freeScip();
+    {
+      // the splits of the refutation (for their emission as branch
+      // lemmas by the caller) and, without proofs, the support that
+      // minimizes the trusted conflict
+      ViprProofReconstructor rec(d_env, mp, d_variables);
+      ConstraintCPVec support;
+      if (rec.collectCertificateInfo(certFile, support, d_mipSplits)
+          && !produceProofs)
+      {
+        d_mipConflict =
+            Constraint::externalExplainByAssertions(nodeManager(), support);
+      }
+      // on failure d_mipConflict stays null; the caller falls back to
+      // the conflict over all asserted bounds
+    }
     if (produceProofs)
     {
       if (!reconstructMipProof(mp, certFile))
@@ -2866,18 +2909,6 @@ Result::Status ScipSimplexDecisionProcedure::solveIntegerWithScip()
         return Result::UNKNOWN;
       }
       ++d_statistics.d_mipProofs;
-    }
-    else
-    {
-      ViprProofReconstructor rec(d_env, mp, d_variables);
-      ConstraintCPVec support;
-      if (rec.collectSupport(certFile, support))
-      {
-        d_mipConflict =
-            Constraint::externalExplainByAssertions(nodeManager(), support);
-      }
-      // on failure d_mipConflict stays null; the caller falls back to
-      // the conflict over all asserted bounds
     }
     ++d_statistics.d_mipUnsat;
     return Result::UNSAT;

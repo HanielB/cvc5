@@ -1,5 +1,5 @@
 ; REQUIRES: scip
-; COMMAND-LINE: --use-scip --check-models
+; COMMAND-LINE: --use-scip --scip-mip --check-models
 ; EXPECT: sat
 ;
 ; Mixed-integer model with a strict rational bound, found and imported by

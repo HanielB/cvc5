@@ -1,5 +1,5 @@
 ; REQUIRES: scip
-; COMMAND-LINE: --use-scip --check-models
+; COMMAND-LINE: --use-scip --scip-mip --check-models
 ; EXPECT: sat
 ;
 ; The relaxation has a fractional vertex (x = 1/2), so the integral model
