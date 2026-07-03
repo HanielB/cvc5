@@ -165,6 +165,8 @@ const char* aletheRuleToString(AletheRule id)
     //================================================= Temporary
     case AletheRule::BV_BITWISE_SLICING: return "bv_bitwise_slicing";
     case AletheRule::BV_REPEAT_ELIM: return "bv_repeat_elim";
+    //================================================= Ground E-unification
+    case AletheRule::G_EUNIF: return "g_eunif";
     //================================================= Hole
     case AletheRule::HOLE: return "hole";
     case AletheRule::AND_INTRO: return "and_intro";

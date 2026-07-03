@@ -553,6 +553,12 @@ enum class AletheRule : uint32_t
   // their respective CPC counterpart for now.
   BV_BITWISE_SLICING,
   BV_REPEAT_ELIM,
+  // ======== g_eunif
+  // This rule is not in the Alethe standard. It concludes an equality that is
+  // entailed by its premise equalities under ground equational reasoning,
+  // i.e., it is checked by computing the congruence closure of the premises:
+  //   premises: (= s_1 t_1) ... (= s_n t_n);  conclusion: (cl (= t u))
+  G_EUNIF,
   // ======== hole
   // Used for unjustified steps
   HOLE,

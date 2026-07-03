@@ -3126,6 +3126,27 @@ bool AletheProofPostprocessCallback::update(Node res,
                            {},
                            *cdp);
     }
+    case ProofRule::SUBS:
+    {
+      // Substitution steps are kept unexpanded when --proof-alethe-eunif is
+      // set. Their conclusion (= t (t . sigma)) is entailed by the premise
+      // equalities under ground equational reasoning, which is what the
+      // (non-standard) g_eunif rule captures. Other substitution shapes (from
+      // literal or formula substitutions) fall through to the hole case below.
+      if (res.getKind() == Kind::EQUAL
+          && std::all_of(children.begin(), children.end(), [](const Node& c) {
+               return c.getKind() == Kind::EQUAL;
+             }))
+      {
+        return addAletheStep(AletheRule::G_EUNIF,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl, res),
+                             children,
+                             {},
+                             *cdp);
+      }
+      [[fallthrough]];
+    }
     default:
     {
       Trace("alethe-proof")

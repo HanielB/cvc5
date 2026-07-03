@@ -12,6 +12,7 @@
 
 #include "smt/proof_post_processor.h"
 
+#include "expr/node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "options/base_options.h"
 #include "options/proof_options.h"
@@ -678,6 +679,20 @@ Node ProofPostprocessCallback::expandMacros(ProofRule id,
     if (args.size() >= 3)
     {
       getMethodId(args[2], ida);
+    }
+    // If the option is set, we do not expand substitutions whose premises are
+    // all equalities: in Alethe proofs they are printed as g_eunif steps,
+    // which are justified by ground congruence reasoning. We require the
+    // substituted term to be free of binders, since otherwise the
+    // substitution may apply inside a binder's body, which ground congruence
+    // reasoning cannot justify.
+    if (options().proof.proofAletheEunif && ids == MethodId::SB_DEFAULT
+        && !expr::hasClosure(t)
+        && std::all_of(children.begin(), children.end(), [](const Node& c) {
+             return c.getKind() == Kind::EQUAL;
+           }))
+    {
+      return Node::null();
     }
     Trace("smt-proof-pp-debug")
         << "Expand SUBS " << ids << " " << ida << std::endl;

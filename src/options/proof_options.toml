@@ -168,6 +168,14 @@ name   = "Proof"
   help       = "In Alethe proofs, use define-funs in proof preamble for Skolemization terms"
 
 [[option]]
+  name       = "proofAletheEunif"
+  category   = "expert"
+  long       = "proof-alethe-eunif"
+  type       = "bool"
+  default    = "false"
+  help       = "In Alethe proofs, do not expand substitution steps whose premises are all equalities, and print them using the (non-standard) g_eunif rule"
+
+[[option]]
   name       = "proofAletheResPivots"
   category   = "expert"
   long       = "proof-alethe-res-pivots"
