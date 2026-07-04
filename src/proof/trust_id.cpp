@@ -103,6 +103,7 @@ const char* toString(TrustId id)
     case TrustId::FLATTENING_REWRITE: return "FLATTENING_REWRITE";
     case TrustId::SUBS_NO_ELABORATE: return "SUBS_NO_ELABORATE";
     case TrustId::SUBS_MAP: return "SUBS_MAP";
+    case TrustId::TCONV_EUNIF: return "TCONV_EUNIF";
     case TrustId::SUBS_EQ: return "SUBS_EQ";
     case TrustId::ARITH_PRED_CAST_TYPE: return "ARITH_PRED_CAST_TYPE";
     case TrustId::RE_ELIM: return "RE_ELIM";

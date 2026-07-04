@@ -1032,6 +1032,22 @@ bool AletheProofPostprocessCallback::update(Node res,
       }
       TrustId tid;
       bool hasTrustId = getTrustId(args[0], tid);
+      // A rewriting proof kept coarse (TCONV_EUNIF) concludes an equality
+      // that is entailed by its premise equalities under ground congruence
+      // reasoning, so it is printed as a g_eunif step.
+      if (hasTrustId && tid == TrustId::TCONV_EUNIF
+          && res.getKind() == Kind::EQUAL
+          && std::all_of(children.begin(), children.end(), [](const Node& c) {
+               return c.getKind() == Kind::EQUAL;
+             }))
+      {
+        return addAletheStep(AletheRule::G_EUNIF,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl, res),
+                             children,
+                             {},
+                             *cdp);
+      }
       std::stringstream ss;
       if (hasTrustId)
       {
@@ -3131,17 +3147,51 @@ bool AletheProofPostprocessCallback::update(Node res,
       // Substitution steps are kept unexpanded when --proof-alethe-eunif is
       // set. Their conclusion (= t (t . sigma)) is entailed by the premise
       // equalities under ground equational reasoning, which is what the
-      // (non-standard) g_eunif rule captures. Other substitution shapes (from
-      // literal or formula substitutions) fall through to the hole case below.
+      // (non-standard) g_eunif rule captures. Premises may also be
+      // conjunctions of equalities; when such a premise is justified by an
+      // AND_INTRO step we short-circuit it, using the individual equalities
+      // directly as premises. Other substitution shapes (from literal or
+      // formula substitutions) fall through to the hole case below.
       if (res.getKind() == Kind::EQUAL
           && std::all_of(children.begin(), children.end(), [](const Node& c) {
-               return c.getKind() == Kind::EQUAL;
+               return c.getKind() == Kind::EQUAL
+                      || (c.getKind() == Kind::AND
+                          && std::all_of(
+                              c.begin(), c.end(), [](const Node& cc) {
+                                return cc.getKind() == Kind::EQUAL;
+                              }));
              }))
       {
+        std::vector<Node> premises;
+        for (const Node& c : children)
+        {
+          if (c.getKind() == Kind::AND)
+          {
+            std::shared_ptr<ProofNode> pf = cdp->getProofFor(c);
+            bool isAndIntro =
+                pf != nullptr
+                && (pf->getRule() == ProofRule::AND_INTRO
+                    || (pf->getRule() == ProofRule::ALETHE_RULE
+                        && getAletheRule(pf->getArguments()[0])
+                               == AletheRule::AND_INTRO));
+            if (isAndIntro)
+            {
+              for (const std::shared_ptr<ProofNode>& eqPf : pf->getChildren())
+              {
+                // register the equality's proof, since only the proofs of
+                // the direct children are guaranteed to be in cdp
+                cdp->addProof(eqPf);
+                premises.push_back(eqPf->getResult());
+              }
+              continue;
+            }
+          }
+          premises.push_back(c);
+        }
         return addAletheStep(AletheRule::G_EUNIF,
                              res,
                              nm->mkNode(Kind::SEXPR, d_cl, res),
-                             children,
+                             premises,
                              {},
                              *cdp);
       }

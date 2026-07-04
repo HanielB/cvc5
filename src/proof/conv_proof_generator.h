@@ -211,6 +211,9 @@ class TConvProofGenerator : protected EnvObj, public ProofGenerator
   /** map to rewritten forms */
   NodeNodeMap d_preRewriteMap;
   NodeNodeMap d_postRewriteMap;
+  /** The equalities of all registered rewrite steps, kept when producing
+   * coarse rewriting proofs (see maybeCoarsenRewritingProof). */
+  std::unordered_set<Node> d_allRewriteSteps;
   /**
    * Policy for how rewrites are applied to terms. As a simple example, say we
    * have registered the rewrite steps:
@@ -248,6 +251,19 @@ class TConvProofGenerator : protected EnvObj, public ProofGenerator
    * and a rewrite step has not already been registered for t.
    */
   Node registerRewriteStep(Node t, Node s, uint32_t tctx, bool isPre);
+  /**
+   * When proofAletheEunif is set and eq[0] has no closures, returns a coarse
+   * version of the given rewriting proof of eq: a single trusted step
+   * (TrustId::TCONV_EUNIF) whose premises are the rewrite steps occurring in
+   * the proof, with their original sub-proofs, and whose congruence and
+   * transitivity skeleton is dropped. This is justified since eq[1] is
+   * obtained from eq[0] by replacing subterm occurrences via the rewrite
+   * steps (never below a binder, as eq[0] has none), so eq is entailed by
+   * them under ground congruence reasoning. Returns the given proof itself
+   * when coarsening does not apply.
+   */
+  std::shared_ptr<ProofNode> maybeCoarsenRewritingProof(
+      Node eq, std::shared_ptr<ProofNode> pfn);
   /** cache that r is the rewritten form of cur, pf can provide a proof */
   void doCache(Node curHash, Node cur, Node r, LazyCDProof& pf);
   /** get debug information on this generator */

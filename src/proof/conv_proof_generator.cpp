@@ -14,12 +14,15 @@
 
 #include <sstream>
 
+#include "expr/node_algorithm.h"
 #include "expr/term_context.h"
 #include "expr/term_context_stack.h"
+#include "options/proof_options.h"
 #include "printer/let_binding.h"
 #include "proof/proof_checker.h"
 #include "proof/proof_node.h"
 #include "proof/proof_node_algorithm.h"
+#include "proof/trust_id.h"
 #include "rewriter/rewrites.h"
 
 using namespace cvc5::internal::kind;
@@ -175,7 +178,65 @@ Node TConvProofGenerator::registerRewriteStep(Node t,
     // clear the cache
     d_cache.clear();
   }
-  return t.eqNode(s);
+  Node eq = t.eqNode(s);
+  if (options().proof.proofAletheEunif)
+  {
+    d_allRewriteSteps.insert(eq);
+  }
+  return eq;
+}
+
+std::shared_ptr<ProofNode> TConvProofGenerator::maybeCoarsenRewritingProof(
+    Node eq, std::shared_ptr<ProofNode> pfn)
+{
+  if (!options().proof.proofAletheEunif || d_allRewriteSteps.empty()
+      || expr::hasClosure(eq[0]))
+  {
+    return pfn;
+  }
+  // Collect the rewrite steps occurring in the proof, i.e. the nodes
+  // concluding a registered rewrite step equality, without descending into
+  // them. Note that the conclusion itself may be a registered rewrite step
+  // (when the whole rewrite is a single step at the top of the term), in
+  // which case its proof is already a leaf and is kept as is.
+  std::vector<std::shared_ptr<ProofNode>> premisePfs;
+  std::unordered_set<const ProofNode*> visited;
+  std::unordered_set<Node> seen;
+  std::vector<std::shared_ptr<ProofNode>> toVisit{pfn};
+  while (!toVisit.empty())
+  {
+    std::shared_ptr<ProofNode> cur = toVisit.back();
+    toVisit.pop_back();
+    if (!visited.insert(cur.get()).second)
+    {
+      continue;
+    }
+    Node res = cur->getResult();
+    if (res != eq && d_allRewriteSteps.count(res) > 0)
+    {
+      if (seen.insert(res).second)
+      {
+        premisePfs.push_back(cur);
+      }
+      continue;
+    }
+    const std::vector<std::shared_ptr<ProofNode>>& cs = cur->getChildren();
+    toVisit.insert(toVisit.end(), cs.begin(), cs.end());
+  }
+  if (premisePfs.empty())
+  {
+    return pfn;
+  }
+  CDProof cdp(d_env);
+  std::vector<Node> premises;
+  for (const std::shared_ptr<ProofNode>& p : premisePfs)
+  {
+    cdp.addProof(p);
+    premises.push_back(p->getResult());
+  }
+  cdp.addTrustedStep(
+      eq, TrustId::TCONV_EUNIF, premises, {}, false, CDPOverwrite::ALWAYS);
+  return cdp.getProofFor(eq);
 }
 
 std::shared_ptr<ProofNode> TConvProofGenerator::getProofFor(Node f)
@@ -239,6 +300,10 @@ std::shared_ptr<ProofNode> TConvProofGenerator::getProofFor(Node f)
   Trace("tconv-pf-gen") << "... success" << std::endl;
   Assert(pfn != nullptr);
   Trace("tconv-pf-gen-debug-pf") << "... proof is " << *pfn << std::endl;
+  if (f[0] != f[1])
+  {
+    pfn = maybeCoarsenRewritingProof(f, pfn);
+  }
   return pfn;
 }
 
@@ -253,6 +318,10 @@ std::shared_ptr<ProofNode> TConvProofGenerator::getProofForRewriting(Node n)
   std::shared_ptr<ProofNode> pfn = lpf.getProofFor(conc);
   Assert(pfn != nullptr);
   Trace("tconv-pf-gen-debug-pf") << "... proof is " << *pfn << std::endl;
+  if (conc[1] != n)
+  {
+    pfn = maybeCoarsenRewritingProof(conc, pfn);
+  }
   return pfn;
 }
 

@@ -190,6 +190,10 @@ enum class TrustId : uint32_t
   SUBS_MAP,
   /** A proof of a substitution x=t that could not be shown by rewrite */
   SUBS_EQ,
+  /** A rewriting proof kept coarse: its conclusion is entailed by its
+     premises (the registered rewrite steps) under ground congruence
+     reasoning (used with proofAletheEunif, printed as g_eunif in Alethe) */
+  TCONV_EUNIF,
   /** A step of the form (~ s t) = (~ (to_real s) (to_real t)) */
   ARITH_PRED_CAST_TYPE,
   /**

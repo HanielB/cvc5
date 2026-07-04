@@ -192,6 +192,11 @@ Node ProofPostprocessCallback::expandMacros(ProofRule id,
   {
     TrustId tid;
     getTrustId(args[0], tid);
+    if (tid == TrustId::TCONV_EUNIF)
+    {
+      // deliberately coarse steps, kept to be printed as g_eunif in Alethe
+      return Node::null();
+    }
     // maybe we can show it rewrites to true based on rewriting
     // modulo original forms (MACRO_SR_PRED_INTRO).
     TheoryProofStepBuffer psb(d_pc);
@@ -681,14 +686,12 @@ Node ProofPostprocessCallback::expandMacros(ProofRule id,
       getMethodId(args[2], ida);
     }
     // If the option is set, we do not expand substitutions whose premises are
-    // all equalities: in Alethe proofs they are printed as g_eunif steps,
-    // which are justified by ground congruence reasoning. We require the
-    // substituted term to be free of binders, since otherwise the
+    // all equalities or conjunctions of equalities (as produced e.g. by
+    // TrustSubstitutionMap): in Alethe proofs they are printed as g_eunif
+    // steps, which are justified by ground congruence reasoning. We require
+    // the substituted term to be free of binders, since otherwise the
     // substitution may apply inside a binder's body, which ground congruence
-    // reasoning cannot justify. Premises that are conjunctions of equalities
-    // (as produced e.g. by TrustSubstitutionMap) are only expanded shallowly:
-    // their conjuncts are derived by AND_ELIM and a substitution step over
-    // the individual equalities is kept.
+    // reasoning cannot justify.
     if (options().proof.proofAletheEunif && ids == MethodId::SB_DEFAULT
         && !expr::hasClosure(t)
         && std::all_of(children.begin(), children.end(), [](const Node& c) {
@@ -699,37 +702,7 @@ Node ProofPostprocessCallback::expandMacros(ProofRule id,
                        }));
            }))
     {
-      if (std::all_of(children.begin(), children.end(), [](const Node& c) {
-            return c.getKind() == Kind::EQUAL;
-          }))
-      {
-        // all premises are already equalities, do not expand at all
-        return Node::null();
-      }
-      // Derive the individual equalities of the conjunctions and add an
-      // unexpanded substitution step over them. The substitution is the same,
-      // since conjunctions are decoded into their conjuncts, in order, when
-      // the substitution is computed from the premises.
-      std::vector<Node> flatChildren;
-      for (const Node& c : children)
-      {
-        if (c.getKind() != Kind::AND)
-        {
-          flatChildren.push_back(c);
-          continue;
-        }
-        for (size_t j = 0, nchildc = c.getNumChildren(); j < nchildc; j++)
-        {
-          cdp->addStep(
-              c[j], ProofRule::AND_ELIM, {c}, {nm->mkConstInt(Rational(j))});
-          flatChildren.push_back(c[j]);
-        }
-      }
-      Node ts = builtin::BuiltinProofRuleChecker::applySubstitution(
-          t, children, ids, ida);
-      Node eqq = t.eqNode(ts);
-      cdp->addStep(eqq, ProofRule::SUBS, flatChildren, args);
-      return eqq;
+      return Node::null();
     }
     Trace("smt-proof-pp-debug")
         << "Expand SUBS " << ids << " " << ida << std::endl;

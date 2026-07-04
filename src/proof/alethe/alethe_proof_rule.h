@@ -556,8 +556,10 @@ enum class AletheRule : uint32_t
   // ======== g_eunif
   // This rule is not in the Alethe standard. It concludes an equality that is
   // entailed by its premise equalities under ground equational reasoning,
-  // i.e., it is checked by computing the congruence closure of the premises:
-  //   premises: (= s_1 t_1) ... (= s_n t_n);  conclusion: (cl (= t u))
+  // i.e., it is checked by computing the congruence closure of the premises.
+  // Each premise is an equality or a conjunction of equalities:
+  //   premises: P_1 ... P_n, with P_i either (= s t) or (and (= s1 t1) ...);
+  //   conclusion: (cl (= t u))
   G_EUNIF,
   // ======== hole
   // Used for unjustified steps
