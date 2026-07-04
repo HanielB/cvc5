@@ -1037,9 +1037,9 @@ bool AletheProofPostprocessCallback::update(Node res,
       // reasoning, so it is printed as a g_eunif step.
       if (hasTrustId && tid == TrustId::TCONV_EUNIF
           && res.getKind() == Kind::EQUAL
-          && std::all_of(children.begin(), children.end(), [](const Node& c) {
-               return c.getKind() == Kind::EQUAL;
-             }))
+          && std::all_of(children.begin(),
+                         children.end(),
+                         expr::isEqualityOrConjunctionOfEqualities))
       {
         return addAletheStep(AletheRule::G_EUNIF,
                              res,
@@ -3153,14 +3153,9 @@ bool AletheProofPostprocessCallback::update(Node res,
       // directly as premises. Other substitution shapes (from literal or
       // formula substitutions) fall through to the hole case below.
       if (res.getKind() == Kind::EQUAL
-          && std::all_of(children.begin(), children.end(), [](const Node& c) {
-               return c.getKind() == Kind::EQUAL
-                      || (c.getKind() == Kind::AND
-                          && std::all_of(
-                              c.begin(), c.end(), [](const Node& cc) {
-                                return cc.getKind() == Kind::EQUAL;
-                              }));
-             }))
+          && std::all_of(children.begin(),
+                         children.end(),
+                         expr::isEqualityOrConjunctionOfEqualities))
       {
         std::vector<Node> premises;
         for (const Node& c : children)

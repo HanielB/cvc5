@@ -16,6 +16,7 @@
 #define CVC5__PROOF__CONV_PROOF_GENERATOR_H
 
 #include "context/cdhashmap.h"
+#include "context/cdhashset.h"
 #include "proof/lazy_proof.h"
 #include "proof/proof_generator.h"
 
@@ -212,8 +213,9 @@ class TConvProofGenerator : protected EnvObj, public ProofGenerator
   NodeNodeMap d_preRewriteMap;
   NodeNodeMap d_postRewriteMap;
   /** The equalities of all registered rewrite steps, kept when producing
-   * coarse rewriting proofs (see maybeCoarsenRewritingProof). */
-  std::unordered_set<Node> d_allRewriteSteps;
+   * coarse rewriting proofs (see maybeCoarsenRewritingProof). Context
+   * dependent, so that its lifetime matches that of the rewrite step maps. */
+  context::CDHashSet<Node> d_allRewriteSteps;
   /**
    * Policy for how rewrites are applied to terms. As a simple example, say we
    * have registered the rewrite steps:

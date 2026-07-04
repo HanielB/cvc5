@@ -694,13 +694,9 @@ Node ProofPostprocessCallback::expandMacros(ProofRule id,
     // reasoning cannot justify.
     if (options().proof.proofAletheEunif && ids == MethodId::SB_DEFAULT
         && !expr::hasClosure(t)
-        && std::all_of(children.begin(), children.end(), [](const Node& c) {
-             return c.getKind() == Kind::EQUAL
-                    || (c.getKind() == Kind::AND
-                        && std::all_of(c.begin(), c.end(), [](const Node& cc) {
-                         return cc.getKind() == Kind::EQUAL;
-                       }));
-           }))
+        && std::all_of(children.begin(),
+                       children.end(),
+                       expr::isEqualityOrConjunctionOfEqualities))
     {
       return Node::null();
     }

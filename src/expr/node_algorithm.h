@@ -149,6 +149,12 @@ bool hasFreeOrShadowedVar(TNode n, bool& wasShadow);
 bool hasClosure(Node n);
 
 /**
+ * @param n The node under investigation
+ * @return true iff n is an equality or a conjunction of equalities.
+ */
+bool isEqualityOrConjunctionOfEqualities(TNode n);
+
+/**
  * Get the free variables in n, that is, the subterms of n of kind
  * BOUND_VARIABLE that are not bound in n, adds these to fvs.
  *

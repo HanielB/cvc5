@@ -14,6 +14,8 @@
 
 #include "expr/node_algorithm.h"
 
+#include <algorithm>
+
 #include "expr/attribute.h"
 #include "expr/cardinality_constraint.h"
 #include "expr/dtype.h"
@@ -572,6 +574,18 @@ bool hasClosure(Node n)
     return hasC;
   }
   return n.getAttribute(HasClosureAttr());
+}
+
+bool isEqualityOrConjunctionOfEqualities(TNode n)
+{
+  if (n.getKind() == Kind::EQUAL)
+  {
+    return true;
+  }
+  return n.getKind() == Kind::AND
+         && std::all_of(n.begin(), n.end(), [](TNode c) {
+              return c.getKind() == Kind::EQUAL;
+            });
 }
 
 bool getFreeVariables(TNode n, std::unordered_set<Node>& fvs)

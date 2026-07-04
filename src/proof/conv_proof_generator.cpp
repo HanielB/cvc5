@@ -63,6 +63,7 @@ TConvProofGenerator::TConvProofGenerator(Env& env,
       d_proof(env, nullptr, c, name + "::LazyCDProof"),
       d_preRewriteMap(c ? c : &d_context),
       d_postRewriteMap(c ? c : &d_context),
+      d_allRewriteSteps(c ? c : &d_context),
       d_policy(pol),
       d_cpolicy(cpol),
       d_name(name),
@@ -212,7 +213,7 @@ std::shared_ptr<ProofNode> TConvProofGenerator::maybeCoarsenRewritingProof(
       continue;
     }
     Node res = cur->getResult();
-    if (res != eq && d_allRewriteSteps.count(res) > 0)
+    if (res != eq && d_allRewriteSteps.contains(res))
     {
       if (seen.insert(res).second)
       {
