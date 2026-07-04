@@ -15,6 +15,9 @@
 #ifndef CVC5__PROOF__ALETHE__ALETHE_PROOF_PRINTER_H
 #define CVC5__PROOF__ALETHE__ALETHE_PROOF_PRINTER_H
 
+#include <unordered_map>
+#include <unordered_set>
+
 #include "context/cdhashset.h"
 #include "proof/alethe/alethe_let_binding.h"
 #include "proof/alethe/alethe_node_converter.h"
@@ -95,6 +98,19 @@ class AletheProofPrinter : protected EnvObj
    * @param id The current id being used for printing step ids
    * @param pfn The proof node to be printed
    */
+  /** Whether the proof node may be printed at the top level.
+   *
+   * This is the case when all the assumptions it depends on are input
+   * assumptions (which are printed before everything else) and neither its
+   * steps' conclusions nor their arguments contain free variables (a fragment
+   * under e.g. a bind anchor may mention the anchor's variables, which cannot
+   * escape the corresponding subproof). The cache memoizes the result for
+   * every visited node.
+   */
+  bool isHoistable(const ProofNode* pfn,
+                   std::unordered_map<const ProofNode*, bool>& cache,
+                   const std::unordered_set<Node>& inputAssumptions);
+
   void printInternal(std::ostream& out,
                      const std::string& prefix,
                      size_t& id,
