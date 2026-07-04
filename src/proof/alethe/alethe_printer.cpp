@@ -16,9 +16,11 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "expr/node_algorithm.h"
 #include "options/printer_options.h"
 #include "options/proof_options.h"
 #include "proof/alethe/alethe_proof_rule.h"
+#include "proof/proof_letify.h"
 #include "util/smt2_quote_string.h"
 
 namespace cvc5::internal {
@@ -227,9 +229,124 @@ void AletheProofPrinter::print(
     printTerm(out, args[i]);
     out << ")" << std::endl;
   }
-  // Then, print the rest of the proof node
+  // Print proof fragments shared between subproofs once, at the top level,
+  // where their step ids remain valid inside every subproof. Otherwise a
+  // fragment first printed inside a subproof loses its id when the subproof
+  // ends, and every later subproof referencing it prints it all over again.
+  // Only hoistable fragments may be printed at the top level (see
+  // isHoistable).
   size_t id = 0;
-  printInternal(out, "", id, pfn->getChildren()[0]);
+  {
+    Trace("alethe-printer") << "- Hoist shared fragments." << std::endl;
+    std::vector<const ProofNode*> pletList;
+    std::map<const ProofNode*, size_t> pletMap;
+    ProofLetify::computeProofLet(innerPf.get(), pletList, pletMap);
+    if (!pletList.empty())
+    {
+      // collect the shared pointers of the shared nodes
+      std::unordered_map<const ProofNode*, std::shared_ptr<ProofNode>> sptrs;
+      std::unordered_set<const ProofNode*> visited;
+      std::vector<std::shared_ptr<ProofNode>> toVisit{innerPf};
+      while (!toVisit.empty())
+      {
+        std::shared_ptr<ProofNode> cur = toVisit.back();
+        toVisit.pop_back();
+        if (!visited.insert(cur.get()).second)
+        {
+          continue;
+        }
+        if (pletMap.find(cur.get()) != pletMap.end())
+        {
+          sptrs[cur.get()] = cur;
+        }
+        const std::vector<std::shared_ptr<ProofNode>>& cs = cur->getChildren();
+        toVisit.insert(toVisit.end(), cs.begin(), cs.end());
+      }
+      std::unordered_set<Node> inputAssumptions{args.begin(), args.end()};
+      std::unordered_map<const ProofNode*, bool> cache;
+      for (const ProofNode* pn : pletList)
+      {
+        if (pn->getRule() != ProofRule::ASSUME
+            && isHoistable(pn, cache, inputAssumptions))
+        {
+          printInternal(out, "", id, sptrs[pn]);
+        }
+      }
+    }
+  }
+  // Then, print the rest of the proof node
+  printInternal(out, "", id, innerPf);
+}
+
+bool AletheProofPrinter::isHoistable(
+    const ProofNode* pfn,
+    std::unordered_map<const ProofNode*, bool>& cache,
+    const std::unordered_set<Node>& inputAssumptions)
+{
+  std::vector<const ProofNode*> toVisit{pfn};
+  while (!toVisit.empty())
+  {
+    const ProofNode* cur = toVisit.back();
+    if (cache.find(cur) != cache.end())
+    {
+      toVisit.pop_back();
+      continue;
+    }
+    if (cur->getRule() == ProofRule::ASSUME)
+    {
+      // only input assumptions are printed at the top level; all others are
+      // local to some subproof
+      cache[cur] =
+          inputAssumptions.count(d_anc.convert(cur->getResult())) > 0;
+      toVisit.pop_back();
+      continue;
+    }
+    // The `cl` operator and the raw symbols used e.g. for hole arguments are
+    // s-expression-typed bound variables, and occur in every step; only free
+    // variables of other types are genuine term variables (bound by some
+    // anchor), which the fragment must not mention
+    bool ok = true;
+    std::unordered_set<Node> fvs;
+    for (const Node& arg : cur->getArguments())
+    {
+      expr::getFreeVariables(arg, fvs);
+    }
+    TypeNode sexprType = nodeManager()->sExprType();
+    for (const Node& v : fvs)
+    {
+      if (v.getType() != sexprType)
+      {
+        ok = false;
+        break;
+      }
+    }
+    if (!ok)
+    {
+      cache[cur] = false;
+      toVisit.pop_back();
+      continue;
+    }
+    bool ready = true;
+    for (const std::shared_ptr<ProofNode>& c : cur->getChildren())
+    {
+      auto it = cache.find(c.get());
+      if (it == cache.end())
+      {
+        toVisit.push_back(c.get());
+        ready = false;
+      }
+      else if (!it->second)
+      {
+        ok = false;
+      }
+    }
+    if (ready)
+    {
+      cache[cur] = ok;
+      toVisit.pop_back();
+    }
+  }
+  return cache[pfn];
 }
 
 void AletheProofPrinter::printInternal(std::ostream& out,
