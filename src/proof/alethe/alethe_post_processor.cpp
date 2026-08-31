@@ -52,6 +52,11 @@ std::unordered_map<Kind, AletheRule> s_bvKindToAletheRule = {
     {Kind::BITVECTOR_EXTRACT, AletheRule::BV_BITBLAST_STEP_EXTRACT},
     {Kind::BITVECTOR_SIGN_EXTEND, AletheRule::BV_BITBLAST_STEP_SIGN_EXTEND},
     {Kind::EQUAL, AletheRule::BV_BITBLAST_STEP_BVEQUAL},
+    {Kind::BITVECTOR_UDIV, AletheRule::BV_BITBLAST_STEP_BVUDIV},
+    {Kind::BITVECTOR_UREM, AletheRule::BV_BITBLAST_STEP_BVUREM},
+    {Kind::BITVECTOR_SHL, AletheRule::BV_BITBLAST_STEP_BVSHL},
+    {Kind::BITVECTOR_LSHR, AletheRule::BV_BITBLAST_STEP_BVLSHR},
+    {Kind::BITVECTOR_ASHR, AletheRule::BV_BITBLAST_STEP_BVASHR},
 };
 
 AletheProofPostprocessCallback::AletheProofPostprocessCallback(
@@ -873,15 +878,11 @@ bool AletheProofPostprocessCallback::update(Node res,
       }
       if (!success || k != tf.getKind() || (k != Kind::OR && k != Kind::AND))
       {
-        // Use sexp to ensure deterministic node ID assignments
+        // For operators without simplify rules (e.g. the bit-vector ones) we
+        // use the dedicated "absorb" rule, which concludes (= t c) for c the
+        // absorbing element of t's operator, occurring in t.
         Node sexp = nm->mkNode(Kind::SEXPR, d_cl, res);
-        return addAletheStep(
-            AletheRule::HOLE,
-            res,
-            sexp,
-            {},
-            {nm->mkRawSymbol("\"failed absorb\"", nm->sExprType())},
-            *cdp);
+        return addAletheStep(AletheRule::ABSORB, res, sexp, {}, {}, *cdp);
       }
       Node vp1 = nm->mkNode(Kind::EQUAL, t, tf);
       Node vp2 = nm->mkNode(Kind::EQUAL, tf, res[1]);
@@ -2018,18 +2019,6 @@ bool AletheProofPostprocessCallback::update(Node res,
     case ProofRule::BV_BITBLAST_STEP:
     {
       Kind k = res[0].getKind();
-      // no checking for those yet in Carcara or Isabelle, so we produce holes
-      if (k == Kind::BITVECTOR_UDIV || k == Kind::BITVECTOR_UREM
-          || k == Kind::BITVECTOR_SHL || k == Kind::BITVECTOR_LSHR
-          || k == Kind::BITVECTOR_ASHR)
-      {
-        return addAletheStep(AletheRule::HOLE,
-                             res,
-                             nm->mkNode(Kind::SEXPR, d_cl, res),
-                             children,
-                             {},
-                             *cdp);
-      }
       // if the term being bitblasted is a variable or a nonbv term, then this
       // is a "bitblast var" step
       auto it = s_bvKindToAletheRule.find(k);

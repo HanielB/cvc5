@@ -162,9 +162,15 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::BV_BITBLAST_STEP_CONST: return "bv_bitblast_step_const";
     case AletheRule::BV_BITBLAST_STEP_SIGN_EXTEND:
       return "bv_bitblast_step_sign_extend";
+    case AletheRule::BV_BITBLAST_STEP_BVUDIV: return "bv_bitblast_step_bvudiv";
+    case AletheRule::BV_BITBLAST_STEP_BVUREM: return "bv_bitblast_step_bvurem";
+    case AletheRule::BV_BITBLAST_STEP_BVSHL: return "bv_bitblast_step_bvshl";
+    case AletheRule::BV_BITBLAST_STEP_BVLSHR: return "bv_bitblast_step_bvlshr";
+    case AletheRule::BV_BITBLAST_STEP_BVASHR: return "bv_bitblast_step_bvashr";
     //================================================= Temporary
     case AletheRule::BV_BITWISE_SLICING: return "bv_bitwise_slicing";
     case AletheRule::BV_REPEAT_ELIM: return "bv_repeat_elim";
+    case AletheRule::ABSORB: return "absorb";
     //================================================= Hole
     case AletheRule::HOLE: return "hole";
     case AletheRule::AND_INTRO: return "and_intro";
