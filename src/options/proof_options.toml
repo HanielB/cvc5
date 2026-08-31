@@ -160,6 +160,14 @@ name   = "Proof"
   help       = "Prune unused input assumptions from final scope"
 
 [[option]]
+  name       = "proofAletheAbsorb"
+  category   = "expert"
+  long       = "proof-alethe-absorb"
+  type       = "bool"
+  default    = "true"
+  help       = "In Alethe proofs, translate ABSORB steps directly to the dedicated \"absorb\" rule for all operators. If disabled, Boolean and/or absorptions are instead expanded into ac_simp + and/or_simplify + trans steps."
+
+[[option]]
   name       = "proofAletheDefineSkolems"
   category   = "expert"
   long       = "proof-alethe-define-skolems"

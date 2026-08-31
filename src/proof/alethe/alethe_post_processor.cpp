@@ -845,6 +845,17 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     // ======== Absorb
     //
+    // With proof-alethe-absorb (the default), translated directly to the
+    // dedicated "absorb" rule, which concludes (= t c) for c the absorbing
+    // element of t's operator, occurring in t. This applies to the Boolean
+    // operators as well: expanding an and/or absorption into
+    // ac_simp + and/or_simplify + trans forces the checker to flatten the
+    // whole (possibly huge) formula, which made ac_simp one of the most
+    // expensive rules over bit-blasted proofs, while absorb only has to find
+    // the absorbing constant.
+    //
+    // With the option disabled, Boolean and/or absorptions are expanded as
+    //
     // ------- ac_simp   ------- <op>_simplify
     //   VP1               VP2
     // ------------------------- trans
@@ -859,6 +870,11 @@ bool AletheProofPostprocessCallback::update(Node res,
     // performance marginally.
     case ProofRule::ABSORB:
     {
+      if (options().proof.proofAletheAbsorb)
+      {
+        Node sexp = nm->mkNode(Kind::SEXPR, d_cl, res);
+        return addAletheStep(AletheRule::ABSORB, res, sexp, {}, {}, *cdp);
+      }
       std::map<Node, Node> emptyMap;
       Node t = res[0];
       Node tf = applyAcSimp(d_env, emptyMap, t);
