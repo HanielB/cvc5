@@ -123,9 +123,18 @@ Node AletheLetBinding::convert(NodeManager* nm,
         options::ioutils::applyFlattenHOChains(ss, true);
         cur.toStream(ss);
         ss << " :named " << prefix << id << ")";
-        Node letVar = NodeManager::mkRawSymbol(ss.str(), cur.getType());
-        visited[cur] = letVar;
-        declaredValue[cur] = letVar;
+        Node declaration = NodeManager::mkRawSymbol(ss.str(), cur.getType());
+        declaredValue[cur] = declaration;
+        // As in the post-visit case below, only the first occurrence (as
+        // controlled by the recorded parent and position) carries the
+        // declaration; all others, in this and later conversions, must use
+        // the variable, otherwise the full declaration is duplicated at
+        // every occurrence of the closure.
+        std::stringstream ssVar;
+        ssVar << prefix << id;
+        visited[cur] =
+            cur == n ? declaration
+                     : NodeManager::mkBoundVar(ssVar.str(), cur.getType());
         continue;
       }
       visited[cur] = Node::null();
@@ -179,6 +188,16 @@ Node AletheLetBinding::convert(NodeManager* nm,
           const auto& itDeclPos = declaredPosition.find(cur[i]);
           useVisited =
               itDeclPos == declaredPosition.end() || itDeclPos->second != i;
+          if (!useVisited)
+          {
+            // The declaration must furthermore be confined to the parent
+            // recorded for the child's first occurrence: a shared child can
+            // occur at the same position in several parents, and every parent
+            // other than the recorded one must use the variable, otherwise
+            // the full declaration is duplicated at each of them.
+            Assert(parentOf.find(cur[i]) != parentOf.end());
+            useVisited = parentOf[cur[i]] != cur;
+          }
         }
         Assert(useVisited || getId(cur[i]) > 0)
             << "With input " << n << " we got child " << cur[i]
