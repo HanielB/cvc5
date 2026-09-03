@@ -1821,9 +1821,40 @@ void Smt2Printer::toStreamCmdDefineFunction(std::ostream& out,
 {
   if (d_variant == Variant::eo_variant)
   {
+    // Eunoia has no SMT-LIB let, so the body must not be letified. When the
+    // stream asks for dag sharing, the shared subterms of the body are
+    // instead hoisted into define commands preceding this one, named after
+    // the body so distinct definitions cannot collide.
+    size_t dag = options::ioutils::getDagThresh(out);
+    LetBinding lbind("@d" + std::to_string(formula.getId()) + "_",
+                     dag + 1,
+                     true,
+                     true);
+    if (dag > 0)
+    {
+      lbind.process(formula);
+      std::vector<Node> letList;
+      lbind.letify(letList);
+      for (const Node& n : letList)
+      {
+        out << "(define @d" << formula.getId() << "_" << lbind.getId(n)
+            << " () ";
+        toStream(out, n, &lbind, false);
+        out << ')' << std::endl;
+      }
+    }
     out << "(define " << cvc5::internal::quoteSymbol(id) << " ";
     toStreamSortedVarList(out, formals);
-    out << " " << formula << ')';
+    out << " ";
+    if (dag > 0)
+    {
+      toStream(out, formula, &lbind, true);
+    }
+    else
+    {
+      out << formula;
+    }
+    out << ')';
     return;
   }
   out << "(define-fun " << cvc5::internal::quoteSymbol(id) << " ";
