@@ -3434,7 +3434,9 @@ bool AletheProofPostprocessCallback::addAletheStepFromOr(
 
 AletheProofPostprocess::AletheProofPostprocess(Env& env,
                                                AletheNodeConverter& anc)
-    : EnvObj(env), d_cb(env, anc, options().proof.proofAletheResPivots)
+    : EnvObj(env),
+      d_anc(anc),
+      d_cb(env, anc, options().proof.proofAletheResPivots)
 {
 }
 
@@ -3499,7 +3501,236 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
     d_reasonForConversionFailure = d_cb.getError();
     return false;
   }
+  // Reorganize the translated derivation: merge content-identical proof nodes
+  // and compute the context dependencies the printer uses to place each
+  // derivation at the outermost subproof under which it is well scoped
+  const std::vector<Node>& scopeArgs = pf->getChildren()[0]->getArguments();
+  std::unordered_set<Node> globalAssumptions{scopeArgs.begin(),
+                                             scopeArgs.end()};
+  reorganize(pf->getChildren()[0]->getChildren()[0], globalAssumptions);
   return true;
+}
+
+void AletheProofPostprocess::addTermDeps(const std::vector<Node>& args,
+                                         size_t end,
+                                         AletheStepDeps& deps)
+{
+  for (size_t i = 2; i < end && i < args.size(); ++i)
+  {
+    // We look into the children of s-expressions rather than the
+    // s-expressions themselves, consistently with how they are printed
+    std::vector<TNode> terms;
+    if (args[i].getKind() == Kind::SEXPR)
+    {
+      terms.insert(terms.end(), args[i].begin(), args[i].end());
+    }
+    else
+    {
+      terms.push_back(args[i]);
+    }
+    for (TNode t : terms)
+    {
+      // cheap cached check: a term without bound variables has no free ones
+      if (!expr::hasBoundVar(t))
+      {
+        continue;
+      }
+      std::unordered_set<Node> fvs;
+      expr::getFreeVariables(t, fvs);
+      for (const Node& v : fvs)
+      {
+        // Skip the printing meta symbols, which are represented as bound
+        // variables but are not variables of any anchor context: the "cl"
+        // clause marker and the "rare-list" list constructor of RARE rule
+        // arguments
+        if (v.hasName() && (v.getName() == "cl" || v.getName() == "rare-list"))
+        {
+          continue;
+        }
+        deps.d_vars.insert(v);
+      }
+    }
+  }
+}
+
+void AletheProofPostprocess::reorganize(
+    const std::shared_ptr<ProofNode>& root,
+    const std::unordered_set<Node>& globalAssumptions)
+{
+  ProofNodeManager* pnm = d_env.getProofNodeManager();
+  // the canonical representative of each visited node
+  std::unordered_map<const ProofNode*, std::shared_ptr<ProofNode>> repr;
+  // canonical nodes by content key
+  std::unordered_map<std::string, std::shared_ptr<ProofNode>> byKey;
+  std::unordered_set<const ProofNode*> inProgress;
+  // Dependencies are only ever consulted, and duplicate nodes can only be
+  // printed more than once, for derivations under an anchor. Nodes reachable
+  // only outside anchors therefore just get themselves as representative,
+  // which makes this pass cheap on proofs that are mostly anchor-free. The
+  // flag of a visit entry says whether the node is being reached under an
+  // anchor.
+  std::vector<std::pair<std::shared_ptr<ProofNode>, bool>> visit{
+      {root, false}};
+  while (!visit.empty())
+  {
+    auto [cur, under] = visit.back();
+    // when known, work on the canonical representative
+    const auto itRepr = repr.find(cur.get());
+    if (itRepr != repr.end())
+    {
+      cur = itRepr->second;
+    }
+    bool reprDone = itRepr != repr.end() || repr.find(cur.get()) != repr.end();
+    bool depsDone = d_stepDeps.find(cur.get()) != d_stepDeps.end();
+    if (reprDone && (!under || depsDone))
+    {
+      visit.pop_back();
+      continue;
+    }
+    if (cur->getRule() == ProofRule::ASSUME)
+    {
+      visit.pop_back();
+      Node res = d_anc.convert(cur->getResult());
+      Assert(!res.isNull());
+      if (under)
+      {
+        std::string key(1, 'a');
+        uint64_t rid = res.getId();
+        key.append(reinterpret_cast<const char*>(&rid), sizeof(rid));
+        auto [it, inserted] = byKey.try_emplace(std::move(key), cur);
+        repr[cur.get()] = it->second;
+        cur = it->second;
+      }
+      else
+      {
+        repr[cur.get()] = cur;
+      }
+      if (d_stepDeps.find(cur.get()) == d_stepDeps.end())
+      {
+        AletheStepDeps deps;
+        if (globalAssumptions.find(res) == globalAssumptions.end())
+        {
+          deps.d_assumptions.insert(res);
+        }
+        d_stepDeps[cur.get()] = deps;
+      }
+      continue;
+    }
+    const std::vector<Node>& args = cur->getArguments();
+    AletheRule arule = getAletheRule(args[0]);
+    bool isAnchor = arule >= AletheRule::ANCHOR_SUBPROOF
+                    && arule <= AletheRule::ANCHOR_ONEPOINT;
+    if (inProgress.insert(cur.get()).second)
+    {
+      // pre-visit: process the children first; the interior of an anchor is
+      // under it
+      const std::vector<std::shared_ptr<ProofNode>>& children =
+          cur->getChildren();
+      for (const std::shared_ptr<ProofNode>& child : children)
+      {
+        visit.emplace_back(child, under || isAnchor);
+      }
+      continue;
+    }
+    // post-visit: children have canonical representatives (and, when under an
+    // anchor, dependencies)
+    visit.pop_back();
+    inProgress.erase(cur.get());
+    if (!reprDone)
+    {
+      const std::vector<std::shared_ptr<ProofNode>>& children =
+          cur->getChildren();
+      std::vector<std::shared_ptr<ProofNode>> newChildren;
+      bool childChanged = false;
+      for (const std::shared_ptr<ProofNode>& child : children)
+      {
+        Assert(repr.find(child.get()) != repr.end());
+        const std::shared_ptr<ProofNode>& c = repr[child.get()];
+        childChanged = childChanged || c.get() != child.get();
+        newChildren.push_back(c);
+      }
+      if (under)
+      {
+        std::string key(1, 's');
+        key.reserve(1 + (args.size() + newChildren.size()) * sizeof(uint64_t));
+        for (const Node& arg : args)
+        {
+          uint64_t aid = arg.getId();
+          key.append(reinterpret_cast<const char*>(&aid), sizeof(aid));
+        }
+        for (const std::shared_ptr<ProofNode>& c : newChildren)
+        {
+          uintptr_t cid = reinterpret_cast<uintptr_t>(c.get());
+          key.append(reinterpret_cast<const char*>(&cid), sizeof(cid));
+        }
+        auto [it, inserted] = byKey.try_emplace(std::move(key), cur);
+        if (!inserted)
+        {
+          // a content-identical node exists: use it instead
+          repr[cur.get()] = it->second;
+          continue;
+        }
+      }
+      if (childChanged)
+      {
+        pnm->updateNode(cur.get(), cur->getRule(), newChildren, args);
+      }
+      repr[cur.get()] = cur;
+    }
+    if (!under || d_stepDeps.find(cur.get()) != d_stepDeps.end())
+    {
+      continue;
+    }
+    // compute the dependencies of this node
+    AletheStepDeps deps;
+    for (const std::shared_ptr<ProofNode>& child : cur->getChildren())
+    {
+      Assert(d_stepDeps.find(child.get()) != d_stepDeps.end());
+      const AletheStepDeps& cdeps = d_stepDeps[child.get()];
+      deps.d_vars.insert(cdeps.d_vars.begin(), cdeps.d_vars.end());
+      deps.d_assumptions.insert(cdeps.d_assumptions.begin(),
+                                cdeps.d_assumptions.end());
+    }
+    if (arule == AletheRule::ANCHOR_SUBPROOF)
+    {
+      // its assumptions are discharged within
+      for (size_t i = 3, size = args.size(); i < size; ++i)
+      {
+        deps.d_assumptions.erase(args[i]);
+      }
+    }
+    else if (arule > AletheRule::ANCHOR_SUBPROOF
+             && arule <= AletheRule::ANCHOR_ONEPOINT)
+    {
+      // The variables its arguments declare are bound within the subproof.
+      // The right-hand side of a context assignment that is not itself a
+      // variable belongs to the outside, so its free variables are added
+      // after the subtraction.
+      std::unordered_set<Node> rhsVars;
+      for (size_t i = 3, size = args.size(); i < size; ++i)
+      {
+        if (args[i].getKind() == Kind::EQUAL)
+        {
+          deps.d_vars.erase(args[i][0]);
+          if (args[i][1].getKind() == Kind::BOUND_VARIABLE)
+          {
+            deps.d_vars.erase(args[i][1]);
+          }
+          else if (expr::hasBoundVar(args[i][1]))
+          {
+            expr::getFreeVariables(args[i][1], rhsVars);
+          }
+          continue;
+        }
+        deps.d_vars.erase(args[i]);
+      }
+      deps.d_vars.insert(rhsVars.begin(), rhsVars.end());
+    }
+    // for anchors, only the conclusion contributes terms: their remaining
+    // arguments declare the variables handled above
+    addTermDeps(args, isAnchor ? 3 : args.size(), deps);
+    d_stepDeps[cur.get()] = deps;
+  }
 }
 
 }  // namespace proof

@@ -350,7 +350,7 @@ void PfManager::printProof(std::ostream& out,
     proof::AletheProofPostprocess vpfpp(d_env, anc);
     if (vpfpp.process(fp))
     {
-      proof::AletheProofPrinter vpp(d_env, anc);
+      proof::AletheProofPrinter vpp(d_env, anc, vpfpp.getStepDeps());
       vpp.print(out, fp, assertionNames);
     }
     else

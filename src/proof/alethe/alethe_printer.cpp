@@ -74,8 +74,11 @@ bool LetUpdaterPfCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
   return false;
 }
 
-AletheProofPrinter::AletheProofPrinter(Env& env, AletheNodeConverter& anc)
+AletheProofPrinter::AletheProofPrinter(Env& env,
+                                       AletheNodeConverter& anc,
+                                       const AletheStepDepsMap& stepDeps)
     : EnvObj(env),
+      d_stepDeps(stepDeps),
       d_lbind(options().printer.dagThresh ? options().printer.dagThresh + 1
                                           : 0),
       d_anc(anc),
@@ -143,10 +146,7 @@ void AletheProofPrinter::print(
   d_frames.clear();
   d_frames.push_back(std::make_unique<Frame>());
   d_stepIds.clear();
-  d_stepKeyIds.clear();
   d_assumptionIds.clear();
-  d_depsCache.clear();
-  d_globalAssumptions.clear();
   d_topOut = &out;
   // ignore outer scope
   pfn = pfn->getChildren()[0];
@@ -213,7 +213,6 @@ void AletheProofPrinter::print(
     }
     printTerm(out, args[i]);
     out << ")" << std::endl;
-    d_globalAssumptions.insert(args[i]);
   }
   // Then, print the rest of the proof node and render it. The proof is
   // constructed as items first and rendered in output order at the end, so
@@ -328,160 +327,17 @@ AletheProofPrinter::OutItem AletheProofPrinter::stepItem(
   return item;
 }
 
-void AletheProofPrinter::addTermDeps(const std::shared_ptr<ProofNode>& pfn,
-                                     ContextDeps& deps)
-{
-  const std::vector<Node>& args = pfn->getArguments();
-  AletheRule arule = getAletheRule(args[0]);
-  // For anchors we only consider the conclusion: their remaining arguments
-  // declare the very variables that are bound within the subproof, which are
-  // handled separately in getDeps.
-  bool isAnchor = arule >= AletheRule::ANCHOR_SUBPROOF
-                  && arule <= AletheRule::ANCHOR_ONEPOINT;
-  size_t end = isAnchor ? 3 : args.size();
-  for (size_t i = 2; i < end && i < args.size(); ++i)
-  {
-    // We look into the children of s-expressions rather than the
-    // s-expressions themselves, consistently with how they are printed
-    std::vector<TNode> terms;
-    if (args[i].getKind() == Kind::SEXPR)
-    {
-      for (TNode c : args[i])
-      {
-        terms.push_back(c);
-      }
-    }
-    else
-    {
-      terms.push_back(args[i]);
-    }
-    for (TNode t : terms)
-    {
-      // cheap cached check: a term without bound variables has no free ones
-      if (!expr::hasBoundVar(t))
-      {
-        continue;
-      }
-      std::unordered_set<Node> fvs;
-      expr::getFreeVariables(t, fvs);
-      for (const Node& v : fvs)
-      {
-        // Skip the printer's meta symbols, which are represented as bound
-        // variables but are not variables of any anchor context: the "cl"
-        // clause marker and the "rare-list" list constructor of RARE rule
-        // arguments
-        if (v.hasName() && (v.getName() == "cl" || v.getName() == "rare-list"))
-        {
-          continue;
-        }
-        deps.d_vars.insert(v);
-      }
-    }
-  }
-}
-
-const AletheProofPrinter::ContextDeps& AletheProofPrinter::getDeps(
-    const std::shared_ptr<ProofNode>& pfn)
-{
-  std::unordered_set<const ProofNode*> inProgress;
-  std::vector<std::shared_ptr<ProofNode>> visit{pfn};
-  while (!visit.empty())
-  {
-    std::shared_ptr<ProofNode> cur = visit.back();
-    if (d_depsCache.find(cur.get()) != d_depsCache.end())
-    {
-      visit.pop_back();
-      continue;
-    }
-    if (cur->getRule() == ProofRule::ASSUME)
-    {
-      visit.pop_back();
-      ContextDeps deps;
-      Node res = d_anc.convert(cur->getResult());
-      Assert(!res.isNull());
-      if (d_globalAssumptions.find(res) == d_globalAssumptions.end())
-      {
-        deps.d_assumptions.insert(res);
-      }
-      d_depsCache[cur.get()] = deps;
-      continue;
-    }
-    if (inProgress.insert(cur.get()).second)
-    {
-      // pre-visit: compute the children first
-      const std::vector<std::shared_ptr<ProofNode>>& children =
-          cur->getChildren();
-      visit.insert(visit.end(), children.begin(), children.end());
-      continue;
-    }
-    // post-visit: all children are computed
-    visit.pop_back();
-    inProgress.erase(cur.get());
-    ContextDeps deps;
-    for (const std::shared_ptr<ProofNode>& child : cur->getChildren())
-    {
-      const ContextDeps& cdeps = d_depsCache[child.get()];
-      deps.d_vars.insert(cdeps.d_vars.begin(), cdeps.d_vars.end());
-      deps.d_assumptions.insert(cdeps.d_assumptions.begin(),
-                                cdeps.d_assumptions.end());
-      deps.d_ctxSensitive = deps.d_ctxSensitive || cdeps.d_ctxSensitive;
-    }
-    const std::vector<Node>& args = cur->getArguments();
-    AletheRule arule = getAletheRule(args[0]);
-    deps.d_ctxSensitive =
-        deps.d_ctxSensitive || arule == AletheRule::REFL
-        || (arule >= AletheRule::ANCHOR_SUBPROOF
-            && arule <= AletheRule::ANCHOR_ONEPOINT);
-    if (arule == AletheRule::ANCHOR_SUBPROOF)
-    {
-      // its assumptions are discharged within
-      for (size_t i = 3, size = args.size(); i < size; ++i)
-      {
-        deps.d_assumptions.erase(args[i]);
-      }
-    }
-    else if (arule > AletheRule::ANCHOR_SUBPROOF
-             && arule <= AletheRule::ANCHOR_ONEPOINT)
-    {
-      // The variables its arguments declare are bound within the subproof.
-      // The right-hand side of a context assignment that is not itself a
-      // variable belongs to the outside, so its free variables are added
-      // after the subtraction.
-      std::unordered_set<Node> rhsVars;
-      for (size_t i = 3, size = args.size(); i < size; ++i)
-      {
-        if (args[i].getKind() == Kind::EQUAL)
-        {
-          deps.d_vars.erase(args[i][0]);
-          if (args[i][1].getKind() == Kind::BOUND_VARIABLE)
-          {
-            deps.d_vars.erase(args[i][1]);
-          }
-          else if (expr::hasBoundVar(args[i][1]))
-          {
-            expr::getFreeVariables(args[i][1], rhsVars);
-          }
-          continue;
-        }
-        deps.d_vars.erase(args[i]);
-      }
-      deps.d_vars.insert(rhsVars.begin(), rhsVars.end());
-    }
-    addTermDeps(cur, deps);
-    d_depsCache[cur.get()] = deps;
-  }
-  return d_depsCache[pfn.get()];
-}
-
 size_t AletheProofPrinter::targetFrame(const std::shared_ptr<ProofNode>& pfn)
 {
-  // with no anchor open the derivation can only be printed at the top level,
-  // and its dependencies need not be computed at all
+  // with no anchor open the derivation can only be printed at the top level
   if (d_frames.size() == 1)
   {
     return 0;
   }
-  const ContextDeps& deps = getDeps(pfn);
+  const auto itDeps = d_stepDeps.find(pfn.get());
+  AlwaysAssert(itDeps != d_stepDeps.end())
+      << "No dependencies were computed for " << pfn->getResult() << std::endl;
+  const AletheStepDeps& deps = itDeps->second;
   if (deps.d_vars.empty() && deps.d_assumptions.empty())
   {
     return 0;
@@ -539,39 +395,6 @@ size_t AletheProofPrinter::targetFrame(const std::shared_ptr<ProofNode>& pfn)
   return target;
 }
 
-std::string AletheProofPrinter::stepKey(const std::shared_ptr<ProofNode>& pfn,
-                                        size_t lvl)
-{
-  std::stringstream key;
-  const std::vector<Node>& args = pfn->getArguments();
-  key << getAletheRule(args[0]);
-  for (size_t i = 2, size = args.size(); i < size; ++i)
-  {
-    key << " " << args[i].getId();
-  }
-  AletheRule arule = getAletheRule(args[0]);
-  if (arule >= AletheRule::ANCHOR_SUBPROOF
-      && arule <= AletheRule::ANCHOR_ONEPOINT)
-  {
-    // For anchors, equal conclusions under equal context arguments are
-    // interchangeable regardless of the subproofs deriving them
-    return key.str();
-  }
-  for (const std::shared_ptr<ProofNode>& child : pfn->getChildren())
-  {
-    key << " ";
-    if (child->getRule() == ProofRule::ASSUME)
-    {
-      Node res = d_anc.convert(child->getResult());
-      key << assumptionId(res, lvl);
-      continue;
-    }
-    auto it = d_stepIds.find(child.get());
-    key << (it == d_stepIds.end() ? "?" : it->second);
-  }
-  return key.str();
-}
-
 void AletheProofPrinter::printInternal(std::shared_ptr<ProofNode> pfn)
 {
   // assumptions are not printed when reached here because in Alethe they are
@@ -597,19 +420,6 @@ void AletheProofPrinter::printInternal(std::shared_ptr<ProofNode> pfn)
   if (arule >= AletheRule::ANCHOR_SUBPROOF
       && arule <= AletheRule::ANCHOR_ONEPOINT)
   {
-    // If an anchor with identical conclusion and context arguments has been
-    // printed and is still in scope, reuse its id rather than printing this
-    // whole subproof again
-    std::string key = stepKey(pfn, d_frames.size() - 1);
-    const auto itKey = d_stepKeyIds.find(key);
-    if (itKey != d_stepKeyIds.end() && d_pinnedToInnermost != pfn.get())
-    {
-      Trace("alethe-printer") << "... subproof has an identical copy printed "
-                              << "as " << itKey->second << "\n";
-      d_stepIds[pfn.get()] = itKey->second;
-      d_frames.back()->d_introducedSteps.push_back(pfn.get());
-      return;
-    }
     // The anchor and its subproof are printed at the outermost frame under
     // which the derivation is well scoped (or the innermost frame, if this is
     // the concluding derivation of the anchor currently being printed).
@@ -648,34 +458,11 @@ void AletheProofPrinter::printInternal(std::shared_ptr<ProofNode> pfn)
   // being printed.
   size_t lvl = d_pinnedToInnermost == pfn.get() ? d_frames.size() - 1
                                                 : targetFrame(pfn);
-  // If a step with identical content has been printed and is still in scope,
-  // reuse its id rather than printing this one. When no anchor is open the
-  // content key is not needed: distinct proof nodes with identical content
-  // arise from derivations replayed under several subproofs.
-  std::string key;
-  if (d_frames.size() > 1)
-  {
-    key = stepKey(pfn, lvl);
-    const auto itKey = d_stepKeyIds.find(key);
-    if (itKey != d_stepKeyIds.end() && d_pinnedToInnermost != pfn.get())
-    {
-      Trace("alethe-printer") << "... step has an identical copy printed as "
-                              << itKey->second << "\n";
-      d_stepIds[pfn.get()] = itKey->second;
-      d_frames.back()->d_introducedSteps.push_back(pfn.get());
-      return;
-    }
-  }
   Frame& frame = *d_frames[lvl];
   std::string stepId = frame.d_prefix + "t" + std::to_string(frame.d_id++);
   d_stepIds[pfn.get()] = stepId;
   frame.d_items.push_back(stepItem(pfn, stepId, lvl));
   frame.d_introducedSteps.push_back(pfn.get());
-  if (!key.empty())
-  {
-    d_stepKeyIds[key] = stepId;
-    frame.d_introducedKeys.push_back(key);
-  }
 }
 
 void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
@@ -756,10 +543,6 @@ void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
   {
     d_stepIds.erase(p);
   }
-  for (const std::string& k : frame.d_introducedKeys)
-  {
-    d_stepKeyIds.erase(k);
-  }
   item.d_items.insert(item.d_items.end(),
                       std::make_move_iterator(frame.d_items.begin()),
                       std::make_move_iterator(frame.d_items.end()));
@@ -767,9 +550,6 @@ void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
   parent.d_items.push_back(std::move(item));
   d_stepIds[pfn.get()] = stepId;
   parent.d_introducedSteps.push_back(pfn.get());
-  std::string anchorKey = stepKey(pfn, lvl);
-  d_stepKeyIds[anchorKey] = stepId;
-  parent.d_introducedKeys.push_back(anchorKey);
   Trace("alethe-printer") << pop;
 }
 

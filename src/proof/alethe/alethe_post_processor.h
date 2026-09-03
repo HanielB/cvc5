@@ -180,6 +180,10 @@ class AletheProofPostprocess : protected EnvObj
  public:
   AletheProofPostprocess(Env& env, AletheNodeConverter& anc);
   ~AletheProofPostprocess();
+
+  /** The dependencies of each (canonical) proof node of the translated
+   * derivation on its printing context, computed by process(). */
+  const AletheStepDepsMap& getStepDeps() const { return d_stepDeps; }
   /** Convert the proof node into the Alethe proof format
    *
    * If the conversion is possible, true is returned. Otherwise, false. The
@@ -192,11 +196,42 @@ class AletheProofPostprocess : protected EnvObj
   const std::string& getError();
 
  private:
+  /** The Alethe node converter */
+  AletheNodeConverter& d_anc;
+
+  /** Canonicalizes the translated derivation and computes its dependencies.
+   *
+   * A single post-order pass over the derivation rooted at root that
+   *
+   * - reorganizes the proof so that content-identical proof nodes (same rule,
+   *   arguments and canonical children), which the translation produces when
+   *   a shared derivation is replayed under several subproofs, are
+   *   represented by a single node, re-pointing their parents at it; and
+   *
+   * - computes, for each remaining node, its dependencies on the printing
+   *   context: the anchor variables occurring free in its derivation and the
+   *   assumptions it relies on beyond the top-level ones in globalAssumptions.
+   *   The printer uses these to place each derivation at the outermost
+   *   subproof under which it is well scoped, which is what makes the shared
+   *   nodes printable once.
+   */
+  void reorganize(const std::shared_ptr<ProofNode>& root,
+                  const std::unordered_set<Node>& globalAssumptions);
+
+  /** Collect into deps the free variables of the terms of args (skipping the
+   * printer's meta markers). */
+  void addTermDeps(const std::vector<Node>& args,
+                   size_t end,
+                   AletheStepDeps& deps);
+
   /** The post process callback */
   AletheProofPostprocessCallback d_cb;
 
   /** The reason for conversion failure, if any. */
   std::string d_reasonForConversionFailure;
+
+  /** The dependencies of the translated derivation's nodes */
+  AletheStepDepsMap d_stepDeps;
 };
 
 }  // namespace proof

@@ -16,12 +16,32 @@
 #define CVC5__PROOF__ALETHE__ALETHE_PROOF_RULE_H
 
 #include <iostream>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "expr/node.h"
 
 namespace cvc5::internal {
 
+class ProofNode;
+
 namespace proof {
+
+/** The dependencies of a translated Alethe derivation on its printing
+ * context, computed during translation and consumed by the printer to place
+ * each derivation at the outermost subproof under which it is well scoped.
+ */
+struct AletheStepDeps
+{
+  /** Variables of enclosing anchor contexts occurring free in it */
+  std::unordered_set<Node> d_vars;
+  /** Assumptions it relies on that are neither discharged within it nor
+   * top-level assumptions */
+  std::unordered_set<Node> d_assumptions;
+};
+
+/** Map from (canonical) proof nodes to their dependencies */
+using AletheStepDepsMap = std::unordered_map<const ProofNode*, AletheStepDeps>;
 
 enum class AletheRule : uint32_t
 {

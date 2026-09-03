@@ -62,7 +62,9 @@ class LetUpdaterPfCallback : public ProofNodeUpdaterCallback
 class AletheProofPrinter : protected EnvObj
 {
  public:
-  AletheProofPrinter(Env& env, AletheNodeConverter& anc);
+  AletheProofPrinter(Env& env,
+                     AletheNodeConverter& anc,
+                     const AletheStepDepsMap& stepDeps);
   ~AletheProofPrinter() {}
   /**
    * Prints a proof node in the Alethe proof format
@@ -146,8 +148,6 @@ class AletheProofPrinter : protected EnvObj
     std::unordered_map<Node, std::string> d_assumeIds;
     /** The proof nodes whose step ids were introduced at this level */
     std::vector<ProofNode*> d_introducedSteps;
-    /** The content keys of the steps introduced at this level */
-    std::vector<std::string> d_introducedKeys;
 
   };
   /** The chain of open frames the current derivation prints under */
@@ -175,31 +175,8 @@ class AletheProofPrinter : protected EnvObj
    * concluding derivation), whereas its own descendants may be printed at
    * outer frames. */
   const ProofNode* d_pinnedToInnermost = nullptr;
-  /** The (converted) top-level assumptions */
-  std::unordered_set<Node> d_globalAssumptions;
-
-  /** The dependencies of a derivation on its printing context. */
-  struct ContextDeps
-  {
-    /** Variables of enclosing anchor contexts occurring free in it */
-    std::unordered_set<Node> d_vars;
-    /** Assumptions it relies on that are neither discharged within it nor
-     * top-level assumptions */
-    std::unordered_set<Node> d_assumptions;
-    /** Whether it contains a step whose checking depends on the ambient
-     * context (a refl step or an anchor): such a derivation can only be
-     * printed where it originally occurs, since moving it changes the context
-     * it is checked under */
-    bool d_ctxSensitive = false;
-  };
-  /** Memoized context dependencies per proof node */
-  std::unordered_map<const ProofNode*, ContextDeps> d_depsCache;
-
-  /** Returns the memoized context dependencies of the derivation of pfn. */
-  const ContextDeps& getDeps(const std::shared_ptr<ProofNode>& pfn);
-
-  /** Collect into deps the free variables of the terms printed for pfn. */
-  void addTermDeps(const std::shared_ptr<ProofNode>& pfn, ContextDeps& deps);
+  /** The context dependencies of each proof node, computed at translation */
+  const AletheStepDepsMap& d_stepDeps;
 
   /** The outermost frame of the current chain under which the derivation of
    * pfn is well scoped, i.e., all its context dependencies are available. A
