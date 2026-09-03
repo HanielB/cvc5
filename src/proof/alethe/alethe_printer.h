@@ -154,17 +154,27 @@ class AletheProofPrinter : protected EnvObj
   std::vector<std::unique_ptr<Frame>> d_frames;
   /** The ids of the printed steps whose frame is still open */
   std::unordered_map<ProofNode*, std::string> d_stepIds;
-  /** The ids of printed steps whose frame is still open, keyed by their
-   * content (rule, arguments and premise ids). The translation may produce
-   * distinct proof nodes with identical content, in particular when a shared
-   * derivation is replayed in several subproofs; this map lets all of them be
-   * printed once. */
-  std::unordered_map<std::string, std::string> d_stepKeyIds;
+  /** The frame each printed step was placed in, kept alongside d_stepIds. A
+   * step's id may only be referenced while its frame is active, i.e., in
+   * d_frames (a frame set aside for an anchor printed below its target is
+   * open but does not enclose the current position). */
+  std::unordered_map<const ProofNode*, Frame*> d_stepFrames;
 
-  /** The content key of a proof node, given the ids its premises resolve to
-   * from frame lvl (anchor keys carry no premises and ignore lvl).
-   */
-  std::string stepKey(const std::shared_ptr<ProofNode>& pfn, size_t lvl);
+  /** The level of the active frame holding the printed step of premise. If no
+   * active frame holds it (its frame was closed, or is set aside), the
+   * premise's derivation is printed again in the current chain first. Only
+   * called for non-assumption premises, after their derivations have been
+   * printed at least once. */
+  size_t premiseLevel(const std::shared_ptr<ProofNode>& premise);
+
+  /** Emits an item at frame lvl: top-level items are rendered to the output
+   * right away (items are only appended, so append order is output order and
+   * the top level need not be buffered); items of open anchors are buffered
+   * in their frame. */
+  void emitItem(OutItem&& item, size_t lvl);
+
+  /** Renders one item into out. */
+  void renderItem(std::ostream& out, const OutItem& item);
   /** The ids of the printed assumptions whose frame is still open */
   std::unordered_map<Node, std::string> d_assumptionIds;
   /** The stream the top-level frame writes to */

@@ -146,6 +146,7 @@ void AletheProofPrinter::print(
   d_frames.clear();
   d_frames.push_back(std::make_unique<Frame>());
   d_stepIds.clear();
+  d_stepFrames.clear();
   d_assumptionIds.clear();
   d_topOut = &out;
   // ignore outer scope
@@ -227,6 +228,12 @@ void AletheProofPrinter::renderItems(std::ostream& out,
 {
   for (const OutItem& item : items)
   {
+    renderItem(out, item);
+  }
+}
+
+void AletheProofPrinter::renderItem(std::ostream& out, const OutItem& item)
+{
     if (item.d_isAnchor)
     {
       out << "(anchor :step " << item.d_id;
@@ -271,7 +278,7 @@ void AletheProofPrinter::renderItems(std::ostream& out,
         out << ")";
       }
       out << ")" << std::endl;
-      continue;
+      return;
     }
     out << "(step " << item.d_id << " ";
     printTerm(out, item.d_conclusion);
@@ -296,7 +303,53 @@ void AletheProofPrinter::renderItems(std::ostream& out,
       out << ")";
     }
     out << ")" << std::endl;
+}
+
+void AletheProofPrinter::emitItem(OutItem&& item, size_t lvl)
+{
+  // Top-level items can be rendered as soon as they are created: items are
+  // only ever appended, so append order is output order, and this way the
+  // top level, which dominates large proofs, is not buffered in memory.
+  if (lvl == 0)
+  {
+    renderItem(*d_topOut, item);
+    return;
   }
+  d_frames[lvl]->d_items.push_back(std::move(item));
+}
+
+size_t AletheProofPrinter::premiseLevel(const std::shared_ptr<ProofNode>& premise)
+{
+  auto it = d_stepFrames.find(premise.get());
+  if (it != d_stepFrames.end())
+  {
+    for (size_t i = d_frames.size(); i-- > 0;)
+    {
+      if (d_frames[i].get() == it->second)
+      {
+        return i;
+      }
+    }
+    // The premise was printed under a frame that does not enclose the current
+    // position (it was set aside for an anchor printed below its target), so
+    // its id is not visible from here: print its derivation again in the
+    // current chain.
+    d_stepIds.erase(premise.get());
+    d_stepFrames.erase(it);
+  }
+  printInternal(premise);
+  it = d_stepFrames.find(premise.get());
+  AlwaysAssert(it != d_stepFrames.end())
+      << "Premise " << premise->getResult() << " left unprinted" << std::endl;
+  for (size_t i = d_frames.size(); i-- > 0;)
+  {
+    if (d_frames[i].get() == it->second)
+    {
+      return i;
+    }
+  }
+  Unreachable() << "Premise " << premise->getResult()
+                << " printed outside the active chain" << std::endl;
 }
 
 AletheProofPrinter::OutItem AletheProofPrinter::stepItem(
@@ -458,11 +511,25 @@ void AletheProofPrinter::printInternal(std::shared_ptr<ProofNode> pfn)
   // being printed.
   size_t lvl = d_pinnedToInnermost == pfn.get() ? d_frames.size() - 1
                                                 : targetFrame(pfn);
+  // The step must not be placed above the frame of any of its premises: a
+  // premise may be held by a deeper frame (e.g., pinned as the concluding
+  // derivation of a subproof) whose ids die with it. A premise available in
+  // no active frame (its frame was set aside for an anchor printed below its
+  // target) is printed again in the current chain by premiseLevel.
+  for (const std::shared_ptr<ProofNode>& pfChild : pfChildren)
+  {
+    if (pfChild->getRule() != ProofRule::ASSUME)
+    {
+      lvl = std::max(lvl, premiseLevel(pfChild));
+    }
+  }
   Frame& frame = *d_frames[lvl];
   std::string stepId = frame.d_prefix + "t" + std::to_string(frame.d_id++);
   d_stepIds[pfn.get()] = stepId;
-  frame.d_items.push_back(stepItem(pfn, stepId, lvl));
+  d_stepFrames[pfn.get()] = &frame;
+  OutItem item = stepItem(pfn, stepId, lvl);
   frame.d_introducedSteps.push_back(pfn.get());
+  emitItem(std::move(item), lvl);
 }
 
 void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
@@ -527,8 +594,20 @@ void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
   // print the step again inside the subproof and be done
   if (d_stepIds.find(pfChildren[0].get()) != d_stepIds.end())
   {
+    // its premises must be available from here (premiseLevel prints again any
+    // whose frame does not enclose this position)
+    for (const std::shared_ptr<ProofNode>& pfGChild :
+         pfChildren[0]->getChildren())
+    {
+      if (pfGChild->getRule() != ProofRule::ASSUME)
+      {
+        premiseLevel(pfGChild);
+      }
+    }
     item.d_items.push_back(
-        stepItem(pfChildren[0], frame.d_prefix + "t0", d_frames.size() - 1));
+        stepItem(pfChildren[0],
+                 frame.d_prefix + "t" + std::to_string(frame.d_id++),
+                 d_frames.size() - 1));
   }
   else
   {
@@ -537,19 +616,27 @@ void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
     printInternal(pfChildren[0]);
     d_pinnedToInnermost = prevPinned;
   }
-  // close the frame: undo the ids it introduced and hand its items over
+  // Close the frame: undo the ids it introduced and hand its items over. An
+  // id is only undone while it still belongs to this frame: a step printed
+  // again in another frame (see premiseLevel) has moved its entry there.
   Assert(&frame == d_frames.back().get());
   for (ProofNode* p : frame.d_introducedSteps)
   {
-    d_stepIds.erase(p);
+    auto itf = d_stepFrames.find(p);
+    if (itf != d_stepFrames.end() && itf->second == &frame)
+    {
+      d_stepIds.erase(p);
+      d_stepFrames.erase(itf);
+    }
   }
   item.d_items.insert(item.d_items.end(),
                       std::make_move_iterator(frame.d_items.begin()),
                       std::make_move_iterator(frame.d_items.end()));
   d_frames.pop_back();
-  parent.d_items.push_back(std::move(item));
   d_stepIds[pfn.get()] = stepId;
+  d_stepFrames[pfn.get()] = &parent;
   parent.d_introducedSteps.push_back(pfn.get());
+  emitItem(std::move(item), lvl);
   Trace("alethe-printer") << pop;
 }
 
