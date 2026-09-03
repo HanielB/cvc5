@@ -3504,10 +3504,13 @@ bool AletheProofPostprocess::process(std::shared_ptr<ProofNode> pf)
   // Reorganize the translated derivation: merge content-identical proof nodes
   // and compute the context dependencies the printer uses to place each
   // derivation at the outermost subproof under which it is well scoped
-  const std::vector<Node>& scopeArgs = pf->getChildren()[0]->getArguments();
-  std::unordered_set<Node> globalAssumptions{scopeArgs.begin(),
-                                             scopeArgs.end()};
-  reorganize(pf->getChildren()[0]->getChildren()[0], globalAssumptions);
+  if (options().proof.proofAletheShareSubproofs)
+  {
+    const std::vector<Node>& scopeArgs = pf->getChildren()[0]->getArguments();
+    std::unordered_set<Node> globalAssumptions{scopeArgs.begin(),
+                                               scopeArgs.end()};
+    reorganize(pf->getChildren()[0]->getChildren()[0], globalAssumptions);
+  }
   return true;
 }
 

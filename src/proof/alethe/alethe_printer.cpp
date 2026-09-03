@@ -387,6 +387,13 @@ size_t AletheProofPrinter::targetFrame(const std::shared_ptr<ProofNode>& pfn)
   {
     return 0;
   }
+  // without subproof sharing each derivation is printed where the traversal
+  // reaches it, i.e., within the current subproof (a shared derivation is
+  // replayed in every subproof using it, as ids die with their subproof)
+  if (!options().proof.proofAletheShareSubproofs)
+  {
+    return d_frames.size() - 1;
+  }
   const auto itDeps = d_stepDeps.find(pfn.get());
   AlwaysAssert(itDeps != d_stepDeps.end())
       << "No dependencies were computed for " << pfn->getResult() << std::endl;

@@ -184,6 +184,14 @@ name   = "Proof"
   help       = "Add pivots to Alethe resolution steps"
 
 [[option]]
+  name       = "proofAletheShareSubproofs"
+  category   = "expert"
+  long       = "proof-alethe-share-subproofs"
+  type       = "bool"
+  default    = "true"
+  help       = "Print derivations shared between Alethe subproofs once, at the outermost scope under which they are well formed, instead of replaying them in every subproof that uses them"
+
+[[option]]
   name       = "proofAletheTesting"
   category   = "expert"
   long       = "proof-alethe-testing"
