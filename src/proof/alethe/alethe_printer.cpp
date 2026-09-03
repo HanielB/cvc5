@@ -313,9 +313,17 @@ AletheProofPrinter::OutItem AletheProofPrinter::stepItem(
   item.d_args.insert(item.d_args.end(), args.begin() + 3, args.end());
   for (const std::shared_ptr<ProofNode>& child : pfn->getChildren())
   {
-    std::stringstream premise;
-    printStepId(premise, child, lvl);
-    item.d_premises.push_back(premise.str());
+    if (child->getRule() == ProofRule::ASSUME)
+    {
+      Node res = d_anc.convert(child->getResult());
+      Assert(!res.isNull());
+      item.d_premises.push_back(assumptionId(res, lvl));
+      continue;
+    }
+    auto itStep = d_stepIds.find(child.get());
+    AlwaysAssert(itStep != d_stepIds.end())
+        << "Cannot find pf of " << child->getResult() << std::endl;
+    item.d_premises.push_back(itStep->second);
   }
   return item;
 }
@@ -467,6 +475,12 @@ const AletheProofPrinter::ContextDeps& AletheProofPrinter::getDeps(
 
 size_t AletheProofPrinter::targetFrame(const std::shared_ptr<ProofNode>& pfn)
 {
+  // with no anchor open the derivation can only be printed at the top level,
+  // and its dependencies need not be computed at all
+  if (d_frames.size() == 1)
+  {
+    return 0;
+  }
   const ContextDeps& deps = getDeps(pfn);
   if (deps.d_vars.empty() && deps.d_assumptions.empty())
   {
@@ -635,24 +649,33 @@ void AletheProofPrinter::printInternal(std::shared_ptr<ProofNode> pfn)
   size_t lvl = d_pinnedToInnermost == pfn.get() ? d_frames.size() - 1
                                                 : targetFrame(pfn);
   // If a step with identical content has been printed and is still in scope,
-  // reuse its id rather than printing this one
-  std::string key = stepKey(pfn, lvl);
-  const auto itKey = d_stepKeyIds.find(key);
-  if (itKey != d_stepKeyIds.end() && d_pinnedToInnermost != pfn.get())
+  // reuse its id rather than printing this one. When no anchor is open the
+  // content key is not needed: distinct proof nodes with identical content
+  // arise from derivations replayed under several subproofs.
+  std::string key;
+  if (d_frames.size() > 1)
   {
-    Trace("alethe-printer") << "... step has an identical copy printed as "
-                            << itKey->second << "\n";
-    d_stepIds[pfn.get()] = itKey->second;
-    d_frames.back()->d_introducedSteps.push_back(pfn.get());
-    return;
+    key = stepKey(pfn, lvl);
+    const auto itKey = d_stepKeyIds.find(key);
+    if (itKey != d_stepKeyIds.end() && d_pinnedToInnermost != pfn.get())
+    {
+      Trace("alethe-printer") << "... step has an identical copy printed as "
+                              << itKey->second << "\n";
+      d_stepIds[pfn.get()] = itKey->second;
+      d_frames.back()->d_introducedSteps.push_back(pfn.get());
+      return;
+    }
   }
   Frame& frame = *d_frames[lvl];
   std::string stepId = frame.d_prefix + "t" + std::to_string(frame.d_id++);
   d_stepIds[pfn.get()] = stepId;
   frame.d_items.push_back(stepItem(pfn, stepId, lvl));
   frame.d_introducedSteps.push_back(pfn.get());
-  d_stepKeyIds[key] = stepId;
-  frame.d_introducedKeys.push_back(key);
+  if (!key.empty())
+  {
+    d_stepKeyIds[key] = stepId;
+    frame.d_introducedKeys.push_back(key);
+  }
 }
 
 void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
