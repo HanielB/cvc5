@@ -3027,8 +3027,17 @@ bool AletheProofPostprocessCallback::maybeReplacePremiseProof(Node premise,
   std::vector<Node> contractionPremiseChildren{d_cl};
   bool success = true;
 
+  // Resolve each *distinct* literal of the premise exactly once: a duplicated
+  // literal is consumed by the first resolution on it (checkers treat the
+  // working clause as a set once pivots are given), so resolving on it again
+  // would fail.
+  std::unordered_set<Node> resolved;
   for (size_t i = 0, size = premise.getNumChildren(); i < size; ++i)
   {
+    if (!resolved.insert(premise[i]).second)
+    {
+      continue;
+    }
     Node nNeg = premise[i].notNode();
     resPremises.push_back(nm->mkNode(Kind::SEXPR, d_cl, premise, nNeg));
     success &= addAletheStep(AletheRule::OR_NEG,
