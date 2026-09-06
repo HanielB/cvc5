@@ -162,8 +162,24 @@ void AletheProofPrinter::print(
     for (const auto& skolem : skolemList)
     {
       Assert(skolemDefs.find(skolem) != skolemDefs.end());
+      const Node& def = skolemDefs.at(skolem);
+      if (def.getKind() == Kind::LAMBDA)
+      {
+        // a Skolem function, defined by a lambda: its variables are the
+        // parameters of the definition
+        out << "(define-fun " << skolem << " (";
+        for (size_t i = 0, size = def[0].getNumChildren(); i < size; ++i)
+        {
+          out << (i > 0 ? " (" : "(") << def[0][i] << " " << def[0][i].getType()
+              << ")";
+        }
+        out << ") " << def.getType().getRangeType() << " ";
+        printTerm(out, def[1]);
+        out << ")" << std::endl;
+        continue;
+      }
       out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
-      printTerm(out, skolemDefs.at(skolem));
+      printTerm(out, def);
       out << ")" << std::endl;
     }
   }

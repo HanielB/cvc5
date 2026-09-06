@@ -99,6 +99,7 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::NOT_ITE2: return "not_ite2";
     case AletheRule::ITE_INTRO: return "ite_intro";
     case AletheRule::DIV_INTRO: return "div_intro";
+    case AletheRule::DIV_BY_ZERO_INTRO: return "div_by_zero_intro";
     case AletheRule::LOG2_INTRO: return "log2_intro";
     case AletheRule::TO_INT_INTRO: return "to_int_intro";
     case AletheRule::CONTRACTION: return "contraction";

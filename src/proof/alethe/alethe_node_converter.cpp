@@ -187,6 +187,30 @@ Node AletheNodeConverter::postConvert(Node n)
         }
         return conv;
       }
+      Kind byZeroOp = byZeroOperator(sfi);
+      if (byZeroOp != Kind::UNDEFINED_KIND)
+      {
+        // The by-zero Skolem functions (@div_by_zero etc.) are kept as the
+        // operators of their applications, which are converted into choice
+        // terms (see APPLY_UF). When Skolems are defined the function is
+        // defined once, as (lambda ((x T)) (choice ((y T)) (= y (op x 0)))),
+        // and the applications are kept.
+        if (d_defineSkolems
+            && std::find(d_skolemsList.begin(), d_skolemsList.end(), n)
+                   == d_skolemsList.end())
+        {
+          TypeNode argType = n.getType().getArgTypes()[0];
+          Node x = NodeManager::mkBoundVar("x", argType);
+          Node def = d_nm->mkNode(Kind::LAMBDA,
+                                  d_nm->mkNode(Kind::BOUND_VAR_LIST, x),
+                                  byZeroChoice(byZeroOp, x));
+          Trace("alethe-conv")
+              << ".. by-zero function defined as " << def << "\n";
+          d_skolems[n] = def;
+          d_skolemsList.push_back(n);
+        }
+        return n;
+      }
       if (sfi == SkolemId::QUANTIFIERS_SKOLEMIZE)
       {
         // create the witness term
@@ -325,6 +349,27 @@ Node AletheNodeConverter::postConvert(Node n)
       return n.getNumChildren() == 3 ? d_nm->mkNode(Kind::FORALL, n[0], n[1])
                                      : n;
     }
+    case Kind::APPLY_UF:
+    {
+      // an application of a by-zero Skolem function is the value of the
+      // operator at the zero denominator, as a choice term, unless the
+      // function is being defined (see SKOLEM)
+      Node op = n.getOperator();
+      if (op.getKind() == Kind::SKOLEM && !d_defineSkolems)
+      {
+        SkolemManager* sm = d_nm->getSkolemManager();
+        SkolemId sfi = SkolemId::NONE;
+        Node cacheVal;
+        sm->isSkolemFunction(op, sfi, cacheVal);
+        Kind byZeroOp = byZeroOperator(sfi);
+        if (byZeroOp != Kind::UNDEFINED_KIND)
+        {
+          Assert(n.getNumChildren() == 1);
+          return byZeroChoice(byZeroOp, n[0]);
+        }
+      }
+      return n;
+    }
     // we must make it to be printed with "choice", so we create an operator
     // with that name and the correct type and do a function application
     case Kind::WITNESS:
@@ -363,7 +408,6 @@ Node AletheNodeConverter::postConvert(Node n)
     case Kind::XOR:
     case Kind::ITE:
     /* from uf */
-    case Kind::APPLY_UF:
     case Kind::FUNCTION_TYPE:
     case Kind::LAMBDA:
     case Kind::HO_APPLY:
@@ -650,6 +694,30 @@ Node AletheNodeConverter::postConvert(Node n)
     }
   }
   return n;
+}
+
+Kind AletheNodeConverter::byZeroOperator(SkolemId id)
+{
+  switch (id)
+  {
+    case SkolemId::DIV_BY_ZERO: return Kind::DIVISION;
+    case SkolemId::INT_DIV_BY_ZERO: return Kind::INTS_DIVISION;
+    case SkolemId::MOD_BY_ZERO: return Kind::INTS_MODULUS;
+    default: return Kind::UNDEFINED_KIND;
+  }
+}
+
+Node AletheNodeConverter::byZeroChoice(Kind op, const Node& arg)
+{
+  TypeNode tn = arg.getType();
+  Node zero = tn.isReal() ? d_nm->mkConstReal(Rational(0))
+                          : d_nm->mkConstInt(Rational(0));
+  Node y = NodeManager::mkBoundVar("y", tn);
+  Node body = y.eqNode(d_nm->mkNode(op, arg, zero));
+  Node choice =
+      d_nm->mkNode(Kind::WITNESS, d_nm->mkNode(Kind::BOUND_VAR_LIST, y), body);
+  Trace("alethe-conv") << ".. by-zero application as " << choice << "\n";
+  return convert(choice);
 }
 
 Node AletheNodeConverter::mkInternalSymbol(const std::string& name,

@@ -419,6 +419,14 @@ enum class AletheRule : uint32_t
   // > i. (and (<= (* b (div a b)) a) (< a (* b (+ (div a b) c))))
   // where b is a constant different from 0 and c is 1 if b > 0, -1 otherwise.
   DIV_INTRO,
+  // ======== div_by_zero_intro
+  // > i. (= (op a b) (ite (= b 0) (choice ((y T)) (= y (op a 0))) (op a b)))
+  // where op is /, div or mod, T the type of (op a b), and y does not occur
+  // in a. This is how cvc5 eliminates a division or modulus by a
+  // possibly-zero denominator: the value at zero is that of the operator
+  // at zero, which SMT-LIB leaves unspecified; cvc5's uninterpreted
+  // by-zero function (@div_by_zero etc.) is printed as the choice term.
+  DIV_BY_ZERO_INTRO,
   // ======== log2_intro
   // > i. (and
   //        (=> (< 0 x)

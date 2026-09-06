@@ -1519,6 +1519,7 @@ set(regress_0_tests
   regress0/proj-issue750-real-to-int-safe.smt2
   regress0/proofs/alethe-arith-trichotomy-neg-premise.smt2
   regress0/proofs/alethe-contra-or-premise.smt2
+  regress0/proofs/alethe-div-by-zero.smt2
   regress0/proofs/alethe-res-need-or-step.smt2
   regress0/proofs/arith-poly-norm-rel-mixed.smt2
   regress0/proofs/arith-pp-assert-solved-eq.smt2

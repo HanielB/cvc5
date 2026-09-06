@@ -2729,6 +2729,23 @@ bool AletheProofPostprocessCallback::update(Node res,
     // instantiation also depends on the operator.
     case ProofRule::ARITH_REDUCTION:
     {
+      // A division or modulus by a possibly-zero denominator is eliminated
+      // into an ite on the denominator being zero whose then-branch is the
+      // application of the by-zero Skolem function (converted to a choice
+      // term), without axiom instantiations:
+      //
+      //   (= (op a b) (ite (= b 0) (choice ((y T)) (= y (op a 0))) (op a b)))
+      //
+      // which is the conclusion of the div_by_zero_intro rule.
+      if (res.getKind() == Kind::EQUAL && res[1].getKind() == Kind::ITE)
+      {
+        return addAletheStep(AletheRule::DIV_BY_ZERO_INTRO,
+                             res,
+                             nm->mkNode(Kind::SEXPR, d_cl, res),
+                             {},
+                             {},
+                             *cdp);
+      }
       // Placeholders to be justified below according to the operator
       Node opEq = res[0];
       Node opIntro = res[1];

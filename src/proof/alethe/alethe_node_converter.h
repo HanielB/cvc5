@@ -95,6 +95,18 @@ class AletheNodeConverter : public BaseEoNodeConverter
   std::string d_error;
   /** Whether Skolem definitions will be saved to be printed separately. */
   bool d_defineSkolems;
+  /**
+   * The operator (/, div or mod) whose by-zero Skolem function has the given
+   * id, or UNDEFINED_KIND if id is not one of DIV_BY_ZERO, INT_DIV_BY_ZERO
+   * and MOD_BY_ZERO.
+   */
+  static Kind byZeroOperator(SkolemId id);
+  /**
+   * The choice term (choice ((y T)) (= y (op arg 0))), converted, standing
+   * for the application of the by-zero Skolem function of op to arg, i.e.
+   * the value of the operator at the zero denominator.
+   */
+  Node byZeroChoice(Kind op, const Node& arg);
   /** Whether the converter is running in Alethe testing mode. When true, BV,
    * datatypes, and strings kinds/types are reported as unsupported. */
   bool d_isTesting;
