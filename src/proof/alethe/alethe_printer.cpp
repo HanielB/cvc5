@@ -611,7 +611,8 @@ void AletheProofPrinter::printAnchor(std::shared_ptr<ProofNode> pfn,
         premiseLevel(pfGChild);
       }
     }
-    item.d_items.push_back(
+    // emitted into the frame, after any premise premiseLevel printed there
+    frame.d_items.push_back(
         stepItem(pfChildren[0],
                  frame.d_prefix + "t" + std::to_string(frame.d_id++),
                  d_frames.size() - 1));
