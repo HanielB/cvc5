@@ -12,14 +12,117 @@
 
 #include "proof/alethe/alethe_let_binding.h"
 
+#include "expr/node_algorithm.h"
+
+#include <algorithm>
+
 #include <sstream>
 
 namespace cvc5::internal {
 
 namespace proof {
 
-AletheLetBinding::AletheLetBinding(uint32_t thresh) : LetBinding("let", thresh)
+// Binders are traversed so that closed subterms occurring under them can be
+// shared: a term with no free bound variable may be named at its first
+// occurrence, be it under a binder, and referenced by name anywhere after,
+// while terms mentioning bound variables are never shared (see sharedId).
+AletheLetBinding::AletheLetBinding(uint32_t thresh)
+    : LetBinding("let", thresh, true)
 {
+}
+
+uint32_t AletheLetBinding::sharedId(TNode n)
+{
+  uint32_t id = getId(n);
+  return (id > 0 && isOpen(n)) ? 0 : id;
+}
+
+bool AletheLetBinding::isOpen(TNode n)
+{
+  auto itc = d_open.find(n);
+  if (itc != d_open.end())
+  {
+    return itc->second;
+  }
+  // The free bound variables of each subterm, computed bottom-up. Besides
+  // cvc5's closures, the converted choice terms, applications of the choice
+  // operator to a bound variable list and a body, bind their variables.
+  auto boundList = [](TNode t) -> TNode {
+    if (t.isClosure())
+    {
+      return t[0];
+    }
+    if (t.getKind() == Kind::APPLY_UF && t.getNumChildren() == 2
+        && t[0].getKind() == Kind::BOUND_VAR_LIST)
+    {
+      return t[0];
+    }
+    return TNode::null();
+  };
+  std::unordered_map<TNode, std::vector<Node>> freeVars;
+  std::vector<TNode> visit{n};
+  while (!visit.empty())
+  {
+    TNode cur = visit.back();
+    if (freeVars.find(cur) != freeVars.end())
+    {
+      visit.pop_back();
+      continue;
+    }
+    auto ito = d_open.find(cur);
+    if (cur.getKind() == Kind::BOUND_VARIABLE)
+    {
+      freeVars[cur] = {cur};
+      visit.pop_back();
+      continue;
+    }
+    if (cur.getKind() == Kind::BOUND_VAR_LIST || cur.getNumChildren() == 0
+        || (ito != d_open.end() && !ito->second))
+    {
+      freeVars[cur] = {};
+      visit.pop_back();
+      continue;
+    }
+    bool ready = true;
+    for (const Node& c : cur)
+    {
+      if (freeVars.find(c) == freeVars.end())
+      {
+        if (ready)
+        {
+          ready = false;
+        }
+        visit.push_back(c);
+      }
+    }
+    if (!ready)
+    {
+      continue;
+    }
+    visit.pop_back();
+    std::vector<Node> fv;
+    for (const Node& c : cur)
+    {
+      const std::vector<Node>& cfv = freeVars[c];
+      fv.insert(fv.end(), cfv.begin(), cfv.end());
+    }
+    TNode bl = boundList(cur);
+    if (!bl.isNull())
+    {
+      fv.erase(std::remove_if(fv.begin(),
+                              fv.end(),
+                              [&bl](const Node& v) {
+                                return std::find(bl.begin(), bl.end(), v)
+                                       != bl.end();
+                              }),
+               fv.end());
+    }
+    std::sort(fv.begin(), fv.end());
+    fv.erase(std::unique(fv.begin(), fv.end()), fv.end());
+    d_open[cur] = !fv.empty();
+    freeVars[cur] = std::move(fv);
+  }
+  return d_open[n];
 }
 
 Node AletheLetBinding::convert(NodeManager* nm,
@@ -30,30 +133,47 @@ Node AletheLetBinding::convert(NodeManager* nm,
   {
     return n;
   }
-  // terms with a child that is being declared
-  std::unordered_set<TNode> hasDeclaredChild;
-  // For a term being declared, its position relative to the list of children
-  // of the parent of this term, its parent, and its declaration value. These
-  // are necessary to properly declare letified terms occurring for the first
-  // time once conversions start
-  std::unordered_map<TNode, size_t> declaredPosition;
+  // A shared term is declared, (! t :named @p_i), at its first occurrence in
+  // the whole proof and referenced by name afterwards. The declaration is
+  // confined to that first occurrence: the parent and child position at
+  // which a term is first reached record where its declaring conversion
+  // (declaredValue) is used; every other occurrence uses its plain
+  // conversion (visited), the name. A term that is itself not shared but
+  // whose conversion embeds a declaration of a descendant (a "carrier")
+  // needs the same treatment, since it may be shared in the term DAG and
+  // otherwise would re-embed the declaration at each of its occurrences.
+  std::unordered_map<TNode, size_t> firstPosition;
   std::unordered_map<TNode, TNode> parentOf;
   std::unordered_map<TNode, Node> declaredValue;
-  // visiting utils
+  std::unordered_set<TNode> declaresAtParent;
   std::unordered_map<TNode, Node> visited;
   std::unordered_map<TNode, Node>::iterator it;
-  std::vector<TNode> visit;
+  // the traversal stack carries, with each term, the parent and the child
+  // position through which it is reached, so that a term's first reach in
+  // pre-order — its first occurrence in the printed term — is recorded
+  struct Entry
+  {
+    TNode d_node;
+    TNode d_parent;
+    size_t d_pos;
+  };
+  std::vector<Entry> visit;
   TNode cur;
-  // start with input
-  visit.push_back(n);
+  visit.push_back({n, TNode::null(), 0});
   do
   {
-    cur = visit.back();
+    Entry entry = visit.back();
+    cur = entry.d_node;
     visit.pop_back();
     it = visited.find(cur);
     if (it == visited.end())
     {
-      uint32_t id = getId(cur);
+      if (!entry.d_parent.isNull() && parentOf.find(cur) == parentOf.end())
+      {
+        parentOf[cur] = entry.d_parent;
+        firstPosition[cur] = entry.d_pos;
+      }
+      uint32_t id = sharedId(cur);
       // do not letify partially applied terms, which may have been generated
       // during RARE elaboration.
       if (cur.getKind() == Kind::HO_APPLY && cur.getType().isFunction())
@@ -61,15 +181,13 @@ Node AletheLetBinding::convert(NodeManager* nm,
         visited[cur] = cur;
         continue;
       }
-      // do not letify id 0
       if (id > 0)
       {
         Trace("alethe-printer-share")
             << "Node " << cur << " has id " << id << "\n";
-        // if cur has previously been declared, just use the let variable.
+        // already declared, in this or a previous conversion: use the name
         if (d_declared.find(cur) != d_declared.end())
         {
-          // create the let variable for cur
           std::stringstream ss;
           ss << prefix << id;
           visited[cur] = NodeManager::mkBoundVar(ss.str(), cur.getType());
@@ -77,178 +195,84 @@ Node AletheLetBinding::convert(NodeManager* nm,
               << "\tdeclared, use var " << visited[cur] << "\n";
           continue;
         }
-        // If the input of this method is letified and it has not yet been
-        // declared, we will need to declare its post-visit result. So we do
-        // nothing at this point other than book-keep. The information is
-        // necessary to guarantee that this occurrence, its first in the overall
-        // term, is ultimately used as a declaration rather than as just the
-        // letified variable. For this we find the parent of this first
-        // occurrence of cur and the position in its children in which cur
-        // occurs. The declaration will be created when cur is post-visited and
-        // used when the parent of this occurrence of cur is post-visited.
-        if (cur != n)
-        {
-          // The parent of cur will have been set when it was visited
-          Assert(parentOf.find(cur) != parentOf.end());
-          Node parent = parentOf[cur];
-          auto itPos = std::find(parent.begin(), parent.end(), cur);
-          Assert(itPos != parent.end());
-          declaredPosition[cur] = itPos - parent.begin();
-          Trace("alethe-printer-share")
-              << "\tset for its parent " << parent << " mark position "
-              << itPos - parent.begin() << "\n";
-        }
-        // Mark that future occurrences are just the variable
+        // this occurrence, the first, declares it
         d_declared.insert(cur);
-      }
-      if (cur.isClosure())
-      {
-        // We do not convert beneath quantifiers, so we need to finish the
-        // traversal here. However if id > 0, then we need to declare cur's
-        // variable. Since cur is not post-visited the declaration is of cur
-        // itself.
-        if (id == 0)
-        {
-          visited[cur] = cur;
-          continue;
-        }
-        std::stringstream ss;
-        ss << "(! ";
-        options::ioutils::applyOutputLanguage(ss, Language::LANG_SMTLIB_V2_6);
-        // We print terms non-flattened and with lambda applications in
-        // non-curried manner
-        options::ioutils::applyDagThresh(ss, 0);
-        // Guarantee we print reals as expected
-        options::ioutils::applyPrintArithLitToken(ss, true);
-        options::ioutils::applyFlattenHOChains(ss, true);
-        cur.toStream(ss);
-        ss << " :named " << prefix << id << ")";
-        Node declaration = NodeManager::mkRawSymbol(ss.str(), cur.getType());
-        declaredValue[cur] = declaration;
-        // As in the post-visit case below, only the first occurrence (as
-        // controlled by the recorded parent and position) carries the
-        // declaration; all others, in this and later conversions, must use
-        // the variable, otherwise the full declaration is duplicated at
-        // every occurrence of the closure.
-        std::stringstream ssVar;
-        ssVar << prefix << id;
-        visited[cur] =
-            cur == n ? declaration
-                     : NodeManager::mkBoundVar(ssVar.str(), cur.getType());
-        continue;
+        declaresAtParent.insert(cur);
       }
       visited[cur] = Node::null();
-      visit.push_back(cur);
-      // We now check if any of the children of cur is being declared, in which
-      // case we associate cur as the parent of declared children, as will as
-      // that cur has declared children.
-      //
-      // We also use this loop to add the children to be visited. Note we add
-      // them in reverse order, since we must do post-order traversal (last
-      // added to the list are first visited, thus this entails left-to-right
-      // traversal of children)
+      visit.push_back(entry);
+      // children are added in reverse order, so that they are visited left
+      // to right
       for (size_t i = 0, size = cur.getNumChildren(); i < size; ++i)
       {
-        visit.push_back(cur[size - i - 1]);
-        id = getId(cur[i]);
-        if (id > 0 && d_declared.find(cur[i]) == d_declared.end())
-        {
-          parentOf[cur[i]] = cur;
-          hasDeclaredChild.insert(cur);
-        }
+        visit.push_back({cur[size - i - 1], cur, size - i - 1});
       }
     }
     else if (it->second.isNull())
     {
-      Node ret = cur;
-      bool childChanged = false;
-      uint32_t id;
-      std::vector<Node> children;
+      // post-visit: build the plain conversion and, if some child is
+      // declared here, the declaring one
+      std::vector<Node> plain, declaring;
       if (cur.getMetaKind() == kind::metakind::PARAMETERIZED)
       {
-        children.push_back(cur.getOperator());
+        plain.push_back(cur.getOperator());
+        declaring.push_back(cur.getOperator());
       }
-      // if cur is a parent has declared child, then for each position we must
-      // check if that position is of a child being declared and whose declared
-      // position is that one. In this case we use not the value in visited but
-      // rather the value in declaredValue
-      bool checkDeclaredChild = hasDeclaredChild.count(cur);
-      if (checkDeclaredChild)
-      {
-        Trace("alethe-printer-share")
-            << "Post-visiting node " << cur << " with declared child\n";
-      }
+      bool declaresChild = false;
+      bool childChanged = false;
       for (size_t i = 0, size = cur.getNumChildren(); i < size; ++i)
       {
-        bool useVisited = true;
-        // cur has a declared child and if cur[i] is declared and in this
-        // position, then we use its declared value rather than visited[cur[i]].
-        if (checkDeclaredChild)
-        {
-          const auto& itDeclPos = declaredPosition.find(cur[i]);
-          useVisited =
-              itDeclPos == declaredPosition.end() || itDeclPos->second != i;
-          if (!useVisited)
-          {
-            // The declaration must furthermore be confined to the parent
-            // recorded for the child's first occurrence: a shared child can
-            // occur at the same position in several parents, and every parent
-            // other than the recorded one must use the variable, otherwise
-            // the full declaration is duplicated at each of them.
-            Assert(parentOf.find(cur[i]) != parentOf.end());
-            useVisited = parentOf[cur[i]] != cur;
-          }
-        }
-        Assert(useVisited || getId(cur[i]) > 0)
-            << "With input " << n << " we got child " << cur[i]
-            << " to use declared value but its id is 0\n";
-        it = useVisited ? visited.find(cur[i]) : declaredValue.find(cur[i]);
-        Assert(it != visited.end())
+        it = visited.find(cur[i]);
+        Assert(it != visited.end() && !it->second.isNull())
             << "With input " << n << " did not find for term " << cur
-            << " its child " << cur[i] << " in map with useVisited "
-            << useVisited << "\n";
-        Assert(!it->second.isNull());
+            << " its child " << cur[i] << "\n";
         childChanged = childChanged || cur[i] != it->second;
-        children.push_back(it->second);
+        plain.push_back(it->second);
+        if (declaresAtParent.count(cur[i]) && parentOf[cur[i]] == cur
+            && firstPosition[cur[i]] == i)
+        {
+          Assert(declaredValue.find(cur[i]) != declaredValue.end());
+          declaring.push_back(declaredValue[cur[i]]);
+          declaresChild = true;
+          continue;
+        }
+        declaring.push_back(it->second);
       }
-      if (childChanged)
-      {
-        ret = nm->mkNode(cur.getKind(), children);
-      }
-      id = getId(cur);
-      // if cur has id bigger than 0, then we are declaring its conversion to
-      // ret. We save the declaration in declaredValue and set the value in
-      // visited to be the let variable, since next occurrences should use that.
-      // The use of the declared value will be controlled by the parent. If cur
-      // is n, since there is no parent, then we use directly the declared
-      // value.
+      Node ret = childChanged ? nm->mkNode(cur.getKind(), plain) : Node(cur);
+      Node retDeclaring =
+          declaresChild ? nm->mkNode(cur.getKind(), declaring) : ret;
+      uint32_t id = sharedId(cur);
       if (id > 0)
       {
+        // declare the (declaring) conversion; later occurrences use the name
         std::stringstream ss, ssVar;
         ss << "(! ";
         options::ioutils::applyOutputLanguage(ss, Language::LANG_SMTLIB_V2_6);
-        // We print terms non-flattened and with lambda applications in
-        // non-curried manner
         options::ioutils::applyDagThresh(ss, 0);
-        // Guarantee we print reals as expected
         options::ioutils::applyPrintArithLitToken(ss, true);
         options::ioutils::applyFlattenHOChains(ss, true);
-        ret.toStream(ss);
+        retDeclaring.toStream(ss);
         ssVar << prefix << id;
         ss << " :named " << ssVar.str() << ")";
-        Node declaration = NodeManager::mkRawSymbol(ss.str(), ret.getType());
+        Node declaration =
+            NodeManager::mkRawSymbol(ss.str(), retDeclaring.getType());
         declaredValue[cur] = declaration;
-        visited[cur] =
-            cur == n ? declaration
-                     : NodeManager::mkBoundVar(ssVar.str(), cur.getType());
+        visited[cur] = NodeManager::mkBoundVar(ssVar.str(), cur.getType());
         continue;
+      }
+      if (declaresChild)
+      {
+        // a carrier: its first occurrence embeds the declaration
+        declaredValue[cur] = retDeclaring;
+        declaresAtParent.insert(cur);
       }
       visited[cur] = ret;
     }
   } while (!visit.empty());
   Assert(visited.find(n) != visited.end());
   Assert(!visited.find(n)->second.isNull());
-  return visited[n];
+  auto itd = declaredValue.find(n);
+  return itd != declaredValue.end() ? itd->second : visited[n];
 }
 
 }  // namespace proof
