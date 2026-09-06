@@ -3761,6 +3761,45 @@ void AletheProofPostprocess::reorganize(
   // anchor.
   std::vector<std::pair<std::shared_ptr<ProofNode>, bool>> visit{
       {root, false}};
+  // The subproofs reached outside anchors, by the literals of their clause
+  // as a multiset: a top-level step concluding the same literals up to
+  // order is replaced by the subproof (through a reordering step when the
+  // order differs), see the clause round trips below. Only nodes already
+  // post-visited are recorded, so a replacement never introduces a cycle.
+  std::unordered_map<std::string, std::shared_ptr<ProofNode>> subproofByLits;
+  auto litsKey = [](const Node& cl) {
+    std::vector<uint64_t> ids;
+    for (size_t i = 1, size = cl.getNumChildren(); i < size; ++i)
+    {
+      ids.push_back(cl[i].getId());
+    }
+    std::sort(ids.begin(), ids.end());
+    std::string key;
+    for (uint64_t id : ids)
+    {
+      key.append(reinterpret_cast<const char*>(&id), sizeof(id));
+    }
+    return key;
+  };
+  // the clause of target, in the literal order of cur: target itself when
+  // the orders agree, otherwise a reordering step over it
+  auto clauseOf = [this, pnm, &repr](const std::shared_ptr<ProofNode>& cur,
+                                     const std::shared_ptr<ProofNode>& target) {
+    const std::vector<Node>& curArgs = cur->getArguments();
+    if (curArgs[2] == target->getArguments()[2])
+    {
+      return target;
+    }
+    std::vector<Node> newArgs{
+        nodeManager()->mkConstInt(
+            Rational(static_cast<uint32_t>(AletheRule::REORDERING))),
+        curArgs[1],
+        curArgs[2]};
+    std::shared_ptr<ProofNode> reord =
+        pnm->mkNode(ProofRule::ALETHE_RULE, {target}, newArgs);
+    repr[reord.get()] = reord;
+    return reord;
+  };
   while (!visit.empty())
   {
     auto [cur, under] = visit.back();
@@ -3826,6 +3865,50 @@ void AletheProofPostprocess::reorganize(
     // anchor, dependencies)
     visit.pop_back();
     inProgress.erase(cur.get());
+    // Short-circuit the clause round trips through a subproof. cvc5 proves
+    // a theory propagation with two nested SCOPEs over the same literals:
+    // the theory's own, proving (=> (and F1 ... Fn) G), wrapped in one that
+    // rebuilds the conjunction (AND_INTRO) and applies MODUS_PONENS. The
+    // inner one is translated to a subproof concluding (cl (not F1) ...
+    // (not Fn) G); the implication is rebuilt from it (and_pos steps,
+    // resolution, reordering, contraction) for the outer one, whose
+    // subproof concludes the same literals again, in another order. The
+    // SAT-level CNF of the lemma likewise resolves the implication clause
+    // with the and_neg clause of the conjunction, recovering the subproof
+    // clause once more. A top-level subproof, resolution, reordering or
+    // contraction whose clause has the literals of an earlier top-level
+    // subproof is replaced by that subproof, so the rebuilding steps
+    // between them become dead.
+    if (!reprDone && !under)
+    {
+      if (arule == AletheRule::ANCHOR_SUBPROOF)
+      {
+        std::string key = litsKey(args[2]);
+        auto it = subproofByLits.find(key);
+        if (it != subproofByLits.end())
+        {
+          Trace("alethe-reorg")
+              << "short-circuit duplicate subproof " << args[2] << std::endl;
+          repr[cur.get()] = clauseOf(cur, it->second);
+          continue;
+        }
+        subproofByLits.emplace(std::move(key), cur);
+      }
+      else if (arule == AletheRule::RESOLUTION
+               || arule == AletheRule::RESOLUTION_OR
+               || arule == AletheRule::REORDERING
+               || arule == AletheRule::CONTRACTION)
+      {
+        auto it = subproofByLits.find(litsKey(args[2]));
+        if (it != subproofByLits.end())
+        {
+          Trace("alethe-reorg")
+              << "short-circuit clause of subproof " << args[2] << std::endl;
+          repr[cur.get()] = clauseOf(cur, it->second);
+          continue;
+        }
+      }
+    }
     // Short-circuit the round trip through an implication: the translation
     // of SCOPE derives (cl (not (and F1 ... Fn)) F), then builds
     // (cl (=> (and F1 ... Fn) F)) from it, and the consumer of that

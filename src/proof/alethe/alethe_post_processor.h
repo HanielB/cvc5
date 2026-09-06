@@ -206,7 +206,14 @@ class AletheProofPostprocess : protected EnvObj
    * - reorganizes the proof so that content-identical proof nodes (same rule,
    *   arguments and canonical children), which the translation produces when
    *   a shared derivation is replayed under several subproofs, are
-   *   represented by a single node, re-pointing their parents at it; and
+   *   represented by a single node, re-pointing their parents at it;
+   *
+   * - short-circuits the round trips the translation of cvc5's SCOPE
+   *   produces: the implies step re-deriving the implication clause, the
+   *   not_and step unfolding the negated conjunction, and the top-level
+   *   steps (subproofs, resolutions, reorderings, contractions) concluding
+   *   the literals of an earlier top-level subproof, each re-pointed at
+   *   the step already concluding the clause; and
    *
    * - computes, for each remaining node, its dependencies on the printing
    *   context: the anchor variables occurring free in its derivation and the
