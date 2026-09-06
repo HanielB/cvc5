@@ -225,6 +225,17 @@ class AletheProofPostprocess : protected EnvObj
                    AletheStepDeps& deps);
   /** The step among pfn and its descendants (up to depth levels, following
    * canonical representatives) concluding the given clause, if any. */
+  /** Computes and records the context dependencies of pfn from those of its
+   * children (which must have been computed). */
+  void computeDeps(const std::shared_ptr<ProofNode>& pfn);
+  /** The resolution over the subproof clause replacing a not_and step that
+   * unfolds a folded subproof clause, or null if the step is not of that
+   * shape (see reorganize). */
+  std::shared_ptr<ProofNode> shortcutNotAnd(
+      const std::shared_ptr<ProofNode>& notAnd,
+      std::unordered_map<const ProofNode*, std::shared_ptr<ProofNode>>& repr,
+      ProofNodeManager* pnm,
+      bool under);
   std::shared_ptr<ProofNode> findConcluding(
       const std::shared_ptr<ProofNode>& pfn,
       const Node& conclusion,

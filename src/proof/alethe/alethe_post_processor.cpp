@@ -3598,6 +3598,134 @@ std::shared_ptr<ProofNode> AletheProofPostprocess::findConcluding(
   return nullptr;
 }
 
+namespace {
+// the literals of a clause conclusion (cl l1 ... ln), as a multiset-free set
+std::unordered_set<Node> clauseLiterals(const Node& sexpr)
+{
+  std::unordered_set<Node> lits;
+  for (size_t i = 1, size = sexpr.getNumChildren(); i < size; ++i)
+  {
+    lits.insert(sexpr[i]);
+  }
+  return lits;
+}
+}  // namespace
+
+std::shared_ptr<ProofNode> AletheProofPostprocess::shortcutNotAnd(
+    const std::shared_ptr<ProofNode>& notAnd,
+    std::unordered_map<const ProofNode*, std::shared_ptr<ProofNode>>& repr,
+    ProofNodeManager* pnm,
+    bool under)
+{
+  auto canonical = [&repr](const std::shared_ptr<ProofNode>& pfn) {
+    auto it = repr.find(pfn.get());
+    return it != repr.end() ? it->second : pfn;
+  };
+  const Node& notAndConcl = notAnd->getArguments()[2];
+  // the premise must be a resolution concluding the unit clause
+  // (cl (not (and F1 ... Fn)))
+  std::shared_ptr<ProofNode> res = canonical(notAnd->getChildren()[0]);
+  if (res->getRule() == ProofRule::ASSUME)
+  {
+    return nullptr;
+  }
+  const std::vector<Node>& resArgs = res->getArguments();
+  AletheRule resRule = getAletheRule(resArgs[0]);
+  if ((resRule != AletheRule::RESOLUTION
+       && resRule != AletheRule::RESOLUTION_OR)
+      || resArgs[2].getNumChildren() != 2)
+  {
+    return nullptr;
+  }
+  Node notAndLit = resArgs[2][1];
+  std::unordered_set<Node> wanted = clauseLiterals(notAndConcl);
+  // find the folded premise (cl (not (and F1 ... Fn)) F) whose derivation
+  // holds a subproof concluding (cl (not F1) ... (not Fn) F)
+  const std::vector<std::shared_ptr<ProofNode>>& resChildren =
+      res->getChildren();
+  for (size_t i = 0, size = resChildren.size(); i < size; ++i)
+  {
+    std::shared_ptr<ProofNode> folded = canonical(resChildren[i]);
+    if (folded->getRule() == ProofRule::ASSUME)
+    {
+      continue;
+    }
+    const Node& foldedConcl = folded->getArguments()[2];
+    if (foldedConcl.getNumChildren() != 3)
+    {
+      continue;
+    }
+    Node f;
+    if (foldedConcl[1] == notAndLit)
+    {
+      f = foldedConcl[2];
+    }
+    else if (foldedConcl[2] == notAndLit)
+    {
+      f = foldedConcl[1];
+    }
+    else
+    {
+      continue;
+    }
+    std::unordered_set<Node> subproofLits = wanted;
+    subproofLits.insert(f);
+    // search the folded premise's derivation for the subproof
+    std::shared_ptr<ProofNode> subproof;
+    std::vector<std::pair<std::shared_ptr<ProofNode>, size_t>> toVisit{
+        {folded, 0}};
+    while (!toVisit.empty() && subproof == nullptr)
+    {
+      auto [pfn, depth] = toVisit.back();
+      toVisit.pop_back();
+      if (pfn->getRule() == ProofRule::ASSUME)
+      {
+        continue;
+      }
+      const std::vector<Node>& pargs = pfn->getArguments();
+      if (getAletheRule(pargs[0]) == AletheRule::ANCHOR_SUBPROOF
+          && clauseLiterals(pargs[2]) == subproofLits)
+      {
+        subproof = pfn;
+        break;
+      }
+      if (depth < 4)
+      {
+        for (const std::shared_ptr<ProofNode>& c : pfn->getChildren())
+        {
+          toVisit.emplace_back(canonical(c), depth + 1);
+        }
+      }
+    }
+    if (subproof == nullptr)
+    {
+      continue;
+    }
+    // the same resolution over the subproof clause concludes the not_and
+    // clause
+    std::vector<std::shared_ptr<ProofNode>> newChildren;
+    for (size_t j = 0; j < size; ++j)
+    {
+      newChildren.push_back(j == i ? subproof : canonical(resChildren[j]));
+    }
+    std::vector<Node> newArgs{
+        nodeManager()->mkConstInt(
+            Rational(static_cast<uint32_t>(AletheRule::RESOLUTION))),
+        notAnd->getArguments()[1],
+        notAndConcl};
+    newArgs.insert(newArgs.end(), resArgs.begin() + 3, resArgs.end());
+    std::shared_ptr<ProofNode> shortcut =
+        pnm->mkNode(ProofRule::ALETHE_RULE, newChildren, newArgs);
+    repr[shortcut.get()] = shortcut;
+    if (under)
+    {
+      computeDeps(shortcut);
+    }
+    return shortcut;
+  }
+  return nullptr;
+}
+
 void AletheProofPostprocess::reorganize(
     const std::shared_ptr<ProofNode>& root,
     const std::unordered_set<Node>& globalAssumptions)
@@ -3703,6 +3831,27 @@ void AletheProofPostprocess::reorganize(
         continue;
       }
     }
+    // Short-circuit the round trip through the conjunction: the subproof
+    // clause (cl (not F1) ... (not Fn) F) was folded into
+    // (cl (not (and F1 ... Fn)) F), a resolution then eliminated F, and a
+    // not_and step unfolds (cl (not (and F1 ... Fn))) back into
+    // (cl (not F1) ... (not Fn)). The not_and step is replaced by the same
+    // resolution applied to the subproof clause itself (same premises and
+    // pivots, the folded clause swapped for the subproof step), which
+    // concludes the not_and clause directly.
+    if (!reprDone && arule == AletheRule::NOT_AND
+        && cur->getChildren().size() == 1)
+    {
+      std::shared_ptr<ProofNode> target =
+          shortcutNotAnd(cur, repr, pnm, under);
+      if (target != nullptr)
+      {
+        Trace("alethe-reorg") << "short-circuit not_and " << args[2]
+                              << std::endl;
+        repr[cur.get()] = target;
+        continue;
+      }
+    }
     if (!reprDone)
     {
       const std::vector<std::shared_ptr<ProofNode>>& children =
@@ -3748,56 +3897,64 @@ void AletheProofPostprocess::reorganize(
     {
       continue;
     }
-    // compute the dependencies of this node
-    AletheStepDeps deps;
-    for (const std::shared_ptr<ProofNode>& child : cur->getChildren())
-    {
-      Assert(d_stepDeps.find(child.get()) != d_stepDeps.end());
-      const AletheStepDeps& cdeps = d_stepDeps[child.get()];
-      deps.d_vars.insert(cdeps.d_vars.begin(), cdeps.d_vars.end());
-      deps.d_assumptions.insert(cdeps.d_assumptions.begin(),
-                                cdeps.d_assumptions.end());
-    }
-    if (arule == AletheRule::ANCHOR_SUBPROOF)
-    {
-      // its assumptions are discharged within
-      for (size_t i = 3, size = args.size(); i < size; ++i)
-      {
-        deps.d_assumptions.erase(args[i]);
-      }
-    }
-    else if (arule > AletheRule::ANCHOR_SUBPROOF
-             && arule <= AletheRule::ANCHOR_ONEPOINT)
-    {
-      // The variables its arguments declare are bound within the subproof.
-      // The right-hand side of a context assignment that is not itself a
-      // variable belongs to the outside, so its free variables are added
-      // after the subtraction.
-      std::unordered_set<Node> rhsVars;
-      for (size_t i = 3, size = args.size(); i < size; ++i)
-      {
-        if (args[i].getKind() == Kind::EQUAL)
-        {
-          deps.d_vars.erase(args[i][0]);
-          if (args[i][1].getKind() == Kind::BOUND_VARIABLE)
-          {
-            deps.d_vars.erase(args[i][1]);
-          }
-          else if (expr::hasBoundVar(args[i][1]))
-          {
-            expr::getFreeVariables(args[i][1], rhsVars);
-          }
-          continue;
-        }
-        deps.d_vars.erase(args[i]);
-      }
-      deps.d_vars.insert(rhsVars.begin(), rhsVars.end());
-    }
-    // for anchors, only the conclusion contributes terms: their remaining
-    // arguments declare the variables handled above
-    addTermDeps(args, isAnchor ? 3 : args.size(), deps);
-    d_stepDeps[cur.get()] = deps;
+    computeDeps(cur);
   }
+}
+
+void AletheProofPostprocess::computeDeps(const std::shared_ptr<ProofNode>& pfn)
+{
+  const std::vector<Node>& args = pfn->getArguments();
+  AletheRule arule = getAletheRule(args[0]);
+  bool isAnchor = arule >= AletheRule::ANCHOR_SUBPROOF
+                  && arule <= AletheRule::ANCHOR_ONEPOINT;
+  AletheStepDeps deps;
+  for (const std::shared_ptr<ProofNode>& child : pfn->getChildren())
+  {
+    Assert(d_stepDeps.find(child.get()) != d_stepDeps.end());
+    const AletheStepDeps& cdeps = d_stepDeps[child.get()];
+    deps.d_vars.insert(cdeps.d_vars.begin(), cdeps.d_vars.end());
+    deps.d_assumptions.insert(cdeps.d_assumptions.begin(),
+                              cdeps.d_assumptions.end());
+  }
+  if (arule == AletheRule::ANCHOR_SUBPROOF)
+  {
+    // its assumptions are discharged within
+    for (size_t i = 3, size = args.size(); i < size; ++i)
+    {
+      deps.d_assumptions.erase(args[i]);
+    }
+  }
+  else if (arule > AletheRule::ANCHOR_SUBPROOF
+           && arule <= AletheRule::ANCHOR_ONEPOINT)
+  {
+    // The variables its arguments declare are bound within the subproof.
+    // The right-hand side of a context assignment that is not itself a
+    // variable belongs to the outside, so its free variables are added
+    // after the subtraction.
+    std::unordered_set<Node> rhsVars;
+    for (size_t i = 3, size = args.size(); i < size; ++i)
+    {
+      if (args[i].getKind() == Kind::EQUAL)
+      {
+        deps.d_vars.erase(args[i][0]);
+        if (args[i][1].getKind() == Kind::BOUND_VARIABLE)
+        {
+          deps.d_vars.erase(args[i][1]);
+        }
+        else if (expr::hasBoundVar(args[i][1]))
+        {
+          expr::getFreeVariables(args[i][1], rhsVars);
+        }
+        continue;
+      }
+      deps.d_vars.erase(args[i]);
+    }
+    deps.d_vars.insert(rhsVars.begin(), rhsVars.end());
+  }
+  // for anchors, only the conclusion contributes terms: their remaining
+  // arguments declare the variables handled above
+  addTermDeps(args, isAnchor ? 3 : args.size(), deps);
+  d_stepDeps[pfn.get()] = deps;
 }
 
 }  // namespace proof
