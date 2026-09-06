@@ -16,6 +16,7 @@
 #include "expr/node_algorithm.h"
 #include "expr/skolem_manager.h"
 #include "proof/proof_rule_checker.h"
+#include "theory/quantifiers/term_util.h"
 #include "theory/builtin/generic_op.h"
 #include "util/bitvector.h"
 #include "util/rational.h"
@@ -88,6 +89,25 @@ Node AletheNodeConverter::postConvert(Node n)
                        << "\n";
   switch (k)
   {
+    case Kind::INST_CONSTANT:
+    {
+      // An instantiation constant of a quantified formula (forall x1...xn.
+      // F), for variable i, stands for the counterexample of F on that
+      // variable: it denotes the same term as the witness the skolemization
+      // of the formula's negation introduces for x_i, so it is converted as
+      // that skolem, whose conversion builds the choice term and registers it
+      // among the skolems (thus defined by name when skolems are defined).
+      Node quant = n.getAttribute(theory::InstConstantAttribute());
+      Assert(!quant.isNull() && quant.getKind() == Kind::FORALL);
+      uint64_t index = n.getAttribute(theory::InstVarNumAttribute());
+      SkolemManager* sm = d_nm->getSkolemManager();
+      Node sk = sm->mkSkolemFunction(
+          SkolemId::QUANTIFIERS_SKOLEMIZE,
+          {quant, d_nm->mkConstInt(Rational(index))});
+      Trace("alethe-conv") << "..inst constant " << n << " as skolem " << sk
+                           << "\n";
+      return convert(sk);
+    }
     case Kind::BITVECTOR_BIT:
     {
       if (d_isTesting)
