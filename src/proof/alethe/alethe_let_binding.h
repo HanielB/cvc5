@@ -49,13 +49,18 @@ class AletheLetBinding : public LetBinding
   /** The set of terms that have already been "decleared", i.e., already had
    * their first occurrence replaced. */
   std::unordered_set<Node> d_declared;
-  /** The id of n for sharing: its let id, unless n has a free (bound)
-   * variable, in which case 0 (a named term must be closed). */
-  uint32_t sharedId(TNode n);
-  /** Whether n has a free bound variable, counting the converted choice
-   * terms as binders. Cached in d_open. */
-  bool isOpen(TNode n);
-  std::unordered_map<Node, bool> d_open;
+  /** The free bound variables of n, sorted, counting the converted choice
+   * terms as binders. Cached in d_freeVars. */
+  const std::vector<Node>& freeVars(TNode n);
+  std::unordered_map<Node, std::vector<Node>> d_freeVars;
+  /**
+   * The key under which an occurrence of n is converted when the binders
+   * enclosing it in the converted term bind the variables in `bound`: n
+   * itself if none of its free variables is among them, otherwise an
+   * s-expression pairing n with the captured variables. Occurrences with
+   * different keys have different conversions (see convert).
+   */
+  Node keyOf(NodeManager* nm, TNode n, const std::vector<Node>& bound);
 };
 
 }  // namespace proof
