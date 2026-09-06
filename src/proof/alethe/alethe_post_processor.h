@@ -223,6 +223,14 @@ class AletheProofPostprocess : protected EnvObj
   void addTermDeps(const std::vector<Node>& args,
                    size_t end,
                    AletheStepDeps& deps);
+  /** The step among pfn and its descendants (up to depth levels, following
+   * canonical representatives) concluding the given clause, if any. */
+  std::shared_ptr<ProofNode> findConcluding(
+      const std::shared_ptr<ProofNode>& pfn,
+      const Node& conclusion,
+      const std::unordered_map<const ProofNode*, std::shared_ptr<ProofNode>>&
+          repr,
+      size_t depth);
 
   /** The post process callback */
   AletheProofPostprocessCallback d_cb;

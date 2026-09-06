@@ -3565,6 +3565,39 @@ void AletheProofPostprocess::addTermDeps(const std::vector<Node>& args,
   }
 }
 
+std::shared_ptr<ProofNode> AletheProofPostprocess::findConcluding(
+    const std::shared_ptr<ProofNode>& pfn,
+    const Node& conclusion,
+    const std::unordered_map<const ProofNode*, std::shared_ptr<ProofNode>>&
+        repr,
+    size_t depth)
+{
+  if (pfn->getRule() == ProofRule::ASSUME)
+  {
+    return nullptr;
+  }
+  const std::vector<Node>& args = pfn->getArguments();
+  if (args.size() > 2 && args[2] == conclusion)
+  {
+    return pfn;
+  }
+  if (depth == 0)
+  {
+    return nullptr;
+  }
+  for (const std::shared_ptr<ProofNode>& child : pfn->getChildren())
+  {
+    auto it = repr.find(child.get());
+    std::shared_ptr<ProofNode> found = findConcluding(
+        it != repr.end() ? it->second : child, conclusion, repr, depth - 1);
+    if (found != nullptr)
+    {
+      return found;
+    }
+  }
+  return nullptr;
+}
+
 void AletheProofPostprocess::reorganize(
     const std::shared_ptr<ProofNode>& root,
     const std::unordered_set<Node>& globalAssumptions)
@@ -3648,6 +3681,28 @@ void AletheProofPostprocess::reorganize(
     // anchor, dependencies)
     visit.pop_back();
     inProgress.erase(cur.get());
+    // Short-circuit the round trip through an implication: the translation
+    // of SCOPE derives (cl (not (and F1 ... Fn)) F), then builds
+    // (cl (=> (and F1 ... Fn) F)) from it, and the consumer of that
+    // implication (IMPLIES_ELIM) is translated to an implies step deriving
+    // (cl (not (and F1 ... Fn)) F) again. Such an implies step is replaced
+    // by the step of its premise's derivation that already concludes the
+    // same clause, which makes the implication and its derivation dead.
+    if (!reprDone && arule == AletheRule::IMPLIES
+        && cur->getChildren().size() == 1)
+    {
+      const std::shared_ptr<ProofNode>& child = cur->getChildren()[0];
+      auto itChild = repr.find(child.get());
+      std::shared_ptr<ProofNode> target = findConcluding(
+          itChild != repr.end() ? itChild->second : child, args[2], repr, 4);
+      if (target != nullptr)
+      {
+        Trace("alethe-reorg") << "short-circuit implies " << args[2]
+                              << std::endl;
+        repr[cur.get()] = target;
+        continue;
+      }
+    }
     if (!reprDone)
     {
       const std::vector<std::shared_ptr<ProofNode>>& children =
