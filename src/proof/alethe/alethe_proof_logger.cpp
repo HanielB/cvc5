@@ -17,6 +17,7 @@
 
 #include "proof/alethe/alethe_proof_rule.h"
 #include "proof/alethe/alethe_util.h"
+#include "proof/learn_stamp.h"
 #include "proof/proof.h"
 #include "proof/proof_node_algorithm.h"
 #include "proof/proof_node_manager.h"
@@ -866,6 +867,11 @@ void AletheProofLogger::logSatLearnedClausePremises(
   }
   std::shared_ptr<ProofNode> psat = cdp.getProofFor(key);
   d_satClausePfs.emplace(key, psat);
+  // External learn-time instrumentation: this SAT clause is logged in learn
+  // order, so stamp its printed key (== the resolution step's result) right
+  // before printing. The Alethe printer's lookup on that step then emits the
+  // learn-index / learn-time. No-op unless CVC5_LEARN_STAMP is set.
+  LearnStamp::get().stamp(key);
   d_apprinter.printProofNode(d_out, psat, true);
   Trace("alethe-pf-log") << "; log sat clause end" << std::endl;
 }
