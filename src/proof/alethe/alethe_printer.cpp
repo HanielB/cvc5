@@ -22,6 +22,7 @@
 #include "options/printer_options.h"
 #include "options/proof_options.h"
 #include "proof/alethe/alethe_proof_rule.h"
+#include "proof/learn_stamp.h"
 #include "util/smt2_quote_string.h"
 
 namespace cvc5::internal {
@@ -124,6 +125,18 @@ void AletheProofPrinter::printStep(
       out << (i < pfArgs.size() - 1 ? " " : "");
     }
     out << ")";
+  }
+  // External learn-time instrumentation: pfArgs[1] is the ORIGINAL (pre-Alethe-
+  // conversion) conclusion of this step, exactly the key used when the learned
+  // clause was stamped, so we look it up here. No-op unless CVC5_LEARN_STAMP set.
+  if (LearnStamp::get().enabled() && pfArgs.size() > 1)
+  {
+    uint64_t learnIndex = 0;
+    double learnMillis = 0.0;
+    if (LearnStamp::get().lookup(pfArgs[1], learnIndex, learnMillis))
+    {
+      out << " :learn-index " << learnIndex << " :learn-time " << learnMillis;
+    }
   }
   out << ")" << std::endl;
 }

@@ -205,6 +205,8 @@ libcvc5_add_sources(
   proof/proof_generator.h
   proof/proof_letify.cpp
   proof/proof_letify.h
+  proof/learn_stamp.cpp
+  proof/learn_stamp.h
   proof/proof_node.cpp
   proof/proof_node.h
   proof/proof_node_algorithm.cpp
