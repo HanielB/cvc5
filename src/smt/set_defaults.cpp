@@ -411,6 +411,25 @@ void SetDefaults::finalizeLogic(LogicInfo& logic, Options& opts) const
     SET_AND_NOTIFY_VAL_SYM(
         prop, satSolver, options::SatSolverMode::MINISAT, "incremental");
   }
+  if (opts.proof.proofLog
+      && opts.proof.proofFormatMode == options::ProofFormatMode::ALETHE)
+  {
+    // Alethe proof logging of SAT clauses relies on the proof manager of
+    // MiniSat, so we use it by default.
+    if (!opts.prop.satSolverWasSetByUser)
+    {
+      SET_AND_NOTIFY_VAL_SYM(prop,
+                             satSolver,
+                             options::SatSolverMode::MINISAT,
+                             "Alethe proof logging");
+    }
+    else if (opts.proof.proofLogSat
+             && opts.prop.satSolver != options::SatSolverMode::MINISAT)
+    {
+      throw OptionException(
+          "Alethe proof logging of SAT clauses requires --sat-solver=minisat");
+    }
+  }
   if (opts.quantifiers.sygusInstWasSetByUser)
   {
     if (opts.quantifiers.sygusInst && isSygus(opts))
