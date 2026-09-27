@@ -1,4 +1,4 @@
-; DISABLE-TESTER: alethe
+; REQUIRES: no-safe-mode
 ; COMMAND-LINE: --solve-bv-as-int=sum
 ; EXPECT: unsat
 (set-logic ALL)

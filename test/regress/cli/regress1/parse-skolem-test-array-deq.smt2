@@ -1,4 +1,7 @@
+; REQUIRES: unrestricted-mode
 ; COMMAND-LINE: --parse-skolem-definitions --print-skolem-definitions
+;; Non-SMT-LIB benchmark
+; DISABLE-TESTER: alethe
 ; EXPECT: unsat
 ; @array_deq_diff not supported in Alethe
 ; DISABLE-TESTER: alethe

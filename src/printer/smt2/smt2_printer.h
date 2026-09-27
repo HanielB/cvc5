@@ -1,10 +1,7 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Andrew Reynolds, Abdalrhman Mohamed, Andres Noetzli
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -33,8 +30,9 @@ namespace smt2 {
 enum class Variant
 {
   no_variant,
-  // A variant used for printing commands in the preamble of ALF proofs. This is used by the ALF printer.
-  alf_variant,
+  // A variant used for printing commands in the preamble of Eunoia proofs.
+  // This is used by the Eunoia printer.
+  eo_variant,
   // A variant used for printing certain operators differently in Alethe
   // proofs. This is used by the Alethe printer.
   alethe_variant
@@ -99,10 +97,11 @@ class Smt2Printer : public cvc5::internal::Printer
                                    const std::string& binName) const override;
 
   /** Print declare-pool command */
-  void toStreamCmdDeclarePool(std::ostream& out,
-                                      const std::string& id,
-                                      TypeNode type,
-                                      const std::vector<Node>& initValue) const override;
+  void toStreamCmdDeclarePool(
+      std::ostream& out,
+      const std::string& id,
+      TypeNode type,
+      const std::vector<Node>& initValue) const override;
 
   /** Print declare-sort command */
   void toStreamCmdDeclareType(std::ostream& out,
@@ -145,12 +144,11 @@ class Smt2Printer : public cvc5::internal::Printer
                              TypeNode type) const override;
 
   /** Print synth-fun command */
-  void toStreamCmdSynthFun(
-      std::ostream& out,
-      const std::string& id,
-      const std::vector<Node>& vars,
-      TypeNode rangeType,
-      TypeNode sygusType) const override;
+  void toStreamCmdSynthFun(std::ostream& out,
+                           const std::string& id,
+                           const std::vector<Node>& vars,
+                           TypeNode rangeType,
+                           TypeNode sygusType) const override;
 
   /** Print constraint command */
   void toStreamCmdConstraint(std::ostream& out, Node n) const override;
@@ -311,7 +309,8 @@ class Smt2Printer : public cvc5::internal::Printer
    * Get the string for a kind k, which returns how the kind k is printed in
    * the SMT-LIB format.
    */
-  static std::string smtKindString(Kind k, Variant variant = Variant::no_variant);
+  static std::string smtKindString(Kind k,
+                                   Variant variant = Variant::no_variant);
   /**
    * Same as above, but also takes into account the type of the node, which
    * makes a difference for printing sequences.

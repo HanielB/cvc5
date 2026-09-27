@@ -39,7 +39,10 @@ AletheProofLogger::AletheProofLogger(Env& env,
       d_pnm(pm->getProofNodeManager()),
       d_as(as),
       d_ppp(ppp),
-      d_anc(nodeManager(), statisticsRegistry(), options().proof.proofAletheDefineSkolems),
+      d_anc(nodeManager(),
+            statisticsRegistry(),
+            options().proof.proofAletheDefineSkolems,
+            options().proof.proofAletheTesting),
       d_appproc(env, d_anc),
       d_apprinter(env, d_anc),
       d_timer(statisticsRegistry().registerTimer("alethe::pfLogger")),
@@ -349,10 +352,25 @@ void AletheProofLogger::logCnfPreprocessInputProofs(
 
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof start"
                          << std::endl;
-  // if the assertions are empty, we do nothing. We will answer sat.
-  if (!pfns.empty() && !options().proof.proofLogLazyPreProcessing)
+  // The propositional engine asserts the units true and (not false) as input
+  // clauses so that they are not free assumptions of the SAT proof. They carry
+  // no information about the input, so they are not logged.
+  NodeManager* nm = nodeManager();
+  Node trueNode = nm->mkConst(true);
+  Node notFalse = nm->mkConst(false).notNode();
+  std::vector<std::shared_ptr<ProofNode>> inputPfns;
+  for (const std::shared_ptr<ProofNode>& pfn : pfns)
   {
-    printPreprocessingProof(pfns);
+    const Node& res = pfn->getResult();
+    if (res != trueNode && res != notFalse)
+    {
+      inputPfns.push_back(pfn);
+    }
+  }
+  // if the assertions are empty, we do nothing. We will answer sat.
+  if (!inputPfns.empty() && !options().proof.proofLogLazyPreProcessing)
+  {
+    printPreprocessingProof(inputPfns);
   }
   Trace("alethe-pf-log") << "; log: cnf preprocess input proof end"
                          << std::endl;
@@ -393,13 +411,13 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::ARITH_DEMAND_RESTART, "arith"},
     {theory::InferenceId::ARITH_PP_ELIM_OPERATORS, "arith"},
     {theory::InferenceId::ARITH_PP_ELIM_OPERATORS_LEMMA, "arith"},
+    {theory::InferenceId::ARITH_EQUIV_ATOM, "arith"},
     {theory::InferenceId::ARITH_NL_CONGRUENCE, "nl-arith"},
     {theory::InferenceId::ARITH_NL_SHARED_TERM_SPLIT, "nl-arith"},
-    {theory::InferenceId::ARITH_NL_CM_QUADRATIC_EQ, "nl-arith"},
+    {theory::InferenceId::ARITH_NL_SHARED_TERM_FACTOR_SPLIT, "nl-arith"},
     {theory::InferenceId::ARITH_NL_SPLIT_ZERO, "nl-arith"},
     {theory::InferenceId::ARITH_NL_SIGN, "nl-arith"},
     {theory::InferenceId::ARITH_NL_COMPARISON, "nl-arith"},
-    {theory::InferenceId::ARITH_NL_INFER_BOUNDS, "nl-arith"},
     {theory::InferenceId::ARITH_NL_INFER_BOUNDS_NT, "nl-arith"},
     {theory::InferenceId::ARITH_NL_FACTOR, "nl-arith"},
     {theory::InferenceId::ARITH_NL_RES_INFER_BOUNDS, "nl-arith"},
@@ -420,7 +438,6 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::ARITH_NL_POW2_INIT_REFINE, "nl-arith"},
     {theory::InferenceId::ARITH_NL_POW2_VALUE_REFINE, "nl-arith"},
     {theory::InferenceId::ARITH_NL_POW2_MONOTONE_REFINE, "nl-arith"},
-    {theory::InferenceId::ARITH_NL_POW2_NEG_REFINE, "nl-arith"},
     {theory::InferenceId::ARITH_NL_POW2_DIV0_CASE_REFINE, "nl-arith"},
     {theory::InferenceId::ARITH_NL_POW2_LOWER_BOUND_CASE_REFINE, "nl-arith"},
     {theory::InferenceId::ARITH_NL_COVERING_CONFLICT, "nl-arith"},
@@ -437,10 +454,6 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::BV_BITBLAST_CONFLICT, "bv"},
     {theory::InferenceId::BV_BITBLAST_INTERNAL_EAGER_LEMMA, "bv"},
     {theory::InferenceId::BV_BITBLAST_INTERNAL_BITBLAST_LEMMA, "bv"},
-    {theory::InferenceId::BV_LAYERED_CONFLICT, "bv"},
-    {theory::InferenceId::BV_LAYERED_LEMMA, "bv"},
-    {theory::InferenceId::BV_EXTF_LEMMA, "bv"},
-    {theory::InferenceId::BV_EXTF_COLLAPSE, "bv"},
     {theory::InferenceId::DATATYPES_PURIFY, "datatypes"},
     {theory::InferenceId::DATATYPES_UNIF, "datatypes"},
     {theory::InferenceId::DATATYPES_INST, "datatypes"},
@@ -455,7 +468,6 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::DATATYPES_REC_SINGLETON_EQ, "datatypes"},
     {theory::InferenceId::DATATYPES_REC_SINGLETON_FORCE_DEQ, "datatypes"},
     {theory::InferenceId::DATATYPES_CYCLE, "datatypes"},
-    {theory::InferenceId::DATATYPES_SIZE_POS, "datatypes"},
     {theory::InferenceId::DATATYPES_HEIGHT_ZERO, "datatypes"},
     {theory::InferenceId::DATATYPES_SYGUS_SYM_BREAK, "datatypes"},
     {theory::InferenceId::DATATYPES_SYGUS_CDEP_SYM_BREAK, "datatypes"},
@@ -464,7 +476,6 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::DATATYPES_SYGUS_FAIR_SIZE, "datatypes"},
     {theory::InferenceId::DATATYPES_SYGUS_FAIR_SIZE_CONFLICT, "datatypes"},
     {theory::InferenceId::DATATYPES_SYGUS_VAR_AGNOSTIC, "datatypes"},
-    {theory::InferenceId::DATATYPES_SYGUS_SIZE_CORRECTION, "datatypes"},
     {theory::InferenceId::DATATYPES_SYGUS_VALUE_CORRECTION, "datatypes"},
     {theory::InferenceId::DATATYPES_SYGUS_MT_BOUND, "datatypes"},
     {theory::InferenceId::DATATYPES_SYGUS_MT_POS, "datatypes"},
@@ -486,6 +497,7 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::QUANTIFIERS_INST_SYQI, "quant"},
     {theory::InferenceId::QUANTIFIERS_INST_MBQI, "quant"},
     {theory::InferenceId::QUANTIFIERS_INST_MBQI_ENUM, "quant"},
+    {theory::InferenceId::QUANTIFIERS_MBQI_ENUM_CHOICE, "quant"},
     {theory::InferenceId::QUANTIFIERS_INST_ENUM, "quant"},
     {theory::InferenceId::QUANTIFIERS_INST_POOL, "quant"},
     {theory::InferenceId::QUANTIFIERS_INST_POOL_TUPLE, "quant"},
@@ -588,7 +600,6 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::STRINGS_DEQ_NORM_EMP, "str"},
     {theory::InferenceId::STRINGS_DEQ_LENGTH_SP, "str"},
     {theory::InferenceId::STRINGS_DEQ_EXTENSIONALITY, "str"},
-    {theory::InferenceId::STRINGS_CODE_PROXY, "str"},
     {theory::InferenceId::STRINGS_CODE_INJ, "str"},
     {theory::InferenceId::STRINGS_ARRAY_UPDATE_UNIT, "str"},
     {theory::InferenceId::STRINGS_ARRAY_UPDATE_CONCAT, "str"},
@@ -600,7 +611,6 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::STRINGS_ARRAY_NTH_TERM_FROM_UPDATE, "str"},
     {theory::InferenceId::STRINGS_ARRAY_UPDATE_BOUND, "str"},
     {theory::InferenceId::STRINGS_ARRAY_EQ_SPLIT, "str"},
-    {theory::InferenceId::STRINGS_ARRAY_NTH_UPDATE_WITH_UNIT, "str"},
     {theory::InferenceId::STRINGS_ARRAY_NTH_REV, "str"},
     {theory::InferenceId::STRINGS_RE_NF_CONFLICT, "str"},
     {theory::InferenceId::STRINGS_RE_UNFOLD_POS, "str"},
@@ -633,8 +643,6 @@ std::unordered_map<theory::InferenceId, std::string> s_infIdToStr = {
     {theory::InferenceId::UF_CARD_CLIQUE, "uf"},
     {theory::InferenceId::UF_CARD_COMBINED, "uf"},
     {theory::InferenceId::UF_CARD_ENFORCE_NEGATIVE, "uf"},
-    {theory::InferenceId::UF_CARD_EQUIV, "uf"},
-    {theory::InferenceId::UF_CARD_MONOTONE_COMBINED, "uf"},
     {theory::InferenceId::UF_CARD_SIMPLE_CONFLICT, "uf"},
     {theory::InferenceId::UF_CARD_SPLIT, "uf"},
     {theory::InferenceId::UF_HO_CG_SPLIT, "uf"},
@@ -940,7 +948,8 @@ void AletheProofLogger::logSatRefutation()
   Trace("alethe-pf-log") << "; log SAT refutation end" << std::endl;
 }
 
-void AletheProofLogger::logSatRefutationProof(std::shared_ptr<ProofNode>& pfn)
+void AletheProofLogger::logSatRefutationProof(
+    CVC5_UNUSED std::shared_ptr<ProofNode>& pfn)
 {
   if (d_hadError)
   {

@@ -1,10 +1,7 @@
 /******************************************************************************
- * Top contributors (to current version):
- *   Hanna Lachnitt, Haniel Barbosa
- *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2025 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2026 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -64,6 +61,8 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::LA_GENERIC: return "la_generic";
     case AletheRule::LA_MULT_POS: return "la_mult_pos";
     case AletheRule::LA_MULT_NEG: return "la_mult_neg";
+    case AletheRule::LA_MULT_SIGN: return "la_mult_sign";
+    case AletheRule::LA_MULT_ABS_COMPARISON: return "la_mult_abs_comparison";
     case AletheRule::LIA_GENERIC: return "lia_generic";
     case AletheRule::LA_DISEQUALITY: return "la_disequality";
     case AletheRule::LA_TOTALITY: return "la_totality";
@@ -72,12 +71,8 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::QNT_JOIN: return "qnt_join";
     case AletheRule::QNT_RM_UNUSED: return "qnt_rm_unused";
     case AletheRule::TH_RESOLUTION: return "th_resolution";
-    case AletheRule::RESOLUTION:
-    case AletheRule::RESOLUTION_CL:
-    case AletheRule::RESOLUTION_OR:
-    {
-      return "resolution";
-    }
+    case AletheRule::RESOLUTION: return "resolution";
+    case AletheRule::RESOLUTION_OR: return "resolution";
     case AletheRule::REFL: return "refl";
     case AletheRule::TRANS: return "trans";
     case AletheRule::CONG: return "cong";
@@ -103,6 +98,9 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::NOT_ITE1: return "not_ite1";
     case AletheRule::NOT_ITE2: return "not_ite2";
     case AletheRule::ITE_INTRO: return "ite_intro";
+    case AletheRule::DIV_INTRO: return "div_intro";
+    case AletheRule::LOG2_INTRO: return "log2_intro";
+    case AletheRule::TO_INT_INTRO: return "to_int_intro";
     case AletheRule::CONTRACTION: return "contraction";
     case AletheRule::CONNECTIVE_DEF: return "connective_def";
     case AletheRule::AC_SIMP: return "ac_simp";
@@ -130,17 +128,15 @@ const char* aletheRuleToString(AletheRule id)
     case AletheRule::ACI_SIMP: return "aci_simp";
     case AletheRule::POLY_SIMP: return "poly_simp";
     case AletheRule::POLY_SIMP_REL: return "poly_simp_rel";
-    case AletheRule::BV_POLY_SIMP: return "bv_poly_simp";
-    case AletheRule::BV_POLY_SIMP_EQ: return "bv_poly_simp_eq";
     case AletheRule::EVALUATE: return "evaluate";
     case AletheRule::RARE_REWRITE: return "rare_rewrite";
-    case AletheRule::RARE_REWRITE_BV: return "rare_rewrite_bv";
     case AletheRule::SYMM: return "symm";
     case AletheRule::NOT_SYMM: return "not_symm";
     case AletheRule::MINISCOPE_DISTRIBUTE: return "miniscope_distribute";
     case AletheRule::MINISCOPE_SPLIT: return "miniscope_split";
     case AletheRule::MINISCOPE_ITE: return "miniscope_ite";
     case AletheRule::REORDERING: return "reordering";
+    case AletheRule::BETA_EQUIVALENCE: return "beta_equiv";
     case AletheRule::ARRAYS_IDX: return "arrays_idx";
     case AletheRule::ARRAYS_ROW: return "arrays_row";
     case AletheRule::ARRAYS_ROW_CONTRA: return "arrays_row_contra";

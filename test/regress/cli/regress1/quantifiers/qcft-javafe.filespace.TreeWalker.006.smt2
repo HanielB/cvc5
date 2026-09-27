@@ -1,3 +1,4 @@
+; REQUIRES: unrestricted-mode
 ; error because of my branch's parsing of datatypes (the `is` here is leading to issues)
 ; DISABLE-TESTER: alethe
 ; COMMAND-LINE: --cbqi-tconstraint
