@@ -333,15 +333,17 @@ void AletheProofPrinter::printProofNode(std::ostream& out,
   if (options().proof.proofAletheDefineSkolems)
   {
     const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
-    for (const auto& [skolem, choice] : skolemDefs)
+    const std::vector<Node>& skolemList = d_anc.getSkolemList();
+    for (const auto& skolem : skolemList)
     {
       if (d_printedSkolemDefinitions.count(skolem))
       {
         continue;
       }
       d_printedSkolemDefinitions.insert(skolem);
+      Assert(skolemDefs.find(skolem) != skolemDefs.end());
       out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
-      printTerm(out, choice);
+      printTerm(out, skolemDefs.at(skolem));
       out << ")" << std::endl;
     }
   }
@@ -432,10 +434,12 @@ void AletheProofPrinter::print(
   if (options().proof.proofAletheDefineSkolems)
   {
     const std::map<Node, Node>& skolemDefs = d_anc.getSkolemDefinitions();
-    for (const auto& [skolem, choice] : skolemDefs)
+    const std::vector<Node>& skolemList = d_anc.getSkolemList();
+    for (const auto& skolem : skolemList)
     {
+      Assert(skolemDefs.find(skolem) != skolemDefs.end());
       out << "(define-fun " << skolem << " () " << skolem.getType() << " ";
-      printTerm(out, choice);
+      printTerm(out, skolemDefs.at(skolem));
       out << ")" << std::endl;
     }
   }
