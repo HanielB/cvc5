@@ -25,6 +25,7 @@
 #include "proof/resolution_proofs_util.h"
 #include "rewriter/rewrite_proof_rule.h"
 #include "smt/env.h"
+#include "theory/arith/arith_poly_norm.h"
 #include "theory/builtin/proof_checker.h"
 #include "util/rational.h"
 
@@ -538,6 +539,118 @@ bool AletheProofPostprocessCallback::updateTheoryRewriteProofRewriteRule(
   return false;
 }
 
+bool AletheProofPostprocessCallback::updateMixedArithPolyNormRel(Node res,
+                                                                 CDProof* cdp)
+{
+  if (res.getKind() != Kind::EQUAL || res[0].getKind() != res[1].getKind()
+      || res[0].getNumChildren() != 2 || res[1].getNumChildren() != 2)
+  {
+    return false;
+  }
+  Kind k = res[0].getKind();
+  ProofRewriteRule castRule;
+  switch (k)
+  {
+    case Kind::EQUAL: castRule = ProofRewriteRule::ARITH_EQ_ELIM_TO_REAL; break;
+    case Kind::GEQ: castRule = ProofRewriteRule::ARITH_GEQ_ELIM_TO_REAL; break;
+    case Kind::GT: castRule = ProofRewriteRule::ARITH_GT_ELIM_TO_REAL; break;
+    case Kind::LEQ: castRule = ProofRewriteRule::ARITH_LEQ_ELIM_TO_REAL; break;
+    case Kind::LT: castRule = ProofRewriteRule::ARITH_LT_ELIM_TO_REAL; break;
+    default: return false;
+  }
+  auto isRel = [](const Node& r, bool integer) {
+    return integer ? r[0].getType().isInteger() && r[1].getType().isInteger()
+                   : r[0].getType().isReal() && r[1].getType().isReal();
+  };
+  size_t intSide;
+  if (isRel(res[0], true) && isRel(res[1], false))
+  {
+    intSide = 0;
+  }
+  else if (isRel(res[0], false) && isRel(res[1], true))
+  {
+    intSide = 1;
+  }
+  else
+  {
+    return false;
+  }
+  NodeManager* nm = nodeManager();
+  Node intRel = res[intSide];
+  Node realRel = res[1 - intSide];
+  Node embedded = nm->mkNode(k,
+                             nm->mkNode(Kind::TO_REAL, intRel[0]),
+                             nm->mkNode(Kind::TO_REAL, intRel[1]));
+  // the step relating the real embedding and the real relation, oriented as
+  // the final transitivity step uses it
+  Node relEq =
+      intSide == 0 ? embedded.eqNode(realRel) : realRel.eqNode(embedded);
+  Node premise;
+  if (embedded != realRel)
+  {
+    Rational ca, cb;
+    if (!theory::arith::PolyNorm::isArithPolyNormRel(
+            relEq[0], relEq[1], ca, cb))
+    {
+      return false;
+    }
+    premise = theory::arith::PolyNorm::getArithPolyNormRelPremise(
+        relEq[0], relEq[1], ca, cb);
+  }
+  std::stringstream ss;
+  ss << "\"" << castRule << "\"";
+  Node ruleName = NodeManager::mkRawSymbol(ss.str(), nm->sExprType());
+  // (= embedded intRel), by the RARE rule
+  Node castEq = embedded.eqNode(intRel);
+  bool success = addAletheStep(AletheRule::RARE_REWRITE,
+                               castEq,
+                               nm->mkNode(Kind::SEXPR, d_cl, castEq),
+                               {},
+                               {ruleName, intRel[0], intRel[1]},
+                               *cdp);
+  Node castStep = castEq;
+  if (intSide == 0)
+  {
+    castStep = intRel.eqNode(embedded);
+    success = success
+              && addAletheStep(AletheRule::SYMM,
+                               castStep,
+                               nm->mkNode(Kind::SEXPR, d_cl, castStep),
+                               {castEq},
+                               {},
+                               *cdp);
+  }
+  if (embedded == realRel)
+  {
+    // the cast step is the conclusion
+    Assert(castStep == res);
+    return success;
+  }
+  success = success
+            && addAletheStep(AletheRule::POLY_SIMP,
+                             premise,
+                             nm->mkNode(Kind::SEXPR, d_cl, premise),
+                             {},
+                             {},
+                             *cdp)
+            && addAletheStep(AletheRule::POLY_SIMP_REL,
+                             relEq,
+                             nm->mkNode(Kind::SEXPR, d_cl, relEq),
+                             {premise},
+                             {},
+                             *cdp);
+  std::vector<Node> transChildren = intSide == 0
+                                        ? std::vector<Node>{castStep, relEq}
+                                        : std::vector<Node>{relEq, castStep};
+  return success
+         && addAletheStep(AletheRule::TRANS,
+                          res,
+                          nm->mkNode(Kind::SEXPR, d_cl, res),
+                          transChildren,
+                          {},
+                          *cdp);
+}
+
 bool AletheProofPostprocessCallback::update(Node res,
                                             ProofRule id,
                                             const std::vector<Node>& children,
@@ -1014,6 +1127,10 @@ bool AletheProofPostprocessCallback::update(Node res,
     }
     case ProofRule::ARITH_POLY_NORM_REL:
     {
+      if (updateMixedArithPolyNormRel(res, cdp))
+      {
+        return true;
+      }
       return addAletheStep(AletheRule::POLY_SIMP_REL,
                            res,
                            nm->mkNode(Kind::SEXPR, d_cl, res),

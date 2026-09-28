@@ -38,6 +38,15 @@
 
 (define-rule arith-to-int-elim-to-real ((x Int)) (to_int (to_real x)) x)
 
+; A relation over integers holds iff it holds over their real embeddings. The
+; Alethe printer uses these to relate an integer relation to a real one (the
+; mixed-type instances of ARITH_POLY_NORM_REL that subtype elimination leaves).
+(define-rule arith-eq-elim-to-real ((t Int) (s Int)) (= (to_real t) (to_real s)) (= t s))
+(define-rule arith-geq-elim-to-real ((t Int) (s Int)) (>= (to_real t) (to_real s)) (>= t s))
+(define-rule arith-gt-elim-to-real ((t Int) (s Int)) (> (to_real t) (to_real s)) (> t s))
+(define-rule arith-leq-elim-to-real ((t Int) (s Int)) (<= (to_real t) (to_real s)) (<= t s))
+(define-rule arith-lt-elim-to-real ((t Int) (s Int)) (< (to_real t) (to_real s)) (< t s))
+
 (define-cond-rule arith-mod-over-mod-1 ((c Int) (r Int))
   (not (= c 0))
   (mod_total (mod_total r c) c)

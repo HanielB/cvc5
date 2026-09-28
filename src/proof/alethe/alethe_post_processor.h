@@ -166,6 +166,31 @@ class AletheProofPostprocessCallback : protected EnvObj,
                                            const std::vector<Node>& args,
                                            CDProof* cdp,
                                            ProofRewriteRule di);
+  /**
+   * Translates an `ARITH_POLY_NORM_REL` step whose two relations have
+   * different types, an integer relation (x1 ~ x2) and a real one
+   * (y1 ~ y2), which subtype elimination leaves. The integer relation is
+   * related to its real embedding E = ((to_real x1) ~ (to_real x2)) by a RARE
+   * rule, and E to (y1 ~ y2) by a `poly_simp_rel` step over reals only:
+   *
+   *  ------------------ rare_rewrite arith-~-elim-to-real
+   *  (= E (x1 ~ x2))                           ---- poly_simp
+   *  ------------------ symm                   P
+   *  (= (x1 ~ x2) E)                           ------------------ poly_simp_rel
+   *                                            (= E (y1 ~ y2))
+   *  ------------------------------------------------------------ trans
+   *  (= (x1 ~ x2) (y1 ~ y2))
+   *
+   * where P is the premise polynomial normalization gives for the two real
+   * relations. When E is (y1 ~ y2) itself, the symm step is the conclusion.
+   * The case where the real relation is on the left is symmetric.
+   *
+   * @param res The original conclusion
+   * @param cdp The proof to add to
+   * @return True if the step was translated, false if it is not of this
+   * form (and nothing was added).
+   */
+  bool updateMixedArithPolyNormRel(Node res, CDProof* cdp);
   /** Nodes corresponding to the Boolean values. */
   Node d_true;
   Node d_false;

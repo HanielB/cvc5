@@ -4245,6 +4245,16 @@ enum ENUM(ProofRewriteRule)
   EVALUE(ARITH_EQ_ELIM_INT),
   /** Auto-generated from RARE rule arith-to-int-elim-to-real */
   EVALUE(ARITH_TO_INT_ELIM_TO_REAL),
+  /** Auto-generated from RARE rule arith-eq-elim-to-real */
+  EVALUE(ARITH_EQ_ELIM_TO_REAL),
+  /** Auto-generated from RARE rule arith-geq-elim-to-real */
+  EVALUE(ARITH_GEQ_ELIM_TO_REAL),
+  /** Auto-generated from RARE rule arith-gt-elim-to-real */
+  EVALUE(ARITH_GT_ELIM_TO_REAL),
+  /** Auto-generated from RARE rule arith-leq-elim-to-real */
+  EVALUE(ARITH_LEQ_ELIM_TO_REAL),
+  /** Auto-generated from RARE rule arith-lt-elim-to-real */
+  EVALUE(ARITH_LT_ELIM_TO_REAL),
   /** Auto-generated from RARE rule arith-mod-over-mod-1 */
   EVALUE(ARITH_MOD_OVER_MOD_1),
   /** Auto-generated from RARE rule arith-mod-over-mod */
