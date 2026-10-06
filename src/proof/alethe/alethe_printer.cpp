@@ -168,9 +168,10 @@ void AletheProofPrinter::printTerm(std::ostream& out, TNode n, bool raw)
     options::ioutils::applyPrintArithLitToken(out, true);
     if (n.getKind() == Kind::SEXPR && n[0] == d_anc.getCl())
     {
-      out << "(cl ";
+      out << "(cl";
       for (size_t i = 1, size = n.getNumChildren(); i < size; ++i)
       {
+        out << " ";
         d_termPrinter.toStream(out, n[i]);
       }
       out << ")";
