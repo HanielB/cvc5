@@ -91,9 +91,13 @@ class ProofLogger : protected EnvObj
    * is a clause, and the premises are also known.
    * @param n The clause.
    * @param premises The premises of the clause.
+   * @param lazyPremises The premises that are unit clauses whose derivation is
+   * only logged later, when the SAT proof is finalized.
    */
   virtual void logSatLearnedClausePremises(
-      CVC5_UNUSED const Node& n, CVC5_UNUSED const std::vector<Node>& premises)
+      CVC5_UNUSED const Node& n,
+      CVC5_UNUSED const std::vector<Node>& premises,
+      CVC5_UNUSED const std::vector<Node>& lazyPremises)
   {
   }
   /**

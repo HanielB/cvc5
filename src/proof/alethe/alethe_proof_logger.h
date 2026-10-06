@@ -55,7 +55,10 @@ class AletheProofLogger : public ProofLogger
       theory::InferenceId id = theory::InferenceId::NONE) override;
   /** Log SAT refutation */
   void logSatRefutation() override;
-  void logSatLearnedClausePremises(const Node& n, const std::vector<Node>& premises) override;
+  void logSatLearnedClausePremises(
+      const Node& n,
+      const std::vector<Node>& premises,
+      const std::vector<Node>& lazyPremises) override;
 
   /** Log SAT refutation proof */
   void logSatRefutationProof(std::shared_ptr<ProofNode>& pfn) override;
@@ -80,6 +83,17 @@ class AletheProofLogger : public ProofLogger
   void printPreprocessingProof(std::vector<std::shared_ptr<ProofNode>>& pfns);
 
   void collectPreprocessedClauses(std::vector<std::shared_ptr<ProofNode>>& clauses);
+  /**
+   * Make an OR step concluding the clause of the disjuncts of the disjunction
+   * proved by pf, whose result is key. Returns nullptr if there was an error.
+   */
+  std::shared_ptr<ProofNode> mkOrClauseStep(
+      const std::shared_ptr<ProofNode>& pf, const Node& key);
+  /**
+   * Print the SAT refutation step, whose premises are the steps of the
+   * preprocessed input clauses and of the theory lemmas.
+   */
+  void printSatRefutation();
   void buildPreproccessingClausesMap();
 
   /** The output stream */
@@ -102,10 +116,24 @@ class AletheProofLogger : public ProofLogger
   std::shared_ptr<ProofNode> d_ppProof;
   /** The list of translated preprocessing proofs we were notified of */
   std::map<Node, std::shared_ptr<ProofNode>> d_ppPfs;
+  /** The proofs of the preprocessed input clauses, once collected. */
+  std::vector<std::shared_ptr<ProofNode>> d_ppClauses;
   /** The list of translated theory lemma proofs we were notified of */
   std::map<Node, std::shared_ptr<ProofNode>> d_lemmaPfs;
   /** The list of translated SAT clause proofs we were notified of */
   std::map<Node, std::shared_ptr<ProofNode>> d_satClausePfs;
+  /**
+   * The proofs of the theory lemmas that are disjunctions, which are logged as
+   * unit clauses, indexed by the clause of their disjuncts (with sorted
+   * literals). When used as premises of SAT clauses, their clausal form is
+   * obtained with an OR step, which is then stored in d_lemmaPfs.
+   */
+  std::map<Node, std::shared_ptr<ProofNode>> d_lemmaOrPfs;
+  /**
+   * The holes for the premises of SAT clauses that were not logged, so that
+   * each is printed only once.
+   */
+  std::map<Node, std::shared_ptr<ProofNode>> d_missingPfs;
 
   /** Logged lemmas. Used to avoid logging repeated lemmas. */
   std::unordered_set<Node> d_lemmas;
@@ -114,6 +142,8 @@ class AletheProofLogger : public ProofLogger
 
   /** Whether there was an error for some logged proof. */
   bool d_hadError;
+  /** Whether a SAT clause with no literals, i.e., a refutation, was logged. */
+  bool d_loggedEmptyClause;
   /** The cl operator. */
   Node d_cl;
 

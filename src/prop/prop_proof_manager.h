@@ -64,7 +64,14 @@ class PropPfManager : protected EnvObj
   /** Logs the preprocessing proof, if the proof logger is set. */
   void logPreprocessing();
 
-  void logSatClause(const Node& n, const std::vector<Node>& premises);
+  /**
+   * Log the SAT clause n derived from premises. The premises in lazyPremises
+   * are unit clauses whose derivation is only logged later, when the SAT
+   * proof is finalized.
+   */
+  void logSatClause(const Node& n,
+                    const std::vector<Node>& premises,
+                    const std::vector<Node>& lazyPremises = {});
 
   /** Postsolve, which finalizes proof logging. */
   void postsolve(SatValue result);

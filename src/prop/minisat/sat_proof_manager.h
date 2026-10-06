@@ -383,6 +383,11 @@ class SatProofManager : protected EnvObj
   void notifyClauseInsertedAtLevel(const SatClause& clause, uint32_t clLevel);
 
  private:
+  /**
+   * Log the clause with literals conclusionLits derived by the current
+   * resolution chain, whose premises are the clauses in d_resLinksSat.
+   */
+  void logResChain(const std::set<SatLiteral>& conclusionLits);
   /** Ends resolution chain concluding clause
    *
    * This method builds the proof of conclusion from the resolution chain
@@ -576,6 +581,12 @@ class SatProofManager : protected EnvObj
 
   /** As above, but SAT literals stored and privots ignored. Useful for logging. */
   std::vector<std::vector<SatLiteral>> d_resLinksSat;
+  /**
+   * The literals l such that the unit clause {l} was added to d_resLinksSat
+   * for a literal false at level 0. The derivation of these unit clauses is
+   * only explained when the proof is finalized. Used for logging.
+   */
+  std::unordered_set<SatLiteral, SatLiteralHashFunction> d_resLinksLazy;
 
   /** Redundant literals removed from the resolution chain's conclusion.
    *

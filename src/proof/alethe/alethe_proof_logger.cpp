@@ -23,6 +23,7 @@
 #include "proof/proof_node_manager.h"
 #include "smt/env.h"
 #include "smt/proof_manager.h"
+#include "util/rational.h"
 #include "util/string.h"
 
 namespace cvc5::internal {
@@ -51,6 +52,7 @@ AletheProofLogger::AletheProofLogger(Env& env,
       d_timerSat(statisticsRegistry().registerTimer("alethe::pfLogger::sat"))
 {
   d_hadError = false;
+  d_loggedEmptyClause = false;
   d_multPPClauses = false;
   Trace("alethe-pf-log-debug") << "Make Alethe proof logger" << std::endl;
   if (env.getLogicInfo().isHigherOrder())
@@ -83,21 +85,58 @@ void AletheProofLogger::collectPreprocessedClauses(
   // We ignore the scopes and collect the preprocesed from the AND_INTRO step,
   // if any (if single B, there is none), to be premises of the sat_refutation
   // step.
-  Assert(d_ppProof->getRule() == ProofRule::SCOPE) << *d_ppProof.get();
-  Assert(d_ppProof->getChildren()[0]->getRule() == ProofRule::SCOPE);
-  std::shared_ptr<ProofNode> ppBody =
-      d_ppProof->getChildren()[0]->getChildren()[0];
-  if (d_multPPClauses)
+  if (d_ppClauses.empty())
   {
-    Assert(getAletheRule(ppBody->getArguments()[0]) == AletheRule::AND_INTRO);
-    const std::vector<std::shared_ptr<ProofNode>>& pfChildren =
-        ppBody->getChildren();
-    clauses.insert(clauses.end(), pfChildren.begin(), pfChildren.end());
+    Assert(d_ppProof->getRule() == ProofRule::SCOPE) << *d_ppProof.get();
+    Assert(d_ppProof->getChildren()[0]->getRule() == ProofRule::SCOPE);
+    std::shared_ptr<ProofNode> ppBody =
+        d_ppProof->getChildren()[0]->getChildren()[0];
+    Node conj = ppBody->getResult();
+    if (!d_multPPClauses)
+    {
+      d_ppClauses.push_back(ppBody);
+    }
+    else if (ppBody->getRule() == ProofRule::ALETHE_RULE
+             && getAletheRule(ppBody->getArguments()[0])
+                    == AletheRule::AND_INTRO)
+    {
+      const std::vector<std::shared_ptr<ProofNode>>& pfChildren =
+          ppBody->getChildren();
+      d_ppClauses.insert(
+          d_ppClauses.end(), pfChildren.begin(), pfChildren.end());
+    }
+    else if (conj.getKind() == Kind::AND)
+    {
+      // The conjunction of the clauses was proven otherwise, e.g., the
+      // AND_INTRO step was replaced by an assumption of the same formula. We
+      // obtain each clause with an AND step.
+      NodeManager* nm = nodeManager();
+      for (size_t i = 0, nconj = conj.getNumChildren(); i < nconj; ++i)
+      {
+        CDProof cdp(d_env);
+        cdp.addProof(ppBody);
+        if (!addAletheStep(AletheRule::AND,
+                           conj[i],
+                           nm->mkNode(Kind::SEXPR, d_cl, conj[i]),
+                           {conj},
+                           {nm->mkConstInt(Rational(i))},
+                           cdp,
+                           nm,
+                           &d_anc,
+                           true))
+        {
+          d_hadError = true;
+          break;
+        }
+        d_ppClauses.push_back(cdp.getProofFor(conj[i]));
+      }
+    }
+    else
+    {
+      d_ppClauses.push_back(ppBody);
+    }
   }
-  else
-  {
-    clauses.push_back(ppBody);
-  }
+  clauses.insert(clauses.end(), d_ppClauses.begin(), d_ppClauses.end());
 }
 
 void AletheProofLogger::buildPreproccessingClausesMap()
@@ -114,55 +153,37 @@ void AletheProofLogger::buildPreproccessingClausesMap()
   for (const std::shared_ptr<ProofNode>& pf : premises)
   {
     Node preprocessed = pf->getResult();
-    // add to map both as unit clause as is and, if OR node, as clause of its
-    // arguments, which may or may not be useful. Note that we need to add an OR
-    // step for the latter
-    d_ppPfs.emplace(preprocessed, pf);
-    // also add a clause of its arguments, with an OR step in between. Do not
-    // bother with reordering steps.
+    // Whether pf concludes the unit clause of preprocessed, i.e., it is an
+    // assumption or its Alethe conclusion is (cl preprocessed). Otherwise,
+    // preprocessed is a disjunction and pf concludes the clause of its
+    // disjuncts.
+    bool isAssume = pf->getRule() == ProofRule::ASSUME;
+    Assert(isAssume
+           || (pf->getArguments().size() > 2
+               && pf->getArguments()[2].getKind() == Kind::SEXPR))
+        << *pf.get();
+    bool concludesUnit =
+        isAssume || pf->getArguments()[2].getNumChildren() == 2;
+    // Map the unit clause of preprocessed only if pf concludes it. If
+    // preprocessed is a disjunction whose clause pf concludes, the unit clause
+    // is not proven by pf, since there the disjunction is a single literal.
+    if (concludesUnit)
+    {
+      d_ppPfs.emplace(preprocessed, pf);
+    }
+    // also add the clause of the disjuncts of a disjunction, with an OR step if
+    // pf concludes the unit clause
     if (preprocessed.getKind() == Kind::OR)
     {
       std::vector<Node> lits{preprocessed.begin(), preprocessed.end()};
       std::sort(lits.begin(), lits.end());
       lits.insert(lits.begin(), d_cl);
       Node clause = nm->mkNode(Kind::SEXPR, lits);
-      // Whether we map to pf depends on whether the clausal result of pf is a
-      // unit clause or not. If it is not, we must add an OR step to obtain the
-      // respective clause. Note that without this test we would wrongly add an
-      // OR step to something whole conclusion is not a unit OR.
-      bool preprocessedPfIsAssume = pf->getRule() == ProofRule::ASSUME;
-      Assert(preprocessedPfIsAssume
-             || (pf->getArguments().size() >= 2
-                 && pf->getArguments()[2].getKind() == Kind::SEXPR
-                 && pf->getArguments()[2].getNumChildren() >= 2))
-          << *pf.get();
-      Node preprocessedClause =
-          preprocessedPfIsAssume ? pf->getResult() : pf->getArguments()[2];
-      std::shared_ptr<ProofNode> ppp;
-      // if child conclusion is of the form (sexpr cl (or ...)), then we need
-      // to add an OR step, since this child must not be a singleton
-      if ((preprocessedPfIsAssume && preprocessedClause.getKind() == Kind::OR)
-          || (preprocessedClause.getNumChildren() == 2
-              && preprocessedClause[0] == d_cl
-              && preprocessedClause[1].getKind() == Kind::OR))
+      std::shared_ptr<ProofNode> ppp = pf;
+      if (concludesUnit)
       {
-        CDProof cdp(d_env);
-        cdp.addProof(pf);
-        d_hadError = !addAletheStep(AletheRule::OR,
-                                    clause,
-                                    clause,
-                                    {preprocessed},
-                                    std::vector<Node>{},
-                                    cdp,
-                                    nm,
-                                    &d_anc,
-                                    true);
-        Assert(!d_hadError);
-        ppp = cdp.getProofFor(clause);
-      }
-      else
-      {
-        ppp = pf;
+        ppp = mkOrClauseStep(pf, clause);
+        Assert(ppp != nullptr);
       }
       d_ppPfs.emplace(clause, ppp);
     }
@@ -791,12 +812,46 @@ void AletheProofLogger::logTheoryLemma(const Node& n, theory::InferenceId id)
   }
   std::shared_ptr<ProofNode> ptl = cdp.getProofFor(key);
   d_lemmaPfs.emplace(key, ptl);
+  // A disjunction is used as the clause of its disjuncts by the SAT solver,
+  // whose literals are sorted when looking up premises of SAT clauses.
+  if (n.getKind() == Kind::OR)
+  {
+    std::vector<Node> lits{n.begin(), n.end()};
+    std::sort(lits.begin(), lits.end());
+    lits.insert(lits.begin(), d_cl);
+    d_lemmaOrPfs.emplace(nm->mkNode(Kind::SEXPR, lits), ptl);
+  }
   d_apprinter.printProofNode(d_out, ptl, true);
   Trace("alethe-pf-log") << "; log theory lemma end" << std::endl;
 }
 
+std::shared_ptr<ProofNode> AletheProofLogger::mkOrClauseStep(
+    const std::shared_ptr<ProofNode>& pf, const Node& key)
+{
+  Node disj = pf->getResult();
+  Assert(disj.getKind() == Kind::OR);
+  CDProof cdp(d_env);
+  cdp.addProof(pf);
+  // the literals of the conclusion must be the disjuncts, in order
+  if (!addAletheStepFromClause(AletheRule::OR,
+                               key,
+                               {disj.begin(), disj.end()},
+                               {disj},
+                               std::vector<Node>{},
+                               cdp,
+                               nodeManager(),
+                               &d_anc,
+                               true))
+  {
+    return nullptr;
+  }
+  return cdp.getProofFor(key);
+}
+
 void AletheProofLogger::logSatLearnedClausePremises(
-    const Node& n, const std::vector<Node>& premises)
+    const Node& n,
+    const std::vector<Node>& premises,
+    const std::vector<Node>& lazyPremises)
 {
   if (d_hadError)
   {
@@ -833,6 +888,21 @@ void AletheProofLogger::logSatLearnedClausePremises(
     }
     // look in lemmas, other learned sat clauses, and preprocessing
     auto it = d_lemmaPfs.find(key);
+    if (it == d_lemmaPfs.end())
+    {
+      // the premise may be a lemma logged as a disjunction
+      auto ito = d_lemmaOrPfs.find(key);
+      if (ito != d_lemmaOrPfs.end())
+      {
+        std::shared_ptr<ProofNode> pc = mkOrClauseStep(ito->second, key);
+        if (pc == nullptr)
+        {
+          d_hadError = true;
+          break;
+        }
+        it = d_lemmaPfs.emplace(key, pc).first;
+      }
+    }
     if (it != d_lemmaPfs.end())
     {
       cdp.addProof(it->second);
@@ -853,21 +923,32 @@ void AletheProofLogger::logSatLearnedClausePremises(
       premiseInPfs.push_back(it->second->getResult());
       continue;
     }
-    // create hole
-    d_hadError = !addAletheStepFromClause(
-        AletheRule::HOLE,
-        key,
-        {premise.begin(), premise.end()},
-        std::vector<Node>{},
-        {nm->mkConst(String("lost"))},
-        cdp,
-        nm,
-        &d_anc);
-    premiseInPfs.push_back(key);
-    if (d_hadError)
+    // the premise was not logged, use (and create if needed) a hole for it
+    it = d_missingPfs.find(key);
+    if (it == d_missingPfs.end())
     {
-      break;
+      // Unit clauses for literals fixed at level 0 are only justified lazily,
+      // when the SAT proof is finalized. Other premises are lost.
+      bool isLazy = std::find(lazyPremises.begin(), lazyPremises.end(), premise)
+                    != lazyPremises.end();
+      CDProof cdpm(d_env);
+      d_hadError = !addAletheStepFromClause(
+          AletheRule::HOLE,
+          key,
+          {premise.begin(), premise.end()},
+          std::vector<Node>{},
+          {nm->mkConst(String(isLazy ? "lazy" : "lost"))},
+          cdpm,
+          nm,
+          &d_anc);
+      if (d_hadError)
+      {
+        break;
+      }
+      it = d_missingPfs.emplace(key, cdpm.getProofFor(key)).first;
     }
+    cdp.addProof(it->second);
+    premiseInPfs.push_back(it->second->getResult());
   }
   // build key
   Node key;
@@ -900,6 +981,7 @@ void AletheProofLogger::logSatLearnedClausePremises(
   }
   std::shared_ptr<ProofNode> psat = cdp.getProofFor(key);
   d_satClausePfs.emplace(key, psat);
+  d_loggedEmptyClause = d_loggedEmptyClause || n.getNumChildren() == 0;
   // External learn-time instrumentation: this SAT clause is logged in learn
   // order, so stamp its printed key (== the resolution step's result) right
   // before printing. The Alethe printer's lookup on that step then emits the
@@ -919,32 +1001,7 @@ void AletheProofLogger::logSatRefutation()
   TimerStat::CodeTimer codeTimerSat(d_timerSat);
 
   Trace("alethe-pf-log") << "; log SAT refutation start" << std::endl;
-  std::vector<std::shared_ptr<ProofNode>> premises;
-  // std::vector<std::shared_ptr<ProofNode>> premises{d_ppPfs.begin(),
-  //                                                  d_ppPfs.end()};
-  if (Configuration::isAssertionBuild())
-  {
-    // make sure that each of these premises is present in the preprocessing
-    // proof and was therefore printed
-    Assert(d_ppProof->getRule() == ProofRule::SCOPE);
-    Assert(d_ppProof->getChildren()[0]->getRule() == ProofRule::SCOPE);
-    std::shared_ptr<ProofNode> ppBody =
-        d_ppProof->getChildren()[0]->getChildren()[0];
-    // we ignore the translated AND_INTRO step and rather directly get the
-    // proofs for the clauses
-    // for (const std::shared_ptr<ProofNode>& ppPf : d_ppPfs)
-    // {
-    //   Node n = ppPf->getResult();
-    //   // Traverse the proof node to find a subproof concluding n.
-    //   Assert(expr::getSubproofFor(n, ppBody))
-    //       << "Could not find " << n << std::endl;
-    // }
-  }
-  // premises.insert(premises.end(), d_lemmaPfs.begin(), d_lemmaPfs.end());
-  Node f = nodeManager()->mkConst(false);
-  std::shared_ptr<ProofNode> psr =
-      d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);
-  printPfNodeAlethe(psr, true, true);
+  printSatRefutation();
   Trace("alethe-pf-log") << "; log SAT refutation end" << std::endl;
 }
 
@@ -958,19 +1015,46 @@ void AletheProofLogger::logSatRefutationProof(
   TimerStat::CodeTimer codeTimer(d_timer);
   TimerStat::CodeTimer codeTimerSat(d_timerSat);
 
+  // When logging SAT clauses, the refutation is typically the last clause
+  // logged. It is not logged if the input clauses are trivially unsatisfiable,
+  // e.g., if preprocessing derived false.
+  if (options().proof.proofLogSat && d_loggedEmptyClause)
+  {
+    return;
+  }
   Trace("alethe-pf-log") << "; log SAT refutation proof start" << std::endl;
+  printSatRefutation();
+  Trace("alethe-pf-log") << "; log SAT refutation proof end" << std::endl;
+}
+
+void AletheProofLogger::printSatRefutation()
+{
   std::vector<std::shared_ptr<ProofNode>> premises;
-  collectPreprocessedClauses(premises);
+  // the preprocessing proof is not printed with --proof-log-lazy-pp, or if
+  // there were no input clauses
+  if (d_ppProof != nullptr)
+  {
+    collectPreprocessedClauses(premises);
+  }
   // Collect theory lemma steps added
   for (const auto& p : d_lemmaPfs)
   {
     premises.push_back(p.second);
   }
   Node f = nodeManager()->mkConst(false);
+  // If a premise is already a proof of false, e.g., if preprocessing derived
+  // false, we only need to derive the empty clause from it.
+  for (std::shared_ptr<ProofNode>& p : premises)
+  {
+    if (p->getResult() == f)
+    {
+      printPfNodeAlethe(p, true, true);
+      return;
+    }
+  }
   std::shared_ptr<ProofNode> psr =
       d_pnm->mkNode(ProofRule::SAT_REFUTATION, premises, {}, f);
   printPfNodeAlethe(psr, true, true);
-  Trace("alethe-pf-log") << "; log SAT refutation proof end" << std::endl;
 }
 
 }  // namespace proof

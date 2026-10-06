@@ -366,13 +366,15 @@ void PropPfManager::presolve()
                         << (d_plog != nullptr) << std::endl;
 }
 
-void PropPfManager::logSatClause(const Node& n, const std::vector<Node>& premises)
+void PropPfManager::logSatClause(const Node& n,
+                                 const std::vector<Node>& premises,
+                                 const std::vector<Node>& lazyPremises)
 {
   if (!d_plog)
   {
     return;
   }
-  d_plog->logSatLearnedClausePremises(n, premises);
+  d_plog->logSatLearnedClausePremises(n, premises, lazyPremises);
 }
 
 void PropPfManager::logPreprocessing()
@@ -428,12 +430,10 @@ void PropPfManager::postsolve(SatValue result)
     {
       if (d_env.isSatProofProducing())
       {
-        // if SAT proof producing, log the proof
+        // if SAT proof producing, log the proof. Note that if SAT clauses are
+        // logged, the logger may have already logged the refutation.
         std::shared_ptr<ProofNode> satPf = getProof(true);
-        if (!options().proof.proofLogSat)
-        {
-          d_plog->logSatRefutationProof(satPf);
-        }
+        d_plog->logSatRefutationProof(satPf);
       }
       else
       {
