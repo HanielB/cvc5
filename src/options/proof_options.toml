@@ -284,6 +284,14 @@ name   = "Proof"
   help       = "Lazily log proofs of preprocessing, based on unsat core input clauses"
 
 [[option]]
+  name       = "proofLogNoPp"
+  category   = "expert"
+  long       = "proof-log-no-pp"
+  type       = "bool"
+  default    = "false"
+  help       = "Do not produce proofs of preprocessing when logging proofs. Only track which input formulas each preprocessed formula depends on, and justify the latter by a trusted step whose premises are the former."
+
+[[option]]
   name       = "proofPreSimpLookahead"
   category   = "expert"
   long       = "proof-pre-simp-lookahead=N"

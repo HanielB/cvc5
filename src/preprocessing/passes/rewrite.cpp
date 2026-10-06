@@ -16,6 +16,7 @@
 
 #include "options/smt_options.h"
 #include "preprocessing/assertion_pipeline.h"
+#include "smt/env.h"
 #include "theory/rewriter.h"
 
 namespace cvc5::internal {
@@ -26,8 +27,9 @@ using namespace cvc5::internal::theory;
 
 Rewrite::Rewrite(PreprocessingPassContext* preprocContext)
     : PreprocessingPass(preprocContext, "rewrite"),
-      d_proof(options().smt.produceProofs ? new RewriteProofGenerator(d_env)
-                                          : nullptr)
+      d_proof(d_env.isPreprocessProofProducing()
+                  ? new RewriteProofGenerator(d_env)
+                  : nullptr)
 {
 }
 

@@ -28,6 +28,9 @@
 #include "theory/substitutions.h"
 
 namespace cvc5::internal {
+namespace smt {
+class PreprocessDeps;
+}
 namespace theory {
 
 /**
@@ -89,6 +92,16 @@ class TrustSubstitutionMap : protected EnvObj, public ProofGenerator
   /** Same as above, without proofs */
   Node apply(Node n, Rewriter* r = nullptr);
 
+  /**
+   * Track the dependencies of the substitutions of this map in deps, instead
+   * of producing proofs (--proof-log-no-pp). This disables proofs for this
+   * map. In particular, applyTrusted returns trust nodes without generator
+   * and instead notifies deps of the substitutions applied.
+   */
+  void enableDeps(smt::PreprocessDeps* deps);
+  /** Get the identifier of this map in the tracker given to enableDeps. */
+  size_t getDepsMapId() const { return d_depsMap; }
+
   /** Get the proof for formula f */
   std::shared_ptr<ProofNode> getProofFor(Node f) override;
   /** Identify */
@@ -141,6 +154,10 @@ class TrustSubstitutionMap : protected EnvObj, public ProofGenerator
   NodeUIntMap d_eqtIndex;
   /** Debugging, catches potential for infinite loops */
   std::unordered_set<Node> d_proving;
+  /** The tracker of dependencies, if enabled */
+  smt::PreprocessDeps* d_deps;
+  /** The identifier of this map in d_deps */
+  size_t d_depsMap;
 };
 
 }  // namespace theory

@@ -368,6 +368,19 @@ void SetDefaults::setDefaultsPre(Options& opts)
       throw OptionException(std::string("Cannot log proofs with sygus-inst"));
     }
   }
+  if (opts.proof.proofLogNoPp)
+  {
+    if (!opts.proof.proofLog)
+    {
+      throw OptionException(
+          std::string("--proof-log-no-pp requires --proof-log"));
+    }
+    if (opts.proof.proofLogLazyPreProcessing)
+    {
+      throw OptionException(std::string(
+          "--proof-log-no-pp cannot be combined with --proof-log-lazy-pp"));
+    }
+  }
 
   // if unsat cores are disabled, then unsat cores mode should be OFF. Similarly
   // for proof mode.

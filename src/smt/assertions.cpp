@@ -24,6 +24,7 @@
 #include "proof/lazy_proof.h"
 #include "proof/proof_node_algorithm.h"
 #include "smt/env.h"
+#include "smt/preprocess_deps.h"
 #include "theory/trust_substitutions.h"
 #include "util/result.h"
 
@@ -150,7 +151,7 @@ void Assertions::addFormula(TNode n, bool isFunDef, bool maybeHasFv)
         return;
       }
       // if we need to track proofs
-      if (d_env.isProofProducing())
+      if (d_env.isPreprocessProofProducing())
       {
         // initialize the proof generator if not already done so
         if (d_defFunRewPf == nullptr)
@@ -184,8 +185,20 @@ void Assertions::addFormula(TNode n, bool isFunDef, bool maybeHasFv)
       }
       Trace("smt-define-fun") << "...rewritten to " << defRew << std::endl;
       d_assertionListDefs.push_back(n);
-      d_env.getTopLevelSubstitutions().addSubstitution(
-          n[0], defRew, d_defFunRewPf.get());
+      smt::PreprocessDeps* deps = d_env.getPreprocessDeps();
+      if (deps != nullptr)
+      {
+        // The substitution is justified by the definition, which is an input
+        // formula, and the substitutions applied to its body.
+        deps->notifyInput(n);
+        deps->setSubstitutionSource(
+            deps->mkNode({deps->getId(n)}, tsm.getDepsMapId()));
+      }
+      tsm.addSubstitution(n[0], defRew, d_defFunRewPf.get());
+      if (deps != nullptr)
+      {
+        deps->clearSubstitutionSource();
+      }
       return;
     }
   }

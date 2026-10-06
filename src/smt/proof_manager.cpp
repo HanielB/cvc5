@@ -29,6 +29,7 @@
 #include "smt/assertions.h"
 #include "smt/difficulty_post_processor.h"
 #include "smt/env.h"
+#include "smt/preprocess_deps.h"
 #include "smt/preprocess_proof_generator.h"
 #include "smt/proof_logger.h"
 #include "smt/proof_post_processor.h"
@@ -163,6 +164,10 @@ PfManager::PfManager(Env& env)
 
   d_pppg = std::make_unique<PreprocessProofGenerator>(
       d_env, userContext(), "smt::PreprocessProofGenerator");
+  if (options().proof.proofLogNoPp)
+  {
+    d_ppDeps = std::make_unique<PreprocessDeps>(d_env);
+  }
 }
 
 PfManager::~PfManager() {}
@@ -242,7 +247,13 @@ std::shared_ptr<ProofNode> PfManager::connectProofToAssertions(
   {
     d_pfpp->setAssertions(assertions, false);
   }
-  d_pfpp->process(pfn, d_pppg.get());
+  // If preprocessing is not proof producing, the preprocessed assumptions are
+  // instead connected to steps whose premises are the input formulas they
+  // depend on. The post-processor does not eliminate these steps.
+  ProofGenerator* ppg = d_ppDeps != nullptr
+                            ? static_cast<ProofGenerator*>(d_ppDeps.get())
+                            : d_pppg.get();
+  d_pfpp->process(pfn, ppg);
 
   switch (scopeMode)
   {
@@ -464,6 +475,8 @@ PreprocessProofGenerator* PfManager::getPreprocessProofGenerator() const
 {
   return d_pppg.get();
 }
+
+PreprocessDeps* PfManager::getPreprocessDeps() const { return d_ppDeps.get(); }
 
 void PfManager::getAssertions(Assertions& as, std::vector<Node>& assertions)
 {

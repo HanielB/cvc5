@@ -99,6 +99,11 @@ enum class TrustId : uint32_t
   PREPROCESS_SORT_INFER_LEMMA,
   /** StringsEagerPp preprocessing pass */
   PREPROCESS_STRINGS_EAGER_PP,
+  /**
+   * A formula obtained by preprocessing, whose premises are the input formulas
+   * it depends on (--proof-log-no-pp).
+   */
+  PREPROCESS_DEPS,
   /** A step from the distinct extension */
   UF_DISTINCT,
   /**

@@ -51,6 +51,10 @@ void Preprocessor::finishInit(TheoryEngine* te,
     d_pppg = pppg;
     d_propagator.enableProofs(userContext(), d_pppg);
   }
+  else if (d_env.getPreprocessDeps() != nullptr)
+  {
+    d_propagator.enableDeps(d_env.getPreprocessDeps());
+  }
 
   d_ppContext.reset(new preprocessing::PreprocessingPassContext(
       d_env, te, pe, &d_propagator));

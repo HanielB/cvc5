@@ -46,6 +46,7 @@ using OutputTag = options::OutputTag;
 
 namespace smt {
 class PfManager;
+class PreprocessDeps;
 }
 
 namespace theory {
@@ -98,6 +99,12 @@ class Env
    * this environment is initialized, and only non-null if proofs are enabled.
    */
   ProofLogger* getProofLogger();
+
+  /**
+   * Get the tracker of the dependencies of preprocessed formulas, which is
+   * only non-null with --proof-log-no-pp.
+   */
+  smt::PreprocessDeps* getPreprocessDeps();
   /**
    * Get the underlying proof node manager. Note since proofs depend on option
    * initialization, this is only available after the SolverEngine that owns
@@ -124,6 +131,14 @@ class Env
    * proof mode is FULL or FULL_STRICT.
    */
   bool isTheoryProofProducing() const;
+
+  /**
+   * Check whether preprocessing should produce proofs. This is the case if
+   * proofs are enabled, unless only the dependencies of preprocessed formulas
+   * are tracked (--proof-log-no-pp). This depends only on the options, so it
+   * can be called before finishInit.
+   */
+  bool isPreprocessProofProducing() const;
 
   /** Get a pointer to the Rewriter owned by this Env. */
   theory::Rewriter* getRewriter();

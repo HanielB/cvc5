@@ -20,6 +20,8 @@
 #include "options/smt_options.h"
 #include "preprocessing/assertion_pipeline.h"
 #include "preprocessing/preprocessing_pass_context.h"
+#include "smt/env.h"
+#include "smt/preprocess_deps.h"
 #include "smt/preprocess_proof_generator.h"
 #include "theory/booleans/circuit_propagator.h"
 #include "theory/theory.h"
@@ -47,7 +49,7 @@ NonClausalSimp::Statistics::Statistics(StatisticsRegistry& reg)
 NonClausalSimp::NonClausalSimp(PreprocessingPassContext* preprocContext)
     : PreprocessingPass(preprocContext, "non-clausal-simp"),
       d_statistics(statisticsRegistry()),
-      d_llpg(options().smt.produceProofs
+      d_llpg(d_env.isPreprocessProofProducing()
                  ? new smt::PreprocessProofGenerator(
                        d_env, userContext(), "NonClausalSimp::llpg")
                  : nullptr),
@@ -122,6 +124,14 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
       std::make_shared<TrustSubstitutionMap>(
           d_env, u, "NonClausalSimp::newSubs");
   SubstitutionMap& nss = newSubstitutions->get();
+  // if we track dependencies instead of proofs, the dependencies of learned
+  // literals and conflicts are notified by the propagator
+  smt::PreprocessDeps* deps = d_env.getPreprocessDeps();
+  if (deps != nullptr)
+  {
+    constantPropagations->enableDeps(deps);
+    newSubstitutions->enableDeps(deps);
+  }
 
   size_t j = 0;
   std::vector<TrustNode>& learned_literals = propagator->getLearnedLiterals();
@@ -176,6 +186,11 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
 
     TrustNode tlearnedLiteral =
         TrustNode::mkTrustLemma(learnedLiteral, d_llpg.get());
+    if (deps != nullptr)
+    {
+      // the substitutions added below are derived from the learned literal
+      deps->setSubstitutionSource(learnedLiteral);
+    }
     bool solveStatus = d_preprocContext->getTheoryEngine()->solve(
         tlearnedLiteral, *newSubstitutions.get());
 
@@ -229,6 +244,10 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
         {
           d_llpg->notifyNewAssert(t.eqNode(c), cpg);
         }
+        else if (deps != nullptr)
+        {
+          deps->notifyNewAssert(t.eqNode(c), {deps->getId(learnedLiteral)});
+        }
       }
       else
       {
@@ -239,6 +258,10 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
       // conflict. In this case, we notify the context of the learned
       // literal, which will process it with the learned literal manager.
       d_preprocContext->notifyLearnedLiteral(learnedLiteral);
+    }
+    if (deps != nullptr)
+    {
+      deps->clearSubstitutionSource();
     }
   }
 
@@ -410,7 +433,7 @@ PreprocessingPassResult NonClausalSimp::applyInternal(
 
 bool NonClausalSimp::isProofEnabled() const
 {
-  return options().smt.produceProofs;
+  return d_env.isPreprocessProofProducing();
 }
 
 Node NonClausalSimp::processLearnedLit(Node lit,
@@ -452,6 +475,11 @@ Node NonClausalSimp::processRewrittenLearnedLit(TrustNode trn)
   if (isProofEnabled())
   {
     d_llpg->notifyTrustedPreprocessed(trn);
+  }
+  else if (d_env.getPreprocessDeps() != nullptr)
+  {
+    d_env.getPreprocessDeps()->notifyPreprocessed(trn.getProven()[0],
+                                                  trn.getNode());
   }
   // return the node
   return trn.getNode();

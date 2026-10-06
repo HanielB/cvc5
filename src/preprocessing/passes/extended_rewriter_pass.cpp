@@ -28,7 +28,7 @@ ExtRewPre::ExtRewPre(PreprocessingPassContext* preprocContext)
       d_id(options().smt.extRewPrep == options::ExtRewPrepMode::AGG
                ? MethodId::RW_EXT_REWRITE_AGG
                : MethodId::RW_EXT_REWRITE),
-      d_proof(options().smt.produceProofs
+      d_proof(d_env.isPreprocessProofProducing()
                   ? new RewriteProofGenerator(d_env, d_id)
                   : nullptr)
 {

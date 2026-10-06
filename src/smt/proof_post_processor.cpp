@@ -20,6 +20,7 @@
 #include "proof/proof_node_manager.h"
 #include "proof/resolution_proofs_util.h"
 #include "proof/subtype_elim_proof_converter.h"
+#include "smt/preprocess_deps.h"
 #include "theory/arith/arith_proof_utilities.h"
 #include "theory/arith/arith_utilities.h"
 #include "theory/builtin/proof_checker.h"
@@ -69,7 +70,9 @@ bool ProofPostprocessCallback::shouldUpdate(std::shared_ptr<ProofNode> pn,
   ProofRule id = pn->getRule();
   if (shouldExpand(id))
   {
-    return true;
+    // steps justifying preprocessed formulas by their dependencies are not
+    // eliminated
+    return !PreprocessDeps::isDepsStep(pn.get());
   }
   // other than elimination rules, we always update assumptions as long as
   // d_updateScopedAssumptions is true or they are *not* in scope, i.e., not in

@@ -17,6 +17,7 @@
 #include "options/smt_options.h"
 #include "proof/lazy_proof.h"
 #include "smt/logic_exception.h"
+#include "smt/preprocess_deps.h"
 #include "smt/preprocess_proof_generator.h"
 #include "theory/builtin/proof_checker.h"
 #include "util/rational.h"
@@ -28,6 +29,8 @@ AssertionPipeline::AssertionPipeline(Env& env)
     : EnvObj(env),
       d_storeSubstsInAsserts(false),
       d_pppg(nullptr),
+      d_deps(nullptr),
+      d_depsOnAllInputs(false),
       d_conflict(false),
       d_isRefutationUnsound(false),
       d_isModelUnsound(false),
@@ -75,6 +78,24 @@ void AssertionPipeline::push_back(
       Assert(pgen == nullptr);
       // n is an input assertion, whose proof should be ASSUME.
       d_pppg->notifyInput(n);
+    }
+  }
+  else if (d_deps != nullptr)
+  {
+    if (isInput)
+    {
+      d_deps->notifyInput(n);
+    }
+    else
+    {
+      // Unless the preprocessing pass notified otherwise, new assertions are
+      // assumed to be valid, e.g., definitional lemmas.
+      std::vector<smt::PreprocessDeps::DepId> premises;
+      if (d_depsOnAllInputs)
+      {
+        premises.push_back(smt::PreprocessDeps::ALL);
+      }
+      d_deps->notifyNewAssert(n, std::move(premises));
     }
   }
   if (n == d_false)
@@ -135,6 +156,10 @@ void AssertionPipeline::push_back(
     // add each conjunct
     for (const Node& nc : conjs)
     {
+      if (d_deps != nullptr)
+      {
+        d_deps->notifyNewAssert(nc, {d_deps->getId(n)});
+      }
       push_back(nc,
                 false,
                 d_andElimEpg.get(),
@@ -181,6 +206,10 @@ void AssertionPipeline::replace(size_t i,
   {
     Assert(pgen != nullptr || trustId != TrustId::UNKNOWN_PREPROCESS);
     d_pppg->notifyPreprocessed(d_nodes[i], n, pgen, trustId);
+  }
+  else if (d_deps != nullptr)
+  {
+    d_deps->notifyPreprocessed(d_nodes[i], n, d_depsOnAllInputs);
   }
   if (n == d_false)
   {
@@ -242,6 +271,12 @@ void AssertionPipeline::enableProofs(smt::PreprocessProofGenerator* pppg)
 }
 
 bool AssertionPipeline::isProofEnabled() const { return d_pppg != nullptr; }
+
+void AssertionPipeline::enableDeps(smt::PreprocessDeps* deps)
+{
+  Assert(!isProofEnabled());
+  d_deps = deps;
+}
 
 void AssertionPipeline::enableStoreSubstsInAsserts()
 {

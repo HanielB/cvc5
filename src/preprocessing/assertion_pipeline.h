@@ -28,6 +28,7 @@ namespace cvc5::internal {
 
 class ProofGenerator;
 namespace smt {
+class PreprocessDeps;
 class PreprocessProofGenerator;
 }
 
@@ -190,6 +191,17 @@ class AssertionPipeline : protected EnvObj
   void enableProofs(smt::PreprocessProofGenerator* pppg);
   /** Is proof enabled? */
   bool isProofEnabled() const;
+  /**
+   * Track the dependencies of assertions in deps instead of producing proofs
+   * (--proof-log-no-pp).
+   */
+  void enableDeps(smt::PreprocessDeps* deps);
+  /**
+   * Set whether the assertions added or replaced from now on conservatively
+   * depend on all input formulas, which is the case for preprocessing passes
+   * whose dependencies are not tracked.
+   */
+  void setDepsOnAllInputs(bool val) { d_depsOnAllInputs = val; }
   //------------------------------------ end for proofs
  private:
   /** Set that we are in conflict */
@@ -222,6 +234,10 @@ class AssertionPipeline : protected EnvObj
 
   /** The proof generator, if one is provided */
   smt::PreprocessProofGenerator* d_pppg;
+  /** The tracker of dependencies, if one is provided */
+  smt::PreprocessDeps* d_deps;
+  /** Do assertions added or replaced depend on all input formulas? */
+  bool d_depsOnAllInputs;
   /** Are we in conflict? */
   bool d_conflict;
   /** Is refutation unsound? */

@@ -35,6 +35,10 @@ SmtDriver::SmtDriver(Env& env, SmtSolver& smt, ContextManager* ctx)
   {
     d_ap.enableProofs(pppg);
   }
+  else if (d_env.getPreprocessDeps() != nullptr)
+  {
+    d_ap.enableDeps(d_env.getPreprocessDeps());
+  }
 }
 
 Result SmtDriver::checkSat(const std::vector<Node>& assumptions)

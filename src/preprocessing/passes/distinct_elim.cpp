@@ -17,6 +17,7 @@
 
 #include "options/smt_options.h"
 #include "preprocessing/assertion_pipeline.h"
+#include "smt/env.h"
 #include "theory/uf/theory_uf_rewriter.h"
 
 namespace cvc5::internal {
@@ -27,7 +28,7 @@ DistinctElim::DistinctElim(PreprocessingPassContext* preprocContext)
     : PreprocessingPass(preprocContext, "distinct-elim"),
       d_threshold(options().smt.distinctElimThreshold)
 {
-  if (options().smt.produceProofs)
+  if (d_env.isPreprocessProofProducing())
   {
     d_tpg.reset(new TConvProofGenerator(d_env,
                                         userContext(),

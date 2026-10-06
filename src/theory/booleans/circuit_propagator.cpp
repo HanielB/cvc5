@@ -20,6 +20,7 @@
 #include "proof/eager_proof_generator.h"
 #include "proof/proof_node.h"
 #include "proof/proof_node_manager.h"
+#include "smt/preprocess_deps.h"
 #include "theory/booleans/proof_circuit_propagator.h"
 #include "theory/theory.h"
 #include "util/hash.h"
@@ -50,7 +51,9 @@ CircuitPropagator::CircuitPropagator(Env& env,
       d_needsFinish(false),
       d_epg(nullptr),
       d_proofInternal(nullptr),
-      d_proofExternal(nullptr)
+      d_proofExternal(nullptr),
+      d_deps(nullptr),
+      d_depsRoot(smt::PreprocessDeps::ALL)
 {
 }
 
@@ -62,19 +65,35 @@ void CircuitPropagator::initialize()
   }
   d_context.push();
   d_needsFinish = true;
+  d_depIds.clear();
 }
 
 void CircuitPropagator::assertTrue(TNode assertion)
 {
+  if (d_deps != nullptr)
+  {
+    // the assignments made below are justified by the assertion
+    d_depsReason = TNode::null();
+    d_depsRoot = d_deps->getId(assertion);
+  }
+  assertTrueInternal(assertion);
+}
+
+void CircuitPropagator::assertTrueInternal(TNode assertion)
+{
   Trace("circuit-prop") << "TRUE: " << assertion << std::endl;
   if (assertion.getKind() == Kind::CONST_BOOLEAN && !assertion.getConst<bool>())
   {
+    if (d_deps != nullptr)
+    {
+      d_deps->notifyNewAssert(assertion, {d_depsRoot});
+    }
     makeConflict(assertion);
   }
   else if (assertion.getKind() == Kind::AND)
   {
     ProofCircuitPropagatorBackward prover{
-        d_env.getNodeManager(), d_env.getProofNodeManager(), assertion, true};
+        d_env.getNodeManager(), getProverPnm(), assertion, true};
     if (isProofEnabled())
     {
       addProof(assertion, prover.assume(assertion));
@@ -82,7 +101,7 @@ void CircuitPropagator::assertTrue(TNode assertion)
     for (auto it = assertion.begin(); it != assertion.end(); ++it)
     {
       addProof(*it, prover.andTrue(it));
-      assertTrue(*it);
+      assertTrueInternal(*it);
     }
   }
   else
@@ -110,6 +129,11 @@ void CircuitPropagator::assignAndEnqueue(TNode n,
     // Assigning a constant to the opposite value is dumb
     if (value != n.getConst<bool>())
     {
+      if (d_deps != nullptr)
+      {
+        d_deps->notifyNewAssert(nodeManager()->mkConst(false),
+                                {mkAssignmentDep(n)});
+      }
       makeConflict(n);
       return;
     }
@@ -144,6 +168,16 @@ void CircuitPropagator::assignAndEnqueue(TNode n,
     // If the node is already assigned we might have a conflict
     if (value != (state == ASSIGNED_TO_TRUE))
     {
+      if (d_deps != nullptr)
+      {
+        std::unordered_map<Node, uint32_t>::const_iterator it =
+            d_depIds.find(n);
+        Assert(it != d_depIds.end());
+        d_deps->notifyNewAssert(
+            nodeManager()->mkConst(false),
+            {it == d_depIds.end() ? smt::PreprocessDeps::ALL : it->second,
+             mkAssignmentDep(n)});
+      }
       makeConflict(n);
     }
   }
@@ -151,6 +185,11 @@ void CircuitPropagator::assignAndEnqueue(TNode n,
   {
     // If unassigned, mark it as assigned
     d_state[n] = value ? ASSIGNED_TO_TRUE : ASSIGNED_TO_FALSE;
+    if (d_deps != nullptr)
+    {
+      uint32_t id = mkAssignmentDep(n);
+      d_depIds[n] = id;
+    }
     // Add for further propagation
     d_propagationQueue.push_back(n);
   }
@@ -240,10 +279,9 @@ void CircuitPropagator::propagateBackward(TNode parent, bool parentAssignment)
 {
   Trace("circuit-prop") << "CircuitPropagator::propagateBackward(" << parent
                         << ", " << parentAssignment << ")" << endl;
-  ProofCircuitPropagatorBackward prover{d_env.getNodeManager(),
-                                        d_env.getProofNodeManager(),
-                                        parent,
-                                        parentAssignment};
+  ProofCircuitPropagatorBackward prover{
+      d_env.getNodeManager(), getProverPnm(), parent, parentAssignment};
+  d_depsReason = parent;
 
   // backward rules
   switch (parent.getKind())
@@ -256,7 +294,7 @@ void CircuitPropagator::propagateBackward(TNode parent, bool parentAssignment)
              i != i_end;
              ++i)
         {
-          assignAndEnqueue(*i, true, prover.andTrue(i));
+          assignAndEnqueueFrom(*i, true, prover.andTrue(i), {parent});
         }
       }
       else
@@ -292,7 +330,7 @@ void CircuitPropagator::propagateBackward(TNode parent, bool parentAssignment)
              i != i_end;
              ++i)
         {
-          assignAndEnqueue(*i, false, prover.orFalse(i));
+          assignAndEnqueueFrom(*i, false, prover.orFalse(i), {parent});
         }
       }
       break;
@@ -305,12 +343,18 @@ void CircuitPropagator::propagateBackward(TNode parent, bool parentAssignment)
       if (isAssignedTo(parent[0], true))
       {
         // ITE c x y = v: if c is assigned and TRUE, assign(x = v)
-        assignAndEnqueue(parent[1], parentAssignment, prover.iteC(true));
+        assignAndEnqueueFrom(parent[1],
+                             parentAssignment,
+                             prover.iteC(true),
+                             {parent, parent[0]});
       }
       else if (isAssignedTo(parent[0], false))
       {
         // ITE c x y = v: if c is assigned and FALSE, assign(y = v)
-        assignAndEnqueue(parent[2], parentAssignment, prover.iteC(false));
+        assignAndEnqueueFrom(parent[2],
+                             parentAssignment,
+                             prover.iteC(false),
+                             {parent, parent[0]});
       }
       else if (isAssigned(parent[1]) && isAssigned(parent[2]))
       {
@@ -384,8 +428,8 @@ void CircuitPropagator::propagateBackward(TNode parent, bool parentAssignment)
       else
       {
         // IMPLIES x y = FALSE: assign(x = TRUE) and assign(y = FALSE)
-        assignAndEnqueue(parent[0], true, prover.impliesNegX());
-        assignAndEnqueue(parent[1], false, prover.impliesNegY());
+        assignAndEnqueueFrom(parent[0], true, prover.impliesNegX(), {parent});
+        assignAndEnqueueFrom(parent[1], false, prover.impliesNegY(), {parent});
       }
       break;
     case Kind::XOR:
@@ -456,7 +500,8 @@ void CircuitPropagator::propagateForward(TNode child, bool childAssignment)
     Assert(expr::hasSubterm(parent, child));
 
     ProofCircuitPropagatorForward prover{
-        d_env.getNodeManager(), d_env.getProofNodeManager(), child, parent};
+        d_env.getNodeManager(), getProverPnm(), child, parent};
+    d_depsReason = parent;
 
     // Forward rules
     switch (parent.getKind())
@@ -494,14 +539,14 @@ void CircuitPropagator::propagateForward(TNode child, bool childAssignment)
         else
         {
           // AND ...(x=FALSE)...: assign(AND = FALSE)
-          assignAndEnqueue(parent, false, prover.andOneFalse());
+          assignAndEnqueueFrom(parent, false, prover.andOneFalse(), {child});
         }
         break;
       case Kind::OR:
         if (childAssignment)
         {
           // OR ...(x=TRUE)...: assign(OR = TRUE)
-          assignAndEnqueue(parent, true, prover.orOneTrue());
+          assignAndEnqueueFrom(parent, true, prover.orOneTrue(), {child});
         }
         else
         {
@@ -546,9 +591,10 @@ void CircuitPropagator::propagateForward(TNode child, bool childAssignment)
             if (isAssigned(parent[1]))
             {
               // ITE (c=TRUE) x y: if x is assigned, assign(ITE = x.assignment)
-              assignAndEnqueue(parent,
-                               getAssignment(parent[1]),
-                               prover.iteEvalThen(getAssignment(parent[1])));
+              assignAndEnqueueFrom(parent,
+                                   getAssignment(parent[1]),
+                                   prover.iteEvalThen(getAssignment(parent[1])),
+                                   {child, parent[1]});
             }
           }
           else
@@ -556,9 +602,10 @@ void CircuitPropagator::propagateForward(TNode child, bool childAssignment)
             if (isAssigned(parent[2]))
             {
               // ITE (c=FALSE) x y: if y is assigned, assign(ITE = y.assignment)
-              assignAndEnqueue(parent,
-                               getAssignment(parent[2]),
-                               prover.iteEvalElse(getAssignment(parent[2])));
+              assignAndEnqueueFrom(parent,
+                                   getAssignment(parent[2]),
+                                   prover.iteEvalElse(getAssignment(parent[2])),
+                                   {child, parent[2]});
             }
           }
         }
@@ -567,8 +614,10 @@ void CircuitPropagator::propagateForward(TNode child, bool childAssignment)
           if (isAssignedTo(parent[0], true))
           {
             // ITE c (x=v) y: if c is assigned and TRUE, assign(ITE = v)
-            assignAndEnqueue(
-                parent, childAssignment, prover.iteEvalThen(childAssignment));
+            assignAndEnqueueFrom(parent,
+                                 childAssignment,
+                                 prover.iteEvalThen(childAssignment),
+                                 {child, parent[0]});
           }
         }
         if (child == parent[2])
@@ -577,8 +626,10 @@ void CircuitPropagator::propagateForward(TNode child, bool childAssignment)
           if (isAssignedTo(parent[0], false))
           {
             // ITE c x (y=v): if c is assigned and FALSE, assign(ITE = v)
-            assignAndEnqueue(
-                parent, childAssignment, prover.iteEvalElse(childAssignment));
+            assignAndEnqueueFrom(parent,
+                                 childAssignment,
+                                 prover.iteEvalElse(childAssignment),
+                                 {child, parent[0]});
           }
         }
         break;
@@ -730,6 +781,11 @@ TrustNode CircuitPropagator::propagate()
           << "CircuitPropagator::propagate(): adding to learned: "
           << (assignment ? (Node)current : current.notNode()) << std::endl;
       Node lit = assignment ? Node(current) : current.notNode();
+      if (d_deps != nullptr)
+      {
+        Assert(d_depIds.find(current) != d_depIds.end());
+        d_deps->notifyNewAssert(lit, {d_depIds[current]});
+      }
 
       if (isProofEnabled())
       {
@@ -797,6 +853,81 @@ void CircuitPropagator::enableProofs(context::Context* ctx,
 bool CircuitPropagator::isProofEnabled() const
 {
   return d_proofInternal != nullptr;
+}
+
+ProofNodeManager* CircuitPropagator::getProverPnm() const
+{
+  return isProofEnabled() ? d_env.getProofNodeManager() : nullptr;
+}
+
+void CircuitPropagator::enableDeps(smt::PreprocessDeps* deps)
+{
+  Assert(!isProofEnabled());
+  d_deps = deps;
+}
+
+void CircuitPropagator::assignAndEnqueueFrom(
+    TNode n,
+    bool value,
+    std::shared_ptr<ProofNode> proof,
+    std::initializer_list<TNode> antecedents)
+{
+  if (d_deps != nullptr)
+  {
+    d_depsAntecedents.assign(antecedents);
+  }
+  assignAndEnqueue(n, value, std::move(proof));
+  d_depsAntecedents.clear();
+}
+
+uint32_t CircuitPropagator::mkAssignmentDep(TNode n)
+{
+  if (d_depsReason.isNull())
+  {
+    // n is (a conjunct of) the asserted formula
+    return d_depsRoot;
+  }
+  std::vector<uint32_t> premises;
+  std::unordered_map<Node, uint32_t>::const_iterator it;
+  if (!d_depsAntecedents.empty())
+  {
+    // the rule depends exactly on the given assignments
+    for (TNode a : d_depsAntecedents)
+    {
+      it = d_depIds.find(a);
+      Assert(it != d_depIds.end()) << "unassigned antecedent " << a;
+      premises.push_back(it == d_depIds.end() ? smt::PreprocessDeps::ALL
+                                              : it->second);
+    }
+  }
+  else
+  {
+    // Otherwise, the rule for d_depsReason depends on the assignments of
+    // d_depsReason, if any, and of all its children other than n that are
+    // assigned. This is the case for all the remaining rules, which only
+    // apply if all these children are assigned.
+    it = d_depIds.find(d_depsReason);
+    if (it != d_depIds.end())
+    {
+      premises.push_back(it->second);
+    }
+    for (const Node& c : d_depsReason)
+    {
+      if (c != n)
+      {
+        it = d_depIds.find(c);
+        if (it != d_depIds.end())
+        {
+          premises.push_back(it->second);
+        }
+      }
+    }
+  }
+  if (premises.size() == 1)
+  {
+    return premises[0];
+  }
+  return d_deps->mkNode(std::move(premises));
 }
 
 void CircuitPropagator::addProof(TNode f, std::shared_ptr<ProofNode> pf)

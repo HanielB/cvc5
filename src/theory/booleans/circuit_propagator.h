@@ -32,7 +32,12 @@ namespace cvc5::internal {
 
 class ProofGenerator;
 class ProofNode;
+class ProofNodeManager;
 class EagerProofGenerator;
+
+namespace smt {
+class PreprocessDeps;
+}
 
 namespace theory {
 namespace booleans {
@@ -132,6 +137,14 @@ class CircuitPropagator : protected EnvObj
    * to this class.
    */
   void enableProofs(context::Context* ctx, ProofGenerator* defParent);
+  /**
+   * Track the dependencies of the learned literals and conflicts of this
+   * class in deps, instead of producing proofs (--proof-log-no-pp). The
+   * asserted formulas must be notified to deps. Each learned literal, and
+   * false in case of conflict, is notified to deps as depending on the
+   * asserted formulas it was propagated from.
+   */
+  void enableDeps(smt::PreprocessDeps* deps);
 
  private:
   /** A context-notify object that clears out stale data. */
@@ -169,6 +182,15 @@ class CircuitPropagator : protected EnvObj
   void assignAndEnqueue(TNode n,
                         bool value,
                         std::shared_ptr<ProofNode> proof = nullptr);
+  /**
+   * Same as above, where the rule being applied only depends on the
+   * assignments of the nodes in antecedents, which are used as the
+   * dependencies of the assignment of n (if dependencies are tracked).
+   */
+  void assignAndEnqueueFrom(TNode n,
+                            bool value,
+                            std::shared_ptr<ProofNode> proof,
+                            std::initializer_list<TNode> antecedents);
 
   /**
    * Store a conflict for the case that we have derived both n and n.negate()
@@ -195,6 +217,19 @@ class CircuitPropagator : protected EnvObj
 
   /** Are proofs enabled? */
   bool isProofEnabled() const;
+  /**
+   * The proof node manager given to the provers, which is null if proofs are
+   * not enabled.
+   */
+  ProofNodeManager* getProverPnm() const;
+
+  /** Assert to true, where assertion is (a conjunct of) an asserted formula */
+  void assertTrueInternal(TNode assertion);
+  /**
+   * Make the dependency node for the assignment of n, due to the rule being
+   * applied for d_depsReason.
+   */
+  uint32_t mkAssignmentDep(TNode n);
 
   context::Context d_context;
 
@@ -254,6 +289,23 @@ class CircuitPropagator : protected EnvObj
   std::unique_ptr<LazyCDProofChain> d_proofInternal;
   /** Connects the proofs to assumptions externally */
   std::unique_ptr<LazyCDProofChain> d_proofExternal;
+
+  /** The tracker of dependencies, if enabled */
+  smt::PreprocessDeps* d_deps;
+  /** The dependency node of each assigned node, cleared in initialize */
+  std::unordered_map<Node, uint32_t> d_depIds;
+  /**
+   * The node whose propagation rules are being applied, or null if we are
+   * asserting the formula with dependency node d_depsRoot.
+   */
+  TNode d_depsReason;
+  /**
+   * The nodes whose assignments the rule being applied depends on, if given
+   * by assignAndEnqueueFrom.
+   */
+  std::vector<TNode> d_depsAntecedents;
+  /** The dependency node of the formula being asserted */
+  uint32_t d_depsRoot;
 }; /* class CircuitPropagator */
 
 }  // namespace booleans

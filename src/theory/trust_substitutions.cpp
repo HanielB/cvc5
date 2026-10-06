@@ -13,6 +13,7 @@
 #include "theory/trust_substitutions.h"
 
 #include "smt/env.h"
+#include "smt/preprocess_deps.h"
 #include "theory/rewriter.h"
 
 namespace cvc5::internal {
@@ -34,7 +35,9 @@ TrustSubstitutionMap::TrustSubstitutionMap(Env& env,
       d_name(name),
       d_trustId(trustId),
       d_ids(ids),
-      d_eqtIndex(c)
+      d_eqtIndex(c),
+      d_deps(nullptr),
+      d_depsMap(0)
 {
   ProofNodeManager* pnm = d_env.getProofNodeManager();
   if (pnm != nullptr)
@@ -48,11 +51,27 @@ TrustSubstitutionMap::TrustSubstitutionMap(Env& env,
   }
 }
 
+void TrustSubstitutionMap::enableDeps(smt::PreprocessDeps* deps)
+{
+  Assert(d_deps == nullptr && d_tsubs.empty());
+  d_deps = deps;
+  d_depsMap = deps->registerSubstitutionMap();
+  // proofs are not produced
+  d_tspb.reset();
+  d_subsPg.reset();
+  d_applyPg.reset();
+  d_helperPf.reset();
+}
+
 void TrustSubstitutionMap::addSubstitution(TNode x, TNode t, ProofGenerator* pg)
 {
   Trace("trust-subs") << "TrustSubstitutionMap::addSubstitution: add " << x
                       << " -> " << t << std::endl;
   d_subs.addSubstitution(x, t);
+  if (d_deps != nullptr)
+  {
+    d_deps->notifySubstitution(d_depsMap);
+  }
   if (isProofEnabled())
   {
     TrustNode tnl = TrustNode::mkTrustRewrite(x, t, pg);
@@ -86,6 +105,13 @@ ProofGenerator* TrustSubstitutionMap::addSubstitutionSolved(TNode x,
   Trace("trust-subs") << "TrustSubstitutionMap::addSubstitutionSolved: add "
                       << x << " -> " << t << " from " << tn.getProven()
                       << std::endl;
+  if (d_deps != nullptr)
+  {
+    // track that the substitution may be derived from tn.getProven()
+    d_subs.addSubstitution(x, t);
+    d_deps->notifySubstitution(d_depsMap, tn.getProven());
+    return nullptr;
+  }
   if (!isProofEnabled() || tn.getGenerator() == nullptr)
   {
     // no generator or not proof enabled, nothing to do
@@ -130,6 +156,17 @@ void TrustSubstitutionMap::addSubstitutions(TrustSubstitutionMap& t)
   {
     // just use the basic utility
     d_subs.addSubstitutions(t.get());
+    if (d_deps != nullptr)
+    {
+      if (t.d_deps == d_deps)
+      {
+        d_deps->notifySubstitutionsMerged(d_depsMap, t.d_depsMap);
+      }
+      else
+      {
+        d_deps->notifySubstitutionsUnknown(d_depsMap, t.get().size());
+      }
+    }
     return;
   }
   // call addSubstitution above in sequence
@@ -153,6 +190,10 @@ TrustNode TrustSubstitutionMap::applyTrusted(Node n, Rewriter* r)
   }
   if (!isProofEnabled())
   {
+    if (d_deps != nullptr)
+    {
+      d_deps->notifySubstitutionApply(d_depsMap, ns);
+    }
     // no proofs, use null generator
     return TrustNode::mkTrustRewrite(n, ns, nullptr);
   }

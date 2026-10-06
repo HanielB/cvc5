@@ -19,6 +19,7 @@
 #include "preprocessing/assertion_pipeline.h"
 #include "preprocessing/preprocessing_pass_context.h"
 #include "proof/proof.h"
+#include "smt/env.h"
 #include "theory/theory_engine.h"
 #include "theory/theory_model.h"
 
@@ -58,8 +59,9 @@ class BVEagerAtomProofGenerator : protected EnvObj, public ProofGenerator
 
 BvEagerAtoms::BvEagerAtoms(PreprocessingPassContext* preprocContext)
     : PreprocessingPass(preprocContext, "bv-eager-atoms"),
-      d_proof(options().smt.produceProofs ? new BVEagerAtomProofGenerator(d_env)
-                                          : nullptr)
+      d_proof(d_env.isPreprocessProofProducing()
+                  ? new BVEagerAtomProofGenerator(d_env)
+                  : nullptr)
 {
 }
 

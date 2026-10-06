@@ -252,7 +252,9 @@ void SmtSolver::finishInitPreprocessor()
   // determine if we are assigning a preprocess proof generator here
   smt::PfManager* pm = d_env.getProofManager();
   smt::PreprocessProofGenerator* pppg = nullptr;
-  if (pm != nullptr)
+  // if preprocessing is not proof producing, we instead track the
+  // dependencies of preprocessed formulas (if --proof-log-no-pp)
+  if (pm != nullptr && d_env.isPreprocessProofProducing())
   {
     pppg = pm->getPreprocessProofGenerator();
   }

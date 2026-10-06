@@ -47,6 +47,7 @@ enum class ProofScopeMode
 namespace smt {
 
 class Assertions;
+class PreprocessDeps;
 class PreprocessProofGenerator;
 class ProofPostprocess;
 
@@ -166,6 +167,11 @@ class PfManager : protected EnvObj
   rewriter::RewriteDb* getRewriteDatabase() const;
   /** Get the preprocess proof generator */
   PreprocessProofGenerator* getPreprocessProofGenerator() const;
+  /**
+   * Get the tracker of the dependencies of preprocessed formulas, which is
+   * only non-null with --proof-log-no-pp.
+   */
+  PreprocessDeps* getPreprocessDeps() const;
   //--------------------------- end access to utilities
  private:
   /**
@@ -192,6 +198,11 @@ class PfManager : protected EnvObj
   std::unique_ptr<smt::ProofPostprocess> d_pfpp;
   /** The preprocess proof generator. */
   std::unique_ptr<PreprocessProofGenerator> d_pppg;
+  /**
+   * The tracker of the dependencies of preprocessed formulas, used instead of
+   * d_pppg with --proof-log-no-pp.
+   */
+  std::unique_ptr<PreprocessDeps> d_ppDeps;
   /** The post process callback for finalization */
   ProofFinalCallback d_finalCb;
   /**

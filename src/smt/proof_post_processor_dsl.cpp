@@ -17,6 +17,7 @@
 #include "proof/proof_ensure_closed.h"
 #include "proof/proof_node_algorithm.h"
 #include "smt/env.h"
+#include "smt/preprocess_deps.h"
 
 using namespace cvc5::internal::theory;
 
@@ -75,7 +76,8 @@ bool ProofPostprocessDsl::shouldUpdate(std::shared_ptr<ProofNode> pn,
   // - We are not already recursively expanding >= 3 steps of the above form.
   // We check for the third criteria by tracking a d_traversing vector.
   if ((id == ProofRule::TRUST || id == ProofRule::TRUST_THEORY_REWRITE)
-      && pn->getChildren().empty() && d_traversing.size() < 3)
+      && pn->getChildren().empty() && d_traversing.size() < 3
+      && !PreprocessDeps::isDepsStep(pn.get()))
   {
     Trace("pp-dsl-process") << "...push " << pn.get() << std::endl;
     // note that we may be pushing pn more than once, if it is updated from a

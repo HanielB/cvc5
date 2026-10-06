@@ -20,6 +20,7 @@
 #include "expr/subtype_elim_node_converter.h"
 #include "options/base_options.h"
 #include "options/printer_options.h"
+#include "options/proof_options.h"
 #include "options/quantifiers_options.h"
 #include "options/smt_options.h"
 #include "options/strings_options.h"
@@ -87,6 +88,11 @@ void Env::finishInit(smt::PfManager* pm)
   }
   d_topLevelSubs.reset(
       new theory::TrustSubstitutionMap(*this, d_userContext.get()));
+  smt::PreprocessDeps* deps = getPreprocessDeps();
+  if (deps != nullptr)
+  {
+    d_topLevelSubs->enableDeps(deps);
+  }
 
   if (d_options.quantifiers.oracles)
   {
@@ -129,6 +135,16 @@ bool Env::isTheoryProofProducing() const
   return d_proofNodeManager != nullptr
          && (d_options.smt.proofMode == options::ProofMode::FULL
              || d_options.smt.proofMode == options::ProofMode::FULL_STRICT);
+}
+
+smt::PreprocessDeps* Env::getPreprocessDeps()
+{
+  return d_pfManager ? d_pfManager->getPreprocessDeps() : nullptr;
+}
+
+bool Env::isPreprocessProofProducing() const
+{
+  return d_options.smt.produceProofs && !d_options.proof.proofLogNoPp;
 }
 
 theory::Rewriter* Env::getRewriter() { return d_rewriter.get(); }

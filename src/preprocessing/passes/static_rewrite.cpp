@@ -15,6 +15,7 @@
 #include "options/smt_options.h"
 #include "preprocessing/assertion_pipeline.h"
 #include "preprocessing/preprocessing_pass_context.h"
+#include "smt/env.h"
 #include "theory/theory_engine.h"
 
 using namespace cvc5::internal::theory;
@@ -26,7 +27,7 @@ namespace passes {
 StaticRewrite::StaticRewrite(PreprocessingPassContext* preprocContext)
     : PreprocessingPass(preprocContext, "static-rewrite")
 {
-  if (options().smt.produceProofs)
+  if (d_env.isPreprocessProofProducing())
   {
     d_tpg.reset(new TConvProofGenerator(d_env,
                                         userContext(),

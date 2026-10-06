@@ -13,6 +13,7 @@
 #include "preprocessing/preprocessing_pass.h"
 
 #include <unordered_map>
+#include <unordered_set>
 
 #include "preprocessing/assertion_pipeline.h"
 #include "preprocessing/preprocessing_pass_context.h"
@@ -24,13 +25,44 @@
 namespace cvc5::internal {
 namespace preprocessing {
 
+namespace {
+/**
+ * The preprocessing passes whose dependencies are tracked when only the
+ * dependencies of preprocessed formulas are tracked (--proof-log-no-pp). These
+ * are the passes whose new assertions are valid (e.g., definitional lemmas) and
+ * whose rewritten assertions are implied by the original ones (and such valid
+ * assertions), as well as the passes that notify their other dependencies
+ * (non-clausal simplification and the substitutions it adds). The assertions
+ * added or replaced by other passes conservatively depend on all input
+ * formulas.
+ */
+const std::unordered_set<std::string> s_depsTrackedPasses = {
+    "apply-substs",
+    "bv-eager-atoms",
+    "distinct-elim",
+    "ext-rew-pre",
+    "ff-disjunctive-bit",
+    "ite-removal",
+    "non-clausal-simp",
+    "quantifiers-preprocess",
+    "rewrite",
+    "static-learning",
+    "static-rewrite",
+    "strings-eager-pp",
+    "theory-preprocess",
+};
+}  // namespace
+
 PreprocessingPassResult PreprocessingPass::apply(
     AssertionPipeline* assertionsToPreprocess)
 {
   TimerStat::CodeTimer codeTimer(d_timer);
   Trace("preprocessing") << "PRE " << d_name << std::endl;
   verbose(2) << d_name << "..." << std::endl;
+  assertionsToPreprocess->setDepsOnAllInputs(s_depsTrackedPasses.find(d_name)
+                                             == s_depsTrackedPasses.end());
   PreprocessingPassResult result = applyInternal(assertionsToPreprocess);
+  assertionsToPreprocess->setDepsOnAllInputs(false);
   Trace("preprocessing") << "POST " << d_name << std::endl;
   return result;
 }
