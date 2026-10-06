@@ -313,9 +313,13 @@ void CadicalSolver::initialize(TheoryProxy* theoryProxy)
   initialize();
 }
 
-void CadicalSolver::attachProofManager(CVC5_UNUSED PropPfManager* ppm)
+void CadicalSolver::attachProofManager(PropPfManager* ppm)
 {
-  // not implemented yet
+  // log the clauses derived by CaDiCaL, if SAT clauses are logged
+  if (d_proof_tracer != nullptr && options().proof.proofLogSat)
+  {
+    d_proof_tracer->enableLogging(nodeManager(), d_proxy, ppm);
+  }
 }
 
 void CadicalSolver::push()

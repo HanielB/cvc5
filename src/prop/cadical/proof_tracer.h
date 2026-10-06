@@ -18,11 +18,16 @@
 #include <cadical/tracer.hpp>
 #include <cstdint>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "proof/proof_node.h"
 #include "prop/sat_solver_types.h"
 #include "prop/theory_proxy.h"
+
+namespace cvc5::internal::prop {
+class PropPfManager;
+}
 
 namespace cvc5::internal::prop::cadical {
 
@@ -72,6 +77,15 @@ class ProofTracer : public CaDiCaL::Tracer
 
   ProofTracer(const CadicalPropagator& propagator);
 
+  /**
+   * Log each clause derived from now on with ppm, whose premises are its
+   * antecedents (--proof-log-sat).
+   * @param nm The node manager.
+   * @param proxy The theory proxy, to get the node of each literal.
+   * @param ppm The proof manager of the prop engine, which logs clauses.
+   */
+  void enableLogging(NodeManager* nm, TheoryProxy* proxy, PropPfManager* ppm);
+
   void add_original_clause(uint64_t clause_id,
                            bool redundant,
                            const std::vector<int>& clause,
@@ -110,6 +124,37 @@ class ProofTracer : public CaDiCaL::Tracer
    * @return Whether other polarity of given literal has been already marked.
    */
   bool mark_var(std::unordered_map<int32_t, uint8_t>& marked_vars, int32_t lit);
+
+  /** Log the derived clause ci. */
+  void logDerivedClause(const ClauseInfo& ci);
+
+  /**
+   * Log the assumption clause ci and, unless it only contains activation
+   * literals, the empty clause derived from it and the assumptions.
+   */
+  void logAssumptionClause(const ClauseInfo& ci);
+
+  /**
+   * Helper to produce the proof of false for an assumption clause cid, which
+   * contains literals other than activation literals. These are the negations
+   * of failed assumptions. The proof derives the clause from its antecedents
+   * (see chain_resolution_step) and resolves it with the assumptions.
+   */
+  std::shared_ptr<ProofNode> assumption_refutation_step(
+      uint64_t cid,
+      TheoryProxy* proxy,
+      ProofNodeManager* pnm,
+      NodeManager* nm,
+      const std::unordered_map<uint64_t, std::shared_ptr<ProofNode>>& steps,
+      const std::unordered_set<int64_t>& activation_literals);
+
+  /**
+   * Get the node-level clause of the given literals for logging, i.e., the
+   * SEXPR of the nodes of the literals other than activation literals, without
+   * duplicates.
+   */
+  Node mkLoggedClause(const std::unordered_set<int64_t>& activation_literals,
+                      const std::vector<int32_t>& lits) const;
 
   /**
    * Helper to produce chain resolution proof step for a derived clause.
@@ -151,6 +196,12 @@ class ProofTracer : public CaDiCaL::Tracer
   std::unordered_map<uint64_t, ClauseInfo> d_clauses;
   /** Stores the final clause ids used to conclude unsat. */
   std::vector<uint64_t> d_final_clauses;
+  /** The node manager, if logging. */
+  NodeManager* d_nm = nullptr;
+  /** The theory proxy, if logging. */
+  TheoryProxy* d_proxy = nullptr;
+  /** The proof manager of the prop engine, if logging. */
+  PropPfManager* d_ppm = nullptr;
 };
 
 }  // namespace cvc5::internal::prop::cadical

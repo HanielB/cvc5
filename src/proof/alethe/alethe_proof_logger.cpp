@@ -344,6 +344,13 @@ void AletheProofLogger::printPreprocessingProof(
     {
       d_hadError = true;
     }
+    // the preprocessing proof may already conclude the empty clause
+    else if (ppBody->getRule() == ProofRule::ALETHE_RULE
+             && ppBody->getArguments().size() > 2
+             && ppBody->getArguments()[2].getNumChildren() == 1)
+    {
+      d_loggedEmptyClause = true;
+    }
 
     // d_hadError = !printPfNodesAlethe(pfns, assumptions);
     // d_ppPfs.insert(d_ppPfs.end(), pfns.begin(), pfns.end());
@@ -853,7 +860,8 @@ void AletheProofLogger::logSatLearnedClausePremises(
     const std::vector<Node>& premises,
     const std::vector<Node>& lazyPremises)
 {
-  if (d_hadError)
+  // nothing needs to be logged after the empty clause
+  if (d_hadError || d_loggedEmptyClause)
   {
     return;
   }
@@ -923,8 +931,29 @@ void AletheProofLogger::logSatLearnedClausePremises(
       premiseInPfs.push_back(it->second->getResult());
       continue;
     }
-    // the premise was not logged, use (and create if needed) a hole for it
+    // the premise was not logged, use (and create if needed) a step for it
     it = d_missingPfs.find(key);
+    if (it == d_missingPfs.end()
+        && (key == nm->mkConst(true) || key == nm->mkConst(false).notNode()))
+    {
+      // The unit clauses true and (not false), which are clauses of the SAT
+      // solver but not logged, are proven by the respective Alethe rules.
+      CDProof cdpm(d_env);
+      d_hadError =
+          !addAletheStep(key.isConst() ? AletheRule::TRUE : AletheRule::FALSE,
+                         key,
+                         nm->mkNode(Kind::SEXPR, d_cl, key),
+                         {},
+                         {},
+                         cdpm,
+                         nm,
+                         &d_anc);
+      if (d_hadError)
+      {
+        break;
+      }
+      it = d_missingPfs.emplace(key, cdpm.getProofFor(key)).first;
+    }
     if (it == d_missingPfs.end())
     {
       // Unit clauses for literals fixed at level 0 are only justified lazily,

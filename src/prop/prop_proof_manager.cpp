@@ -59,6 +59,7 @@ PropPfManager::PropPfManager(Env& env,
       d_pfpp(new ProofPostprocess(env, &d_proof)),
       d_pfCnfStream(env, cnf, this),
       d_plog(nullptr),
+      d_loggedPreprocessing(false),
       d_satSolver(satSolver),
       d_assertions(userContext()),
       d_cnfStream(cnf),
@@ -374,6 +375,11 @@ void PropPfManager::logSatClause(const Node& n,
   {
     return;
   }
+  if (!d_loggedPreprocessing)
+  {
+    d_pendingSatClauses.emplace_back(n, premises, lazyPremises);
+    return;
+  }
   d_plog->logSatLearnedClausePremises(n, premises, lazyPremises);
 }
 
@@ -392,6 +398,13 @@ void PropPfManager::logPreprocessing()
                           << d_assumptions.size() << " assumptions"
                           << std::endl;
     d_plog->logCnfPreprocessInputProofs(icp);
+    d_loggedPreprocessing = true;
+    // log the SAT clauses that were derived before
+    for (const auto& [n, premises, lazyPremises] : d_pendingSatClauses)
+    {
+      d_plog->logSatLearnedClausePremises(n, premises, lazyPremises);
+    }
+    d_pendingSatClauses.clear();
   }
 }
 

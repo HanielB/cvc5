@@ -17,6 +17,9 @@
 
 #include <cvc5/cvc5_types.h>
 
+#include <tuple>
+#include <vector>
+
 #include "context/cdlist.h"
 #include "context/cdo.h"
 #include "proof/lazy_proof.h"
@@ -233,6 +236,16 @@ class PropPfManager : protected EnvObj
   ProofCnfStream d_pfCnfStream;
   /** Pointer to the proof logger of the environment */
   ProofLogger* d_plog;
+  /** Whether the preprocessing (input clauses) was logged. */
+  bool d_loggedPreprocessing;
+  /**
+   * The SAT clauses to log once the preprocessing is logged, with their
+   * premises and lazy premises (see logSatClause). SAT solvers may derive
+   * clauses while the input clauses are added, before the preprocessing is
+   * logged, and these may depend on the input clauses.
+   */
+  std::vector<std::tuple<Node, std::vector<Node>, std::vector<Node>>>
+      d_pendingSatClauses;
   /**
    * The SAT solver of this prop engine, which should provide a refutation
    * proof when requested */

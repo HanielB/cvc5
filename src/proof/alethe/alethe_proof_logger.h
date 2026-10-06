@@ -130,8 +130,9 @@ class AletheProofLogger : public ProofLogger
    */
   std::map<Node, std::shared_ptr<ProofNode>> d_lemmaOrPfs;
   /**
-   * The holes for the premises of SAT clauses that were not logged, so that
-   * each is printed only once.
+   * The steps for the premises of SAT clauses that were not logged, so that
+   * each is printed only once. These are holes, except for the unit clauses
+   * true and (not false).
    */
   std::map<Node, std::shared_ptr<ProofNode>> d_missingPfs;
 

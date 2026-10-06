@@ -19,6 +19,7 @@
 #include "proof/proof_node.h"
 #include "prop/cadical/cadical.h"
 #include "prop/cadical/cdclt_propagator.h"
+#include "prop/prop_proof_manager.h"
 
 namespace cvc5::internal::prop::cadical {
 
@@ -99,6 +100,15 @@ ProofTracer::ProofTracer(const CadicalPropagator& propagator)
 {
 }
 
+void ProofTracer::enableLogging(NodeManager* nm,
+                                TheoryProxy* proxy,
+                                PropPfManager* ppm)
+{
+  d_nm = nm;
+  d_proxy = proxy;
+  d_ppm = ppm;
+}
+
 void ProofTracer::add_original_clause(uint64_t clause_id,
                                       CVC5_UNUSED bool redundant,
                                       const std::vector<int>& clause,
@@ -116,10 +126,54 @@ void ProofTracer::add_derived_clause(CVC5_UNUSED uint64_t clause_id,
                                      const std::vector<uint64_t>& antecedents)
 {
   (void)redundant;
-  d_clauses.emplace(
-      clause_id,
-      ClauseInfo(clause_id, ClauseType::DERIVED, clause, antecedents));
-  Trace("cadical::prooftracer") << d_clauses.at(clause_id) << std::endl;
+  auto it =
+      d_clauses
+          .emplace(
+              clause_id,
+              ClauseInfo(clause_id, ClauseType::DERIVED, clause, antecedents))
+          .first;
+  Trace("cadical::prooftracer") << it->second << std::endl;
+  if (d_ppm != nullptr)
+  {
+    logDerivedClause(it->second);
+  }
+}
+
+Node ProofTracer::mkLoggedClause(
+    const std::unordered_set<int64_t>& activation_literals,
+    const std::vector<int32_t>& lits) const
+{
+  std::vector<Node> nodes;
+  for (const SatLiteral& lit : toSatClause(activation_literals, lits))
+  {
+    nodes.push_back(d_proxy->getNode(lit));
+  }
+  // CaDiCaL clauses added by cvc5 may contain duplicate literals, which are
+  // not in the clauses logged for them
+  std::sort(nodes.begin(), nodes.end());
+  nodes.erase(std::unique(nodes.begin(), nodes.end()), nodes.end());
+  return d_nm->mkNode(Kind::SEXPR, nodes);
+}
+
+void ProofTracer::logDerivedClause(const ClauseInfo& ci)
+{
+  std::unordered_set<int64_t> alits;
+  for (const auto& lit : d_propagator.activation_literals())
+  {
+    alits.insert(lit.getSatVariable());
+  }
+  // The antecedents are stored in the order they were resolved, so we list
+  // them in reverse order, as for the chain resolution step built for the
+  // proof (see chain_resolution_step).
+  std::vector<Node> premises;
+  for (size_t i = ci.antecedents.size(); i > 0; --i)
+  {
+    const ClauseInfo& ai = d_clauses.at(ci.antecedents[i - 1]);
+    premises.push_back(mkLoggedClause(alits, ai.literals));
+  }
+  // Every antecedent is given when the clause is derived, so no premise is
+  // explained lazily.
+  d_ppm->logSatClause(mkLoggedClause(alits, ci.literals), premises);
 }
 
 void ProofTracer::add_assumption_clause(
@@ -129,10 +183,42 @@ void ProofTracer::add_assumption_clause(
 {
   // Assumption clauses are the negation of the core of failed/unsat
   // assumptions.
-  d_clauses.emplace(
-      clause_id,
-      ClauseInfo(clause_id, ClauseType::ASSUMPTION, clause, antecedents));
-  Trace("cadical::prooftracer") << d_clauses.at(clause_id) << std::endl;
+  auto it =
+      d_clauses
+          .emplace(clause_id,
+                   ClauseInfo(
+                       clause_id, ClauseType::ASSUMPTION, clause, antecedents))
+          .first;
+  Trace("cadical::prooftracer") << it->second << std::endl;
+  if (d_ppm != nullptr)
+  {
+    logAssumptionClause(it->second);
+  }
+}
+
+void ProofTracer::logAssumptionClause(const ClauseInfo& ci)
+{
+  std::unordered_set<int64_t> alits;
+  for (const auto& lit : d_propagator.activation_literals())
+  {
+    alits.insert(lit.getSatVariable());
+  }
+  SatClause satClause = toSatClause(alits, ci.literals);
+  if (satClause.empty())
+  {
+    // only activation literals, the last derived clause is already empty
+    return;
+  }
+  // log the clause, which is derived from its antecedents
+  logDerivedClause(ci);
+  // log the empty clause, derived from it and the unit clauses of the
+  // assumptions
+  std::vector<Node> premises{mkLoggedClause(alits, ci.literals)};
+  for (const SatLiteral& lit : satClause)
+  {
+    premises.push_back(d_nm->mkNode(Kind::SEXPR, d_proxy->getNode(~lit)));
+  }
+  d_ppm->logSatClause(d_nm->mkNode(Kind::SEXPR, std::vector<Node>{}), premises);
 }
 
 void ProofTracer::conclude_unsat(CVC5_UNUSED CaDiCaL::ConclusionType type,
@@ -203,12 +289,25 @@ std::shared_ptr<ProofNode> ProofTracer::get_chain_resolution_proof(
       if (clause.type == ClauseType::ASSUMPTION)
       {
         Assert(cid == core.back());
-        Assert(sat_clause.empty());
         // Empty antecedents for assumption clauses only happen with constraint
         // feature (CaDiCaL's constrain method), which we don't use. The main
         // application is model checking.
         Assert(!clause.antecedents.empty());
-        steps.emplace(cid, steps.at(core[core.size() - 2]));
+        if (sat_clause.empty())
+        {
+          // The clause only has activation literals, hence the previous
+          // clause of the core is already the empty clause.
+          steps.emplace(cid, steps.at(core[core.size() - 2]));
+        }
+        else
+        {
+          // The clause is the negation of failed assumptions, e.g., the
+          // preprocessed assertions when computing unsat cores by solving
+          // under assumptions.
+          steps.emplace(
+              cid,
+              assumption_refutation_step(cid, proxy, pnm, nm, steps, alits));
+        }
       }
       else
       {
@@ -220,6 +319,36 @@ std::shared_ptr<ProofNode> ProofTracer::get_chain_resolution_proof(
   // Last clause id corresponds to empty clause.
   auto pf = steps.at(core.back());
   return pf;
+}
+
+std::shared_ptr<ProofNode> ProofTracer::assumption_refutation_step(
+    uint64_t cid,
+    TheoryProxy* proxy,
+    ProofNodeManager* pnm,
+    NodeManager* nm,
+    const std::unordered_map<uint64_t, std::shared_ptr<ProofNode>>& steps,
+    const std::unordered_set<int64_t>& activation_literals)
+{
+  // the proof of the clause from its antecedents
+  std::vector<std::shared_ptr<ProofNode>> children{
+      chain_resolution_step(cid, proxy, pnm, nm, steps, activation_literals)};
+  // resolve it with the unit clause of each assumption, i.e., the negation of
+  // each of its literals
+  std::vector<Node> polarities, literals;
+  for (const SatLiteral& lit :
+       toSatClause(activation_literals, d_clauses.at(cid).literals))
+  {
+    SatLiteral alit = ~lit;
+    children.push_back(pnm->mkAssume(proxy->getNode(alit)));
+    // the pivot occurs positively in the clause iff the assumption is
+    // negative
+    literals.push_back(proxy->getNode(SatLiteral(alit.getSatVariable())));
+    polarities.push_back(nm->mkConst(alit.isNegated()));
+  }
+  std::vector<Node> args{nm->mkConst(false)};
+  args.push_back(nm->mkNode(Kind::SEXPR, polarities));
+  args.push_back(nm->mkNode(Kind::SEXPR, literals));
+  return pnm->mkNode(ProofRule::CHAIN_M_RESOLUTION, children, args);
 }
 
 bool ProofTracer::mark_var(std::unordered_map<int32_t, uint8_t>& marked_vars,
